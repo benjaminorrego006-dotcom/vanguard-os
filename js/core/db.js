@@ -1,4 +1,4 @@
-import { getEjercicioMetadata } from './ejercicios-catalogo.js';
+import { getEjercicioMetadata, GRUPO_MUSCULAR_ORDEN } from './ejercicios-catalogo.js';
 function toSafeNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
@@ -1130,15 +1130,91 @@ export const db = {
     return { volumen, balance };
   },
 
+  // Desglose de entrenamiento por grupo muscular en un rango de fechas
+  // (pestaña Desglose de Análisis). A diferencia de getVolumenPorGrupo, que
+  // solo cuenta series para el widget de balance de rutinas-lista.js, acá
+  // se calculan las 3 métricas seleccionables (series, volumen en kg,
+  // repeticiones) más los totales del período.
+  async getDesgloseGrupoMuscular(startDate, endDate) {
+    const sesiones = safeGetItem('vg_sessions', []);
+    const start = new Date(startDate); start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate); end.setHours(23, 59, 59, 999);
+
+    const grupos = {};
+    GRUPO_MUSCULAR_ORDEN.forEach(g => { grupos[g] = { series: 0, reps: 0, volumen: 0 }; });
+
+    let entrenamientos = 0, seriesTotales = 0, repsTotales = 0, volumenTotal = 0;
+
+    sesiones.forEach(s => {
+      const fecha = new Date(s.fecha);
+      if (fecha < start || fecha > end) return;
+      entrenamientos++;
+      (s.ejercicios || []).forEach(ej => {
+        const meta = getEjercicioMetadata(ej.nombre);
+        const bucket = grupos[meta.grupoMuscular] || grupos.otro;
+        (ej.series || []).forEach(serie => {
+          const peso = Number(serie.peso) || 0;
+          const match = String(serie.reps).match(/\d+/);
+          const reps = match ? parseInt(match[0]) : 0;
+          const volumen = peso > 0 ? peso * reps : reps;
+
+          bucket.series += 1;
+          bucket.reps += reps;
+          bucket.volumen += volumen;
+          seriesTotales += 1;
+          repsTotales += reps;
+          volumenTotal += volumen;
+        });
+      });
+    });
+
+    return { grupos, entrenamientos, seriesTotales, repsTotales, volumenTotal };
+  },
+
+  // Todos los ejercicios que aparecen alguna vez en el historial de
+  // sesiones, con su grupo muscular resuelto — para el selector de la
+  // pestaña Ejercicios de Análisis.
+  async getListaEjerciciosRegistrados() {
+    const sesiones = safeGetItem('vg_sessions', []);
+    const map = new Map();
+    sesiones.forEach(s => {
+      (s.ejercicios || []).forEach(ej => {
+        const key = ej.nombre.toLowerCase().trim();
+        if (!map.has(key)) {
+          map.set(key, { nombre: ej.nombre.trim(), grupoMuscular: getEjercicioMetadata(ej.nombre).grupoMuscular });
+        }
+      });
+    });
+    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  },
+
+  // Favoritos de récords personales (pestaña Récords de Análisis): solo
+  // afectan el orden en que se muestran, se guardan aparte de los PRs
+  // porque estos últimos se derivan siempre de vg_sessions.
+  getFavoritosPR() {
+    return safeGetItem('vg_pr_favoritos', []);
+  },
+
+  async toggleFavoritoPR(nombre) {
+    const key = nombre.toLowerCase().trim();
+    let favoritos = safeGetItem('vg_pr_favoritos', []);
+    if (favoritos.includes(key)) favoritos = favoritos.filter(f => f !== key);
+    else favoritos.push(key);
+    safeSetItem('vg_pr_favoritos', JSON.stringify(favoritos));
+    this._triggerUpdate();
+    return favoritos;
+  },
+
   async getPRs() {
     const sesiones = safeGetItem('vg_sessions', []);
     const prs = {};
-    
+    const favoritos = safeGetItem('vg_pr_favoritos', []);
+
     sesiones.forEach(s => {
       if (s.ejercicios) {
         s.ejercicios.forEach(ej => {
           const nombre = ej.nombre.toLowerCase().trim();
-          if (!prs[nombre]) prs[nombre] = { pesoMax: 0, repsMax: 0, fecha: s.fecha };
+          if (!prs[nombre]) prs[nombre] = { nombre: ej.nombre.trim(), pesoMax: 0, repsMax: 0, fecha: s.fecha };
           
           ej.series.forEach(serie => {
             const peso = Number(serie.peso) || 0;
@@ -1164,6 +1240,11 @@ export const db = {
           });
         });
       }
+    });
+
+    Object.keys(prs).forEach(nombre => {
+      prs[nombre].grupoMuscular = getEjercicioMetadata(nombre).grupoMuscular;
+      prs[nombre].favorito = favoritos.includes(nombre);
     });
     return prs;
   },

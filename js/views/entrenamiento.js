@@ -8,9 +8,6 @@ import { WEEKLY_GOALS, CATEGORY_COLORS } from '../core/trainingConfig.js';
 import { renderProfileForm, setupProfileForm, openProfileForm } from '../components/profile-form.js';
 import { calcularIMC, calcularTMB } from '../utils/bodyMetrics.js';
 import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
-import { renderGoalCard } from '../components/goal-card.js';
-import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
-import { EmptyState, ConfirmDialog } from '../utils/states.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 
 let categoriaActiva = null;
@@ -167,6 +164,27 @@ export async function render() {
     `;
   }
 
+  // Resumen breve de metas: el detalle completo (crear, editar, listar
+  // todas) vive únicamente en la pestaña Metas de Análisis, para no
+  // duplicar esa UI en el dashboard de Entreno.
+  const metasActivas = metasEntreno.filter(g => !g.completed);
+  const progresoPromedio = metasActivas.length > 0
+    ? Math.round(metasActivas.reduce((sum, g) => sum + (g.targetAmount > 0 ? Math.min(100, (g.currentAmount / g.targetAmount) * 100) : 0), 0) / metasActivas.length)
+    : 0;
+
+  const metasResumenHtml = metasEntreno.length === 0
+    ? `<div class="card tappable" id="btn-ir-metas-analisis" style="padding: 20px; border-radius: 18px; text-align: center; cursor: pointer;">
+         <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Todavía no tenés metas de entrenamiento.</div>
+         <div style="background: transparent; color: var(--accent-teal); border: 1px dashed var(--accent-teal); padding: 12px; border-radius: 8px; font-weight: 600;">+ Nueva meta</div>
+       </div>`
+    : `<div class="card tappable" id="btn-ir-metas-analisis" style="padding: 18px 20px; border-radius: 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; cursor: pointer;">
+         <div>
+           <div style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${metasActivas.length}</div>
+           <div style="font-size: 11.5px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">meta${metasActivas.length === 1 ? '' : 's'} activa${metasActivas.length === 1 ? '' : 's'} &bull; ${progresoPromedio}% de progreso promedio</div>
+         </div>
+         <svg width="18" height="18" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+       </div>`;
+
   return `
     <div style="max-width: 480px; margin: 0 auto; width: 100%; box-sizing: border-box; padding: 0 20px; font-family: 'Inter', sans-serif; padding-bottom: 120px;">
 
@@ -223,6 +241,17 @@ export async function render() {
             </div>
             <svg width="18" height="18" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </div>
+
+          <div class="card tappable" id="btn-ir-analisis" style="padding: 20px; display: flex; align-items: center; gap: 18px; border-radius: 20px; cursor: pointer;">
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(6, 182, 212, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="24" height="24" fill="none" stroke="var(--accent-teal)" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </div>
+            <div style="flex: 1;">
+              <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 3px 0; color: var(--text-primary);">Análisis</h3>
+              <p style="color: var(--text-secondary); font-size: 12px; margin: 0; font-weight: 500;">Desglose, progreso, metas y récords</p>
+            </div>
+            <svg width="18" height="18" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
         </div>
 
         <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px;">
@@ -239,14 +268,7 @@ export async function render() {
           <div class="flex-between" style="margin-bottom: 14px;">
             <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary);">Metas</h3>
           </div>
-          ${metasEntreno.length === 0
-            ? `${EmptyState('Sin metas todavía', 'Ej. "Correr 100km este mes" o "20 sesiones este trimestre"')}
-               <button id="btn-add-goal-entreno" style="margin-top: 8px; background: transparent; color: var(--accent-teal); border: 1px dashed var(--accent-teal); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>`
-            : `<div style="display: flex; flex-direction: column; gap: 12px;">
-                 ${metasEntreno.map(g => renderGoalCard(g)).join('')}
-                 <button id="btn-add-goal-entreno" style="margin-top: 4px; background: transparent; color: var(--accent-teal); border: 1px dashed var(--accent-teal); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
-               </div>`
-          }
+          ${metasResumenHtml}
         </div>
 
         <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--text-primary);">Sesiones Recientes</h3>
@@ -265,7 +287,6 @@ export async function render() {
       </div>
 
       ${renderProfileForm()}
-      ${renderGoalForm()}
     </div>
   `;
 }
@@ -284,38 +305,19 @@ mountListeners = () => {
   renderVolumenSemanalChart();
   initActivityHeatmapListeners('entreno-heatmap', 'var(--accent-teal)');
 
-  initGoalForm(refreshFull);
-  const btnAddGoalEntreno = document.getElementById('btn-add-goal-entreno');
-  if (btnAddGoalEntreno) {
-    btnAddGoalEntreno.addEventListener('click', () => {
-      openGoalForm(null, { dominio: 'entreno', tipo: 'sesiones', unidad: 'sesiones', icon: 'run' });
+  const btnIrAnalisis = document.getElementById('btn-ir-analisis');
+  if (btnIrAnalisis) {
+    btnIrAnalisis.addEventListener('click', () => {
+      if (window.appRouter) window.appRouter.navigate('analisis');
     });
   }
-  document.querySelectorAll('.edit-goal').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const id = e.currentTarget.getAttribute('data-id');
-      const goal = (await db.getGoals('entreno')).find(g => g.id === id);
-      if (goal) openGoalForm(goal);
+  const btnIrMetasAnalisis = document.getElementById('btn-ir-metas-analisis');
+  if (btnIrMetasAnalisis) {
+    btnIrMetasAnalisis.addEventListener('click', () => {
+      sessionStorage.setItem('vg_analisis_initial_tab', 'metas');
+      if (window.appRouter) window.appRouter.navigate('analisis');
     });
-  });
-  document.querySelectorAll('.delete-goal').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const id = e.currentTarget.getAttribute('data-id');
-      const confirmed = await ConfirmDialog('¿Eliminar meta?', 'Esta acción no se puede deshacer.');
-      if (confirmed) {
-        await db.deleteGoal(id);
-        refreshFull();
-      }
-    });
-  });
-  document.querySelectorAll('.goal-row').forEach(row => {
-    row.addEventListener('click', async (e) => {
-      if (e.target.closest('button')) return;
-      const id = e.currentTarget.getAttribute('data-id');
-      const goal = (await db.getGoals('entreno')).find(g => g.id === id);
-      if (goal && !goal.autoTrack) openGoalContribute(goal);
-    });
-  });
+  }
 
   setupProfileForm(refreshFull);
   const btnOpenProfile = document.getElementById('btn-open-profile');
