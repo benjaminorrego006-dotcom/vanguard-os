@@ -5,11 +5,50 @@ import { renderRutinaSession, initRutinaSessionListeners, cleanupSessionTimer } 
 import { renderHiitTimer, initHiitTimerListeners, cleanupHiitTimer } from '../components/hiit-timer.js';
 import { renderProgressRing } from '../utils/progressRing.js';
 import { WEEKLY_GOALS, CATEGORY_COLORS } from '../core/trainingConfig.js';
+import { renderProfileForm, setupProfileForm, openProfileForm } from '../components/profile-form.js';
+import { calcularIMC, calcularTMB } from '../utils/bodyMetrics.js';
+import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
+import { renderGoalCard } from '../components/goal-card.js';
+import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
+import { EmptyState, ConfirmDialog } from '../utils/states.js';
 
 let categoriaActiva = null;
 let viewState = 'main'; // 'main', 'rutinas', 'form', 'session'
 let rutinaActualId = null;
 let currentViewController = null;
+let volumenChartInstance = null;
+
+// Barras de volumen total (peso x reps x series) por semana, agregando
+// todas las categorías. Se llama tras insertar el canvas en el DOM.
+const renderVolumenSemanalChart = async () => {
+  const canvas = document.getElementById('chart-volumen-semanal');
+  if (!canvas) return;
+  const { volumenPorSemana } = await db.getTendenciaSemanal(null, 8);
+  const Chart = await ensureChartJs();
+  const palette = appPalette();
+  const opts = baseChartOptions();
+
+  if (volumenChartInstance) volumenChartInstance.destroy();
+  volumenChartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: volumenPorSemana.map((_, i) => i === volumenPorSemana.length - 1 ? 'Esta sem.' : `S-${volumenPorSemana.length - 1 - i}`),
+      datasets: [{
+        data: volumenPorSemana,
+        backgroundColor: palette.purple,
+        borderRadius: 6,
+        maxBarThickness: 28
+      }]
+    },
+    options: {
+      ...opts,
+      scales: {
+        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10 } } },
+        y: { display: false }
+      }
+    }
+  });
+};
 
 export let mountListeners;
 
@@ -50,8 +89,10 @@ export async function render() {
   }
 
   const sesiones = await db.getSesiones();
+  const metasEntreno = await db.getGoals('entreno');
   const resumenSemanal = await db.getResumenEntrenoSemanal();
   const racha = await db.getRachaGeneral();
+  const profile = await db.getProfile();
 
   // Header and Recent Sessions remain visible in main view
   const recientesHTML = sesiones.length === 0
@@ -72,6 +113,63 @@ export async function render() {
     centerText: `${resumenSemanal[cat]}/${WEEKLY_GOALS[cat]}`
   });
 
+  // Mapa de calor tipo GitHub: intensidad de color según cuántas sesiones
+  // hubo cada día del mes actual (no usa Chart.js, es una grilla simple).
+  const now_ = new Date();
+  const heatYear = now_.getFullYear();
+  const heatMonth = now_.getMonth();
+  const nombreMesActual = now_.toLocaleDateString('es-ES', { month: 'long' });
+  const daysInHeatMonth = new Date(heatYear, heatMonth + 1, 0).getDate();
+  const firstWeekday = (new Date(heatYear, heatMonth, 1).getDay() + 6) % 7; // lunes=0
+  const countByDay = new Array(daysInHeatMonth + 1).fill(0);
+  sesiones.forEach(s => {
+    const d = new Date(s.fecha);
+    if (d.getFullYear() === heatYear && d.getMonth() === heatMonth) countByDay[d.getDate()]++;
+  });
+  const maxCount = Math.max(1, ...countByDay);
+  const heatCell = (count, dayLabel) => {
+    const alpha = count === 0 ? 0 : 0.28 + (count / maxCount) * 0.72;
+    return `<div title="${dayLabel ? `${dayLabel}: ${count} ${count === 1 ? 'sesión' : 'sesiones'}` : ''}" style="aspect-ratio: 1; border-radius: 4px; background: var(--accent-teal); opacity: ${count === 0 ? 1 : alpha}; ${count === 0 ? 'background: var(--surface-2);' : ''}"></div>`;
+  };
+  let heatmapCells = '';
+  for (let i = 0; i < firstWeekday; i++) heatmapCells += `<div></div>`;
+  for (let day = 1; day <= daysInHeatMonth; day++) heatmapCells += heatCell(countByDay[day], `${day} de ${nombreMesActual}`);
+  const heatmapHtml = `
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+      ${heatmapCells}
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 10px; font-size: 10px; color: var(--text-disabled);">
+      Menos
+      <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--surface-2);"></div>
+      <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--accent-teal); opacity: 0.4;"></div>
+      <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--accent-teal);"></div>
+      Más
+    </div>
+  `;
+
+  let metricsHtml = '';
+  if (profile) {
+    const imc = calcularIMC(profile.pesoKg, profile.estaturaCm);
+    const tmb = calcularTMB(profile);
+    metricsHtml = `
+      <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px; display: flex; align-items: center; gap: 18px;">
+        <div style="flex: 1;">
+          <div style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">IMC</div>
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${imc.valor}</span>
+            <span style="font-size: 11.5px; font-weight: 700; color: ${imc.color};">${imc.categoria}</span>
+          </div>
+        </div>
+        <div style="width: 1px; align-self: stretch; background: var(--surface-border);"></div>
+        <div style="flex: 1;">
+          <div style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Gasto calórico</div>
+          <div style="font-size: 12.5px; color: var(--text-primary); font-weight: 700;">${tmb.tmbBase} <span style="color: var(--text-secondary); font-weight: 500;">kcal base (TMB)</span></div>
+          <div style="font-size: 12.5px; color: var(--accent-teal); font-weight: 700; margin-top: 2px;">${tmb.gastoDiario} <span style="color: var(--text-secondary); font-weight: 500;">kcal/día estimado</span></div>
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div style="max-width: 480px; margin: 0 auto; width: 100%; box-sizing: border-box; padding: 0 20px; font-family: 'Inter', sans-serif; padding-bottom: 120px;">
 
@@ -83,9 +181,9 @@ export async function render() {
             <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">¡A darle con todo!</div>
             ${rachaHtml}
           </div>
-          <div class="icon-chip" style="width: 44px; height: 44px; background: rgba(191, 90, 242, 0.15); color: var(--accent-purple); flex-shrink: 0;">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.66 10.4a1.96 1.96 0 0 0-1.87 1.4L18 14.5l-3.35-7.06a2.08 2.08 0 0 0-3.6 0L8.2 13.5l-2.4-1.2A1.97 1.97 0 0 0 3.34 14l.8 2.4a2 2 0 0 0 1.9 1.4h11.9a2 2 0 0 0 1.9-1.4l1.6-4.8a1.96 1.96 0 0 0-1.4-2.4z"></path></svg>
-          </div>
+          <button id="btn-open-profile" class="icon-chip tappable" style="width: 44px; height: 44px; background: rgba(191, 90, 242, 0.15); color: var(--accent-purple); flex-shrink: 0; border: none; cursor: pointer;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </button>
         </div>
 
         <div style="position: relative; margin-bottom: 20px;">
@@ -98,6 +196,8 @@ export async function render() {
             "La disciplina lleva a la <span style="color: var(--accent-purple); font-weight: 700; font-style: normal;">grandeza.</span>"
           </div>
         </div>
+
+        ${metricsHtml}
 
         <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px;">
           <div class="card tappable btn-explorar" data-cat="gym" style="padding: 20px; display: flex; align-items: center; gap: 18px; border-radius: 20px; cursor: pointer;">
@@ -128,6 +228,30 @@ export async function render() {
           </div>
         </div>
 
+        <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px;">
+          <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Volumen semanal</h3>
+          <div style="height: 110px;"><canvas id="chart-volumen-semanal"></canvas></div>
+        </div>
+
+        <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px;">
+          <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
+          ${heatmapHtml}
+        </div>
+
+        <div style="margin-bottom: 24px;">
+          <div class="flex-between" style="margin-bottom: 14px;">
+            <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary);">Metas</h3>
+          </div>
+          ${metasEntreno.length === 0
+            ? `${EmptyState('Sin metas todavía', 'Ej. "Correr 100km este mes" o "20 sesiones este trimestre"')}
+               <button id="btn-add-goal-entreno" style="margin-top: 8px; background: transparent; color: var(--accent-teal); border: 1px dashed var(--accent-teal); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>`
+            : `<div style="display: flex; flex-direction: column; gap: 12px;">
+                 ${metasEntreno.map(g => renderGoalCard(g)).join('')}
+                 <button id="btn-add-goal-entreno" style="margin-top: 4px; background: transparent; color: var(--accent-teal); border: 1px dashed var(--accent-teal); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
+               </div>`
+          }
+        </div>
+
         <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--text-primary);">Sesiones Recientes</h3>
         <div id="entrenamiento-recientes" style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 24px;">
           ${recientesHTML}
@@ -143,6 +267,8 @@ export async function render() {
         <div id="entrenamiento-sub-content"></div>
       </div>
 
+      ${renderProfileForm()}
+      ${renderGoalForm()}
     </div>
   `;
 }
@@ -152,15 +278,68 @@ mountListeners = () => {
   const subView = document.getElementById('entrenamiento-sub-view');
   const subContent = document.getElementById('entrenamiento-sub-content');
 
+  const refreshFull = async () => {
+    const root = document.getElementById('view-root');
+    root.innerHTML = await render();
+    mountListeners();
+  };
+
+  renderVolumenSemanalChart();
+
+  initGoalForm(refreshFull);
+  const btnAddGoalEntreno = document.getElementById('btn-add-goal-entreno');
+  if (btnAddGoalEntreno) {
+    btnAddGoalEntreno.addEventListener('click', () => {
+      openGoalForm(null, { dominio: 'entreno', tipo: 'sesiones', unidad: 'sesiones', icon: 'run' });
+    });
+  }
+  document.querySelectorAll('.edit-goal').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      const goal = (await db.getGoals('entreno')).find(g => g.id === id);
+      if (goal) openGoalForm(goal);
+    });
+  });
+  document.querySelectorAll('.delete-goal').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      const confirmed = await ConfirmDialog('¿Eliminar meta?', 'Esta acción no se puede deshacer.');
+      if (confirmed) {
+        await db.deleteGoal(id);
+        refreshFull();
+      }
+    });
+  });
+  document.querySelectorAll('.goal-row').forEach(row => {
+    row.addEventListener('click', async (e) => {
+      if (e.target.closest('button')) return;
+      const id = e.currentTarget.getAttribute('data-id');
+      const goal = (await db.getGoals('entreno')).find(g => g.id === id);
+      if (goal && !goal.autoTrack) openGoalContribute(goal);
+    });
+  });
+
+  setupProfileForm(refreshFull);
+  const btnOpenProfile = document.getElementById('btn-open-profile');
+  if (btnOpenProfile) btnOpenProfile.addEventListener('click', () => openProfileForm());
+
+  // Onboarding: si todavía no hay perfil guardado, se abre automáticamente
+  // al entrar a Entreno (el usuario igual puede cancelar y completarlo después
+  // desde el botón de perfil).
+  db.getProfile().then(profile => {
+    if (!profile) openProfileForm();
+  });
+
   const goToMain = () => {
     if (currentViewController) currentViewController.abort();
     currentViewController = new AbortController();
-    
+
     categoriaActiva = null;
     viewState = 'main';
-    mainView.style.display = 'block';
-    subView.style.display = 'none';
-    refreshRecientes();
+    // Refresco completo (no solo "recientes"): una sesión recién terminada
+    // también cambia los anillos de progreso, el volumen semanal y el mapa
+    // de calor, todos calculados en render().
+    refreshFull();
   };
 
   const goToRutinas = async (cat) => {
@@ -251,15 +430,6 @@ mountListeners = () => {
       console.error('Error renderizando sesión:', err);
       subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
     }
-  };
-
-  const refreshRecientes = async () => {
-    const sesiones = await db.getSesiones();
-    const container = document.getElementById('entrenamiento-recientes');
-    if (!container) return;
-    container.innerHTML = sesiones.length === 0
-      ? recientesEmptyHtml()
-      : sesiones.slice(0, 5).map(sesionCardHtml).join('');
   };
 
   document.querySelectorAll('.btn-explorar').forEach(btn => {

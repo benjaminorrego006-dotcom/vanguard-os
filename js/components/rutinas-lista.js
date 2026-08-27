@@ -1,14 +1,29 @@
 import { db } from '../core/db.js';
 import { PLANTILLAS } from '../core/plantillas.js';
+import { getEjercicioPorId } from '../core/ejercicios-catalogo.js';
 import { renderMiniChart } from './mini-chart.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
+
+// Escala de dificultad para ordenar "Plantillas sugeridas" de menor a mayor.
+// 'Todos los niveles' se trata como accesible para principiantes (rango 1).
+const NIVEL_ORDEN = {
+  'Principiante': 1,
+  'Todos los niveles': 1,
+  'Principiante-Intermedio': 2,
+  'Intermedio': 3,
+  'Intermedio-Avanzado': 4,
+  'Avanzado': 5
+};
+function ordenarPorNivel(plantillas) {
+  return [...plantillas].sort((a, b) => (NIVEL_ORDEN[a.nivel] || 99) - (NIVEL_ORDEN[b.nivel] || 99));
+}
 
 const warningSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px; flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
 const infoSvg = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
 
 export async function renderRutinasLista(categoria) {
   const rutinas = await db.getRutinas(categoria);
-  const plantillas = PLANTILLAS[categoria] || [];
+  const plantillas = ordenarPorNivel(PLANTILLAS[categoria] || []);
 
   const catNames = { gym: 'GYM (Pesas)', calistenia: 'Calistenia', hiit: 'HIIT/Cardio' };
   const catName = catNames[categoria] || categoria;
@@ -72,6 +87,45 @@ export async function renderRutinasLista(categoria) {
   }
 
   html += balanceHtml;
+
+  let volumenGrupoHtml = '';
+  if (categoria === 'gym') {
+    const { volumen } = await db.getVolumenPorGrupo(7);
+    const grupos = [
+      { key: 'pecho', label: 'Pecho', color: 'var(--accent-purple)' },
+      { key: 'espalda', label: 'Espalda', color: 'var(--accent-teal)' },
+      { key: 'piernas', label: 'Piernas', color: 'var(--state-high)' },
+      { key: 'hombros', label: 'Hombros', color: 'var(--state-medium)' },
+      { key: 'brazos', label: 'Brazos', color: 'var(--state-low, #60a5fa)' }
+    ];
+    const total = grupos.reduce((sum, g) => sum + (volumen[g.key] || 0), 0);
+
+    if (total > 0) {
+      const maxVal = Math.max(...grupos.map(g => volumen[g.key] || 0), 1);
+      volumenGrupoHtml = `
+        <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 24px;">
+          <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Volumen por grupo muscular (7 días)</h3>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+            ${grupos.map(g => {
+              const v = volumen[g.key] || 0;
+              const w = (v / maxVal) * 100;
+              return `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 60px; color: var(--text-secondary);">${g.label}</div>
+                  <div style="flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden;">
+                    <div style="height: 100%; width: ${w}%; background: ${g.color};"></div>
+                  </div>
+                  <div style="width: 28px; text-align: right; color: var(--text-primary);">${v}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary);">${infoSvg}Series totales por grupo muscular esta semana.</div>
+        </div>
+      `;
+    }
+  }
+  html += volumenGrupoHtml;
 
   let deloadHtml = '';
   if (categoria === 'gym' || categoria === 'calistenia') {
@@ -247,18 +301,20 @@ export function renderPlantillaPreview(plantilla) {
         <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 12px 0; color: var(--accent-purple);">${rut.nombre}</h4>
     `;
 
-    if (rut.ejerciciosList) {
+    if (rut.ejercicioIds) {
       html += `<ol style="margin: 0; padding-left: 20px; color: var(--text-primary); font-size: 14px; display: flex; flex-direction: column; gap: 8px;">`;
-      rut.ejerciciosList.forEach(ejName => {
-        html += `<li>${ejName}</li>`;
+      rut.ejercicioIds.forEach(id => {
+        const nombre = getEjercicioPorId(id)?.nombre || id;
+        html += `<li>${nombre}</li>`;
       });
       html += `</ol>`;
     } else if (rut.ejercicios) {
       html += `<div style="display: flex; flex-direction: column; gap: 8px;">`;
       rut.ejercicios.forEach(ej => {
+        const nombre = getEjercicioPorId(ej.ejercicioId)?.nombre || ej.ejercicioId;
         const totalSeries = ej.series.length;
         const repStr = ej.series[0].reps;
-        html += `<div style="font-size: 14px; color: var(--text-primary);">• <b>${ej.nombre}</b> <span style="color: var(--text-secondary);">— ${totalSeries} series x ${repStr} reps</span></div>`;
+        html += `<div style="font-size: 14px; color: var(--text-primary);">• <b>${nombre}</b> <span style="color: var(--text-secondary);">— ${totalSeries} series x ${repStr} reps</span></div>`;
       });
       html += `</div>`;
     }
@@ -321,10 +377,13 @@ export function initPlantillaPreviewListeners(categoria, plantilla, onSuccess, s
   document.getElementById('btn-usar-plantilla').addEventListener('click', async () => {
     for (let rut of plantilla.rutinas) {
       let ejercicios = [];
-      if (rut.ejerciciosList) {
-        ejercicios = rut.ejerciciosList.map(name => ({ nombre: name, series: [] }));
+      if (rut.ejercicioIds) {
+        ejercicios = rut.ejercicioIds.map(id => ({ nombre: getEjercicioPorId(id)?.nombre || id, series: [] }));
       } else {
-        ejercicios = JSON.parse(JSON.stringify(rut.ejercicios));
+        ejercicios = rut.ejercicios.map(ej => ({
+          nombre: getEjercicioPorId(ej.ejercicioId)?.nombre || ej.ejercicioId,
+          series: JSON.parse(JSON.stringify(ej.series))
+        }));
       }
 
       await db.crearRutina({

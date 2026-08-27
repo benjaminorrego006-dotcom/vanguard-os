@@ -10,6 +10,9 @@ import { renderAhorroForm, initAhorroForm } from '../components/AhorroForm.js';
 import { renderEnvelopeForm, initEnvelopeForm } from '../components/EnvelopeForm.js';
 import { renderTransferForm, initTransferForm } from '../components/TransferForm.js';
 import { renderRecurringForm, initRecurringForm } from '../components/RecurringForm.js';
+import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
+import { renderGoalCard } from '../components/goal-card.js';
+import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 
 const editSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const transferSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
@@ -17,21 +20,13 @@ const delSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" st
 const backspaceSvg = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>`;
 let b = null;
 let activeFinTab = 'resumen';
+let donutChartInstance = null;
+let dailyBalanceChartInstance = null;
+let monthCompareChartInstance = null;
 const today = new Date();
 const year = today.getFullYear();
 const month = String(today.getMonth() + 1).padStart(2, '0');
 let currentMonth = `${year}-${month}`;
-
-// Iconos disponibles para metas de ahorro (usados también en el <select> del modal de Meta)
-const GOAL_ICONS = ['shield', 'plane', 'car', 'home', 'laptop', 'education'];
-const GOAL_ICON_LABELS = {
-  shield: 'Fondo de emergencia',
-  plane: 'Viaje',
-  car: 'Auto',
-  home: 'Hogar',
-  laptop: 'Tecnología',
-  education: 'Educación'
-};
 
 const ICON_PATHS = {
   'Ingreso': '<polyline points="19 12 12 19 5 12"></polyline><line x1="12" y1="19" x2="12" y2="5"></line>',
@@ -83,34 +78,36 @@ export async function init() {
       elDisponible.style.color = (b.remaining >= 0) ? 'var(--state-success)' : 'var(--state-high)';
     }
 
-    // Update Donuts using renderDonut
+    // Donut de Presupuesto (SVG dibujado a mano, sin cambios) + gráficos
+    // reales de Resumen (Chart.js, ver renderResumenCharts).
     const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
     const totalWants = b.allocations.find(a => a.category === 'Wants')?.amount || 0;
     const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
     const getPct = (val) => b.budgeted > 0 ? Math.round((val / b.budgeted) * 100) : 0;
-    
+
     const segments = [
       { percent: getPct(totalNeeds), color: 'var(--state-high)' },
       { percent: getPct(totalWants), color: 'var(--accent-blue)' },
       { percent: getPct(totalSavings), color: 'var(--accent-purple)' }
     ];
     const donutSvg = renderDonut(segments, b.budgeted, b.budgeted === 0);
-    
-    const donutResumen = document.getElementById('chart-donut-resumen');
-    if (donutResumen) donutResumen.innerHTML = donutSvg;
-    
+
     const donutPresupuesto = document.getElementById('chart-donut-presupuesto');
     if (donutPresupuesto) donutPresupuesto.innerHTML = donutSvg;
-    
-    // Update internal text of Donuts
-    const donutResumenText = document.querySelector('#chart-donut-resumen + div > div:last-child');
-    if (donutResumenText) donutResumenText.innerText = formatCompactCurrency(b.budgeted);
-    
+
     const donutPresupuestoText = document.querySelector('#chart-donut-presupuesto + div > div:last-child');
     if (donutPresupuestoText) donutPresupuestoText.innerText = formatCurrency(b.expenses + b.savedThisMonth);
 
     const resumenLegend = document.getElementById('resumen-cat-legend');
     if (resumenLegend) resumenLegend.innerHTML = renderResumenLegend(b);
+
+    renderResumenCharts(b);
+
+    const trendContainer = document.getElementById('month-trend-container');
+    if (trendContainer) trendContainer.innerHTML = renderMonthTrend(b);
+
+    const dailyAvailContainer = document.getElementById('daily-available-container');
+    if (dailyAvailContainer) dailyAvailContainer.innerHTML = renderDailyAvailable(b);
 
     // Update transactions
     const txContainer = document.getElementById('recent-tx-list');
@@ -144,6 +141,36 @@ export async function init() {
     }
     
     // Re-attach listeners for dynamically updated Tx rows
+    attachTxListeners();
+
+    // Mantiene sincronizada la pestaña Movimientos si está montada (evita
+    // que una fila editada/eliminada quede "pegada" con datos viejos).
+    renderHistoryList();
+  };
+
+  let currentTypeFilter = 'All';
+
+  const renderHistoryList = (filterVal) => {
+    if (filterVal !== undefined) currentTypeFilter = filterVal;
+    const container = document.getElementById('history-list-content');
+    if (!container) return;
+
+    let filtered = b.breakdown;
+    if (currentTypeFilter === 'Ingreso') filtered = filtered.filter(t => t.type === 'Ingreso');
+    if (currentTypeFilter === 'Gasto') filtered = filtered.filter(t => t.type === 'Gasto' && t.category !== 'Savings');
+    if (currentTypeFilter === 'Ahorro') filtered = filtered.filter(t => t.category === 'Savings');
+
+    const dateFrom = document.getElementById('history-date-from')?.value;
+    const dateTo = document.getElementById('history-date-to')?.value;
+    if (dateFrom) filtered = filtered.filter(t => t.date && t.date.slice(0, 10) >= dateFrom);
+    if (dateTo) filtered = filtered.filter(t => t.date && t.date.slice(0, 10) <= dateTo);
+
+    if (filtered.length === 0) {
+      container.innerHTML = EmptyState("No hay movimientos", "No se encontraron resultados con este filtro");
+      return;
+    }
+
+    container.innerHTML = filtered.map(tx => txHtml(tx)).join('');
     attachTxListeners();
   };
 
@@ -239,17 +266,6 @@ export async function init() {
       });
   };
 
-  // --- METAS DE AHORRO (extraída para reutilizarse en refresh() y en el render inicial) ---
-  const setupGoalModal = () => {
-    document.getElementById('goal-id').value = '';
-    document.getElementById('goal-name').value = '';
-    document.getElementById('goal-target').value = '';
-    document.getElementById('goal-initial').value = '0';
-    document.getElementById('goal-icon').value = 'shield';
-    document.getElementById('goal-initial-container').style.display = 'block';
-    document.getElementById('modal-goal-title').innerText = 'Nueva Meta';
-  };
-
   const attachRecurringListeners = () => {
     const btnAddReq = document.getElementById('btn-add-recurring');
     if (btnAddReq) {
@@ -275,21 +291,13 @@ export async function init() {
 
   const attachGoalListeners = () => {
     const btnAddGoal = document.getElementById('btn-add-goal');
-    if (btnAddGoal) btnAddGoal.addEventListener('click', () => { setupGoalModal(); openModal('goal-modal'); });
+    if (btnAddGoal) btnAddGoal.addEventListener('click', () => openGoalForm(null, { dominio: 'finanzas', tipo: 'dinero' }));
 
     document.querySelectorAll('.edit-goal').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.getAttribute('data-id');
         const goal = b.goals.find(g => g.id === id);
-        if(goal) {
-          document.getElementById('goal-id').value = goal.id;
-          document.getElementById('goal-name').value = goal.name || '';
-          document.getElementById('goal-target').value = goal.targetAmount || 0;
-          document.getElementById('goal-icon').value = goal.icon || 'shield';
-          document.getElementById('goal-initial-container').style.display = 'none';
-          document.getElementById('modal-goal-title').innerText = 'Editar Meta';
-          openModal('goal-modal');
-        }
+        if (goal) openGoalForm(goal);
       });
     });
 
@@ -361,8 +369,8 @@ export async function init() {
       });
     }
 
-    initIngresoForm(db, refresh);
-    initGastoForm(db, refresh);
+    initIngresoForm(db, () => b, refresh);
+    initGastoForm(db, () => b, refresh);
     initAhorroForm(db, () => b, refresh);
     initEnvelopeForm(db, refresh);
     initTransferForm(db, () => b, refresh);
@@ -377,41 +385,50 @@ export async function init() {
     if (btnFabGasto) btnFabGasto.addEventListener('click', () => { document.getElementById('gasto-modal').openForm(); });
     if (btnFabAhorro) btnFabAhorro.addEventListener('click', () => { document.getElementById('ahorro-modal').openForm(); });
 
+    const quickGastoInput = document.getElementById('quick-gasto-input');
+    const quickGastoHint = document.getElementById('quick-gasto-hint');
+    if (quickGastoInput) {
+      quickGastoInput.addEventListener('keydown', async (e) => {
+        if (e.key !== 'Enter') return;
+        const text = quickGastoInput.value.trim();
+        if (!text) return;
+
+        const parsed = parseQuickGasto(text, b.envelopes);
+        if (!parsed) {
+          quickGastoHint.textContent = 'No encontré un monto — probá algo como "50 en supermercado"';
+          return;
+        }
+
+        if (parsed.matches.length === 1) {
+          const env = parsed.matches[0];
+          await db.addTransaction({
+            type: 'Gasto',
+            category: env.category,
+            label: parsed.label || env.name,
+            amount: parsed.amount,
+            envelopeId: env.id,
+            goalId: null
+          });
+          Toast(`Gasto de ${formatCurrency(parsed.amount)} agregado a ${env.name}`, 'success');
+          quickGastoInput.value = '';
+          quickGastoHint.textContent = '';
+        } else {
+          quickGastoHint.textContent = parsed.matches.length > 1
+            ? 'Encontré más de un sobre posible — confirmá cuál es'
+            : 'No encontré una categoría clara — confirmá cuál es';
+          document.getElementById('gasto-modal').openForm({ amount: parsed.amount, label: parsed.label });
+          quickGastoInput.value = '';
+        }
+      });
+    }
+
     attachTxListeners();
     attachGoalListeners();
     attachRecurringListeners();
     attachEnvListeners();
 
-    const goalForm = document.getElementById('goal-form');
-    if (goalForm) {
-      goalForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('goal-id').value;
-        const name = document.getElementById('goal-name').value.trim();
-        const targetAmount = parseFloat(document.getElementById('goal-target').value) || 0;
-        const icon = document.getElementById('goal-icon').value;
-        const initialAmount = parseFloat(document.getElementById('goal-initial').value) || 0;
-        
-        if (!name || targetAmount <= 0) {
-          Toast("Completa los datos", "warning");
-          return;
-        }
+    initGoalForm(refresh);
 
-        const btnSubmit = goalForm.querySelector('button[type="submit"]');
-        const originalText = btnSubmit.innerHTML;
-        btnSubmit.innerHTML = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-
-                if (id) {
-          const existing = b.goals.find(g => g.id === id);
-          await db.updateGoal(id, { name, targetAmount, icon, currentAmount: existing ? existing.currentAmount : 0 });
-        } else {
-          await db.createGoal({ name, targetAmount, icon, currentAmount: initialAmount, completed: false });
-        }
-        closeModal('goal-modal');
-        Toast(id ? "Meta actualizada" : "Meta creada", "success");
-        refresh();
-      });
-    }
       // --- AJUSTES Y RESPALDOS ---
       const btnOpenSettings = document.getElementById('btn-open-settings');
       if (btnOpenSettings) btnOpenSettings.addEventListener('click', () => {
@@ -463,24 +480,6 @@ export async function init() {
       });
 
       // --- HISTORY MODAL & TABS ---
-      const renderHistoryList = (filterVal) => {
-        const container = document.getElementById('history-list-content');
-        if(!container) return;
-        
-        let filtered = b.breakdown;
-        if (filterVal === 'Ingreso') filtered = b.breakdown.filter(t => t.type === 'Ingreso');
-        if (filterVal === 'Gasto') filtered = b.breakdown.filter(t => t.type === 'Gasto' && t.category !== 'Savings');
-        if (filterVal === 'Ahorro') filtered = b.breakdown.filter(t => t.category === 'Savings');
-        
-        if (filtered.length === 0) {
-          container.innerHTML = EmptyState("No hay movimientos", "No se encontraron resultados");
-          return;
-        }
-        
-        container.innerHTML = filtered.map(tx => txHtml(tx)).join('');
-        attachTxListeners();
-      };
-
       document.querySelectorAll('.history-tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
           const filterVal = e.currentTarget.getAttribute('data-filter');
@@ -492,6 +491,17 @@ export async function init() {
           e.currentTarget.style.color = 'var(--text-primary)';
           renderHistoryList(filterVal);
         });
+      });
+
+      const dateFromInput = document.getElementById('history-date-from');
+      const dateToInput = document.getElementById('history-date-to');
+      if (dateFromInput) dateFromInput.addEventListener('change', () => renderHistoryList());
+      if (dateToInput) dateToInput.addEventListener('change', () => renderHistoryList());
+      const btnClearDates = document.getElementById('btn-clear-date-filter');
+      if (btnClearDates) btnClearDates.addEventListener('click', () => {
+        if (dateFromInput) dateFromInput.value = '';
+        if (dateToInput) dateToInput.value = '';
+        renderHistoryList();
       });
 
       // --- TOP CARDS & DONUT MAPPINGS ---
@@ -511,6 +521,8 @@ export async function init() {
           document.querySelector('.fin-tab[data-tab="movimientos"]').click();
         });
       });
+
+      renderResumenCharts(b);
     };
 };
 
@@ -597,33 +609,54 @@ const renderGoalsHTML = (b) => {
     `;
   } else {
     html += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
-    html += b.goals.map(g => {
-      const pct = g.targetAmount > 0 ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
-      return `
-        <div class="card goal-row" data-id="${g.id}" style="padding: 16px; border-radius: 16px;">
-          <div class="flex-between" style="margin-bottom: 12px;">
-            <div style="display: flex; gap: 12px; align-items: center;">
-              <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 16px;">
-                ${getSVG(g.icon, 'var(--text-primary)')}
-              </div>
-              <div style="font-size: 14px; font-weight: 700;">${g.name}</div>
-            </div>
-            <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
-              <div style="font-size: 12px; color: var(--text-secondary);">${formatCurrency(g.currentAmount)} / ${formatCurrency(g.targetAmount)}</div>
-              <button class="edit-goal" data-id="${g.id}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;">${editSvg}</button>
-              <button class="delete-goal" data-id="${g.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer;">${delSvg}</button>
-            </div>
-          </div>
-          <div style="height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; cursor: pointer;" class="contrib-btn" data-id="${g.id}">
-            <div style="height: 100%; width: ${pct}%; background: ${g.completed ? 'var(--state-success)' : 'var(--accent-purple)'}; border-radius: 4px;"></div>
-          </div>
-        </div>
-      `;
-    }).join('');
+    html += b.goals.map(g => renderGoalCard(g)).join('');
     html += `<button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--accent-purple); border: 1px dashed var(--accent-purple); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>`;
     html += `</div>`;
   }
   return html;
+};
+
+// Badge de alerta reutilizado en Presupuesto y como indicador en Resumen:
+// ámbar si la categoría superó el 80% de lo asignado, rojo si superó el 100%.
+const alertBadgeHtml = (usoCatPct, compact = false) => {
+  if (usoCatPct < 80) return '';
+  const isOver = usoCatPct >= 100;
+  const bg = isOver ? 'rgba(248, 113, 113, 0.15)' : 'rgba(251, 191, 36, 0.15)';
+  const color = isOver ? 'var(--state-high)' : 'var(--state-medium)';
+  const label = compact ? '' : (isOver ? 'Excedido' : '80%+');
+  return `<span style="display:inline-flex; align-items:center; gap:4px; background:${bg}; color:${color}; font-size:10px; font-weight:700; padding:${compact ? '0' : '2px 8px'}; border-radius:999px; ${compact ? `width:8px; height:8px;` : ''}">${compact ? '' : label}</span>`;
+};
+
+// Palabras que no aportan como pista de categoría en el gasto rápido.
+const QUICK_GASTO_STOPWORDS = new Set(['en', 'de', 'del', 'el', 'la', 'los', 'las', 'para', 'por', 'un', 'una']);
+
+// Interpreta texto libre tipo "50 en supermercado": el primer número es el
+// monto, y el resto del texto se busca como palabra clave contra el nombre
+// de los sobres existentes (coincidencia de substring, sin distinguir
+// mayúsculas). Devuelve null si no hay un monto válido.
+const parseQuickGasto = (text, envelopes) => {
+  const match = text.match(/\d+(?:[.,]\d+)?/);
+  if (!match) return null;
+  const amount = parseFloat(match[0].replace(',', '.'));
+  if (!amount || amount <= 0) return null;
+
+  const rawLabel = (text.slice(0, match.index) + text.slice(match.index + match[0].length)).trim();
+  const palabras = rawLabel.toLowerCase().split(/\s+/).filter(w => w.length > 2 && !QUICK_GASTO_STOPWORDS.has(w));
+
+  // Etiqueta sin las palabras de relleno ("en", "de", ...), para no guardar
+  // movimientos con nombres como "en supermercado".
+  const label = rawLabel
+    .split(/\s+/)
+    .filter(w => !QUICK_GASTO_STOPWORDS.has(w.toLowerCase()))
+    .join(' ')
+    .replace(/^./, c => c.toUpperCase());
+
+  const matches = (envelopes || []).filter(env => {
+    const nombre = env.name.toLowerCase();
+    return palabras.some(w => nombre.includes(w) || w.includes(nombre));
+  });
+
+  return { amount, label, matches };
 };
 
 const getCatColor = (cat) => {
@@ -698,19 +731,170 @@ const renderResumenLegend = (b) => {
   const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
   const totalWants = b.allocations.find(a => a.category === 'Wants')?.amount || 0;
   const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
+  const rule = b.rule || { needs: 0.5, wants: 0.3, savings: 0.2 };
   const items = [
-    { label: 'Necesidades', amount: totalNeeds, color: 'var(--state-high)' },
-    { label: 'Deseos', amount: totalWants, color: 'var(--accent-blue)' },
-    { label: 'Ahorros', amount: totalSavings, color: 'var(--accent-purple)' }
+    { label: 'Necesidades', amount: totalNeeds, color: 'var(--state-high)', share: rule.needs },
+    { label: 'Deseos', amount: totalWants, color: 'var(--accent-blue)', share: rule.wants },
+    { label: 'Ahorros', amount: totalSavings, color: 'var(--accent-purple)', share: rule.savings }
   ];
-  return items.map(item => `
+  return items.map(item => {
+    const disponibleCat = b.budgeted * item.share;
+    const usoCatPct = disponibleCat > 0 ? Math.round((item.amount / disponibleCat) * 100) : (item.amount > 0 ? 100 : 0);
+    return `
     <div style="display: flex; align-items: center; justify-content: space-between;">
       <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary);">
         <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${item.color}; flex-shrink: 0;"></span>${item.label}
+        ${alertBadgeHtml(usoCatPct, true)}
       </div>
       <div style="font-size: 12px; font-weight: 700; color: ${item.amount > 0 ? 'var(--text-primary)' : 'var(--text-disabled)'};">${item.amount > 0 ? formatCurrency(item.amount) : 'Sin movimientos'}</div>
     </div>
-  `).join('');
+  `;
+  }).join('');
+};
+
+// "Puedes gastar $X hoy" = (disponible restante) / días que quedan del mes (incluye hoy).
+const renderDailyAvailable = (b) => {
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const diasRestantes = Math.max(1, daysInMonth - now.getDate() + 1);
+  const saldoDiario = Math.max(0, b.remaining) / diasRestantes;
+  return `
+    <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px; display: flex; align-items: center; gap: 14px;">
+      <div class="icon-chip" style="width: 40px; height: 40px; background: rgba(52, 211, 153, 0.15); color: var(--state-success); flex-shrink: 0;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      </div>
+      <div>
+        <div style="font-size: 11px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Disponible por día</div>
+        <div style="font-size: 17px; font-weight: 800; color: var(--text-primary);">Puedes gastar ${formatCurrency(saldoDiario)} hoy</div>
+        <div style="font-size: 11px; color: var(--text-disabled); margin-top: 2px;">${formatCurrency(Math.max(0, b.remaining))} restantes &bull; ${diasRestantes} día${diasRestantes === 1 ? '' : 's'} del mes</div>
+      </div>
+    </div>
+  `;
+};
+
+// Comparativo simple contra el mes anterior, reutiliza b.trend (ya calculado en db.getBudget).
+const renderMonthTrend = (b) => {
+  if (!b.trend) return '';
+  const { pct, isUp } = b.trend;
+  const color = isUp ? 'var(--state-high)' : 'var(--state-low)';
+  const texto = isUp ? `Gastaste ${pct}% más que el mes pasado` : `Vas ${pct}% mejor que el mes pasado`;
+  const arrow = isUp
+    ? `<svg width="12" height="12" fill="none" stroke="${color}" stroke-width="3" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`
+    : `<svg width="12" height="12" fill="none" stroke="${color}" stroke-width="3" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
+  return `<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: ${color}; margin-top: 10px;">${arrow}${texto}</div>`;
+};
+
+// Saldo disponible acumulado día a día (1 hasta hoy) del mes actual, a
+// partir de los movimientos ya cargados en b.breakdown.
+const computeDailyBalanceSeries = (b) => {
+  const now = new Date();
+  const today = now.getDate();
+  const deltaPorDia = new Array(today + 1).fill(0);
+
+  (b.breakdown || []).forEach(t => {
+    if (!t.date) return;
+    const day = parseInt(t.date.slice(8, 10), 10);
+    if (!day || day < 1 || day > today) return;
+    const amt = Number(t.amount) || 0;
+    deltaPorDia[day] += (t.type === 'Ingreso') ? amt : -amt;
+  });
+
+  const labels = [];
+  const data = [];
+  let running = 0;
+  for (let d = 1; d <= today; d++) {
+    running += deltaPorDia[d];
+    labels.push(String(d));
+    data.push(Math.round(running * 100) / 100);
+  }
+  return { labels, data };
+};
+
+// Dibuja/actualiza los 3 gráficos Chart.js de la pestaña Resumen. Se llama
+// tanto en mountListeners() (primer render) como en refresh() (cada vez
+// que cambian los datos), destruyendo la instancia anterior si existe.
+const renderResumenCharts = async (b) => {
+  const Chart = await ensureChartJs();
+  const palette = appPalette();
+  const opts = baseChartOptions();
+
+  const donutCanvas = document.getElementById('donut-chart-resumen');
+  if (donutCanvas) {
+    const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
+    const totalWants = b.allocations.find(a => a.category === 'Wants')?.amount || 0;
+    const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
+    if (donutChartInstance) donutChartInstance.destroy();
+    donutChartInstance = new Chart(donutCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['Necesidades', 'Deseos', 'Ahorros'],
+        datasets: [{
+          data: [totalNeeds, totalWants, totalSavings],
+          backgroundColor: [palette.high, palette.blue, palette.purple],
+          borderColor: 'transparent',
+          borderWidth: 2
+        }]
+      },
+      options: { ...opts, cutout: '74%' }
+    });
+  }
+
+  const lineCanvas = document.getElementById('line-chart-saldo-diario');
+  if (lineCanvas) {
+    const { labels, data } = computeDailyBalanceSeries(b);
+    if (dailyBalanceChartInstance) dailyBalanceChartInstance.destroy();
+    dailyBalanceChartInstance = new Chart(lineCanvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          borderColor: palette.teal,
+          backgroundColor: palette.teal + '26',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        ...opts,
+        scales: {
+          x: { display: false },
+          y: { display: false }
+        }
+      }
+    });
+  }
+
+  const barCanvas = document.getElementById('bar-chart-mes-comparativo');
+  if (barCanvas) {
+    const hist = db.getHistoricalSummary(2);
+    const prevMes = hist.data[0]?.expenses || 0;
+    const esteMes = hist.data[1]?.expenses || 0;
+    if (monthCompareChartInstance) monthCompareChartInstance.destroy();
+    monthCompareChartInstance = new Chart(barCanvas, {
+      type: 'bar',
+      data: {
+        labels: ['Mes anterior', 'Este mes'],
+        datasets: [{
+          data: [prevMes, esteMes],
+          backgroundColor: [palette.surfaceBorder, esteMes > prevMes ? palette.high : palette.low],
+          borderRadius: 8,
+          maxBarThickness: 60
+        }]
+      },
+      options: {
+        ...opts,
+        indexAxis: 'y',
+        scales: {
+          x: { display: false },
+          y: { display: true, grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 12, weight: '600' } } }
+        }
+      }
+    });
+  }
 };
 
 const renderPresupuestoLegend = (b) => {
@@ -741,6 +925,7 @@ const renderPresupuestoLegend = (b) => {
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
             <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${color};"></span>${catKey}
+            ${alertBadgeHtml(usoCatPct)}
           </div>
           <div style="text-align: right;">
             <div style="font-size: 14px; font-weight: 700;">${formatCurrency(totalAmt)}</div>
@@ -953,6 +1138,7 @@ export async function render() {
           <div style="font-size: 38px; font-weight: 800; color: ${isHealthy ? 'var(--state-success)' : 'var(--state-high)'}; line-height: 1.1; letter-spacing: -0.5px;">
             ${fullStr}
           </div>
+          <div id="month-trend-container" style="display: flex; justify-content: center;">${renderMonthTrend(b)}</div>
         </div>
 
         <!-- BOTONES FAB MOVIDOS AQUÍ -->
@@ -971,12 +1157,23 @@ export async function render() {
           </button>
         </div>
 
-        <!-- Simplified Donut -->
+        <!-- Gasto rápido: texto libre tipo "50 en supermercado" -->
+        <div style="margin-bottom: 24px;">
+          <div style="position: relative;">
+            <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
+            <input type="text" id="quick-gasto-input" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px rgba(248,113,113,0.15)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+          </div>
+          <div id="quick-gasto-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
+        </div>
+
+        <div id="daily-available-container">${renderDailyAvailable(b)}</div>
+
+        <!-- Donut real (Chart.js) -->
         <div class="card card--glass" style="padding: 28px; margin-bottom: 24px; text-align: center; border-radius: 24px;">
           <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 20px 0; text-align: left;">Distribución del gasto</h3>
           <div style="position: relative; width: 150px; height: 150px; margin: 0 auto;">
-            <div id="chart-donut-resumen" style="width: 150px; height: 150px; margin: 0 auto; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">${donutSvg}</div>
-            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <canvas id="donut-chart-resumen" width="150" height="150"></canvas>
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none;">
               <div style="font-size: 11px; color: var(--text-secondary); font-weight: 600; margin-bottom: 2px;">Presupuesto</div>
               <div style="font-size: 17px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.3px;">${formatCompactCurrency(b.budgeted)}</div>
             </div>
@@ -984,6 +1181,18 @@ export async function render() {
           <div id="resumen-cat-legend" style="display: flex; flex-direction: column; gap: 10px; margin-top: 24px; text-align: left;">
             ${renderResumenLegend(b)}
           </div>
+        </div>
+
+        <!-- Evolución del saldo disponible día a día -->
+        <div class="card" style="padding: 20px; margin-bottom: 24px;">
+          <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">Evolución del saldo disponible</h3>
+          <div style="height: 120px;"><canvas id="line-chart-saldo-diario"></canvas></div>
+        </div>
+
+        <!-- Comparativo de gasto: este mes vs. mes anterior -->
+        <div class="card" style="padding: 20px; margin-bottom: 24px;">
+          <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">Gasto vs. mes anterior</h3>
+          <div style="height: 110px;"><canvas id="bar-chart-mes-comparativo"></canvas></div>
         </div>
 
         ${(() => {
@@ -1058,6 +1267,12 @@ export async function render() {
           <button class="history-tab" data-filter="Gasto" style="background: transparent; color: var(--text-secondary);">Gastos</button>
           <button class="history-tab" data-filter="Ahorro" style="background: transparent; color: var(--text-secondary);">Ahorros</button>
         </div>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
+          <input type="date" id="history-date-from" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; border-radius: 12px; font-size: 13px; box-sizing: border-box; outline: none; font-family: inherit;">
+          <span style="color: var(--text-disabled); font-size: 12px;">a</span>
+          <input type="date" id="history-date-to" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; border-radius: 12px; font-size: 13px; box-sizing: border-box; outline: none; font-family: inherit;">
+          <button id="btn-clear-date-filter" style="background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">Limpiar</button>
+        </div>
         <div id="history-list-content" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
           <!-- Inyectado por renderHistoryList -->
         </div>
@@ -1107,37 +1322,7 @@ export async function render() {
       </div>
     </div>
 
-    <!-- Goal Modal -->
-    <div id="goal-modal" class="modal-overlay">
-      <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-          <h2 id="modal-goal-title" style="font-size: 20px; font-weight: 700; margin: 0; color: var(--accent-purple);">Nueva Meta</h2>
-          <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">&times;</button>
-        </div>
-        <form id="goal-form">
-          <input type="hidden" id="goal-id">
-          <div class="input-group">
-            <label>Nombre de la meta</label>
-            <input type="text" id="goal-name" placeholder="Ej. Fondo de emergencia" required autocomplete="off">
-          </div>
-          <div class="input-group">
-            <label>Monto objetivo</label>
-            <input type="number" id="goal-target" placeholder="0" min="1" required autocomplete="off">
-          </div>
-          <div class="input-group" id="goal-initial-container">
-            <label>Monto inicial (opcional)</label>
-            <input type="number" id="goal-initial" placeholder="0" min="0" autocomplete="off" value="0">
-          </div>
-          <div class="input-group">
-            <label>Ícono</label>
-            <select id="goal-icon">
-              ${GOAL_ICONS.map(icon => `<option value="${icon}">${GOAL_ICON_LABELS[icon]}</option>`).join('')}
-            </select>
-          </div>
-          <button type="submit" class="btn-primary" style="background: var(--accent-purple);">Guardar Meta</button>
-        </form>
-      </div>
-    </div>
+    ${renderGoalForm()}
 
     ${renderIngresoForm()}
       ${renderGastoForm()}

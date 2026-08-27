@@ -37,7 +37,7 @@ export function EmptyState(title, subtitle = '') {
   `;
 }
 
-export function Toast(message, type = 'info') {
+export function Toast(message, type = 'info', duration = 2500) {
   const container = document.getElementById('toast-container');
   if (!container) return;
 
@@ -46,6 +46,7 @@ export function Toast(message, type = 'info') {
   if (type === 'success') { bgColor = 'rgba(102, 187, 106, 0.15)'; color = 'var(--state-success)'; }
   if (type === 'error') { bgColor = 'rgba(239, 83, 80, 0.15)'; color = 'var(--state-high)'; }
   if (type === 'info') { bgColor = 'rgba(41, 182, 246, 0.15)'; color = 'var(--state-info)'; }
+  if (type === 'pr') { bgColor = 'rgba(191, 90, 242, 0.15)'; color = 'var(--accent-purple)'; }
 
   const toast = document.createElement('div');
   toast.style.cssText = `
@@ -96,7 +97,7 @@ export function Toast(message, type = 'info') {
     setTimeout(() => toast.remove(), 300);
   };
 
-  setTimeout(dismiss, 2500);
+  setTimeout(dismiss, duration);
 }
 
 // FIX: unificado a ConfirmDialog(title, message) -> Promise<boolean>.

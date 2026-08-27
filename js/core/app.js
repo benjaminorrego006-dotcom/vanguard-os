@@ -34,7 +34,9 @@ async function fetchTextWithRetry(url, attempts = 5) {
 async function loadModuleGraph(entryUrl) {
   if (blobUrlCache.has(entryUrl)) return blobUrlCache.get(entryUrl);
 
-  const importLineRe = /^import\s+[^;\n]*?from\s+['"](\.[^'"]+)['"]/gm;
+  // Acepta tanto `import { x } from './y.js'` como imports de solo efecto
+  // `import './y.js';` (ej. librerías vendorizadas tipo UMD sin bindings).
+  const importLineRe = /^import\s+(?:[^;\n]*?\sfrom\s+)?['"](\.[^'"]+)['"]/gm;
   const texts = new Map();   // url -> código fuente original
   const deps = new Map();    // url -> [{specifier, absUrl}]
 
@@ -80,7 +82,7 @@ async function loadModuleGraph(entryUrl) {
     for (const d of deps.get(url) || []) {
       const finalUrl = blobUrlCache.get(d.absUrl);
       if (!finalUrl) continue;
-      const specRe = new RegExp(`(^import\\s+[^;\\n]*?from\\s+['"])${escapeRe(d.specifier)}(['"])`, 'm');
+      const specRe = new RegExp(`(^import\\s+(?:[^;\\n]*?\\sfrom\\s+)?['"])${escapeRe(d.specifier)}(['"])`, 'm');
       text = text.replace(specRe, `$1${finalUrl}$2`);
     }
     const blob = new Blob([text], { type: 'text/javascript' });

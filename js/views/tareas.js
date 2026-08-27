@@ -1,6 +1,9 @@
 import { db } from '../core/db.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
+import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
+
+let tasksDonutInstance = null;
 
 const PRIORITY_COLORS = {
   high: { badge: 'badge--high', label: 'alta', strip: 'var(--state-high)' },
@@ -31,6 +34,32 @@ const COL_META = {
     emptySubtitle: 'Cuando termines algo, va a aparecer acá.',
     emptyIcon: `<svg width="26" height="26" fill="none" stroke="var(--state-success)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>`
   }
+};
+
+const renderTasksDonut = async (tasks) => {
+  const canvas = document.getElementById('tasks-donut-chart');
+  if (!canvas || tasks.length === 0) return;
+
+  const completadas = tasks.filter(t => t.status === 'done').length;
+  const pendientes = tasks.length - completadas;
+
+  const Chart = await ensureChartJs();
+  const palette = appPalette();
+
+  if (tasksDonutInstance) tasksDonutInstance.destroy();
+  tasksDonutInstance = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: ['Completadas', 'Pendientes'],
+      datasets: [{
+        data: [completadas, pendientes],
+        backgroundColor: [palette.success, palette.surfaceBorder],
+        borderColor: 'transparent',
+        borderWidth: 1
+      }]
+    },
+    options: { ...baseChartOptions(), cutout: '68%' }
+  });
 };
 
 function formatDate(dateStr) {
@@ -164,6 +193,19 @@ export async function render() {
         </div>
       </div>
 
+      ${tasks.length > 0 ? `
+        <!-- Completadas vs. pendientes -->
+        <div class="card" style="margin-right: 20px; margin-bottom: 20px; padding: 14px 16px; border-radius: 16px; display: flex; align-items: center; gap: 14px;">
+          <div style="width: 56px; height: 56px; flex-shrink: 0; position: relative;">
+            <canvas id="tasks-donut-chart" width="56" height="56"></canvas>
+          </div>
+          <div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${tasks.filter(t => t.status === 'done').length} de ${tasks.length} completadas</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${tasks.length - tasks.filter(t => t.status === 'done').length} pendientes</div>
+          </div>
+        </div>
+      ` : ''}
+
       <!-- Search -->
       <div style="margin-right: 20px; margin-bottom: 24px; position: relative;">
         <svg style="position: absolute; left: 16px; top: 13px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -195,6 +237,8 @@ export function mountListeners() {
     root.innerHTML = await render();
     mountListeners();
   };
+
+  db.getTasks().then(renderTasksDonut);
 
   setupTaskForm(refresh);
 

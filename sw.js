@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v13';
+const CACHE_NAME = 'vanguard-os-v15';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -10,11 +10,17 @@ const PRECACHE_URLS = [
   './js/core/audio.js',
   './js/core/ejercicios-catalogo.js',
   './js/core/progresiones-calistenia.js',
+  './js/core/plantillas.js',
+  './js/core/trainingConfig.js',
   './js/utils/states.js',
   './js/utils/animate.js',
   './js/utils/donut.js',
+  './js/utils/progressRing.js',
   './js/utils/currency.js',
   './js/utils/backup.js',
+  './js/utils/bodyMetrics.js',
+  './js/utils/charts.js',
+  './js/vendor/chart.js',
   './js/views/dashboard.js',
   './js/views/entrenamiento.js',
   './js/views/finanzas.js',
@@ -33,7 +39,11 @@ const PRECACHE_URLS = [
   './js/components/EnvelopeForm.js',
   './js/components/TransferForm.js',
   './js/components/RecurringForm.js',
-  './js/components/task-form.js'
+  './js/components/task-form.js',
+  './js/components/profile-form.js',
+  './js/components/session-summary-form.js',
+  './js/components/goal-card.js',
+  './js/components/goal-form.js'
 ];
 
 self.addEventListener('install', event => {

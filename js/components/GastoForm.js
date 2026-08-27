@@ -31,7 +31,10 @@ export function renderGastoForm() {
         </div>
 
         <!-- Description -->
-        <input type="text" id="gasto-label" placeholder="Descripción (opcional, ej. Supermercado)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 15px; box-sizing: border-box; margin-bottom: 16px; outline: none;">
+        <input type="text" id="gasto-label" placeholder="Descripción (opcional, ej. Supermercado)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 15px; box-sizing: border-box; margin-bottom: 12px; outline: none;">
+
+        <!-- Fecha (default hoy) -->
+        <input type="date" id="gasto-fecha" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 15px; box-sizing: border-box; margin-bottom: 16px; outline: none; font-family: inherit;">
 
         <!-- Recent Amounts Shortcut -->
         <div id="gasto-recent-amounts-container" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 24px; min-height: 32px; white-space: nowrap; padding-bottom: 4px;"></div>
@@ -150,17 +153,20 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
     const id = document.getElementById('gasto-tx-id').value;
     const amount = parseFloat(currentAmountStr);
     let label = document.getElementById('gasto-label').value.trim();
-    
+    const dateVal = document.getElementById('gasto-fecha').value;
+
     if (amount > 0 && selectedEnvelopeId) {
       const originalText = btnSubmit.innerHTML;
       btnSubmit.innerHTML = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
       setTimeout(async () => {
+        const payload = { type: 'Gasto', category: selectedCategory, label, amount, goalId: null, envelopeId: selectedEnvelopeId };
+        if (dateVal) payload.date = dateVal; // omitido -> db.js usa hoy por defecto
         let res;
         if (id) {
-          res = await db.updateTransaction(id, { type: 'Gasto', category: selectedCategory, label, amount, goalId: null, envelopeId: selectedEnvelopeId });
+          res = await db.updateTransaction(id, payload);
         } else {
-          res = await db.addTransaction({ type: 'Gasto', category: selectedCategory, label, amount, goalId: null, envelopeId: selectedEnvelopeId });
+          res = await db.addTransaction(payload);
         }
 
         btnSubmit.innerHTML = originalText;
@@ -210,15 +216,25 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
     }
 
     if(tx) {
-      document.getElementById('gasto-tx-id').value = tx.id;
-      currentAmountStr = tx.amount.toString();
-      document.getElementById('gasto-label').value = tx.label;
-      selectedCategory = tx.category;
-      selectedEnvelopeId = tx.envelopeId;
+      // tx.id puede venir vacío cuando esto se usa para precargar una
+      // entrada NUEVA (ej. desde "gasto rápido"), no para editar una
+      // existente — por eso siempre '' en vez de undefined (que se
+      // guardaría como el string "undefined" y se leería como edición).
+      document.getElementById('gasto-tx-id').value = tx.id || '';
+      currentAmountStr = tx.amount != null ? tx.amount.toString() : '';
+      document.getElementById('gasto-label').value = tx.label || '';
+      const now = new Date();
+      document.getElementById('gasto-fecha').value = tx.date
+        ? tx.date.slice(0, 10)
+        : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      selectedCategory = tx.category || (b.envelopes[0] ? b.envelopes[0].category : 'Needs');
+      selectedEnvelopeId = tx.envelopeId || (b.envelopes[0] ? b.envelopes[0].id : null);
     } else {
       document.getElementById('gasto-tx-id').value = '';
       currentAmountStr = '';
       document.getElementById('gasto-label').value = '';
+      const now = new Date();
+      document.getElementById('gasto-fecha').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       if (b.envelopes.length > 0) {
         selectedEnvelopeId = b.envelopes[0].id;
         selectedCategory = b.envelopes[0].category;

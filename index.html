@@ -16,7 +16,6 @@
   <link rel="stylesheet" href="css/components.css">
   
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script>if(!localStorage.getItem('wiped_v2')) { localStorage.clear(); localStorage.setItem('wiped_v2', '1'); console.log('Wiped app data'); }</script>
 </head>
 <body>
 
@@ -116,7 +115,7 @@
     }
 
     async function loadModuleGraph(entryUrl) {
-      const importLineRe = /^import\s+[^;\n]*?from\s+['"](\.[^'"]+)['"]/gm;
+      const importLineRe = /^import\s+(?:[^;\n]*?\sfrom\s+)?['"](\.[^'"]+)['"]/gm;
       const texts = new Map();
       const deps = new Map();
 
@@ -154,7 +153,7 @@
         let text = texts.get(url);
         for (const d of deps.get(url) || []) {
           const finalUrl = blobUrls.get(d.absUrl);
-          const specRe = new RegExp(`(^import\\s+[^;\\n]*?from\\s+['"])${escapeRe(d.specifier)}(['"])`, 'm');
+          const specRe = new RegExp(`(^import\\s+(?:[^;\\n]*?\\sfrom\\s+)?['"])${escapeRe(d.specifier)}(['"])`, 'm');
           text = text.replace(specRe, `$1${finalUrl}$2`);
         }
         const blob = new Blob([text], { type: 'text/javascript' });

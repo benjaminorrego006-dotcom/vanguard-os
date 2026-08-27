@@ -1,10 +1,11 @@
 import { db } from '../core/db.js';
 import { playBeep } from '../core/audio.js';
-import { renderEjercicioDetalle } from './ejercicio-detalle.js';
+import { renderEjercicioDetalle, initEjercicioDetalleChart } from './ejercicio-detalle.js';
 import { calcularDiscos, renderPlateCalculatorPopover } from './plate-calculator.js';
 import { getProgressionLevel } from '../core/progresiones-calistenia.js';
 import { getEjercicioMetadata, CATALOGO_EJERCICIOS } from '../core/ejercicios-catalogo.js';
-import { ConfirmDialog } from '../utils/states.js';
+import { ConfirmDialog, Toast } from '../utils/states.js';
+import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
 
 const trophySvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path></svg>`;
 const historySvg = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg>`;
@@ -12,6 +13,7 @@ const trendUpSvg = `<svg width="11" height="11" fill="none" stroke="currentColor
 const arrowUpSvg = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px;"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`;
 const arrowDownSvg = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px;"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
 const clockSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -3px; margin-right: 6px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+const warningSvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 4px; flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
 
 let timerInterval = null;
 let restTimerInterval = null;
@@ -20,22 +22,31 @@ let startTime = null;
 let currentPRs = {};
 let currentSugerencias = {};
 let currentHistorial = {};
+let currentEstancamiento = {};
+let currentRestTimerSecs = 90;
 
 export async function renderRutinaSession(rutina) {
   // Preload data
   currentPRs = await db.getPRs();
   currentHistorial = {};
+  currentEstancamiento = {};
+  currentRestTimerSecs = await db.getRestTimerSecs();
   for (const ej of rutina.ejercicios) {
     currentHistorial[ej.nombre] = await db.getHistorialEjercicio(ej.nombre);
     currentSugerencias[ej.nombre] = await db.sugerirProgresion(ej.nombre);
+    currentEstancamiento[ej.nombre] = await db.detectarEstancamiento(ej.nombre);
   }
 
-  
+
   let html = `
     <div class="card" style="padding: 22px; border-radius: 20px;">
-      <div class="flex-between" style="margin-bottom: 20px;">
+      <div class="flex-between" style="margin-bottom: 4px;">
         <h2 style="font-size: 21px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.3px;">${rutina.nombre}</h2>
         <div id="session-timer" style="font-size: 16px; font-weight: 700; color: var(--accent-purple); font-variant-numeric: tabular-nums; font-family: var(--font-mono);">00:00</div>
+      </div>
+      <div class="flex-between" style="margin-bottom: 20px;">
+        <div></div>
+        <button id="btn-rest-timer-config" type="button" style="background: transparent; border: none; color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 0; display: flex; align-items: center; gap: 4px;">${clockSvg}Descanso: <span id="rest-timer-config-value">${currentRestTimerSecs}</span>s</button>
       </div>
   `;
 
@@ -51,6 +62,7 @@ export async function renderRutinaSession(rutina) {
     const prog = getProgressionLevel(ej.nombre);
     const meta = getEjercicioMetadata(ej.nombre);
     const sug = currentSugerencias[ej.nombre];
+    const estancado = currentEstancamiento[ej.nombre];
 
     if (ej.grupoId && ej.grupoId !== currentGrupoId) {
       if (currentGrupoId !== null) html += `</div>`; // close previous group
@@ -68,7 +80,7 @@ export async function renderRutinaSession(rutina) {
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;">
           <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
             <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary); white-space: normal; line-height: 1.2; word-break: break-word;">${ej.nombre}</h3>
-            ${meta && meta.instrucciones ? `<button class="btn-info-ejercicio" data-instrucciones="${meta.instrucciones}" data-musculo="${meta.musculoSecundario || ''}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); width:22px; height:22px; border-radius:50%; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>` : ''}
+            ${meta && (meta.posturaInicial || (meta.pasosEjecucion && meta.pasosEjecucion.length)) ? `<button class="btn-info-ejercicio" data-ejnombre="${ej.nombre}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); width:22px; height:22px; border-radius:50%; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>` : ''}
           </div>
           <button class="btn-plate-calc" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 6px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Calculadora de discos"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="8" y1="10" x2="8.01" y2="10"></line><line x1="12" y1="10" x2="12.01" y2="10"></line><line x1="16" y1="10" x2="16.01" y2="10"></line><line x1="8" y1="14" x2="8.01" y2="14"></line><line x1="12" y1="14" x2="12.01" y2="14"></line><line x1="16" y1="14" x2="16.01" y2="14"></line><line x1="8" y1="18" x2="16" y2="18"></line></svg></button>
             <button class="btn-ver-progreso" data-ejnombre="${ej.nombre}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--accent-purple); font-size: 12px; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 20px; white-space: nowrap; display: flex; align-items: center;">${trendUpSvg}Progreso</button>
@@ -105,14 +117,18 @@ export async function renderRutinaSession(rutina) {
       html += `<button class="btn-sugerencia" data-ejnombre="${ej.nombre}" data-peso="${sug.peso}" data-reps="${sug.reps}" style="width: 100%; background: rgba(20,184,166,0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 9px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 12px;">${sugIcon}Sugerido: ${sugText} · toca para aplicar</button>`;
     }
 
+    if (estancado) {
+      html += `<div style="display: flex; align-items: center; font-size: 11px; color: var(--state-medium); margin-bottom: 12px;">${warningSvgSm}Sin mejora en tus últimas 3 sesiones — prueba variar reps, descanso o el ejercicio.</div>`;
+    }
+
     html += `<div style="display: flex; flex-direction: column; gap: 8px;">`;
     
     html += `
               <div style="display: flex; gap: 4px; align-items: center; margin-bottom: 4px;">
           <div style="width: 20px;"></div>
           <div style="flex: 2; font-size: 10px; color: var(--text-secondary); text-align: center;">TIPO</div>
-          <div style="flex: 2; font-size: 10px; color: var(--text-secondary); text-align: center;">REPS</div>
-          <div style="flex: 2; font-size: 10px; color: var(--text-secondary); text-align: center;">PESO</div>
+          <div style="flex: 3; font-size: 10px; color: var(--text-secondary); text-align: center;">REPS</div>
+          <div style="flex: 3; font-size: 10px; color: var(--text-secondary); text-align: center;">PESO</div>
           <div style="flex: 2; font-size: 10px; color: var(--text-secondary); text-align: center;">RPE</div>
           <div style="width: 44px;"></div>
         </div>
@@ -122,6 +138,10 @@ export async function renderRutinaSession(rutina) {
       const isCalentamiento = s.tipo === 'calentamiento' ? 'selected' : '';
       const isFallo = s.tipo === 'fallo' ? 'selected' : '';
       const isDropset = s.tipo === 'dropset' ? 'selected' : '';
+
+      const pesoInicial = parseFloat(s.peso) || 0;
+      const repsInicial = parseInt(s.reps) || 0;
+      const rm1Inicial = (pesoInicial > 0 && repsInicial > 0) ? db.estimar1RM(pesoInicial, repsInicial) : 0;
 
       html += `
                   <div class="serie-row" style="display: flex; gap: 4px; align-items: center; position: relative; margin-bottom: 8px;">
@@ -134,11 +154,15 @@ export async function renderRutinaSession(rutina) {
                 <option value="dropset" ${isDropset}>D</option>
               </select>
             </div>
-            <div style="flex: 2;">
-              <input type="number" class="serie-reps" value="${s.reps}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 4px; color:var(--text-primary); text-align:center; font-size:14px; font-family: var(--font-mono);">
+            <div style="flex: 3; display: flex; align-items: center; gap: 2px;">
+              <button type="button" class="btn-step-reps" data-delta="-1" style="flex-shrink:0; width: 20px; height: 34px; border-radius: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; padding: 0; display:flex; align-items:center; justify-content:center;">−</button>
+              <input type="number" class="serie-reps" value="${s.reps}" style="width:100%; min-width:0; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 2px; color:var(--text-primary); text-align:center; font-size:14px; font-family: var(--font-mono);">
+              <button type="button" class="btn-step-reps" data-delta="1" style="flex-shrink:0; width: 20px; height: 34px; border-radius: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; padding: 0; display:flex; align-items:center; justify-content:center;">+</button>
             </div>
-            <div style="flex: 2;">
-              <input type="number" step="0.5" class="serie-peso" value="${s.peso}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 4px; color:var(--text-primary); text-align:center; font-size:14px; font-family: var(--font-mono);">
+            <div style="flex: 3; display: flex; align-items: center; gap: 2px;">
+              <button type="button" class="btn-step-peso" data-delta="-2.5" style="flex-shrink:0; width: 20px; height: 34px; border-radius: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; padding: 0; display:flex; align-items:center; justify-content:center;">−</button>
+              <input type="number" step="0.5" class="serie-peso" value="${s.peso}" style="width:100%; min-width:0; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 2px; color:var(--text-primary); text-align:center; font-size:14px; font-family: var(--font-mono);">
+              <button type="button" class="btn-step-peso" data-delta="2.5" style="flex-shrink:0; width: 20px; height: 34px; border-radius: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; padding: 0; display:flex; align-items:center; justify-content:center;">+</button>
             </div>
             <div style="flex: 2;">
               <select class="serie-rpe" style="width:100%; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 0; color:var(--text-primary); font-size:12px; text-align:center; text-align-last: center; appearance: none; -webkit-appearance: none;">
@@ -155,6 +179,7 @@ export async function renderRutinaSession(rutina) {
               ✓
             </button>
           </div>
+          <div class="serie-1rm-hint" style="text-align: right; font-size: 10px; color: var(--text-disabled); margin: -5px 0 6px 24px; ${rm1Inicial > 0 ? '' : 'display: none;'}">1RM est. ~${rm1Inicial}kg</div>
       `;
     });
     
@@ -179,12 +204,59 @@ export async function renderRutinaSession(rutina) {
     ${clockSvg}<span id="rest-timer-text">01:00</span>
   </div>`;
 
+  html += renderSessionSummaryForm();
+
   return html;
 }
 
 export function initRutinaSessionListeners(rutina, onSuccess, signal) {
   startTime = new Date();
-  
+
+  const btnRestConfig = document.getElementById('btn-rest-timer-config');
+  if (btnRestConfig) {
+    btnRestConfig.addEventListener('click', () => {
+      document.querySelectorAll('.rest-timer-config-popover').forEach(p => p.remove());
+
+      const popover = document.createElement('div');
+      popover.className = 'rest-timer-config-popover';
+      popover.innerHTML = `
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Tiempo de descanso</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
+          <button type="button" class="btn-rest-minus" style="width: 36px; height: 36px; border-radius: 50%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer;">−</button>
+          <span class="rest-config-display" style="font-size: 20px; font-weight: 800; color: var(--accent-purple); font-variant-numeric: tabular-nums; min-width: 48px; text-align: center;">${currentRestTimerSecs}s</span>
+          <button type="button" class="btn-rest-plus" style="width: 36px; height: 36px; border-radius: 50%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer;">+</button>
+        </div>
+      `;
+      popover.style.position = 'absolute';
+      popover.style.top = '100%';
+      popover.style.right = '0';
+      popover.style.marginTop = '6px';
+      popover.style.width = '220px';
+      popover.style.background = 'var(--surface-2)';
+      popover.style.padding = '14px';
+      popover.style.borderRadius = '14px';
+      popover.style.border = '1px solid var(--accent-purple)';
+      popover.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
+      popover.style.zIndex = '30';
+
+      btnRestConfig.parentElement.style.position = 'relative';
+      btnRestConfig.parentElement.appendChild(popover);
+
+      const display = popover.querySelector('.rest-config-display');
+      const valueLabel = document.getElementById('rest-timer-config-value');
+      const applyDelta = async (delta) => {
+        currentRestTimerSecs = Math.max(15, currentRestTimerSecs + delta);
+        display.textContent = `${currentRestTimerSecs}s`;
+        if (valueLabel) valueLabel.textContent = currentRestTimerSecs;
+        await db.setRestTimerSecs(currentRestTimerSecs);
+      };
+      popover.querySelector('.btn-rest-minus').addEventListener('click', () => applyDelta(-15));
+      popover.querySelector('.btn-rest-plus').addEventListener('click', () => applyDelta(15));
+
+      setTimeout(() => popover.remove(), 6000);
+    }, { signal });
+  }
+
   const timerDisplay = document.getElementById('session-timer');
   timerInterval = setInterval(() => {
     const diff = Math.floor((new Date() - startTime) / 1000);
@@ -257,31 +329,55 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
 
   
   document.querySelectorAll('.btn-info-ejercicio').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const instr = btn.getAttribute('data-instrucciones');
-      const musculo = btn.getAttribute('data-musculo');
-      
-      const popover = document.createElement('div');
-      popover.innerHTML = `<div style="font-size: 12px; line-height: 1.4; color: var(--text-primary);"><strong style="color: var(--accent-purple);">Técnica:</strong> ${instr}</div>${musculo ? `<div style="margin-top: 4px; font-size: 10px; color: var(--text-secondary);">Secundarios: ${musculo}</div>` : ''}`;
-      popover.style.position = 'absolute';
-      popover.style.top = '100%';
-      popover.style.left = '0';
-      popover.style.width = '250px';
-      popover.style.background = 'var(--surface-2)';
-      popover.style.padding = '14px';
-      popover.style.borderRadius = '14px';
-      popover.style.border = '1px solid var(--accent-purple)';
-      popover.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
-      popover.style.zIndex = '30';
-      
-      document.querySelectorAll('.info-popover').forEach(p => p.remove());
-      popover.className = 'info-popover';
-      
-      const container = btn.parentElement;
-      container.style.position = 'relative';
-      container.appendChild(popover);
-      
-      setTimeout(() => popover.remove(), 6000); // auto close after 6s
+    btn.addEventListener('click', () => {
+      const nombre = btn.getAttribute('data-ejnombre');
+      const meta = getEjercicioMetadata(nombre);
+      if (!meta) return;
+
+      const pasosHtml = (meta.pasosEjecucion && meta.pasosEjecucion.length)
+        ? `<ol style="margin: 6px 0 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px;">${meta.pasosEjecucion.map(p => `<li style="font-size: 13px; color: var(--text-primary); line-height: 1.4;">${p}</li>`).join('')}</ol>`
+        : '';
+      const erroresHtml = (meta.erroresComunes && meta.erroresComunes.length)
+        ? `<ul style="margin: 6px 0 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px;">${meta.erroresComunes.map(er => `<li style="font-size: 13px; color: var(--state-high); line-height: 1.4;">${er}</li>`).join('')}</ul>`
+        : '';
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay open';
+      overlay.style.zIndex = '6000';
+      overlay.innerHTML = `
+        <div class="modal-content" style="max-height: 80vh; overflow-y: auto; padding: 22px;">
+          <div class="flex-between" style="margin-bottom: 14px;">
+            <h3 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; color: var(--text-primary);">${nombre}</h3>
+            <button id="btn-close-tecnica" style="background: transparent; border: none; color: var(--text-disabled); font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
+          </div>
+          ${meta.posturaInicial ? `
+            <div style="margin-bottom: 14px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--accent-purple); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Postura inicial</div>
+              <div style="font-size: 13px; color: var(--text-primary); line-height: 1.4;">${meta.posturaInicial}</div>
+            </div>
+          ` : ''}
+          ${pasosHtml ? `
+            <div style="margin-bottom: 14px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--accent-purple); text-transform: uppercase; letter-spacing: 0.5px;">Ejecución</div>
+              ${pasosHtml}
+            </div>
+          ` : ''}
+          ${erroresHtml ? `
+            <div style="margin-bottom: ${meta.musculoSecundario ? '14px' : '0'};">
+              <div style="font-size: 11px; font-weight: 700; color: var(--state-high); text-transform: uppercase; letter-spacing: 0.5px;">Errores comunes</div>
+              ${erroresHtml}
+            </div>
+          ` : ''}
+          ${meta.musculoSecundario ? `<div style="font-size: 11px; color: var(--text-secondary);">Músculos secundarios: ${meta.musculoSecundario}</div>` : ''}
+        </div>
+      `;
+
+      const rootDiv = document.querySelector('#view-root > div') || document.body;
+      rootDiv.appendChild(overlay);
+
+      const close = () => overlay.remove();
+      overlay.querySelector('#btn-close-tecnica').addEventListener('click', close);
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
     });
   });
 
@@ -289,11 +385,13 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
     btn.addEventListener('click', () => {
       const nombre = btn.getAttribute('data-ejnombre');
       const containerId = 'progreso-container-' + nombre.replace(/\s+/g, '');
+      const chartCanvasId = containerId + '-chart';
       const container = document.getElementById(containerId);
       if (container.style.display === 'none') {
         const hist = currentHistorial[nombre];
-        container.innerHTML = renderEjercicioDetalle(nombre, hist);
+        container.innerHTML = renderEjercicioDetalle(nombre, hist, chartCanvasId);
         container.style.display = 'block';
+        initEjercicioDetalleChart(chartCanvasId, hist);
       } else {
         container.style.display = 'none';
       }
@@ -330,6 +428,37 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
     });
   });
 
+  document.querySelectorAll('.serie-row').forEach(row => {
+    const hint = row.nextElementSibling;
+    if (!hint || !hint.classList.contains('serie-1rm-hint')) return;
+    const pesoInput = row.querySelector('.serie-peso');
+    const repsInput = row.querySelector('.serie-reps');
+    const updateHint = () => {
+      const peso = parseFloat(pesoInput.value) || 0;
+      const reps = parseInt(repsInput.value) || 0;
+      if (peso > 0 && reps > 0) {
+        hint.textContent = `1RM est. ~${db.estimar1RM(peso, reps)}kg`;
+        hint.style.display = '';
+      } else {
+        hint.style.display = 'none';
+      }
+    };
+    pesoInput.addEventListener('input', updateHint);
+    repsInput.addEventListener('input', updateHint);
+  });
+
+  document.querySelectorAll('.btn-step-reps, .btn-step-peso').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = btn.parentElement.querySelector(btn.classList.contains('btn-step-reps') ? '.serie-reps' : '.serie-peso');
+      if (!input) return;
+      const delta = parseFloat(btn.getAttribute('data-delta')) || 0;
+      const current = parseFloat(input.value) || 0;
+      const next = Math.max(0, current + delta);
+      input.value = Number.isInteger(delta) ? next : Math.round(next * 10) / 10;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  });
+
   document.querySelectorAll('.btn-check-serie').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const isChecked = btn.getAttribute('data-checked') === 'true';
@@ -344,7 +473,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         btn.style.color = '#000';
         btn.style.borderColor = 'var(--state-success)';
         
-        startRestTimer(60);
+        startRestTimer(currentRestTimerSecs);
         
         // Live PR Check
         const row = btn.closest('.serie-row');
@@ -363,6 +492,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
           else if (pesoVal === 0 && pr.pesoMax === 0 && repsVal > pr.repsMax) isPR = true;
           
           if (isPR) {
+            const prevPeso = pr.pesoMax;
+            const prevReps = pr.repsMax;
+
             const badge = document.createElement('div');
             badge.innerHTML = `${trophySvgSm}Nuevo PR`;
             badge.style.position = 'absolute';
@@ -377,9 +509,18 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
             badge.style.display = 'flex';
             badge.style.alignItems = 'center';
             badge.style.zIndex = '10';
-            
+
             row.appendChild(badge);
-            
+
+            const mensaje = pesoVal > 0
+              ? (prevPeso > 0
+                  ? `🏆 ¡Nuevo récord! ${pesoVal}kg en ${ejNombre}, superaste tus ${prevPeso}kg anteriores.`
+                  : `🏆 ¡Nuevo récord! ${pesoVal}kg en ${ejNombre}.`)
+              : (prevReps > 0
+                  ? `🏆 ¡Nuevo récord! ${repsVal} reps en ${ejNombre}, superaste tus ${prevReps} reps anteriores.`
+                  : `🏆 ¡Nuevo récord! ${repsVal} reps en ${ejNombre}.`);
+            Toast(mensaje, 'pr', 4000);
+
             pr.pesoMax = Math.max(pr.pesoMax, pesoVal);
             if (pesoVal === 0) pr.repsMax = Math.max(pr.repsMax, repsVal);
           }
@@ -533,16 +674,20 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
           return;
         }
       }
-      
+
+      const summary = await askSessionSummary();
+
       cleanupSessionTimer();
       await db.registrarSesion({
         rutinaId: rutina.id,
         nombreRutina: rutina.nombre,
         duracionMin,
         completado: true,
-        ejercicios: ejerciciosLog
+        ejercicios: ejerciciosLog,
+        rpe: summary.rpe,
+        notas: summary.notas
       });
-      
+
       if (onSuccess) onSuccess();
     });
   }

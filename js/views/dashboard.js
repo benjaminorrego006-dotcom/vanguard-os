@@ -2,6 +2,18 @@ import { db } from '../core/db.js';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { renderProgressRing } from '../utils/progressRing.js';
 import { WEEKLY_GOALS } from '../core/trainingConfig.js';
+import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
+
+let rachaGlobalChartInstance = null;
+
+// Insignias sobrias: sin niveles, sin copy de videojuego. Bloqueada = ícono
+// atenuado en gris; desbloqueada = mismo ícono con el color de acento.
+const BADGE_META = {
+  racha_7: { icon: `<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>`, color: 'var(--accent-orange)' },
+  primera_meta: { icon: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>`, color: 'var(--accent-purple)' },
+  mes_sin_exceder: { icon: `<circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline>`, color: 'var(--state-success)' },
+  diez_sesiones: { icon: `<path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><rect x="4" y="2" width="4" height="20" rx="1"></rect><rect x="16" y="2" width="4" height="20" rx="1"></rect>`, color: 'var(--accent-teal)' }
+};
 
 function saludoPorHora() {
   const h = new Date().getHours();
@@ -21,12 +33,14 @@ function colorAlerta(nivel) {
 }
 
 export async function render() {
-  const [budget, stats, sesiones, resumenSemanal, racha] = await Promise.all([
+  const [budget, stats, sesiones, resumenSemanal, racha, rachaGlobal, badges] = await Promise.all([
     db.getBudget(),
     db.getDashboardStats(),
     db.getSesiones(),
     db.getResumenEntrenoSemanal(),
-    db.getRachaGeneral()
+    db.getRachaGeneral(),
+    db.getRachaGlobal(),
+    db.getBadges()
   ]);
 
   const sesionesSemanaTotal = Object.values(resumenSemanal).reduce((a, b2) => a + b2, 0);
@@ -77,6 +91,27 @@ export async function render() {
       </div>
 
       ${alertasHtml}
+
+      <!-- Racha global -->
+      <div class="card" style="padding: 16px 18px; margin-bottom: 16px; border-radius: 18px; display: flex; align-items: center; gap: 16px;">
+        <div style="flex-shrink: 0;">
+          <div style="font-size: 26px; font-weight: 800; color: var(--text-primary); line-height: 1;">${rachaGlobal.actual}</div>
+          <div style="font-size: 11px; color: var(--text-secondary); font-weight: 600; margin-top: 2px; white-space: nowrap;">día${rachaGlobal.actual === 1 ? '' : 's'} de racha</div>
+        </div>
+        <div style="flex: 1; height: 40px; min-width: 0;"><canvas id="chart-racha-global"></canvas></div>
+      </div>
+
+      <!-- Insignias -->
+      <div style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 2px;">
+        ${badges.map(b => `
+          <div title="${b.label}" style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 68px; text-align: center;">
+            <div style="width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: ${b.unlocked ? `${BADGE_META[b.id].color}1f` : 'var(--surface-2)'}; color: ${b.unlocked ? BADGE_META[b.id].color : 'var(--text-disabled)'}; border: 1px solid ${b.unlocked ? 'transparent' : 'var(--surface-border)'};">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">${BADGE_META[b.id].icon}</svg>
+            </div>
+            <div style="font-size: 9.5px; font-weight: 600; color: ${b.unlocked ? 'var(--text-secondary)' : 'var(--text-disabled)'}; line-height: 1.25;">${b.label}</div>
+          </div>
+        `).join('')}
+      </div>
 
       <!-- Quick Actions -->
       <div style="display: flex; gap: 12px; margin-bottom: 20px;">
@@ -163,7 +198,39 @@ export async function render() {
   `;
 }
 
+const renderRachaGlobalChart = async () => {
+  const canvas = document.getElementById('chart-racha-global');
+  if (!canvas) return;
+  const { last7 } = await db.getRachaGlobal();
+  const Chart = await ensureChartJs();
+  const palette = appPalette();
+
+  if (rachaGlobalChartInstance) rachaGlobalChartInstance.destroy();
+  rachaGlobalChartInstance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: last7.map(d => d.date.slice(8, 10)),
+      datasets: [{
+        data: last7.map(d => d.count),
+        borderColor: palette.orange,
+        backgroundColor: palette.orange + '26',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 0,
+        pointHoverRadius: 3,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      ...baseChartOptions(),
+      scales: { x: { display: false }, y: { display: false } }
+    }
+  });
+};
+
 export function mountListeners() {
+  renderRachaGlobalChart();
+
   const go = (view) => {
     if (window.appRouter) window.appRouter.navigate(view);
   };

@@ -21,11 +21,18 @@ const DEFAULT_GOAL_SHAPE = {
   targetAmount: 0,
   currentAmount: 0,
   icon: 'shield',
-  completed: false
+  completed: false,
+  dominio: 'finanzas',   // 'finanzas' | 'entreno'
+  tipo: 'dinero',        // 'dinero' | 'sesiones' | 'km' | 'personalizado'
+  unidad: '',            // texto a mostrar junto al número (sesiones, km...); dinero usa formatCurrency
+  deadline: null,
+  autoTrack: false,      // true solo en metas tipo 'sesiones': se incrementan solas al registrar una sesión
+  rutinaCategoriaFiltro: null // opcional: limita el auto-track a 'gym'/'calistenia'/'hiit'
 };
 
 const DEFAULT_SETTINGS_SHAPE = {
-  allocationRule: { needs: 0.5, wants: 0.3, savings: 0.2 }
+  allocationRule: { needs: 0.5, wants: 0.3, savings: 0.2 },
+  restTimerSecs: 90
 };
 
 const DEFAULT_ENVELOPES = [
@@ -174,6 +181,17 @@ export const db = {
   async setAllocationRule(rule) {
     const settings = safeGetItem('vg_settings', {});
     settings.allocationRule = rule;
+    safeSetItem('vg_settings', JSON.stringify(settings)); this._triggerUpdate();
+  },
+
+  async getRestTimerSecs() {
+    const settings = safeGetItem('vg_settings', {});
+    return settings.restTimerSecs || DEFAULT_SETTINGS_SHAPE.restTimerSecs;
+  },
+
+  async setRestTimerSecs(secs) {
+    const settings = safeGetItem('vg_settings', {});
+    settings.restTimerSecs = Math.max(15, toSafeNumber(secs));
     safeSetItem('vg_settings', JSON.stringify(settings)); this._triggerUpdate();
   },
 
@@ -358,21 +376,31 @@ export const db = {
     return {};
   },
 
-  async getSavingsGoals() {
+  // Metas genéricas: dinero (Finanzas) o sesiones/km/personalizado (Entreno).
+  // Mismo storage de siempre (vg_savings_goals) — el nombre del key queda
+  // por compatibilidad con datos ya guardados, pero ya no es solo de ahorro.
+  async getGoals(dominio) {
     const goals = safeGetItem('vg_savings_goals', []);
-    return goals.map(g => {
+    const normalizadas = goals.map(g => {
       const c = Number(g.currentAmount) || 0;
       const t = Number(g.targetAmount) || 0;
-      return { ...g, currentAmount: c, targetAmount: t, completed: c >= t && t > 0 };
+      return {
+        ...DEFAULT_GOAL_SHAPE,
+        ...g,
+        currentAmount: c,
+        targetAmount: t,
+        completed: c >= t && t > 0
+      };
     });
+    return dominio ? normalizadas.filter(g => g.dominio === dominio) : normalizadas;
   },
-  
+
   async createGoal(goal) {
     const goals = safeGetItem('vg_savings_goals', []);
-    goals.push({ id: generateId(), ...goal });
+    goals.push({ ...DEFAULT_GOAL_SHAPE, id: generateId(), ...goal });
     safeSetItem('vg_savings_goals', JSON.stringify(goals)); this._triggerUpdate();
   },
-  
+
   async updateGoal(id, data) {
     let goals = safeGetItem('vg_savings_goals', []);
     const idx = goals.findIndex(g => g.id === id);
@@ -387,21 +415,29 @@ export const db = {
     goals = goals.filter(g => g.id !== id);
     safeSetItem('vg_savings_goals', JSON.stringify(goals)); this._triggerUpdate();
   },
-  
+
+  // Abono manual de progreso a una meta. Para metas de dinero (Finanzas)
+  // además registra el movimiento y afecta el presupuesto, igual que
+  // siempre. Para metas de Entreno (km, personalizado) solo suma progreso.
   async contributeToGoal(goalId, amount, label = '') {
-    const prevBudget = await this.getBudget();
     let goals = safeGetItem('vg_savings_goals', []);
     const goal = goals.find(g => g.id === goalId);
-    if(goal) {
-      goal.currentAmount = (Number(goal.currentAmount) || 0) + amount;
-      safeSetItem('vg_savings_goals', JSON.stringify(goals)); this._triggerUpdate();
-      
-      const txs = safeGetItem('vg_transactions', []);
-      const now = new Date();
-      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      txs.push({ id: generateId(), date: dateStr, type: 'Gasto', category: 'Savings', label: label || goal.name, amount: amount, goalId: goal.id, envelopeId: null });
-      safeSetItem('vg_transactions', JSON.stringify(txs)); this._triggerUpdate();
-    }
+    if (!goal) return {};
+
+    const esDinero = (goal.dominio || 'finanzas') === 'finanzas';
+    const prevBudget = esDinero ? await this.getBudget() : null;
+
+    goal.currentAmount = (Number(goal.currentAmount) || 0) + amount;
+    safeSetItem('vg_savings_goals', JSON.stringify(goals)); this._triggerUpdate();
+
+    if (!esDinero) return { triggerAlert: null };
+
+    const txs = safeGetItem('vg_transactions', []);
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    txs.push({ id: generateId(), date: dateStr, type: 'Gasto', category: 'Savings', label: label || goal.name, amount: amount, goalId: goal.id, envelopeId: null });
+    safeSetItem('vg_transactions', JSON.stringify(txs)); this._triggerUpdate();
+
     const newBudget = await this.getBudget();
     let triggerAlert = null;
     if (prevBudget.alertLevel !== newBudget.alertLevel && (newBudget.alertLevel === 'warning' || newBudget.alertLevel === 'exceeded')) {
@@ -571,12 +607,50 @@ export const db = {
       fecha: data.fecha || now.toISOString(),
       duracionMin: data.duracionMin || 0,
       completado: data.completado || false,
-      ejercicios: data.ejercicios || [] // NUEVO: guardar detalle real
+      ejercicios: data.ejercicios || [], // NUEVO: guardar detalle real
+      rpe: data.rpe ?? null, // NUEVO: esfuerzo percibido de toda la sesión (1-10)
+      notas: data.notas || '' // NUEVO: notas libres
     };
     sesiones.push(newSesion);
     safeSetItem('vg_sessions', JSON.stringify(sesiones));
+
+    // Auto-track: las metas de Entreno tipo 'sesiones' suman 1 solas al
+    // registrarse una sesión (opcionalmente limitado a una categoría).
+    const rutinas = safeGetItem('vg_routines', []);
+    const categoriaSesion = rutinas.find(r => r.id === newSesion.rutinaId)?.categoria || null;
+    let goals = safeGetItem('vg_savings_goals', []);
+    let goalsChanged = false;
+    goals.forEach(g => {
+      if (g.dominio === 'entreno' && g.tipo === 'sesiones' && g.autoTrack) {
+        if (!g.rutinaCategoriaFiltro || g.rutinaCategoriaFiltro === categoriaSesion) {
+          g.currentAmount = (Number(g.currentAmount) || 0) + 1;
+          goalsChanged = true;
+        }
+      }
+    });
+    if (goalsChanged) safeSetItem('vg_savings_goals', JSON.stringify(goals));
+
     this._triggerUpdate();
     return newSesion;
+  },
+
+  // --- PERFIL DE USUARIO ---
+  async getProfile() {
+    return safeGetItem('vg_profile', null);
+  },
+  async saveProfile(data) {
+    const profile = {
+      pesoKg: toSafeNumber(data.pesoKg),
+      estaturaCm: toSafeNumber(data.estaturaCm),
+      edad: toSafeNumber(data.edad),
+      sexo: data.sexo === 'F' ? 'F' : 'M',
+      nivelActividad: data.nivelActividad || 'sedentario',
+      meta: data.meta || 'mantener',
+      actualizadoEn: new Date().toISOString()
+    };
+    safeSetItem('vg_profile', JSON.stringify(profile));
+    this._triggerUpdate();
+    return profile;
   },
 
 
@@ -793,6 +867,106 @@ export const db = {
     }
 
     return { actual };
+  },
+
+  // Racha global: cuenta un día como "activo" si hubo cualquier acción en
+  // Tareas (completar), Entreno (sesión) o Finanzas (movimiento). Distinta
+  // de getRachaGeneral(), que es específica de Entreno y se sigue usando
+  // ahí — esta es para la tarjeta de racha del Dashboard.
+  async getRachaGlobal() {
+    const sesiones = safeGetItem('vg_sessions', []);
+    const transacciones = safeGetItem('vg_transactions', []);
+    const tareas = safeGetItem('vg_tasks', []);
+
+    const toDayKey = (fecha) => {
+      if (!fecha) return null;
+      // Las transacciones guardan fecha como 'YYYY-MM-DD' (sin hora). JS
+      // interpreta ese formato como medianoche UTC, no local — en husos
+      // horarios negativos eso corre la fecha un día hacia atrás al pasarla
+      // a local. Se parsean los componentes a mano para evitarlo.
+      const soloFecha = /^\d{4}-\d{2}-\d{2}$/.test(fecha);
+      let d;
+      if (soloFecha) {
+        const [y, m, day] = fecha.split('-').map(Number);
+        d = new Date(y, m - 1, day);
+      } else {
+        d = new Date(fecha);
+      }
+      if (isNaN(d)) return null;
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    };
+
+    const activityByDay = new Map(); // dayTime -> cantidad de acciones
+    const bump = (dayTime) => {
+      if (dayTime === null) return;
+      activityByDay.set(dayTime, (activityByDay.get(dayTime) || 0) + 1);
+    };
+    sesiones.forEach(s => bump(toDayKey(s.fecha)));
+    transacciones.forEach(t => bump(toDayKey(t.date)));
+    tareas.forEach(t => { if (t.completedAt) bump(toDayKey(t.completedAt)); });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTime = today.getTime();
+
+    // Racha de días consecutivos (mismo algoritmo que getRachaHiit/getRachaGeneral).
+    const sortedDays = Array.from(activityByDay.keys()).sort((a, b) => b - a);
+    let actual = 0;
+    if (sortedDays.length > 0 && (sortedDays[0] === todayTime || sortedDays[0] === todayTime - 86400000)) {
+      let checkTime = sortedDays[0];
+      let index = 0;
+      while (index < sortedDays.length && sortedDays[index] === checkTime) {
+        actual++;
+        checkTime -= 86400000;
+        index++;
+      }
+    }
+
+    // Últimos 7 días (incluye hoy) para el mini-gráfico de línea.
+    const last7 = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      last7.push({ date: d.toISOString().slice(0, 10), count: activityByDay.get(d.getTime()) || 0 });
+    }
+
+    return { actual, last7 };
+  },
+
+  // Insignias simples por hito: se recalculan a partir de los datos
+  // actuales cada vez que se piden (no se guarda un estado "desbloqueado"
+  // aparte, para que nunca queden desincronizadas de los datos reales).
+  async getBadges() {
+    const [racha, goals, sesiones] = await Promise.all([
+      this.getRachaGlobal(),
+      this.getGoals(),
+      Promise.resolve(safeGetItem('vg_sessions', []))
+    ]);
+
+    const primeraMetaCumplida = goals.some(g => g.completed);
+    const diezSesiones = sesiones.length >= 10;
+
+    // Mes de presupuesto sin excederte: algún mes ANTERIOR al actual (no
+    // el que está en curso) donde hubo ingreso y no se llegó a gastar+ahorrar
+    // el total disponible.
+    let mesSinExceder = false;
+    const now = new Date();
+    for (let i = 1; i <= 6 && !mesSinExceder; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const budgetMes = await this.getBudget(monthStr);
+      if (budgetMes.budgeted > 0 && (budgetMes.expenses + budgetMes.savedThisMonth) < budgetMes.budgeted) {
+        mesSinExceder = true;
+      }
+    }
+
+    return [
+      { id: 'racha_7', label: '7 días de racha', unlocked: racha.actual >= 7 },
+      { id: 'primera_meta', label: 'Primera meta cumplida', unlocked: primeraMetaCumplida },
+      { id: 'mes_sin_exceder', label: 'Mes de presupuesto sin excederte', unlocked: mesSinExceder },
+      { id: 'diez_sesiones', label: '10 sesiones de entrenamiento', unlocked: diezSesiones }
+    ];
   },
 
   // Sesiones completadas esta semana (lunes-domingo) por categoría, para
@@ -1018,6 +1192,21 @@ export const db = {
     return historial;
   },
 
+  // Estancamiento: true si el 1RM estimado (Epley) de un ejercicio no
+  // superó su mejor marca previa en ninguna de sus últimas 3 sesiones con
+  // peso registradas. Requiere al menos 4 sesiones con peso (1 de base +
+  // 3 a evaluar) para poder afirmarlo con algo de confianza.
+  async detectarEstancamiento(nombreEjercicio) {
+    const historial = await this.getHistorialEjercicio(nombreEjercicio);
+    const conPeso = historial.filter(h => h.pesoMax > 0);
+    if (conPeso.length < 4) return false;
+
+    const rms = conPeso.map(h => this.estimar1RM(h.pesoMax, h.repsEnPesoMax || 1));
+    const ultimas3 = rms.slice(-3);
+    const baseline = Math.max(...rms.slice(0, -3));
+    return ultimas3.every(rm => rm <= baseline);
+  },
+
   // --- TAREAS ---
   async getTasks() {
     return safeGetItem('vg_tasks', []);
@@ -1033,7 +1222,8 @@ export const db = {
         return tasks[idx];
       }
     }
-    const newTask = { id: generateId(), createdAt: new Date().toISOString(), ...data };
+    const { id: _ignoredId, ...rest } = data;
+    const newTask = { createdAt: new Date().toISOString(), ...rest, id: generateId() };
     tasks.push(newTask);
     safeSetItem('vg_tasks', JSON.stringify(tasks)); this._triggerUpdate();
     return newTask;
@@ -1050,6 +1240,9 @@ export const db = {
     const idx = tasks.findIndex(t => t.id === id);
     if (idx > -1) {
       tasks[idx].status = status;
+      // Se usa para la racha global: solo cuenta el día en que la tarea
+      // pasó a 'done'. Si se revierte a otro estado, se limpia.
+      tasks[idx].completedAt = status === 'done' ? new Date().toISOString() : null;
       safeSetItem('vg_tasks', JSON.stringify(tasks)); this._triggerUpdate();
     }
   },
@@ -1126,7 +1319,7 @@ export const db = {
       else alertLevel = 'ok';
     }
     
-    const goals = await this.getSavingsGoals();
+    const goals = await this.getGoals('finanzas');
     const recurring = await this.getRecurring();
     const ageOfMoney = this.getAgeOfMoney(txsAll);
 
