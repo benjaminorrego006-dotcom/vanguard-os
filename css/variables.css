@@ -1,34 +1,39 @@
 :root {
-  /* --- Superficies (Gris Slate Moderno) --- */
-  --bg-base: #0f1115;
-  --surface-1: #181b21;
-  --surface-2: #21262d;
-  --surface-border: #30363d;
+  /* --- Paleta 2026 (hyper-saturated accents sobre dark minimalista) ---
+     4 niveles de superficie: fondo real, elevada, elevada secundaria,
+     y borde sutil (usado como "superficie de contorno" en vez de sombra). */
+  --bg-base: #0A0A0F;
+  --surface-1: #14141C;
+  --surface-2: #1C1C28;
+  --surface-border: rgba(38, 38, 54, 0.4);
 
   /* --- Texto --- */
-  --text-primary: #f0f6fc;
-  --text-secondary: #8b949e;
-  --text-disabled: #484f58;
+  --text-primary: #F5F5F7;
+  --text-secondary: #8B8B9A;
+  --text-disabled: #4A4A58;
 
-  /* --- Acentos Corregidos Semanticamente --- */
-  --accent-primary: #6366f1; /* Indigo moderno profesional */
-  --accent-teal: #14b8a6;    /* Teal brillante */
-  --accent-orange: #f59e0b;  /* Naranja/Dorado que antes llamabas purple */
-  --accent-blue: #0a84ff;    /* Azul sistema iOS — usado en Finanzas (Deseos, transferencias) */
-  --accent-purple: #bf5af2;  /* Púrpura sistema iOS — usado en Finanzas (Ahorros, metas) */
+  /* --- Acentos: morado = acento primario (Finanzas, Tareas, nav);
+     cian = acento secundario, EXCLUSIVO de Entreno (anillos, racha,
+     "Iniciar sesión", mapa de actividad). --- */
+  --accent-primary: #A855F7;
+  --accent-purple: #A855F7;
+  --accent-teal: #06B6D4;
+  --accent-orange: #F59E0B;
+  --accent-blue: #3B82F6; /* solo para distinguir categorías/datos (ej. "Deseos" en Finanzas, columna "En Progreso" en Tareas) — no es un acento de marca */
 
-  /* --- Estados semánticos (Colores más suaves y elegantes) --- */
-  --state-high: #f87171;     /* Rojo pastel */
-  --state-medium: #fbbf24;   /* Ámbar */
-  --state-low: #34d399;      /* Verde esmeralda */
-  --state-success: #34d399;
-  --state-info: #38bdf8;
+  /* --- Estados semánticos: mismos colores de feedback en toda la app,
+     nunca varían entre secciones. --- */
+  --state-high: #EF4444;
+  --state-medium: #F59E0B;
+  --state-low: #22C55E;
+  --state-success: #22C55E;
+  --state-info: #3B82F6;
 
   /* --- Superficies vidrio (glassmorphism, tipo iOS) --- */
-  --glass-bg: rgba(24, 27, 33, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(20, 20, 28, 0.72);
+  --glass-border: rgba(245, 245, 247, 0.08);
   --glass-blur: 24px;
-  --hairline: rgba(255, 255, 255, 0.07);
+  --hairline: rgba(245, 245, 247, 0.07);
 
   /* --- Tipografía --- */
   --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;

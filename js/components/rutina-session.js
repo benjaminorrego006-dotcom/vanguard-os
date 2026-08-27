@@ -3,7 +3,7 @@ import { playBeep } from '../core/audio.js';
 import { renderEjercicioDetalle, initEjercicioDetalleChart } from './ejercicio-detalle.js';
 import { calcularDiscos, renderPlateCalculatorPopover } from './plate-calculator.js';
 import { getProgressionLevel } from '../core/progresiones-calistenia.js';
-import { getEjercicioMetadata, CATALOGO_EJERCICIOS } from '../core/ejercicios-catalogo.js';
+import { getEjercicioMetadata, CATALOGO_EJERCICIOS, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
 import { ConfirmDialog, Toast } from '../utils/states.js';
 import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
 
@@ -42,7 +42,7 @@ export async function renderRutinaSession(rutina) {
     <div class="card" style="padding: 22px; border-radius: 20px;">
       <div class="flex-between" style="margin-bottom: 4px;">
         <h2 style="font-size: 21px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.3px;">${rutina.nombre}</h2>
-        <div id="session-timer" style="font-size: 16px; font-weight: 700; color: var(--accent-purple); font-variant-numeric: tabular-nums; font-family: var(--font-mono);">00:00</div>
+        <div id="session-timer" style="font-size: 16px; font-weight: 700; color: var(--accent-teal); font-variant-numeric: tabular-nums; font-family: var(--font-mono);">00:00</div>
       </div>
       <div class="flex-between" style="margin-bottom: 20px;">
         <div></div>
@@ -51,11 +51,20 @@ export async function renderRutinaSession(rutina) {
   `;
 
   html += `<div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">`;
-  
-  let currentGrupoId = null;
 
-  for (let idx = 0; idx < rutina.ejercicios.length; idx++) {
-    const ej = rutina.ejercicios[idx];
+  const gruposMuscular = agruparPorGrupoMuscular(rutina.ejercicios, ej => getEjercicioMetadata(ej.nombre).grupoMuscular);
+
+  for (const seccion of gruposMuscular) {
+    html += `
+      <div style="display: flex; align-items: center; gap: 8px; margin: 4px 0 -6px 0;">
+        <div style="width: 4px; height: 15px; background: var(--accent-teal); border-radius: 2px;"></div>
+        <span style="font-size: 12px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent-teal);">${seccion.label}</span>
+      </div>
+    `;
+
+    let currentGrupoId = null;
+
+    for (const ej of seccion.items) {
     const hist = currentHistorial[ej.nombre];
     const ultimo = (hist && hist.length > 0) ? hist[hist.length - 1] : null;
     const pr = currentPRs[ej.nombre.toLowerCase().trim()];
@@ -67,7 +76,7 @@ export async function renderRutinaSession(rutina) {
     if (ej.grupoId && ej.grupoId !== currentGrupoId) {
       if (currentGrupoId !== null) html += `</div>`; // close previous group
       currentGrupoId = ej.grupoId;
-      html += `<div style="border: 2px dashed var(--accent-teal); border-radius: 18px; padding: 14px; background: rgba(20, 184, 166, 0.05); position: relative;">
+      html += `<div style="border: 2px dashed var(--accent-teal); border-radius: 18px; padding: 14px; background: rgba(6, 182, 212, 0.05); position: relative;">
                 <div style="position: absolute; top: -10px; left: 16px; background: var(--surface-1); padding: 0 8px; font-size: 11px; font-weight: 700; color: var(--accent-teal); border-radius: 4px;">Superserie ${ej.grupoId}</div>`;
     } else if (!ej.grupoId && currentGrupoId !== null) {
       html += `</div>`; // close previous group
@@ -83,7 +92,7 @@ export async function renderRutinaSession(rutina) {
             ${meta && (meta.posturaInicial || (meta.pasosEjecucion && meta.pasosEjecucion.length)) ? `<button class="btn-info-ejercicio" data-ejnombre="${ej.nombre}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); width:22px; height:22px; border-radius:50%; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>` : ''}
           </div>
           <button class="btn-plate-calc" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 6px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Calculadora de discos"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="8" y1="10" x2="8.01" y2="10"></line><line x1="12" y1="10" x2="12.01" y2="10"></line><line x1="16" y1="10" x2="16.01" y2="10"></line><line x1="8" y1="14" x2="8.01" y2="14"></line><line x1="12" y1="14" x2="12.01" y2="14"></line><line x1="16" y1="14" x2="16.01" y2="14"></line><line x1="8" y1="18" x2="16" y2="18"></line></svg></button>
-            <button class="btn-ver-progreso" data-ejnombre="${ej.nombre}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--accent-purple); font-size: 12px; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 20px; white-space: nowrap; display: flex; align-items: center;">${trendUpSvg}Progreso</button>
+            <button class="btn-ver-progreso" data-ejnombre="${ej.nombre}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--accent-teal); font-size: 12px; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 20px; white-space: nowrap; display: flex; align-items: center;">${trendUpSvg}Progreso</button>
         </div>
 
         <div id="progreso-container-${ej.nombre.replace(/\s+/g, '')}" style="display: none; width: 100%; margin-bottom: 12px;"></div>
@@ -93,9 +102,9 @@ export async function renderRutinaSession(rutina) {
 
     if (pr && pr.pesoMax > 0) {
       const rm = db.estimar1RM(pr.pesoMax, pr.repsMax || pr.repsEnPesoMax || 1); // fallback
-      chips.push(`<span style="background: rgba(191,90,242,0.12); color: var(--accent-purple); border: 1px solid rgba(191,90,242,0.3); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trophySvgSm}PR ${pr.pesoMax}kg${rm > 0 ? ` · 1RM ~${rm}kg` : ''}</span>`);
+      chips.push(`<span style="background: rgba(168,85,247,0.12); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.3); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trophySvgSm}PR ${pr.pesoMax}kg${rm > 0 ? ` · 1RM ~${rm}kg` : ''}</span>`);
     } else if (pr && pr.pesoMax === 0 && pr.repsMax > 0) {
-      chips.push(`<span style="background: rgba(191,90,242,0.12); color: var(--accent-purple); border: 1px solid rgba(191,90,242,0.3); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trophySvgSm}PR ${pr.repsMax} reps</span>`);
+      chips.push(`<span style="background: rgba(168,85,247,0.12); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.3); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trophySvgSm}PR ${pr.repsMax} reps</span>`);
     }
 
     if (ultimo) {
@@ -106,7 +115,7 @@ export async function renderRutinaSession(rutina) {
     }
 
     if (prog) {
-      chips.push(`<span style="background: rgba(20,184,166,0.12); color: var(--accent-teal); border: 1px solid rgba(20,184,166,0.3); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trendUpSvg}${prog.familia} · Nv.${prog.nivelActual}/${prog.nivelTotal}</span>`);
+      chips.push(`<span style="background: rgba(6,182,212,0.12); color: var(--accent-teal); border: 1px solid rgba(6,182,212,0.3); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trendUpSvg}${prog.familia} · Nv.${prog.nivelActual}/${prog.nivelTotal}</span>`);
     }
 
     html += `<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">${chips.join('')}</div>`;
@@ -114,7 +123,7 @@ export async function renderRutinaSession(rutina) {
     if (sug) {
       const sugText = sug.peso > 0 ? sug.peso + 'kg' : sug.reps + ' reps';
       const sugIcon = sug.accion === 'aumentar' ? arrowUpSvg : arrowDownSvg;
-      html += `<button class="btn-sugerencia" data-ejnombre="${ej.nombre}" data-peso="${sug.peso}" data-reps="${sug.reps}" style="width: 100%; background: rgba(20,184,166,0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 9px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 12px;">${sugIcon}Sugerido: ${sugText} · toca para aplicar</button>`;
+      html += `<button class="btn-sugerencia" data-ejnombre="${ej.nombre}" data-peso="${sug.peso}" data-reps="${sug.reps}" style="width: 100%; background: rgba(6,182,212,0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 9px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 12px;">${sugIcon}Sugerido: ${sugText} · toca para aplicar</button>`;
     }
 
     if (estancado) {
@@ -184,23 +193,24 @@ export async function renderRutinaSession(rutina) {
     });
     
     html += `</div></div>`;
-  }
-  
-  if (currentGrupoId !== null) {
-    html += `</div>`;
+    }
+
+    if (currentGrupoId !== null) {
+      html += `</div>`;
+    }
   }
 
   html += `</div>`;
 
   
   html += `
-    <button id="btn-add-ejercicio-live" class="tappable" style="width: 100%; padding: 15px; border-radius: 14px; background: var(--surface-2); color: var(--text-primary); font-size: 15px; font-weight: 700; border: 1px dashed var(--surface-border); cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Añadir Ejercicio</button><button id="btn-finalizar-sesion" class="btn-primary tappable" style="background: var(--accent-purple);">
+    <button id="btn-add-ejercicio-live" class="tappable" style="width: 100%; padding: 15px; border-radius: 14px; background: var(--surface-2); color: var(--text-primary); font-size: 15px; font-weight: 700; border: 1px dashed var(--surface-border); cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Añadir Ejercicio</button><button id="btn-finalizar-sesion" class="btn-primary tappable" style="background: var(--accent-teal);">
       Finalizar Sesión
     </button>
   </div>`;
 
   // Floating timer
-  html += `<div id="floating-rest-timer" style="display: none; position: fixed; bottom: calc(90px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 2px solid var(--accent-purple); color: var(--text-primary); padding: 12px 24px; border-radius: 30px; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: 0 8px 16px rgba(0,0,0,0.5); z-index: 1000; cursor: pointer; align-items: center; gap: 8px;">
+  html += `<div id="floating-rest-timer" style="display: none; position: fixed; bottom: calc(90px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 2px solid var(--accent-teal); color: var(--text-primary); padding: 12px 24px; border-radius: 30px; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: 0 8px 16px rgba(0,0,0,0.5); z-index: 1000; cursor: pointer; align-items: center; gap: 8px;">
     ${clockSvg}<span id="rest-timer-text">01:00</span>
   </div>`;
 
@@ -223,7 +233,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Tiempo de descanso</div>
         <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
           <button type="button" class="btn-rest-minus" style="width: 36px; height: 36px; border-radius: 50%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer;">−</button>
-          <span class="rest-config-display" style="font-size: 20px; font-weight: 800; color: var(--accent-purple); font-variant-numeric: tabular-nums; min-width: 48px; text-align: center;">${currentRestTimerSecs}s</span>
+          <span class="rest-config-display" style="font-size: 20px; font-weight: 800; color: var(--accent-teal); font-variant-numeric: tabular-nums; min-width: 48px; text-align: center;">${currentRestTimerSecs}s</span>
           <button type="button" class="btn-rest-plus" style="width: 36px; height: 36px; border-radius: 50%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer;">+</button>
         </div>
       `;
@@ -235,7 +245,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
       popover.style.background = 'var(--surface-2)';
       popover.style.padding = '14px';
       popover.style.borderRadius = '14px';
-      popover.style.border = '1px solid var(--accent-purple)';
+      popover.style.border = '1px solid var(--accent-teal)';
       popover.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
       popover.style.zIndex = '30';
 
@@ -352,13 +362,13 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
           </div>
           ${meta.posturaInicial ? `
             <div style="margin-bottom: 14px;">
-              <div style="font-size: 11px; font-weight: 700; color: var(--accent-purple); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Postura inicial</div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Postura inicial</div>
               <div style="font-size: 13px; color: var(--text-primary); line-height: 1.4;">${meta.posturaInicial}</div>
             </div>
           ` : ''}
           ${pasosHtml ? `
             <div style="margin-bottom: 14px;">
-              <div style="font-size: 11px; font-weight: 700; color: var(--accent-purple); text-transform: uppercase; letter-spacing: 0.5px;">Ejecución</div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 0.5px;">Ejecución</div>
               ${pasosHtml}
             </div>
           ` : ''}
@@ -500,7 +510,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
             badge.style.position = 'absolute';
             badge.style.top = '-16px';
             badge.style.right = '40px';
-            badge.style.background = 'var(--accent-purple)';
+            badge.style.background = 'var(--accent-teal)';
             badge.style.color = '#000';
             badge.style.fontSize = '10px';
             badge.style.fontWeight = 'bold';
@@ -571,7 +581,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
           resultsContainer.innerHTML = `
             <div style="text-align: center; color: var(--text-secondary); padding: 20px 0; font-size: 14px;">
               No encontrado en el catálogo. <br><br>
-              <button id="btn-custom-ej" class="tappable" style="background: var(--accent-purple); color: #000; border: none; padding: 10px 18px; border-radius: 12px; cursor: pointer; font-weight: 700; margin-top: 12px;">Añadir "${q}" de todas formas</button>
+              <button id="btn-custom-ej" class="tappable" style="background: var(--accent-teal); color: #000; border: none; padding: 10px 18px; border-radius: 12px; cursor: pointer; font-weight: 700; margin-top: 12px;">Añadir "${q}" de todas formas</button>
             </div>
           `;
           const btnCustom = document.getElementById('btn-custom-ej');

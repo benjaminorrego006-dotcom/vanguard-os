@@ -1,6 +1,6 @@
 import { db } from '../core/db.js';
 import { PLANTILLAS } from '../core/plantillas.js';
-import { getEjercicioPorId } from '../core/ejercicios-catalogo.js';
+import { getEjercicioPorId, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
 import { renderMiniChart } from './mini-chart.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 
@@ -31,7 +31,7 @@ export async function renderRutinasLista(categoria) {
   let html = `
     <div style="margin-bottom: 24px;">
       <h2 style="font-size: 26px; font-weight: 800; margin: 0 0 16px 0; color: var(--text-primary); letter-spacing: -0.4px;">${catName}</h2>
-      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: rgba(191, 90, 242, 0.08); border: 1px dashed var(--accent-purple); color: var(--accent-purple); font-size: 15px; font-weight: 700; cursor: pointer;">
+      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: rgba(6, 182, 212, 0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); font-size: 15px; font-weight: 700; cursor: pointer;">
         + Nueva rutina
       </button>
     </div>
@@ -132,8 +132,8 @@ export async function renderRutinasLista(categoria) {
     const necesitaDeload = await db.detectarNecesidadDeload();
     if (necesitaDeload) {
       deloadHtml = `
-        <div class="card" style="background: rgba(251, 191, 36, 0.08); border-color: rgba(251, 191, 36, 0.3); padding: 14px 16px; border-radius: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
-          <div class="icon-chip" style="width: 32px; height: 32px; background: rgba(251, 191, 36, 0.18); color: var(--state-medium); flex-shrink: 0;">
+        <div class="card" style="background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); padding: 14px 16px; border-radius: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+          <div class="icon-chip" style="width: 32px; height: 32px; background: rgba(245, 158, 11, 0.18); color: var(--state-medium); flex-shrink: 0;">
             ${warningSvg}
           </div>
           <div>
@@ -150,7 +150,7 @@ export async function renderRutinasLista(categoria) {
   if (categoria === 'gym' || categoria === 'calistenia') {
     const { volumenPorSemana } = await db.getTendenciaSemanal(categoria, 8);
     const chartHtml = renderMiniChart(volumenPorSemana, {
-      color: categoria === 'gym' ? 'var(--accent-purple)' : 'var(--accent-teal)',
+      color: 'var(--accent-teal)',
       unidad: categoria === 'gym' ? ' kg' : ' reps',
       label: 'Volumen total por semana (últimas 8 semanas)',
       emptyText: 'Registra un par de sesiones más para ver tu tendencia.'
@@ -192,7 +192,7 @@ export async function renderRutinasLista(categoria) {
       });
 
       const dayName = d.toLocaleDateString('es-ES', { weekday: 'narrow' });
-      const color = hasSession ? 'var(--accent-purple)' : 'var(--surface-2)';
+      const color = hasSession ? 'var(--accent-teal)' : 'var(--surface-2)';
       const border = hasSession ? 'none' : '1px solid var(--surface-border)';
 
       boxes += `
@@ -219,7 +219,7 @@ export async function renderRutinasLista(categoria) {
   if (categoria === 'hiit') {
     const { minutosPorSemana } = await db.getTendenciaSemanal('hiit', 8);
     const chartHtml = renderMiniChart(minutosPorSemana, {
-      color: 'var(--accent-purple)',
+      color: 'var(--accent-teal)',
       unidad: ' min',
       label: 'Minutos entrenados por semana (últimas 8 semanas)',
       emptyText: 'Completa un par de sesiones HIIT más para ver tu tendencia.'
@@ -274,7 +274,7 @@ export async function renderRutinasLista(categoria) {
             </button>
           </div>
           <p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0 0 16px 0;">${r.hiitSettings ? 'Configuración HIIT' : eCount + ' ejercicios'}</p>
-          <button class="btn-iniciar-sesion btn-primary tappable" data-id="${r.id}" style="background: var(--accent-purple); padding: 12px; font-size: 14px;">
+          <button class="btn-iniciar-sesion btn-primary tappable" data-id="${r.id}" style="background: var(--accent-teal); color: #000; padding: 12px; font-size: 14px;">
             Iniciar sesión
           </button>
         </div>
@@ -298,32 +298,47 @@ export function renderPlantillaPreview(plantilla) {
   plantilla.rutinas.forEach(rut => {
     html += `
       <div style="background: var(--surface-2); padding: 16px; border-radius: 14px; border: 1px solid var(--surface-border); margin-bottom: 16px;">
-        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 12px 0; color: var(--accent-purple);">${rut.nombre}</h4>
+        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 12px 0; color: var(--accent-teal);">${rut.nombre}</h4>
+    `;
+
+    const grupoHeaderHtml = (label) => `
+      <div style="display: flex; align-items: center; gap: 7px; margin: 10px 0 2px 0;">
+        <div style="width: 3px; height: 13px; background: var(--accent-teal); border-radius: 2px;"></div>
+        <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent-teal);">${label}</span>
+      </div>
     `;
 
     if (rut.ejercicioIds) {
-      html += `<ol style="margin: 0; padding-left: 20px; color: var(--text-primary); font-size: 14px; display: flex; flex-direction: column; gap: 8px;">`;
-      rut.ejercicioIds.forEach(id => {
-        const nombre = getEjercicioPorId(id)?.nombre || id;
-        html += `<li>${nombre}</li>`;
+      const grupos = agruparPorGrupoMuscular(rut.ejercicioIds, id => getEjercicioPorId(id)?.grupoMuscular);
+      grupos.forEach(seccion => {
+        html += grupoHeaderHtml(seccion.label);
+        html += `<ol style="margin: 0; padding-left: 20px; color: var(--text-primary); font-size: 14px; display: flex; flex-direction: column; gap: 8px;">`;
+        seccion.items.forEach(id => {
+          const nombre = getEjercicioPorId(id)?.nombre || id;
+          html += `<li>${nombre}</li>`;
+        });
+        html += `</ol>`;
       });
-      html += `</ol>`;
     } else if (rut.ejercicios) {
-      html += `<div style="display: flex; flex-direction: column; gap: 8px;">`;
-      rut.ejercicios.forEach(ej => {
-        const nombre = getEjercicioPorId(ej.ejercicioId)?.nombre || ej.ejercicioId;
-        const totalSeries = ej.series.length;
-        const repStr = ej.series[0].reps;
-        html += `<div style="font-size: 14px; color: var(--text-primary);">• <b>${nombre}</b> <span style="color: var(--text-secondary);">— ${totalSeries} series x ${repStr} reps</span></div>`;
+      const grupos = agruparPorGrupoMuscular(rut.ejercicios, ej => getEjercicioPorId(ej.ejercicioId)?.grupoMuscular);
+      grupos.forEach(seccion => {
+        html += grupoHeaderHtml(seccion.label);
+        html += `<div style="display: flex; flex-direction: column; gap: 8px;">`;
+        seccion.items.forEach(ej => {
+          const nombre = getEjercicioPorId(ej.ejercicioId)?.nombre || ej.ejercicioId;
+          const totalSeries = ej.series.length;
+          const repStr = ej.series[0].reps;
+          html += `<div style="font-size: 14px; color: var(--text-primary);">• <b>${nombre}</b> <span style="color: var(--text-secondary);">— ${totalSeries} series x ${repStr} reps</span></div>`;
+        });
+        html += `</div>`;
       });
-      html += `</div>`;
     }
 
     html += `</div>`;
   });
 
   html += `
-      <button id="btn-usar-plantilla" class="btn-primary tappable" style="background: var(--accent-purple); margin-top: 8px;">
+      <button id="btn-usar-plantilla" class="btn-primary tappable" style="background: var(--accent-teal); margin-top: 8px;">
         Usar esta rutina
       </button>
     </div>

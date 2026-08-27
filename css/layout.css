@@ -80,7 +80,7 @@ body {
   }
 
   .nav-item.active {
-    background-color: rgba(99, 102, 241, 0.1); /* accent-primary con opacidad */
+    background-color: rgba(168, 85, 247, 0.1); /* accent-primary con opacidad */
     color: var(--accent-primary);
   }
 

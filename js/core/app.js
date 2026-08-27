@@ -1,4 +1,5 @@
 import { db } from './db.js';
+import { mountLockScreen, startInactivityWatch } from './lock.js';
 
 // El servidor local a veces omite el header Content-Type cuando recibe
 // varias peticiones en paralelo (medido: 0/52 fallos pidiendo los archivos
@@ -130,15 +131,25 @@ class Router {
     // Start robust splash screen logic
     this.setupSplashScreen();
 
-    // Navigate to initial dashboard view
-    this.navigate('dashboard').then(() => {
-      // Layer 1: Hide automatically when ready
-      this.hideSplash();
-    }).catch(err => {
-      console.error("Dashboard failed to mount initially", err);
-      // Even on failure, try to hide it so user sees the error
-      this.hideSplash();
-    });
+    const bootDashboard = () => {
+      startInactivityWatch();
+      this.navigate('dashboard').then(() => {
+        // Layer 1: Hide automatically when ready
+        this.hideSplash();
+      }).catch(err => {
+        console.error("Dashboard failed to mount initially", err);
+        // Even on failure, try to hide it so user sees the error
+        this.hideSplash();
+      });
+    };
+
+    // Si el PIN está activado, la app queda bloqueada detrás del splash
+    // hasta que se ingresa correctamente — recién ahí se monta el Dashboard.
+    if (db.isPinEnabled()) {
+      mountLockScreen(bootDashboard);
+    } else {
+      bootDashboard();
+    }
   }
   
   setupSplashScreen() {

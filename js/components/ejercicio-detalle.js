@@ -18,7 +18,7 @@ export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
 
   const toggleHtml = (tieneDatos && !esPesoCorporal) ? `
     <div id="${chartCanvasId}-toggle" style="display: flex; gap: 6px; margin-bottom: 10px;">
-      <button type="button" class="btn-chart-mode" data-mode="peso" style="flex: 1; padding: 6px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid var(--accent-purple); background: var(--accent-purple); color: #000;">Peso</button>
+      <button type="button" class="btn-chart-mode" data-mode="peso" style="flex: 1; padding: 6px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid var(--accent-teal); background: var(--accent-teal); color: #000;">Peso</button>
       <button type="button" class="btn-chart-mode" data-mode="1rm" style="flex: 1; padding: 6px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid var(--surface-border); background: transparent; color: var(--text-secondary);">1RM</button>
     </div>
   ` : '';
@@ -74,7 +74,7 @@ export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
       <div style="display: flex; gap: 8px; margin-top: 14px;">
         ${max1RM > 0 ? `
           <div style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); border-radius: 12px; padding: 12px; text-align: center;">
-            <div style="font-size: 16px; font-weight: 800; color: var(--accent-purple);">${max1RM}kg</div>
+            <div style="font-size: 16px; font-weight: 800; color: var(--accent-teal);">${max1RM}kg</div>
             <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">1RM estimado</div>
           </div>
         ` : ''}
@@ -116,12 +116,12 @@ export async function initEjercicioDetalleChart(chartCanvasId, historial) {
       labels,
       datasets: [{
         data: pesoData,
-        borderColor: palette.purple,
-        backgroundColor: palette.purple + '26',
+        borderColor: palette.teal,
+        backgroundColor: palette.teal + '26',
         fill: true,
         tension: 0.25,
         pointRadius: 3,
-        pointBackgroundColor: palette.purple,
+        pointBackgroundColor: palette.teal,
         pointHoverRadius: 5,
         borderWidth: 2.5
       }]
@@ -151,8 +151,8 @@ export async function initEjercicioDetalleChart(chartCanvasId, historial) {
 
         toggleContainer.querySelectorAll('.btn-chart-mode').forEach(b => {
           const active = b === btn;
-          b.style.background = active ? 'var(--accent-purple)' : 'transparent';
-          b.style.borderColor = active ? 'var(--accent-purple)' : 'var(--surface-border)';
+          b.style.background = active ? 'var(--accent-teal)' : 'transparent';
+          b.style.borderColor = active ? 'var(--accent-teal)' : 'var(--surface-border)';
           b.style.color = active ? '#000' : 'var(--text-secondary)';
         });
       });

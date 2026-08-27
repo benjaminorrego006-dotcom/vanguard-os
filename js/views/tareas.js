@@ -221,7 +221,7 @@ export async function render() {
 
       <!-- FAB -->
       <div style="position: fixed; bottom: 100px; right: 24px; z-index: 2000;">
-        <button id="btn-new-task" class="tappable" style="width: 56px; height: 56px; border-radius: 50%; background: var(--accent-purple); color: #000; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px -6px rgba(191, 90, 242, 0.6); cursor: pointer;">
+        <button id="btn-new-task" class="tappable" style="width: 56px; height: 56px; border-radius: 50%; background: var(--accent-purple); color: #000; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px -6px rgba(168, 85, 247, 0.6); cursor: pointer;">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
       </div>

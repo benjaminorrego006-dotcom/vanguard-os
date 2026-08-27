@@ -6,7 +6,7 @@ export function renderGastoForm() {
     <div id="gasto-modal" class="modal-overlay">
       <div class="modal-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); max-height: 90vh; position: relative;">
         <div id="gasto-confirm-overlay" style="display:none; position:absolute; inset:0; z-index:5; background: var(--surface-1); border-radius: inherit; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
-          <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(248, 113, 113, 0.15); display: flex; align-items: center; justify-content: center; animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); display: flex; align-items: center; justify-content: center; animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
             <svg width="30" height="30" fill="none" stroke="var(--state-high)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </div>
           <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">Gasto registrado</div>

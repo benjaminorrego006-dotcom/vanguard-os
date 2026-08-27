@@ -59,8 +59,8 @@ export async function render() {
   let alertasHtml = '';
   if (alertasCaja && alertasCaja.length > 0) {
     alertasHtml = `
-      <div class="card" style="padding: 16px; margin-bottom: 20px; border-radius: 18px; background: rgba(248, 113, 113, 0.08); border: 1px solid rgba(248, 113, 113, 0.3); display: flex; gap: 14px;">
-        <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(248, 113, 113, 0.18); color: var(--state-high); flex-shrink: 0;">
+      <div class="card" style="padding: 16px; margin-bottom: 20px; border-radius: 18px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; gap: 14px;">
+        <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.18); color: var(--state-high); flex-shrink: 0;">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
         </div>
         <div style="flex: 1;">
@@ -92,13 +92,16 @@ export async function render() {
 
       ${alertasHtml}
 
-      <!-- Racha global -->
-      <div class="card" style="padding: 16px 18px; margin-bottom: 16px; border-radius: 18px; display: flex; align-items: center; gap: 16px;">
-        <div style="flex-shrink: 0;">
-          <div style="font-size: 26px; font-weight: 800; color: var(--text-primary); line-height: 1;">${rachaGlobal.actual}</div>
-          <div style="font-size: 11px; color: var(--text-secondary); font-weight: 600; margin-top: 2px; white-space: nowrap;">día${rachaGlobal.actual === 1 ? '' : 's'} de racha</div>
+      <!-- Racha global (con glow radial sutil detrás) -->
+      <div style="position: relative; margin-bottom: 16px;">
+        <div style="position: absolute; inset: -18px; background: radial-gradient(circle at 28% 25%, rgba(168, 85, 247, 0.16), transparent 68%); filter: blur(18px); z-index: 0; pointer-events: none;"></div>
+        <div class="card" style="position: relative; z-index: 1; padding: 16px 18px; margin-bottom: 0; border-radius: 18px; display: flex; align-items: center; gap: 16px;">
+          <div style="flex-shrink: 0;">
+            <div style="font-size: 26px; font-weight: 800; color: var(--text-primary); line-height: 1;">${rachaGlobal.actual}</div>
+            <div style="font-size: 11px; color: var(--text-secondary); font-weight: 600; margin-top: 2px; white-space: nowrap;">día${rachaGlobal.actual === 1 ? '' : 's'} de racha</div>
+          </div>
+          <div style="flex: 1; height: 40px; min-width: 0;"><canvas id="chart-racha-global"></canvas></div>
         </div>
-        <div style="flex: 1; height: 40px; min-width: 0;"><canvas id="chart-racha-global"></canvas></div>
       </div>
 
       <!-- Insignias -->
@@ -116,13 +119,13 @@ export async function render() {
       <!-- Quick Actions -->
       <div style="display: flex; gap: 12px; margin-bottom: 20px;">
         <button id="qa-gasto" class="tappable card" style="flex: 1; padding: 14px; border-radius: 16px; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
-          <div class="icon-chip" style="width: 26px; height: 26px; background: rgba(191, 90, 242, 0.15); color: var(--accent-purple); flex-shrink: 0;">
+          <div class="icon-chip" style="width: 26px; height: 26px; background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); flex-shrink: 0;">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           </div>
           Registrar gasto
         </button>
         <button id="qa-entreno" class="tappable card" style="flex: 1; padding: 14px; border-radius: 16px; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
-          <div class="icon-chip" style="width: 26px; height: 26px; background: rgba(20, 184, 166, 0.15); color: var(--accent-teal); flex-shrink: 0;">
+          <div class="icon-chip" style="width: 26px; height: 26px; background: rgba(6, 182, 212, 0.15); color: var(--accent-teal); flex-shrink: 0;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
           </div>
           Entrenar ahora
@@ -158,7 +161,7 @@ export async function render() {
           <div style="margin-top: auto;">
             <div style="font-size: 9px; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 2px; text-transform: uppercase;">Último entrenamiento</div>
             <div style="font-size: 11.5px; margin-bottom: 10px;">${ultimoEntreno ? `${ultimoEntrenoFechaStr} · ${ultimoEntreno.nombreRutina}` : 'Aún no registras ninguno'}</div>
-            <button class="tappable btn-ver-progreso-nav" style="width: 100%; background: rgba(20, 184, 166, 0.1); border: 1px solid var(--accent-teal); color: var(--accent-teal); padding: 9px; border-radius: 10px; font-size: 11.5px; font-weight: 700; cursor: pointer;">Ver progreso</button>
+            <button class="tappable btn-ver-progreso-nav" style="width: 100%; background: rgba(6, 182, 212, 0.1); border: 1px solid var(--accent-teal); color: var(--accent-teal); padding: 9px; border-radius: 10px; font-size: 11.5px; font-weight: 700; cursor: pointer;">Ver progreso</button>
           </div>
         </div>
 
@@ -171,7 +174,7 @@ export async function render() {
           <div style="width: 18px; height: 2px; background: var(--accent-purple); margin-bottom: 12px; border-radius: 1px;"></div>
 
           <div style="display: flex; justify-content: center; margin-bottom: 10px;">
-            <div class="icon-chip" style="width: 48px; height: 48px; background: rgba(191, 90, 242, 0.15); color: var(--accent-purple);">
+            <div class="icon-chip" style="width: 48px; height: 48px; background: rgba(168, 85, 247, 0.15); color: var(--accent-purple);">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12h-3v4h3v-4z"></path></svg>
             </div>
           </div>

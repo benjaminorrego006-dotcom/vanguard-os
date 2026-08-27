@@ -84,8 +84,8 @@ export const CATALOGO_EJERCICIOS = {
       'Alejar la barra del cuerpo.'
     ]
   },
-  'press banca': {
-    id: 'press banca',
+  'press de banca': {
+    id: 'press de banca',
     nombre: 'Press de Banca',
     categoria: 'gym',
     grupoMuscular: 'pecho',
@@ -442,7 +442,7 @@ export const CATALOGO_EJERCICIOS = {
     id: 'caminata',
     nombre: 'Caminata Rápida',
     categoria: 'hiit',
-    grupoMuscular: 'piernas',
+    grupoMuscular: 'cardio',
     patron: 'otro',
     musculoSecundario: 'ninguno',
     posturaInicial: 'Postura erguida, ritmo de paso rápido pero sostenible.',
@@ -579,8 +579,8 @@ export const CATALOGO_EJERCICIOS = {
       'No completar el rango de movimiento.'
     ]
   },
-  'dominadas negativas': {
-    id: 'dominadas negativas',
+  'negativas de dominada': {
+    id: 'negativas de dominada',
     nombre: 'Negativas de Dominada',
     categoria: 'calistenia',
     grupoMuscular: 'espalda',
@@ -839,7 +839,7 @@ export const CATALOGO_EJERCICIOS = {
     id: 'burpees',
     nombre: 'Burpees',
     categoria: 'calistenia',
-    grupoMuscular: 'otro',
+    grupoMuscular: 'cardio',
     patron: 'otro',
     musculoSecundario: 'cuerpo completo',
     posturaInicial: 'De pie, listo para iniciar el movimiento completo.',
@@ -858,7 +858,7 @@ export const CATALOGO_EJERCICIOS = {
     id: 'escaladores',
     nombre: 'Escaladores (Mountain Climbers)',
     categoria: 'calistenia',
-    grupoMuscular: 'core',
+    grupoMuscular: 'cardio',
     patron: 'core',
     musculoSecundario: 'hombros',
     posturaInicial: 'Posición de plancha alta, brazos extendidos.',
@@ -912,7 +912,7 @@ export const CATALOGO_EJERCICIOS = {
     id: 'jumping jacks',
     nombre: 'Jumping Jacks',
     categoria: 'hiit',
-    grupoMuscular: 'otro',
+    grupoMuscular: 'cardio',
     patron: 'otro',
     musculoSecundario: 'cuerpo completo',
     posturaInicial: 'De pie, brazos a los costados, piernas juntas.',
@@ -930,7 +930,7 @@ export const CATALOGO_EJERCICIOS = {
     id: 'sprint',
     nombre: 'Sprint (carrera de máxima velocidad)',
     categoria: 'hiit',
-    grupoMuscular: 'piernas',
+    grupoMuscular: 'cardio',
     patron: 'piernas',
     musculoSecundario: 'core',
     posturaInicial: 'Calentamiento previo adecuado, postura de carrera con torso ligeramente inclinado.',
@@ -948,7 +948,7 @@ export const CATALOGO_EJERCICIOS = {
     id: 'trote continuo',
     nombre: 'Trote Continuo',
     categoria: 'hiit',
-    grupoMuscular: 'piernas',
+    grupoMuscular: 'cardio',
     patron: 'piernas',
     musculoSecundario: 'core',
     posturaInicial: 'Postura de carrera relajada, ritmo sostenible.',
@@ -984,4 +984,35 @@ export function getEjercicioMetadata(nombre) {
 
   // Fallback if no match
   return fallback;
+}
+
+// Orden lógico y etiquetas para agrupar ejercicios por grupo muscular
+// dentro de una rutina/plantilla. 'otro' cubre ejercicios sueltos que el
+// usuario escribe a mano y no matchean el catálogo.
+export const GRUPO_MUSCULAR_ORDEN = ['piernas', 'espalda', 'pecho', 'hombros', 'brazos', 'core', 'cardio', 'otro'];
+export const GRUPO_MUSCULAR_LABELS = {
+  piernas: 'Piernas',
+  espalda: 'Espalda',
+  pecho: 'Pecho',
+  hombros: 'Hombros',
+  brazos: 'Brazos',
+  core: 'Core',
+  cardio: 'Cardio',
+  otro: 'Otros'
+};
+
+// Agrupa `items` por grupo muscular (según `getGrupo(item)`) preservando el
+// orden original DENTRO de cada grupo, y devuelve los grupos en el orden
+// lógico de entrenamiento (Piernas -> Espalda -> Pecho -> Hombros -> Brazos
+// -> Core -> Cardio -> Otros), omitiendo los grupos sin ejercicios.
+export function agruparPorGrupoMuscular(items, getGrupo) {
+  const buckets = {};
+  items.forEach(item => {
+    const g = getGrupo(item) || 'otro';
+    if (!buckets[g]) buckets[g] = [];
+    buckets[g].push(item);
+  });
+  return GRUPO_MUSCULAR_ORDEN
+    .filter(g => buckets[g] && buckets[g].length > 0)
+    .map(g => ({ grupo: g, label: GRUPO_MUSCULAR_LABELS[g], items: buckets[g] }));
 }

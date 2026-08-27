@@ -20,7 +20,7 @@ export const PLANTILLAS = {
       descripcion: 'Rutina de 3 días full body para construir una base sólida antes de especializar.',
       rutinas: [
         { nombre: 'Día A', ejercicios: [
-          ej('sentadilla', 3, '8-10'), ej('press banca', 3, '8-10'), ej('remo con barra', 3, '8-10'), ej('plancha', 3, '30-45s')
+          ej('sentadilla', 3, '8-10'), ej('press de banca', 3, '8-10'), ej('remo con barra', 3, '8-10'), ej('plancha', 3, '30-45s')
         ]},
         { nombre: 'Día B', ejercicios: [
           ej('peso muerto', 3, '8'), ej('press militar', 3, '8-10'), ej('jalón al pecho', 3, '10-12'), ej('elevaciones de piernas', 3, '12-15')
@@ -38,7 +38,7 @@ export const PLANTILLAS = {
       descripcion: 'Divide el cuerpo en torso y pierna, 4 días por semana, combinando cargas pesadas con volumen de hipertrofia.',
       rutinas: [
         { nombre: 'Torso A', ejercicios: [
-          ej('press banca', 4, '6-8'), ej('remo con barra', 4, '6-8'), ej('press militar', 3, '8-10'), ej('curl de bíceps', 3, '10-12'), ej('extensión de tríceps', 3, '10-12')
+          ej('press de banca', 4, '6-8'), ej('remo con barra', 4, '6-8'), ej('press militar', 3, '8-10'), ej('curl de bíceps', 3, '10-12'), ej('extensión de tríceps', 3, '10-12')
         ]},
         { nombre: 'Pierna A', ejercicios: [
           ej('sentadilla', 4, '6-8'), ej('peso muerto rumano', 3, '8-10'), ej('extensión de cuádriceps', 3, '10-12'), ej('curl femoral', 3, '10-12'), ej('elevación de talones', 4, '12-15')
@@ -59,7 +59,7 @@ export const PLANTILLAS = {
       descripcion: '6 días por semana agrupando por patrón de movimiento para maximizar el volumen semanal por grupo muscular.',
       rutinas: [
         { nombre: 'Push', ejercicios: [
-          ej('press banca', 4, '8-10'), ej('press militar', 3, '8-10'), ej('fondos en paralelas', 3, '8-10'), ej('elevaciones laterales', 3, '12-15'), ej('extensión de tríceps', 3, '12-15')
+          ej('press de banca', 4, '8-10'), ej('press militar', 3, '8-10'), ej('fondos en paralelas', 3, '8-10'), ej('elevaciones laterales', 3, '12-15'), ej('extensión de tríceps', 3, '12-15')
         ]},
         { nombre: 'Pull', ejercicios: [
           ej('peso muerto', 4, '6'), ej('dominadas', 4, '8-10'), ej('remo con barra', 3, '8-10'), ej('face pull', 3, '15'), ej('curl de bíceps', 3, '10-12')
@@ -77,7 +77,7 @@ export const PLANTILLAS = {
       descripcion: '4 días alternando torso/pierna con un día de fuerza y otro de volumen para cada uno.',
       rutinas: [
         { nombre: 'Upper A (Fuerza)', ejercicios: [
-          ej('press banca', 4, '5'), ej('remo con barra', 4, '5'), ej('press militar', 3, '5'), ej('dominadas', 3, '6-8')
+          ej('press de banca', 4, '5'), ej('remo con barra', 4, '5'), ej('press militar', 3, '5'), ej('dominadas', 3, '6-8')
         ]},
         { nombre: 'Lower A (Fuerza)', ejercicios: [
           ej('sentadilla', 4, '5'), ej('peso muerto', 3, '5'), ej('zancadas', 3, '8')
@@ -98,7 +98,7 @@ export const PLANTILLAS = {
       descripcion: '5 días de entrenamiento combinando días de fuerza pesada con días de hipertrofia de alto volumen.',
       rutinas: [
         { nombre: 'Día 1 — Upper Fuerza', ejercicios: [
-          ej('press banca', 4, '3-5'), ej('remo con barra', 4, '3-5'), ej('press militar', 3, '5'), ej('dominadas', 3, '6')
+          ej('press de banca', 4, '3-5'), ej('remo con barra', 4, '3-5'), ej('press militar', 3, '5'), ej('dominadas', 3, '6')
         ]},
         { nombre: 'Día 2 — Lower Fuerza', ejercicios: [
           ej('sentadilla', 4, '3-5'), ej('peso muerto', 3, '3-5'), ej('extensión de cuádriceps', 3, '8')
@@ -122,7 +122,7 @@ export const PLANTILLAS = {
       descripcion: '3 días por semana con solo 3 ejercicios básicos por sesión, ideal para progresar peso semana a semana.',
       rutinas: [
         { nombre: 'Día A', ejercicios: [
-          ej('sentadilla', 5, '5'), ej('press banca', 5, '5'), ej('remo con barra', 5, '5')
+          ej('sentadilla', 5, '5'), ej('press de banca', 5, '5'), ej('remo con barra', 5, '5')
         ]},
         { nombre: 'Día B', ejercicios: [
           ej('sentadilla', 5, '5'), ej('press militar', 5, '5'), ej('peso muerto', 1, '5')
@@ -137,7 +137,7 @@ export const PLANTILLAS = {
       descripcion: '6 días agrupando pecho/espalda, hombro/brazos y pierna al estilo clásico de culturismo.',
       rutinas: [
         { nombre: 'Pecho/Espalda', ejercicios: [
-          ej('press banca', 4, '8-10'), ej('remo con barra', 4, '8-10'), ej('press inclinado', 3, '10-12'), ej('jalón al pecho', 3, '10-12')
+          ej('press de banca', 4, '8-10'), ej('remo con barra', 4, '8-10'), ej('press inclinado', 3, '10-12'), ej('jalón al pecho', 3, '10-12')
         ]},
         { nombre: 'Hombro/Brazos', ejercicios: [
           ej('press militar', 4, '8-10'), ej('elevaciones laterales', 3, '12-15'), ej('curl de bíceps', 3, '10-12'), ej('extensión de tríceps', 3, '10-12')
@@ -155,7 +155,7 @@ export const PLANTILLAS = {
       descripcion: '4 días con el clásico esquema de 10 series de 10 repeticiones en el ejercicio principal del día.',
       rutinas: [
         { nombre: 'Día 1', ejercicios: [
-          ej('press banca', 10, '10'), ej('remo con barra', 3, '10')
+          ej('press de banca', 10, '10'), ej('remo con barra', 3, '10')
         ]},
         { nombre: 'Día 2', ejercicios: [
           ej('sentadilla', 10, '10'), ej('curl femoral', 3, '10')
@@ -176,7 +176,7 @@ export const PLANTILLAS = {
       descripcion: '5 días dedicando cada sesión a un solo grupo muscular, con alto volumen de aislamiento.',
       rutinas: [
         { nombre: 'Pecho', ejercicios: [
-          ej('press banca', 4, '8-10'), ej('press inclinado', 3, '10-12'), ej('fondos en paralelas', 3, '10-12')
+          ej('press de banca', 4, '8-10'), ej('press inclinado', 3, '10-12'), ej('fondos en paralelas', 3, '10-12')
         ]},
         { nombre: 'Espalda', ejercicios: [
           ej('peso muerto', 4, '6'), ej('remo con barra', 4, '8-10'), ej('jalón al pecho', 3, '10-12')
@@ -200,7 +200,7 @@ export const PLANTILLAS = {
       descripcion: '3 días de alta intensidad y poco descanso entre ejercicios, ideal cuando el tiempo es limitado.',
       rutinas: [
         { nombre: 'Día A', ejercicios: [
-          ej('sentadilla', 4, '6'), ej('press banca', 4, '6'), ej('remo con barra', 4, '6'), ej('elevación de talones', 3, '15')
+          ej('sentadilla', 4, '6'), ej('press de banca', 4, '6'), ej('remo con barra', 4, '6'), ej('elevación de talones', 3, '15')
         ]},
         { nombre: 'Día B', ejercicios: [
           ej('peso muerto', 3, '5'), ej('press militar', 4, '6'), ej('dominadas', 4, '8'), ej('abdominales', 3, '15-20')
@@ -248,7 +248,7 @@ export const PLANTILLAS = {
       descripcion: '3 días enfocados en construir la fuerza necesaria para tu primera dominada completa.',
       rutinas: [
         { nombre: 'Progresión Dominada', ejercicios: [
-          ej('dead hang', 3, '20-30s'), ej('remo invertido', 3, '10-12'), ej('dominadas negativas', 3, '5'), ej('dominada asistida con banda', 3, '6-8')
+          ej('dead hang', 3, '20-30s'), ej('remo invertido', 3, '10-12'), ej('negativas de dominada', 3, '5'), ej('dominada asistida con banda', 3, '6-8')
         ]}
       ]
     },

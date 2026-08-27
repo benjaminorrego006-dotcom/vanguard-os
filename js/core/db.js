@@ -63,10 +63,20 @@ const safeSetItem = (key, value) => {
 };
 
 const generateId = () => {
-  return typeof crypto !== 'undefined' && crypto.randomUUID 
-    ? crypto.randomUUID() 
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
     : Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 };
+
+// Hash del PIN de bloqueo. Usa claves con prefijo "vglock_" (NO "vg_") a
+// propósito, para que exportAllData/importAllData (que solo copian claves
+// "vg_"/"vanguard:") nunca muevan el PIN entre dispositivos ni lo metan en
+// un respaldo: el PIN es 100% local a este navegador.
+async function sha256Hex(text) {
+  const data = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 export const db = {
   async getDashboardStats() {
@@ -193,6 +203,31 @@ export const db = {
     const settings = safeGetItem('vg_settings', {});
     settings.restTimerSecs = Math.max(15, toSafeNumber(secs));
     safeSetItem('vg_settings', JSON.stringify(settings)); this._triggerUpdate();
+  },
+
+  // --- PIN de acceso (100% local, ver nota sobre "vglock_" en sha256Hex) ---
+  isPinEnabled() {
+    return localStorage.getItem('vglock_enabled') === 'true' && !!localStorage.getItem('vglock_hash');
+  },
+  async setPin(pin) {
+    const hash = await sha256Hex(pin);
+    localStorage.setItem('vglock_hash', hash);
+    localStorage.setItem('vglock_enabled', 'true');
+  },
+  async verifyPin(pin) {
+    const hash = await sha256Hex(pin);
+    return hash === localStorage.getItem('vglock_hash');
+  },
+  disablePin() {
+    localStorage.removeItem('vglock_hash');
+    localStorage.removeItem('vglock_enabled');
+  },
+  // Único mecanismo de recuperación: borra TODOS los datos locales (no solo
+  // el PIN), por diseño — si el reset fuera gratis, el PIN no protegería
+  // nada. Por eso activar el PIN exige antes exportar un respaldo (ver
+  // btn-enable-pin en finanzas.js), para que esto sea recuperable.
+  wipeAllLocalData() {
+    localStorage.clear();
   },
 
   // --- NEW: Envelopes API ---

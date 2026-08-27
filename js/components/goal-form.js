@@ -75,7 +75,7 @@ export function renderGoalForm() {
         </div>
         <div style="display: flex; gap: 12px; margin-top: 20px;">
           <button id="btn-cancel-goal-contribute" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Cancelar</button>
-          <button id="btn-save-goal-contribute" class="btn-primary" style="background: var(--accent-teal); color: #000; flex: 1;">Guardar</button>
+          <button id="btn-save-goal-contribute" class="btn-primary" style="background: var(--accent-purple); color: #000; flex: 1;">Guardar</button>
         </div>
       </div>
     </div>
@@ -169,18 +169,26 @@ export function initGoalForm(refreshCallback) {
     if (refreshCallback) refreshCallback();
   });
 
+  // Morado para metas de Finanzas, cian (exclusivo de Entreno) para metas
+  // de Entreno — mismo criterio que goal-card.js.
+  const accentFor = (dominio) => dominio === 'entreno' ? 'var(--accent-teal)' : 'var(--accent-purple)';
+
   window.__openGoalContribute = (goal) => {
     contributeGoalId = goal.id;
     document.getElementById('goal-contribute-title').textContent = goal.name;
     document.getElementById('goal-contribute-label').textContent = goal.unidad ? `Cantidad (${goal.unidad})` : 'Cantidad';
     document.getElementById('goal-contribute-amount').value = '';
+    const contribBtn = document.getElementById('btn-save-goal-contribute');
+    if (contribBtn) contribBtn.style.background = accentFor(goal.dominio);
     openModal('goal-contribute-modal');
   };
 
   window.__openGoalForm = (goal = null, defaults = {}) => {
+    let dominio;
     if (goal) {
+      dominio = goal.dominio || 'finanzas';
       document.getElementById('goal-id').value = goal.id;
-      document.getElementById('goal-dominio').value = goal.dominio || 'finanzas';
+      document.getElementById('goal-dominio').value = dominio;
       document.getElementById('goal-name').value = goal.name || '';
       document.getElementById('goal-target').value = goal.targetAmount || 0;
       document.getElementById('goal-icon').value = goal.icon || 'shield';
@@ -189,8 +197,9 @@ export function initGoalForm(refreshCallback) {
       document.getElementById('goal-unidad').value = goal.unidad || '';
       document.getElementById('modal-goal-title').textContent = 'Editar Meta';
     } else {
+      dominio = defaults.dominio || 'finanzas';
       document.getElementById('goal-id').value = '';
-      document.getElementById('goal-dominio').value = defaults.dominio || 'finanzas';
+      document.getElementById('goal-dominio').value = dominio;
       document.getElementById('goal-name').value = '';
       document.getElementById('goal-target').value = '';
       document.getElementById('goal-initial').value = '0';
@@ -200,6 +209,11 @@ export function initGoalForm(refreshCallback) {
       document.getElementById('goal-unidad').value = defaults.unidad || '';
       document.getElementById('modal-goal-title').textContent = 'Nueva Meta';
     }
+    const color = accentFor(dominio);
+    const titleEl = document.getElementById('modal-goal-title');
+    const submitBtn = document.querySelector('#goal-form button[type="submit"]');
+    if (titleEl) titleEl.style.color = color;
+    if (submitBtn) submitBtn.style.background = color;
     applyTipoUI();
     openModal('goal-modal');
   };

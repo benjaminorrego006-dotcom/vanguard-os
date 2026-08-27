@@ -4,6 +4,7 @@ import { renderDonut } from '../utils/donut.js';
 import { db } from '../core/db.js';
 import { formatCurrency, getCurrency, setCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { exportAllData, importAllData } from '../utils/backup.js';
+import { mountSetPinFlow, requestPinVerification } from '../core/lock.js';
 import { renderIngresoForm, initIngresoForm } from '../components/IngresoForm.js';
 import { renderGastoForm, initGastoForm } from '../components/GastoForm.js';
 import { renderAhorroForm, initAhorroForm } from '../components/AhorroForm.js';
@@ -479,6 +480,40 @@ export async function init() {
         e.target.value = '';
       });
 
+      const pinContainer = document.getElementById('pin-security-container');
+      const refreshPinSection = () => { if (pinContainer) pinContainer.innerHTML = renderPinSecuritySection(); attachPinListeners(); };
+
+      const attachPinListeners = () => {
+        const btnEnablePin = document.getElementById('btn-enable-pin');
+        if (btnEnablePin) btnEnablePin.addEventListener('click', () => {
+          // Respaldo obligatorio antes de activar el PIN: es la única red de
+          // seguridad si después se olvida (ver mountSetPinFlow / lock.js).
+          exportAllData();
+          mountSetPinFlow(refreshPinSection);
+        });
+
+        const btnChangePin = document.getElementById('btn-change-pin');
+        if (btnChangePin) btnChangePin.addEventListener('click', () => {
+          requestPinVerification({
+            title: 'Cambiar PIN',
+            onVerified: () => mountSetPinFlow(refreshPinSection)
+          });
+        });
+
+        const btnDisablePin = document.getElementById('btn-disable-pin');
+        if (btnDisablePin) btnDisablePin.addEventListener('click', () => {
+          requestPinVerification({
+            title: 'Desactivar PIN',
+            onVerified: () => {
+              db.disablePin();
+              Toast('PIN desactivado', 'success');
+              refreshPinSection();
+            }
+          });
+        });
+      };
+      attachPinListeners();
+
       // --- HISTORY MODAL & TABS ---
       document.querySelectorAll('.history-tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
@@ -531,7 +566,7 @@ const renderAgeOfMoneyHTML = (b) => {
   return `
     <div class="card" id="card-ageofmoney" style="padding: 16px; margin-bottom: 24px; border-radius: 16px; background: linear-gradient(145deg, var(--surface-1), var(--surface-2)); display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--surface-border);">
       <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(94, 234, 212, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-teal);">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(168, 85, 247, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-purple);">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
         </div>
         <div>
@@ -541,7 +576,7 @@ const renderAgeOfMoneyHTML = (b) => {
       </div>
       <div style="text-align: right; max-width: 120px;">
         <div style="font-size: 11px; font-weight: 500; color: var(--text-secondary); line-height: 1.3;">
-          ${b.ageOfMoney >= 30 ? '<span style="color:var(--accent-teal);">¡Vives con ingresos del mes pasado!</span>' : 'Aumenta esta métrica para salir del cheque a cheque.'}
+          ${b.ageOfMoney >= 30 ? '<span style="color:var(--accent-purple);">¡Vives con ingresos del mes pasado!</span>' : 'Aumenta esta métrica para salir del cheque a cheque.'}
         </div>
       </div>
     </div>
@@ -621,7 +656,7 @@ const renderGoalsHTML = (b) => {
 const alertBadgeHtml = (usoCatPct, compact = false) => {
   if (usoCatPct < 80) return '';
   const isOver = usoCatPct >= 100;
-  const bg = isOver ? 'rgba(248, 113, 113, 0.15)' : 'rgba(251, 191, 36, 0.15)';
+  const bg = isOver ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)';
   const color = isOver ? 'var(--state-high)' : 'var(--state-medium)';
   const label = compact ? '' : (isOver ? 'Excedido' : '80%+');
   return `<span style="display:inline-flex; align-items:center; gap:4px; background:${bg}; color:${color}; font-size:10px; font-weight:700; padding:${compact ? '0' : '2px 8px'}; border-radius:999px; ${compact ? `width:8px; height:8px;` : ''}">${compact ? '' : label}</span>`;
@@ -752,6 +787,22 @@ const renderResumenLegend = (b) => {
   }).join('');
 };
 
+const renderPinSecuritySection = () => {
+  if (db.isPinEnabled()) {
+    return `
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 13px; color: var(--state-success); font-weight: 600;">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--state-success); flex-shrink: 0;"></span>
+        PIN activado
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button id="btn-change-pin" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-weight: 600; cursor: pointer;">Cambiar PIN</button>
+        <button id="btn-disable-pin" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: transparent; color: var(--state-high); border: 1px solid var(--state-high); font-weight: 600; cursor: pointer;">Desactivar</button>
+      </div>
+    `;
+  }
+  return `<button id="btn-enable-pin" type="button" class="btn-primary tappable" style="background: var(--accent-primary); color: #000;">Activar PIN</button>`;
+};
+
 // "Puedes gastar $X hoy" = (disponible restante) / días que quedan del mes (incluye hoy).
 const renderDailyAvailable = (b) => {
   const now = new Date();
@@ -760,7 +811,7 @@ const renderDailyAvailable = (b) => {
   const saldoDiario = Math.max(0, b.remaining) / diasRestantes;
   return `
     <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px; display: flex; align-items: center; gap: 14px;">
-      <div class="icon-chip" style="width: 40px; height: 40px; background: rgba(52, 211, 153, 0.15); color: var(--state-success); flex-shrink: 0;">
+      <div class="icon-chip" style="width: 40px; height: 40px; background: rgba(34, 197, 94, 0.15); color: var(--state-success); flex-shrink: 0;">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
       </div>
       <div>
@@ -849,8 +900,8 @@ const renderResumenCharts = async (b) => {
         labels,
         datasets: [{
           data,
-          borderColor: palette.teal,
-          backgroundColor: palette.teal + '26',
+          borderColor: palette.purple,
+          backgroundColor: palette.purple + '26',
           fill: true,
           tension: 0.3,
           pointRadius: 0,
@@ -1117,7 +1168,7 @@ export async function render() {
       <div id="tab-content-resumen" class="fin-tab-content" style="display: ${activeFinTab === 'resumen' ? 'block' : 'none'};">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
           <div class="card top-card tappable" id="card-ingresos" style="padding: 18px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px;">
-            <div class="icon-chip" style="width: 30px; height: 30px; background: rgba(52, 211, 153, 0.15); color: var(--state-success);">
+            <div class="icon-chip" style="width: 30px; height: 30px; background: rgba(34, 197, 94, 0.15); color: var(--state-success);">
               <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"></path></svg>
             </div>
             <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">Ingresos</div>
@@ -1125,7 +1176,7 @@ export async function render() {
           </div>
 
           <div class="card top-card tappable" id="card-gastos" style="padding: 18px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px;">
-            <div class="icon-chip" style="width: 30px; height: 30px; background: rgba(248, 113, 113, 0.15); color: var(--state-high);">
+            <div class="icon-chip" style="width: 30px; height: 30px; background: rgba(239, 68, 68, 0.15); color: var(--state-high);">
               <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
             </div>
             <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">Gastos</div>
@@ -1133,7 +1184,7 @@ export async function render() {
           </div>
         </div>
 
-        <div class="card" id="card-disponible" style="padding: 28px 24px; text-align: center; border-radius: 24px; margin-bottom: 24px; background: linear-gradient(155deg, var(--surface-2) 0%, var(--surface-1) 65%); border: 1px solid var(--surface-border); box-shadow: 0 0 0 1px var(--glass-border) inset, 0 16px 40px -16px ${isHealthy ? 'rgba(52, 211, 153, 0.35)' : 'rgba(248, 113, 113, 0.35)'};">
+        <div class="card" id="card-disponible" style="padding: 28px 24px; text-align: center; border-radius: 24px; margin-bottom: 24px; background: linear-gradient(155deg, var(--surface-2) 0%, var(--surface-1) 65%); border: 1px solid var(--surface-border); box-shadow: 0 0 0 1px var(--glass-border) inset, 0 16px 40px -16px ${isHealthy ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)'};">
           <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.6px;">Disponible en Mes</div>
           <div style="font-size: 38px; font-weight: 800; color: ${isHealthy ? 'var(--state-success)' : 'var(--state-high)'}; line-height: 1.1; letter-spacing: -0.5px;">
             ${fullStr}
@@ -1144,15 +1195,15 @@ export async function render() {
         <!-- BOTONES FAB MOVIDOS AQUÍ -->
         <div style="display: flex; gap: 12px; margin-bottom: 24px;">
           <button id="btn-fab-ingreso" class="tappable" style="flex: 1; padding: 14px 8px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
-            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(52, 211, 153, 0.15); color: var(--state-success);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"></path></svg></div>
+            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(34, 197, 94, 0.15); color: var(--state-success);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"></path></svg></div>
             <span style="font-size: 11px; font-weight: 700;">Ingreso</span>
           </button>
           <button id="btn-fab-gasto" class="tappable" style="flex: 1; padding: 14px 8px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
-            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(248, 113, 113, 0.15); color: var(--state-high);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7 7 7-7"></path></svg></div>
+            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.15); color: var(--state-high);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7 7 7-7"></path></svg></div>
             <span style="font-size: 11px; font-weight: 700;">Gasto</span>
           </button>
           <button id="btn-fab-ahorro" class="tappable" style="flex: 1; padding: 14px 8px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
-            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(191, 90, 242, 0.15); color: var(--accent-purple);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg></div>
+            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(168, 85, 247, 0.15); color: var(--accent-purple);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg></div>
             <span style="font-size: 11px; font-weight: 700;">Ahorro</span>
           </button>
         </div>
@@ -1161,7 +1212,7 @@ export async function render() {
         <div style="margin-bottom: 24px;">
           <div style="position: relative;">
             <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
-            <input type="text" id="quick-gasto-input" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px rgba(248,113,113,0.15)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+            <input type="text" id="quick-gasto-input" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px rgba(239,68,68,0.15)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
           </div>
           <div id="quick-gasto-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
         </div>
@@ -1239,7 +1290,7 @@ export async function render() {
         <div class="card" style="padding: 24px; margin-bottom: 24px;">
           <div class="flex-between" style="margin-bottom: 24px;">
             <h2 style="font-size: 16px; font-weight: 700; margin: 0;">Tu Regla 50/30/20</h2>
-            <button id="btn-open-settings" style="background: transparent; border: none; color: var(--accent-blue); font-size: 13px; font-weight: 600; cursor: pointer;">Editar regla</button>
+            <button id="btn-open-settings" style="background: transparent; border: none; color: var(--accent-purple); font-size: 13px; font-weight: 600; cursor: pointer;">Editar regla</button>
           </div>
           <div style="position: relative; width: 180px; height: 180px; margin: 0 auto 32px auto;">
             <div id="chart-donut-presupuesto" style="width: 180px; height: 180px; margin: 0 auto; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">${donutSvg}</div>
@@ -1310,7 +1361,7 @@ export async function render() {
             <label>Ahorros (%)</label>
             <input type="number" id="rule-savings" required autocomplete="off" min="0" max="100">
           </div>
-          <button type="submit" class="btn-primary" style="background: var(--accent-blue);">Guardar Regla</button>
+          <button type="submit" class="btn-primary" style="background: var(--accent-purple);">Guardar Regla</button>
         </form>
         <hr style="border: none; border-top: 1px solid var(--surface-border); margin: 24px 0;">
         <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">Respaldos</h3>
@@ -1319,6 +1370,10 @@ export async function render() {
           <input type="file" id="file-import-data" accept=".json" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;">
           <button class="btn-primary tappable" style="background: var(--accent-purple); color: #000; pointer-events: none;">Restaurar respaldo</button>
         </div>
+        <hr style="border: none; border-top: 1px solid var(--surface-border); margin: 24px 0;">
+        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 8px 0;">Seguridad</h3>
+        <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">Bloquea la app con un PIN de 4 dígitos. Si lo olvidas, la única recuperación es borrar los datos del dispositivo y restaurarlos desde un respaldo — por eso exportamos uno automáticamente antes de activarlo.</p>
+        <div id="pin-security-container">${renderPinSecuritySection()}</div>
       </div>
     </div>
 

@@ -43,10 +43,10 @@ export function Toast(message, type = 'info', duration = 2500) {
 
   let bgColor = 'var(--surface-2)';
   let color = 'var(--text-primary)';
-  if (type === 'success') { bgColor = 'rgba(102, 187, 106, 0.15)'; color = 'var(--state-success)'; }
-  if (type === 'error') { bgColor = 'rgba(239, 83, 80, 0.15)'; color = 'var(--state-high)'; }
-  if (type === 'info') { bgColor = 'rgba(41, 182, 246, 0.15)'; color = 'var(--state-info)'; }
-  if (type === 'pr') { bgColor = 'rgba(191, 90, 242, 0.15)'; color = 'var(--accent-purple)'; }
+  if (type === 'success') { bgColor = 'rgba(34, 197, 94, 0.15)'; color = 'var(--state-success)'; }
+  if (type === 'error') { bgColor = 'rgba(239, 68, 68, 0.15)'; color = 'var(--state-high)'; }
+  if (type === 'info') { bgColor = 'rgba(59, 130, 246, 0.15)'; color = 'var(--state-info)'; }
+  if (type === 'pr') { bgColor = 'rgba(168, 85, 247, 0.15)'; color = 'var(--accent-purple)'; }
 
   const toast = document.createElement('div');
   toast.style.cssText = `
