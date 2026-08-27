@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Vanguard OS</title>
+  
+  <!-- Icon & PWA -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  <meta name="theme-color" content="#121212">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>if(!localStorage.getItem('wiped_v2')) { localStorage.clear(); localStorage.setItem('wiped_v2', '1'); console.log('Wiped app data'); }</script>
+</head>
+<body>
+
+  <!-- Splash Screen -->
+  <div id="splash-screen" style="position: fixed; inset: 0; background: var(--bg-base); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s ease-out; opacity: 1;">
+    <div style="font-size: 48px; font-weight: 800; letter-spacing: 2px; color: var(--text-primary);">VANGUARD</div>
+    <div style="width: 120px; height: 4px; background: var(--surface-2); border-radius: 2px; margin-top: 24px; overflow: hidden;">
+      <div style="height: 100%; background: var(--accent-primary); width: 0%; animation: loadSplash 0.8s ease-out forwards;"></div>
+    </div>
+    <!-- Manual Entrar Button -->
+    <button id="splash-enter-btn" class="tappable" style="display:none; margin-top: 40px; background: var(--accent-primary); color: #000; border: none; padding: 12px 32px; border-radius: 24px; font-weight: 700; font-size: 16px; cursor: pointer; animation: fadeIn 0.2s ease-out;">
+      Entrar
+    </button>
+  </div>
+
+  <div class="app-layout">
+    <!-- Navigation Bar -->
+    <nav id="app-nav">
+      <div class="nav-brand">VANGUARD</div>
+      <a href="#dashboard" class="nav-item active tappable" data-view="dashboard">
+        <span class="icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span>
+        <span class="label">Inicio</span>
+      </a>
+      <a href="#tareas" class="nav-item tappable" data-view="tareas">
+        <span class="icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></span>
+        <span class="label">Tareas</span>
+      </a>
+      <a href="#entrenamiento" class="nav-item tappable" data-view="entrenamiento">
+        <span class="icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 10h3v4h-3M3 10H0v4h3"></path><rect x="3" y="8" width="4" height="8" rx="1"></rect><rect x="17" y="8" width="4" height="8" rx="1"></rect><line x1="7" y1="12" x2="17" y2="12"></line></svg></span>
+        <span class="label">Entreno</span>
+      </a>
+      <a href="#finanzas" class="nav-item tappable" data-view="finanzas">
+        <span class="icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12h-3v4h3v-4z"></path></svg></span>
+        <span class="label">Finanzas</span>
+      </a>
+    </nav>
+
+    <!-- Vista Principal Montada por app.js -->
+    <main id="view-root"></main>
+  </div>
+  
+  <!-- Global Toast Container -->
+  <div id="toast-container" style="position: fixed; bottom: calc(env(safe-area-inset-bottom) + 90px); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 4000; pointer-events: none; width: 90%; max-width: 400px;"></div>
+
+  <!-- Global Confirm Dialog -->
+  <div id="global-confirm-modal" class="modal-overlay" style="z-index: 5000;">
+    <div class="modal-content" style="padding: 24px; border-radius: 24px; text-align: center; max-width: 320px; margin: auto; transform: scale(0.95); opacity: 0; transition: all 220ms ease-out;">
+      <div id="confirm-icon" style="font-size: 32px; margin-bottom: 16px;"><svg width="48" height="48" fill="none" stroke="var(--state-high)" stroke-width="2" viewBox="0 0 24 24" style="display:inline-block;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+      <h3 id="confirm-title" style="font-size: 18px; font-weight: 600; margin: 0 0 8px 0; color: var(--text-primary);">Confirmar</h3>
+      <p id="confirm-message" style="font-size: 14px; color: var(--text-secondary); margin: 0 0 24px 0; line-height: 1.4;">¿Estás seguro?</p>
+      <div style="display: flex; gap: 12px;">
+        <button id="confirm-cancel" class="tappable" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: var(--surface-2); color: var(--text-primary); font-weight: 600; cursor: pointer;">Cancelar</button>
+        <button id="confirm-ok" class="tappable" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: var(--state-high); color: #000; font-weight: 600; cursor: pointer;">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes loadSplash { to { width: 100%; } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+  <link rel="manifest" href="manifest.json">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').then(reg => {
+            console.log('SW registrado con exito', reg.scope);
+          }).catch(err => console.error('Error al registrar SW:', err));
+        });
+      }
+    </script>
+  <script type="module">
+    // El servidor local a veces omite el header Content-Type cuando recibe
+    // varias peticiones en paralelo, y no manda headers de caché, así que
+    // ni siquiera "precalentar" evita que el navegador vuelva a pedir todo
+    // en paralelo al resolver los imports de un módulo. Un
+    // <script type="module"> estático además no se puede reintentar.
+    // Solución: bajar cada archivo del grafo UNO A LA VEZ (con reintento
+    // por archivo) y armar el módulo como Blob URL, reescribiendo sus
+    // imports relativos para que apunten a los Blob URL ya resueltos de
+    // sus dependencias — así no queda ninguna petición de red concurrente.
+    async function fetchTextWithRetry(url, attempts = 5) {
+      let lastErr;
+      for (let i = 0; i < attempts; i++) {
+        try {
+          const res = await fetch(i === 0 ? url : `${url}?retry=${Date.now()}_${i}`, { cache: 'no-store' });
+          if (!res.ok) throw new Error(`HTTP ${res.status} al pedir ${url}`);
+          const ct = res.headers.get('content-type') || '';
+          if (!/javascript|ecmascript/i.test(ct)) throw new Error(`Content-Type inválido ("${ct || 'vacío'}") al pedir ${url}`);
+          return await res.text();
+        } catch (err) {
+          lastErr = err;
+          if (i < attempts - 1) await new Promise(r => setTimeout(r, 80 * (i + 1)));
+        }
+      }
+      throw lastErr;
+    }
+
+    async function loadModuleGraph(entryUrl) {
+      const importLineRe = /^import\s+[^;\n]*?from\s+['"](\.[^'"]+)['"]/gm;
+      const texts = new Map();
+      const deps = new Map();
+
+      const toVisit = [entryUrl];
+      const seen = new Set([entryUrl]);
+      while (toVisit.length) {
+        const url = toVisit.shift();
+        if (texts.has(url)) continue;
+        const text = await fetchTextWithRetry(url);
+        texts.set(url, text);
+
+        const fileDeps = [];
+        let m;
+        importLineRe.lastIndex = 0;
+        while ((m = importLineRe.exec(text))) {
+          const abs = new URL(m[1], url).href;
+          fileDeps.push({ specifier: m[1], absUrl: abs });
+          if (!seen.has(abs)) { seen.add(abs); toVisit.push(abs); }
+        }
+        deps.set(url, fileDeps);
+      }
+
+      const order = [];
+      const visited = new Set();
+      (function visit(url) {
+        if (visited.has(url)) return;
+        visited.add(url);
+        for (const d of deps.get(url) || []) visit(d.absUrl);
+        order.push(url);
+      })(entryUrl);
+
+      const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const blobUrls = new Map();
+      for (const url of order) {
+        let text = texts.get(url);
+        for (const d of deps.get(url) || []) {
+          const finalUrl = blobUrls.get(d.absUrl);
+          const specRe = new RegExp(`(^import\\s+[^;\\n]*?from\\s+['"])${escapeRe(d.specifier)}(['"])`, 'm');
+          text = text.replace(specRe, `$1${finalUrl}$2`);
+        }
+        const blob = new Blob([text], { type: 'text/javascript' });
+        blobUrls.set(url, URL.createObjectURL(blob));
+      }
+      return blobUrls.get(entryUrl);
+    }
+
+    async function bootstrap() {
+      const appUrl = new URL('./js/core/app.js', location.href).href;
+      try {
+        const blobUrl = await loadModuleGraph(appUrl);
+        await import(blobUrl);
+      } catch (err) {
+        console.error('No se pudo iniciar la app, recargando...', err);
+        location.reload();
+      }
+    }
+    bootstrap();
+  </script>
+</body>
+</html>

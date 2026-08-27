@@ -1,0 +1,52 @@
+:root {
+  /* --- Superficies (Gris Slate Moderno) --- */
+  --bg-base: #0f1115;
+  --surface-1: #181b21;
+  --surface-2: #21262d;
+  --surface-border: #30363d;
+
+  /* --- Texto --- */
+  --text-primary: #f0f6fc;
+  --text-secondary: #8b949e;
+  --text-disabled: #484f58;
+
+  /* --- Acentos Corregidos Semanticamente --- */
+  --accent-primary: #6366f1; /* Indigo moderno profesional */
+  --accent-teal: #14b8a6;    /* Teal brillante */
+  --accent-orange: #f59e0b;  /* Naranja/Dorado que antes llamabas purple */
+  --accent-blue: #0a84ff;    /* Azul sistema iOS — usado en Finanzas (Deseos, transferencias) */
+  --accent-purple: #bf5af2;  /* Púrpura sistema iOS — usado en Finanzas (Ahorros, metas) */
+
+  /* --- Estados semánticos (Colores más suaves y elegantes) --- */
+  --state-high: #f87171;     /* Rojo pastel */
+  --state-medium: #fbbf24;   /* Ámbar */
+  --state-low: #34d399;      /* Verde esmeralda */
+  --state-success: #34d399;
+  --state-info: #38bdf8;
+
+  /* --- Superficies vidrio (glassmorphism, tipo iOS) --- */
+  --glass-bg: rgba(24, 27, 33, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 24px;
+  --hairline: rgba(255, 255, 255, 0.07);
+
+  /* --- Tipografía --- */
+  --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  /* --- Radios de borde (Curvas tipo Apple) --- */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  /* --- Sombras sutiles --- */
+  --shadow-1: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-2: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+
+  /* --- Espaciado --- */
+  --space-1: 4px; --space-2: 8px; --space-3: 16px; --space-4: 24px; --space-5: 32px;
+
+  --transition-view: 200ms ease-out;
+}

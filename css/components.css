@@ -1,0 +1,208 @@
+/* Tarjetas */
+.card {
+  background-color: var(--surface-1);
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0) 40%);
+  border-radius: var(--radius-lg); /* Bordes más redondeados tipo Apple */
+  border: 1px solid var(--surface-border); /* Borde sutil */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.24), 0 8px 24px -12px rgba(0,0,0,0.5); /* Sombra suave con profundidad */
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Interacción sutil en tarjetas que se pueden tocar */
+.card.tappable:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.14);
+  box-shadow: var(--shadow-1);
+}
+
+.card--elevated {
+  background-color: var(--surface-2);
+  box-shadow: var(--shadow-2);
+}
+
+/* Tarjeta "vidrio" — para héroes y cabeceras destacadas */
+.card--glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--glass-border);
+}
+
+/* Filas de lista reutilizables (movimientos, sobres, metas, recurrentes) */
+.list-row {
+  background: var(--bg-base);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.list-row:hover { border-color: var(--surface-border); }
+.list-row:active { transform: scale(0.99); }
+
+/* Círculo de ícono con tinte de color de categoría */
+.icon-chip {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Botones */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+  transition: opacity 0.2s, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { opacity: 0.8; transform: scale(0.97); }
+
+.btn-filled { background-color: var(--accent-primary); color: #000; }
+.btn-outlined { background-color: transparent; border: 1px solid var(--text-disabled); color: var(--text-primary); }
+.btn-pill { border-radius: 20px; padding: 6px 16px; font-size: 12px; }
+
+/* Botón primario tipo iOS: relleno, esquinas grandes, glow sutil del color */
+.btn-primary {
+  width: 100%;
+  color: #000;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: opacity 0.15s, transform 0.1s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 20px -8px rgba(0,0,0,0.6);
+}
+.btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Segmented control tipo iOS (pestañas de Finanzas, filtros de historial) */
+.segmented-control {
+  display: flex; gap: 4px;
+  background: var(--surface-2);
+  padding: 4px;
+  border-radius: 14px;
+}
+.segmented-control button {
+  flex: 1 0 auto;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease, box-shadow 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.segmented-control button.active {
+  background: var(--surface-1);
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}
+
+
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge--high { background-color: rgba(239, 83, 80, 0.15); color: var(--state-high); }
+.badge--medium { background-color: rgba(255, 167, 38, 0.15); color: var(--state-medium); }
+.badge--low { background-color: rgba(102, 187, 106, 0.15); color: var(--state-low); }
+
+/* Avatares */
+.avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background-color: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600;
+}
+
+/* Header UI */
+.ui-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: var(--space-4);
+  padding-top: var(--space-2);
+}
+.ui-header h1 { font-size: 24px; font-weight: 700; margin: 0; }
+
+/* Grid / Util */
+.flex-row { display: flex; align-items: center; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.text-muted { color: var(--text-secondary); font-size: 13px; }
+
+/* ============================================================
+   Sistema global de modales (bottom sheet estilo iOS)
+   Usado por TODAS las vistas (Finanzas, Entrenamiento, Tareas) y
+   por el diálogo de confirmación global (#global-confirm-modal).
+   Nota: finanzas.js define su propia copia local (misma forma) que
+   gana la cascada mientras esa vista está montada; esta versión
+   global cubre al resto para que nunca queden sin estilo.
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  z-index: 3000;
+  display: none;
+  align-items: flex-end; justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  padding: 0;
+}
+.modal-overlay.open { opacity: 1; display: flex; }
+
+.modal-content {
+  background: var(--surface-1);
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0) 30%);
+  width: 100%; max-width: 500px;
+  border-radius: 28px 28px 0 0;
+  border: 1px solid var(--glass-border); border-bottom: none;
+  padding: 14px 24px calc(28px + env(safe-area-inset-bottom)) 24px;
+  transform: translateY(100%); opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+  max-height: 88vh; overflow-y: auto; box-sizing: border-box;
+  box-shadow: 0 -20px 60px -20px rgba(0,0,0,0.6);
+}
+.modal-content::before {
+  content: ''; display: block; width: 36px; height: 4px; border-radius: 2px;
+  background: var(--surface-border); margin: 0 auto 18px auto;
+}
+@media (min-width: 640px) {
+  .modal-overlay { align-items: center; padding: 20px; }
+  .modal-content { border-radius: 24px; border-bottom: 1px solid var(--glass-border); transform: scale(0.95) translateY(20px); padding: 30px 24px; }
+  .modal-content::before { display: none; }
+}
+
+.input-group { margin-bottom: 20px; }
+.input-group label { display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.input-group input, .input-group select {
+  width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary);
+  padding: 14px 16px; border-radius: 14px; font-size: 16px; box-sizing: border-box; outline: none;
+  font-family: inherit; transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input-group input:focus, .input-group select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
+}
