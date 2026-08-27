@@ -36,10 +36,13 @@ function renderOverlay(title, subtitle, { allowCancel = false, showForgot = true
 }
 
 // Overlay genérico de "pedile 4 dígitos al usuario". `onSubmit(pin)` decide
-// si fue correcto: devuelve true para cerrar el overlay, false para mostrar
-// el error de shake y limpiar. Usado tanto por el bloqueo de arranque como
-// por "verificar PIN actual" al desactivarlo.
-function mountPinPrompt({ title, subtitle, onSubmit, allowCancel = false, onCancel = null, showForgot = true }) {
+// si fue correcto (true/false). Si fue correcto, el overlay se cierra
+// PRIMERO y recién después corre `onSuccess(pin)` — importante porque
+// onSuccess suele montar el siguiente overlay (ver mountSetPinFlow), y
+// mountPinPrompt rechaza abrir uno nuevo mientras el anterior sigue en el
+// DOM. Si fue incorrecto, se muestra el shake + `errorMessage` y se limpia.
+// Usado por el bloqueo de arranque y por "verificar PIN actual".
+function mountPinPrompt({ title, subtitle, onSubmit, onSuccess, errorMessage = 'PIN incorrecto', allowCancel = false, onCancel = null, showForgot = true }) {
   if (document.getElementById('lock-overlay')) return;
 
   const wrapper = document.createElement('div');
@@ -54,12 +57,14 @@ function mountPinPrompt({ title, subtitle, onSubmit, allowCancel = false, onCanc
   const refreshDots = () => { dotsEl.innerHTML = dotsHtml(entered.length); };
 
   const trySubmit = async () => {
-    const ok = await onSubmit(entered);
+    const pin = entered;
+    const ok = await onSubmit(pin);
     if (ok) {
       overlay.remove();
+      if (onSuccess) onSuccess(pin);
     } else {
       dotsEl.classList.add('shake');
-      Toast('PIN incorrecto', 'error', 1500);
+      Toast(errorMessage, 'error', 1500);
       setTimeout(() => {
         entered = '';
         refreshDots();
@@ -106,11 +111,8 @@ export function mountLockScreen(onUnlock) {
     title: 'VANGUARD',
     subtitle: 'Ingresa tu PIN',
     showForgot: true,
-    onSubmit: async (pin) => {
-      const ok = await db.verifyPin(pin);
-      if (ok && onUnlock) onUnlock();
-      return ok;
-    }
+    onSubmit: (pin) => db.verifyPin(pin),
+    onSuccess: () => { if (onUnlock) onUnlock(); }
   });
 }
 
@@ -123,16 +125,14 @@ export function requestPinVerification({ title = 'Confirma tu PIN', onVerified, 
     allowCancel: true,
     showForgot: true,
     onCancel,
-    onSubmit: async (pin) => {
-      const ok = await db.verifyPin(pin);
-      if (ok && onVerified) onVerified();
-      return ok;
-    }
+    onSubmit: (pin) => db.verifyPin(pin),
+    onSuccess: () => { if (onVerified) onVerified(); }
   });
 }
 
 // Flujo de 2 pasos para crear/cambiar el PIN: pedir uno nuevo, luego
-// confirmarlo. Si no coinciden, vuelve a pedir el primero.
+// confirmarlo. Si no coinciden, se limpia y se vuelve a pedir la
+// confirmación (el primer PIN se conserva en el closure).
 export function mountSetPinFlow(onDone, onCancel) {
   const askFirst = () => {
     mountPinPrompt({
@@ -141,10 +141,8 @@ export function mountSetPinFlow(onDone, onCancel) {
       allowCancel: true,
       showForgot: false,
       onCancel,
-      onSubmit: async (firstPin) => {
-        askConfirm(firstPin);
-        return true; // cierra este overlay; el de confirmación se monta después
-      }
+      onSubmit: () => true, // cualquier 4 dígitos sirve como propuesta inicial
+      onSuccess: (firstPin) => askConfirm(firstPin)
     });
   };
 
@@ -155,16 +153,12 @@ export function mountSetPinFlow(onDone, onCancel) {
       allowCancel: true,
       showForgot: false,
       onCancel,
-      onSubmit: async (secondPin) => {
-        if (secondPin !== firstPin) {
-          Toast('Los PIN no coinciden, intentá de nuevo', 'error');
-          setTimeout(askFirst, 300);
-          return true; // cierra este overlay (ya mostramos el toast); reabre el flujo
-        }
+      errorMessage: 'Los PIN no coinciden, intentá de nuevo',
+      onSubmit: (secondPin) => secondPin === firstPin,
+      onSuccess: async () => {
         await db.setPin(firstPin);
         Toast('PIN activado', 'success');
         if (onDone) onDone();
-        return true;
       }
     });
   };
