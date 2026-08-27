@@ -11,12 +11,15 @@ import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js'
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { EmptyState, ConfirmDialog } from '../utils/states.js';
+import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 
 let categoriaActiva = null;
 let viewState = 'main'; // 'main', 'rutinas', 'form', 'session'
 let rutinaActualId = null;
 let currentViewController = null;
 let volumenChartInstance = null;
+
+const CATEGORY_LABELS = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
 
 // Barras de volumen total (peso x reps x series) por semana, agregando
 // todas las categorías. Se llama tras insertar el canvas en el DOM.
@@ -114,38 +117,32 @@ export async function render() {
   });
 
   // Mapa de calor tipo GitHub: intensidad de color según cuántas sesiones
-  // hubo cada día del mes actual (no usa Chart.js, es una grilla simple).
+  // hubo cada día del mes actual.
   const now_ = new Date();
   const heatYear = now_.getFullYear();
   const heatMonth = now_.getMonth();
   const nombreMesActual = now_.toLocaleDateString('es-ES', { month: 'long' });
-  const daysInHeatMonth = new Date(heatYear, heatMonth + 1, 0).getDate();
-  const firstWeekday = (new Date(heatYear, heatMonth, 1).getDay() + 6) % 7; // lunes=0
-  const countByDay = new Array(daysInHeatMonth + 1).fill(0);
+  const countByDay = {};
+  const detailByDay = {};
   sesiones.forEach(s => {
     const d = new Date(s.fecha);
-    if (d.getFullYear() === heatYear && d.getMonth() === heatMonth) countByDay[d.getDate()]++;
+    if (d.getFullYear() === heatYear && d.getMonth() === heatMonth) {
+      const day = d.getDate();
+      countByDay[day] = (countByDay[day] || 0) + 1;
+      if (!detailByDay[day]) detailByDay[day] = [];
+      detailByDay[day].push(`${CATEGORY_LABELS[s.categoria] || s.categoria || 'Sesión'}: ${s.nombreRutina}`);
+    }
   });
-  const maxCount = Math.max(1, ...countByDay);
-  const heatCell = (count, dayLabel) => {
-    const alpha = count === 0 ? 0 : 0.28 + (count / maxCount) * 0.72;
-    return `<div title="${dayLabel ? `${dayLabel}: ${count} ${count === 1 ? 'sesión' : 'sesiones'}` : ''}" style="aspect-ratio: 1; border-radius: 4px; background: var(--accent-teal); opacity: ${count === 0 ? 1 : alpha}; ${count === 0 ? 'background: var(--surface-2);' : ''}"></div>`;
-  };
-  let heatmapCells = '';
-  for (let i = 0; i < firstWeekday; i++) heatmapCells += `<div></div>`;
-  for (let day = 1; day <= daysInHeatMonth; day++) heatmapCells += heatCell(countByDay[day], `${day} de ${nombreMesActual}`);
-  const heatmapHtml = `
-    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
-      ${heatmapCells}
-    </div>
-    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 10px; font-size: 10px; color: var(--text-disabled);">
-      Menos
-      <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--surface-2);"></div>
-      <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--accent-teal); opacity: 0.4;"></div>
-      <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--accent-teal);"></div>
-      Más
-    </div>
-  `;
+  const heatmapHtml = renderActivityHeatmap({
+    id: 'entreno-heatmap',
+    monthLabel: nombreMesActual,
+    year: heatYear,
+    month: heatMonth,
+    countByDay,
+    detailByDay,
+    accentVar: 'var(--accent-teal)',
+    emptyLabel: 'Sin entrenamiento'
+  });
 
   let metricsHtml = '';
   if (profile) {
@@ -285,6 +282,7 @@ mountListeners = () => {
   };
 
   renderVolumenSemanalChart();
+  initActivityHeatmapListeners('entreno-heatmap', 'var(--accent-teal)');
 
   initGoalForm(refreshFull);
   const btnAddGoalEntreno = document.getElementById('btn-add-goal-entreno');

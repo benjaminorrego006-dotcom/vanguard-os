@@ -2,6 +2,7 @@ import { db } from '../core/db.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
 import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
+import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 
 let tasksDonutInstance = null;
 
@@ -80,6 +81,34 @@ export async function render() {
   tasks.forEach(t => {
     if (cols[t.status]) cols[t.status].tasks.push(t);
     else cols['todo'].tasks.push(t); // fallback
+  });
+
+  // Mapa de calor: días del mes con al menos una tarea completada.
+  const now_ = new Date();
+  const heatYear = now_.getFullYear();
+  const heatMonth = now_.getMonth();
+  const nombreMesActual = now_.toLocaleDateString('es-ES', { month: 'long' });
+  const countByDay = {};
+  const detailByDay = {};
+  tasks.forEach(t => {
+    if (!t.completedAt) return;
+    const d = new Date(t.completedAt);
+    if (d.getFullYear() === heatYear && d.getMonth() === heatMonth) {
+      const day = d.getDate();
+      countByDay[day] = (countByDay[day] || 0) + 1;
+      if (!detailByDay[day]) detailByDay[day] = [];
+      detailByDay[day].push(t.title);
+    }
+  });
+  const heatmapHtml = renderActivityHeatmap({
+    id: 'tareas-heatmap',
+    monthLabel: nombreMesActual,
+    year: heatYear,
+    month: heatMonth,
+    countByDay,
+    detailByDay,
+    accentVar: 'var(--accent-purple)',
+    emptyLabel: 'Sin tareas completadas'
   });
 
   const renderCard = (task) => {
@@ -206,10 +235,16 @@ export async function render() {
         </div>
       ` : ''}
 
+      <!-- Mapa de actividad -->
+      <div class="card" style="margin-right: 20px; margin-bottom: 24px; padding: 18px 20px; border-radius: 18px;">
+        <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
+        ${heatmapHtml}
+      </div>
+
       <!-- Search -->
       <div style="margin-right: 20px; margin-bottom: 24px; position: relative;">
         <svg style="position: absolute; left: 16px; top: 13px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="task-search" placeholder="Buscar tareas, proyectos..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-primary)'; this.style.boxShadow='0 0 0 4px rgba(99,102,241,0.18)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+        <input type="text" id="task-search" placeholder="Buscar tareas, proyectos..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-primary)'; this.style.boxShadow='0 0 0 4px rgba(168,85,247,0.18)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
       </div>
 
       <!-- Kanban Board -->
@@ -239,6 +274,7 @@ export function mountListeners() {
   };
 
   db.getTasks().then(renderTasksDonut);
+  initActivityHeatmapListeners('tareas-heatmap', 'var(--accent-purple)');
 
   setupTaskForm(refresh);
 

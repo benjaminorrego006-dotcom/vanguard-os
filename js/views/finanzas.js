@@ -5,6 +5,7 @@ import { db } from '../core/db.js';
 import { formatCurrency, getCurrency, setCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { exportAllData, importAllData } from '../utils/backup.js';
 import { mountSetPinFlow, requestPinVerification } from '../core/lock.js';
+import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { renderIngresoForm, initIngresoForm } from '../components/IngresoForm.js';
 import { renderGastoForm, initGastoForm } from '../components/GastoForm.js';
 import { renderAhorroForm, initAhorroForm } from '../components/AhorroForm.js';
@@ -103,6 +104,12 @@ export async function init() {
     if (resumenLegend) resumenLegend.innerHTML = renderResumenLegend(b);
 
     renderResumenCharts(b);
+
+    const heatmapContainer = document.getElementById('finanzas-heatmap');
+    if (heatmapContainer) {
+      heatmapContainer.outerHTML = buildFinanzasHeatmapHtml();
+      initActivityHeatmapListeners('finanzas-heatmap', 'var(--accent-purple)');
+    }
 
     const trendContainer = document.getElementById('month-trend-container');
     if (trendContainer) trendContainer.innerHTML = renderMonthTrend(b);
@@ -350,9 +357,11 @@ export async function init() {
       });
     });
 
+    initActivityHeatmapListeners('finanzas-heatmap', 'var(--accent-purple)');
+
     const elIncome = document.getElementById('stat-income');
     const elExpense = document.getElementById('stat-expense');
-    
+
     if(elIncome) animateNumber(elIncome, 0, b.income, 800, true);
     if(elExpense) animateNumber(elExpense, 0, b.expenses, 800, true);
     document.querySelectorAll('.btn-close-modal').forEach(btn => {
@@ -787,6 +796,41 @@ const renderResumenLegend = (b) => {
   }).join('');
 };
 
+// Mapa de calor: días del mes con al menos un movimiento (ingreso, gasto o
+// ahorro). b.breakdown ya viene filtrado a currentMonth por getBudget().
+// Se llama tanto desde render() como desde el refresco en vivo de
+// 'budget-updated', para que un movimiento nuevo se refleje sin recargar.
+const buildFinanzasHeatmapHtml = () => {
+  const [heatYear, heatMonthNum] = currentMonth.split('-').map(Number);
+  const heatMonth = heatMonthNum - 1;
+  const nombreMesActual = new Date(heatYear, heatMonth, 1).toLocaleDateString('es-ES', { month: 'long' });
+  const TX_TYPE_LABELS = { Gasto: 'Gasto', Ingreso: 'Ingreso', Ahorro: 'Ahorro', Transfer: 'Transferencia' };
+  const countByDay = {};
+  const detailByDay = {};
+  b.breakdown.forEach(tx => {
+    if (!tx.date) return;
+    // 'date' es 'YYYY-MM-DD' sin hora — se parsean los componentes a mano
+    // para no interpretarlo como medianoche UTC (mismo problema que
+    // documenta toDayKey en db.js > getRachaGlobal).
+    const day = Number(tx.date.split('-')[2]);
+    if (!day) return;
+    countByDay[day] = (countByDay[day] || 0) + 1;
+    if (!detailByDay[day]) detailByDay[day] = [];
+    const label = TX_TYPE_LABELS[tx.type] || tx.type;
+    detailByDay[day].push(`${label}: ${tx.label || 'Sin descripción'} (${formatCurrency(tx.amount)})`);
+  });
+  return renderActivityHeatmap({
+    id: 'finanzas-heatmap',
+    monthLabel: nombreMesActual,
+    year: heatYear,
+    month: heatMonth,
+    countByDay,
+    detailByDay,
+    accentVar: 'var(--accent-purple)',
+    emptyLabel: 'Sin movimientos'
+  });
+};
+
 const renderPinSecuritySection = () => {
   if (db.isPinEnabled()) {
     return `
@@ -1077,6 +1121,10 @@ export async function render() {
   ];
   const donutSvg = renderDonut(segments, b.budgeted, b.budgeted === 0);
 
+  const [heatYear, heatMonthNum] = currentMonth.split('-').map(Number);
+  const nombreMesActual = new Date(heatYear, heatMonthNum - 1, 1).toLocaleDateString('es-ES', { month: 'long' });
+  const heatmapHtml = buildFinanzasHeatmapHtml();
+
   let projColor = 'var(--state-success)';
   if (projectedPct > 90) projColor = 'var(--accent-blue)';
   if (projectedPct > 110) projColor = 'var(--state-high)';
@@ -1232,6 +1280,12 @@ export async function render() {
           <div id="resumen-cat-legend" style="display: flex; flex-direction: column; gap: 10px; margin-top: 24px; text-align: left;">
             ${renderResumenLegend(b)}
           </div>
+        </div>
+
+        <!-- Mapa de actividad -->
+        <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px;">
+          <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
+          ${heatmapHtml}
         </div>
 
         <!-- Evolución del saldo disponible día a día -->
