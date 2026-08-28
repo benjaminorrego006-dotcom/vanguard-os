@@ -16,8 +16,6 @@ let rutinaActualId = null;
 let currentViewController = null;
 let volumenChartInstance = null;
 
-const CATEGORY_LABELS = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
-
 // Barras de volumen total (peso x reps x series) por semana, agregando
 // todas las categorías. Se llama tras insertar el canvas en el DOM.
 const renderVolumenSemanalChart = async () => {
@@ -80,14 +78,6 @@ const recientesEmptyHtml = () => `
 `;
 
 export async function render() {
-  // Limpieza de datos solicitada por el usuario
-  if (localStorage.getItem('vg_dummy_loaded')) {
-    localStorage.removeItem('vg_routines');
-    localStorage.removeItem('vg_sessions');
-    localStorage.removeItem('vg_dummy_loaded');
-    console.log("Datos de entrenamiento eliminados.");
-  }
-
   const sesiones = await db.getSesiones();
   const metasEntreno = await db.getGoals('entreno');
   const resumenSemanal = await db.getResumenEntrenoSemanal();
@@ -114,22 +104,13 @@ export async function render() {
   });
 
   // Mapa de calor tipo GitHub: intensidad de color según cuántas sesiones
-  // hubo cada día del mes actual.
+  // hubo cada día del mes actual. Se deriva del log de eventos
+  // ('sesion_registrada'), no de iterar `sesiones` acá.
   const now_ = new Date();
   const heatYear = now_.getFullYear();
   const heatMonth = now_.getMonth();
   const nombreMesActual = now_.toLocaleDateString('es-ES', { month: 'long' });
-  const countByDay = {};
-  const detailByDay = {};
-  sesiones.forEach(s => {
-    const d = new Date(s.fecha);
-    if (d.getFullYear() === heatYear && d.getMonth() === heatMonth) {
-      const day = d.getDate();
-      countByDay[day] = (countByDay[day] || 0) + 1;
-      if (!detailByDay[day]) detailByDay[day] = [];
-      detailByDay[day].push(`${CATEGORY_LABELS[s.categoria] || s.categoria || 'Sesión'}: ${s.nombreRutina}`);
-    }
-  });
+  const { countByDay, detailByDay } = await db.getActividadEntrenoPorDia(heatYear, heatMonth);
   const heatmapHtml = renderActivityHeatmap({
     id: 'entreno-heatmap',
     monthLabel: nombreMesActual,

@@ -126,7 +126,7 @@ export async function init() {
     // Update Presupuesto Tab Legend (Replaces old envelopes-container)
     const legendContainer = document.getElementById('presupuesto-legend-container');
     if (legendContainer) {
-      legendContainer.innerHTML = renderPresupuestoLegend(b);
+      legendContainer.innerHTML = await renderPresupuestoLegend(b);
       // Re-attach listeners for dynamically rendered buttons inside legend
       attachEnvListeners();
     }
@@ -965,7 +965,7 @@ const renderResumenCharts = async (b) => {
 
   const barCanvas = document.getElementById('bar-chart-mes-comparativo');
   if (barCanvas) {
-    const hist = db.getHistoricalSummary(2);
+    const hist = await db.getHistoricalSummary(2);
     const prevMes = hist.data[0]?.expenses || 0;
     const esteMes = hist.data[1]?.expenses || 0;
     if (monthCompareChartInstance) monthCompareChartInstance.destroy();
@@ -992,11 +992,18 @@ const renderResumenCharts = async (b) => {
   }
 };
 
-const renderPresupuestoLegend = (b) => {
+const renderPresupuestoLegend = async (b) => {
   const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
   const totalWants = b.allocations.find(a => a.category === 'Wants')?.amount || 0;
   const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
   const rule = b.rule || { needs: 0.5, wants: 0.3, savings: 0.2 };
+
+  // getHistoricalSummaryByEnvelope ahora es async (lee IndexedDB): se
+  // precalculan todos los sparklines de sobres ANTES de armar el HTML,
+  // porque los .forEach() de más abajo no pueden esperar promesas.
+  const histByEnvId = new Map(await Promise.all(
+    b.envelopes.map(async (env) => [env.id, await db.getHistoricalSummaryByEnvelope(env.id, 3)])
+  ));
   const ruleDisplay = { needs: Math.round(rule.needs * 100), wants: Math.round(rule.wants * 100), savings: Math.round(rule.savings * 100) };
   const getPct = (val) => b.budgeted > 0 ? Math.round((val / b.budgeted) * 100) : 0;
   
@@ -1043,7 +1050,7 @@ const renderPresupuestoLegend = (b) => {
           const iconSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg>`;
           
           // Sparkline 3 months (P2.4)
-          const hist = db.getHistoricalSummaryByEnvelope(env.id, 3);
+          const hist = histByEnvId.get(env.id) || [];
           const maxH = Math.max(...hist, 1);
           let sparklineHtml = `<div style="display:flex; align-items:flex-end; gap:2px; height:12px; margin-left: 6px;" title="Últimos 3 meses">`;
           hist.forEach(v => {
@@ -1120,6 +1127,36 @@ export async function render() {
     { percent: getPct(totalSavings), color: 'var(--accent-purple)' }
   ];
   const donutSvg = renderDonut(segments, b.budgeted, b.budgeted === 0);
+  const presupuestoLegendHtml = await renderPresupuestoLegend(b);
+
+  // getHistoricalSummary ahora es async (lee IndexedDB): se precalcula acá
+  // el bloque de "Tendencia de gastos" en vez de armarlo en una IIFE
+  // síncrona dentro del template literal de más abajo.
+  const trendHistory6 = await db.getHistoricalSummary(6);
+  const trendHtml = (() => {
+    if (!trendHistory6.hasEnoughData) return '';
+    const maxVal = Math.max(...trendHistory6.data.map(d => d.expenses + d.saved));
+    return `
+    <div class="card" style="padding: 20px; margin-bottom: 24px;">
+      <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">Tendencia de gastos</h3>
+      <div style="display: flex; gap: 8px; align-items: flex-end; height: 100px; padding-top: 10px;">
+        ${trendHistory6.data.map(d => {
+          const h = Math.max(4, Math.round(((d.expenses + d.saved) / maxVal) * 100));
+          const isCurrent = d.month === b.currentMonth;
+          return `<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <div style="width: 100%; height: 100px; background: var(--surface-2); border-radius: 6px; position: relative; overflow: hidden;">
+              <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: ${h}%; background: ${isCurrent ? 'var(--text-primary)' : 'var(--text-secondary)'}; border-radius: 6px; transition: height 0.5s ease;"></div>
+            </div>
+            <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600;">${d.month.split('-')[1]}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="flex-between" style="font-size: 11px; color: var(--text-disabled); margin-top: 12px;">
+        <span>Actual: ${formatCompactCurrency(b.expenses)}</span>
+        <span>Presupuesto: ${formatCompactCurrency(b.budgeted)}</span>
+      </div>
+    </div>`;
+  })();
 
   const [heatYear, heatMonthNum] = currentMonth.split('-').map(Number);
   const nombreMesActual = new Date(heatYear, heatMonthNum - 1, 1).toLocaleDateString('es-ES', { month: 'long' });
@@ -1300,33 +1337,7 @@ export async function render() {
           <div style="height: 110px;"><canvas id="bar-chart-mes-comparativo"></canvas></div>
         </div>
 
-        ${(() => {
-          const trendHistory = db.getHistoricalSummary(6);
-          if (trendHistory.hasEnoughData) {
-            const maxVal = Math.max(...trendHistory.data.map(d => d.expenses + d.saved));
-            return `
-            <div class="card" style="padding: 20px; margin-bottom: 24px;">
-              <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">Tendencia de gastos</h3>
-              <div style="display: flex; gap: 8px; align-items: flex-end; height: 100px; padding-top: 10px;">
-                ${trendHistory.data.map(d => {
-                  const h = Math.max(4, Math.round(((d.expenses + d.saved) / maxVal) * 100));
-                  const isCurrent = d.month === b.currentMonth;
-                  return `<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
-                    <div style="width: 100%; height: 100px; background: var(--surface-2); border-radius: 6px; position: relative; overflow: hidden;">
-                      <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: ${h}%; background: ${isCurrent ? 'var(--text-primary)' : 'var(--text-secondary)'}; border-radius: 6px; transition: height 0.5s ease;"></div>
-                    </div>
-                    <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600;">${d.month.split('-')[1]}</div>
-                  </div>`;
-                }).join('')}
-              </div>
-              <div class="flex-between" style="font-size: 11px; color: var(--text-disabled); margin-top: 12px;">
-                <span>Actual: ${formatCompactCurrency(b.expenses)}</span>
-                <span>Presupuesto: ${formatCompactCurrency(b.budgeted)}</span>
-              </div>
-            </div>`;
-          }
-          return '';
-        })()}
+        ${trendHtml}
 
         <div class="card" style="padding: 20px; margin-bottom: 24px;">
           <div class="flex-between" style="margin-bottom: 16px;">
@@ -1355,7 +1366,7 @@ export async function render() {
           </div>
 
           <div id="presupuesto-legend-container" style="display: flex; flex-direction: column; gap: 16px;">
-            ${renderPresupuestoLegend(b)}
+            ${presupuestoLegendHtml}
           </div>
         </div>
 

@@ -100,7 +100,7 @@ function mountPinPrompt({ title, subtitle, onSubmit, onSuccess, errorMessage = '
         'No hay forma de recuperar el PIN: la única opción es borrar todos los datos de este dispositivo y restaurarlos desde tu último respaldo exportado. ¿Continuar?'
       );
       if (!confirmed) return;
-      db.wipeAllLocalData();
+      await db.wipeAllLocalData();
       location.reload();
     });
   }

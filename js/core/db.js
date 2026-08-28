@@ -1,4 +1,6 @@
 import { getEjercicioMetadata, GRUPO_MUSCULAR_ORDEN } from './ejercicios-catalogo.js';
+import * as idb from './idb.js';
+
 function toSafeNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
@@ -44,6 +46,38 @@ const DEFAULT_ENVELOPES = [
   { id: 'env_6', name: 'Suscripciones', category: 'Wants', icon: 'tv' }
 ];
 
+// --- Puente hacia IndexedDB -------------------------------------------
+// Cada store de entidad se comporta como el viejo array-en-localStorage:
+// se lee completo y se reescribe completo. Es menos "idiomático" que hacer
+// put/delete de una sola fila, pero preserva 1:1 el patrón de lectura-
+// modificación-escritura que ya usaba cada método de abajo, minimizando el
+// riesgo de la migración.
+async function idbGetArray(store) {
+  try { return await idb.getAll(store); }
+  catch (e) { console.error(`[Vanguard OS] Error leyendo IndexedDB store "${store}"`, e); return []; }
+}
+async function idbSetArray(store, arr) {
+  try { await idb.putAllReplacing(store, arr); }
+  catch (e) { console.error(`[Vanguard OS] Error escribiendo IndexedDB store "${store}"`, e); }
+}
+async function idbGetSingleton(key, defaultValue) {
+  try {
+    const row = await idb.getOne('singletons', key);
+    return row ? row.value : defaultValue;
+  } catch (e) {
+    console.error(`[Vanguard OS] Error leyendo singleton "${key}"`, e);
+    return defaultValue;
+  }
+}
+async function idbSetSingleton(key, value) {
+  try { await idb.put('singletons', { key, value }); }
+  catch (e) { console.error(`[Vanguard OS] Error escribiendo singleton "${key}"`, e); }
+}
+
+// localStorage síncrono, usado SOLO para: (a) leer los datos legacy durante
+// la migración a IndexedDB, y (b) el puñado de claves que a propósito se
+// quedan fuera de IndexedDB (ver más abajo). Ya no es el motor de
+// persistencia principal de la app.
 const safeGetItem = (key, defaultValue) => {
   try {
     const item = localStorage.getItem(key);
@@ -54,24 +88,155 @@ const safeGetItem = (key, defaultValue) => {
   }
 };
 
-const safeSetItem = (key, value) => {
-  try {
-    localStorage.setItem(key, value);
-  } catch (e) {
-    console.error('?? [Vanguard OS] Storage Quota Exceeded for key: ' + key, e);
-  }
-};
-
 const generateId = () => {
   return typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
     : Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 };
 
+// --- Log de eventos central --------------------------------------------
+// Cada mutación de cualquier módulo (entreno/finanzas/tareas) agrega acá
+// una fila inmutable: nunca se edita ni se borra un evento existente. Sirve
+// como fuente para derivar racha global, heatmap de actividad, insignias
+// desbloqueadas y la bitácora de una entidad puntual, en vez de guardar
+// esos agregados como campos aparte que podrían desincronizarse.
+async function logEvent({ modulo, tipo, entidadId = null, payload = {}, ts = null }) {
+  const event = {
+    id: generateId(),
+    ts: (typeof ts === 'number' && !isNaN(ts)) ? ts : Date.now(),
+    modulo,
+    tipo,
+    entidadId,
+    payload,
+    schemaVersion: 1
+  };
+  try { await idb.put('events', event); }
+  catch (e) { console.error('[Vanguard OS] Error registrando evento', tipo, e); }
+  return event;
+}
+
+// Ordena por fecha de creación ascendente (más viejo primero), igual que el
+// orden de inserción que tenían los arrays de localStorage. IndexedDB
+// getAll() devuelve las filas ordenadas por su keyPath (un uuid), no por
+// orden de inserción, así que hace falta este sort explícito para no
+// alterar el orden en que las listas se mostraban antes.
+function sortByCreatedAt(arr) {
+  return [...arr].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+}
+
+// --- Migración desde localStorage ---------------------------------------
+// Corre una sola vez (marcada con 'vg_migrated_to_idb'): copia cada array
+// legacy a su store de IndexedDB — aplicando la misma normalización
+// defensiva que antes corría en cada boot vía migrateAllStoredData() — y
+// reconstruye el log de eventos a partir del historial existente, usando
+// la fecha real de cada registro para que racha/heatmap/insignias no
+// arranquen en cero justo después de migrar.
+//
+// Rutinas, metas y sobres no tenían un campo de fecha de creación antes de
+// esta migración, así que no se les inventa un evento retroactivo (sí se
+// les asigna un `createdAt` sintético, espaciado según su posición original
+// en el array, solo para preservar el orden en que se mostraban en las
+// listas). Desde ahora en más, toda mutación nueva sí queda en el log.
+async function migrateFromLocalStorageIfNeeded() {
+  if (localStorage.getItem('vg_migrated_to_idb') === 'true') return;
+
+  const isNumericLabel = (label) => /^\d+$/.test((label || '').trim());
+
+  let rawTxs = [];
+  try { rawTxs = JSON.parse(localStorage.getItem('vg_transactions') || 'null') || []; } catch (e) { rawTxs = []; }
+  const txs = (Array.isArray(rawTxs) ? rawTxs : []).map(tx => {
+    let merged = { ...DEFAULT_TX_SHAPE, ...tx, amount: toSafeNumber(tx.amount) };
+    if (isNumericLabel(merged.label)) {
+      merged.label = merged.type === 'Ingreso' ? 'Ingreso' : (merged.category === 'Savings' ? 'Ahorro' : (merged.category === 'Needs' ? 'Necesidades' : 'Deseos'));
+    }
+    return merged;
+  });
+  if (txs.length) await idbSetArray('transacciones', txs);
+
+  let rawGoals = [];
+  try { rawGoals = JSON.parse(localStorage.getItem('vg_savings_goals') || 'null') || []; } catch (e) { rawGoals = []; }
+  const goalsBase = Array.isArray(rawGoals) ? rawGoals : [];
+  const goals = goalsBase.map((g, i) => ({
+    ...DEFAULT_GOAL_SHAPE, ...g,
+    targetAmount: toSafeNumber(g.targetAmount),
+    currentAmount: toSafeNumber(g.currentAmount),
+    createdAt: g.createdAt || new Date(Date.now() - (goalsBase.length - i) * 1000).toISOString()
+  }));
+  if (goals.length) await idbSetArray('goals', goals);
+
+  let rawSettings = null;
+  try { rawSettings = JSON.parse(localStorage.getItem('vg_settings') || 'null'); } catch (e) { rawSettings = null; }
+  let settings = { ...DEFAULT_SETTINGS_SHAPE };
+  if (rawSettings && typeof rawSettings === 'object') {
+    settings = { ...DEFAULT_SETTINGS_SHAPE, ...rawSettings };
+    if (!settings.allocationRule || typeof settings.allocationRule !== 'object') settings.allocationRule = DEFAULT_SETTINGS_SHAPE.allocationRule;
+  }
+  await idbSetSingleton('settings', settings);
+
+  let rawEnvelopes = null;
+  try { rawEnvelopes = JSON.parse(localStorage.getItem('vg_envelopes') || 'null'); } catch (e) { rawEnvelopes = null; }
+  const envelopesBase = (Array.isArray(rawEnvelopes) && rawEnvelopes.length > 0) ? rawEnvelopes : DEFAULT_ENVELOPES;
+  const envelopes = envelopesBase.map((e, i) => ({
+    ...e,
+    createdAt: e.createdAt || new Date(Date.now() - (envelopesBase.length - i) * 1000).toISOString()
+  }));
+  await idbSetArray('envelopes', envelopes);
+
+  const rawRecurring = safeGetItem('vg_recurring', []);
+  if (rawRecurring.length) await idbSetArray('recurrentes', rawRecurring);
+
+  let rawRutinas = safeGetItem('vg_routines', []);
+  rawRutinas = rawRutinas.map((r, i) => ({
+    ...r,
+    createdAt: r.createdAt || new Date(Date.now() - (rawRutinas.length - i) * 1000).toISOString()
+  }));
+  if (rawRutinas.length) await idbSetArray('rutinas', rawRutinas);
+
+  const rawSesiones = safeGetItem('vg_sessions', []);
+  if (rawSesiones.length) await idbSetArray('sesiones', rawSesiones);
+
+  const rawTareas = safeGetItem('vg_tasks', []);
+  if (rawTareas.length) await idbSetArray('tareas', rawTareas);
+
+  const rawProfile = safeGetItem('vg_profile', null);
+  if (rawProfile) await idbSetSingleton('profile', rawProfile);
+
+  const rawFavoritos = safeGetItem('vg_pr_favoritos', []);
+  if (rawFavoritos.length) await idbSetSingleton('prFavoritos', rawFavoritos);
+
+  // Backfill del log de eventos a partir del historial real.
+  const backfill = [];
+  txs.forEach(t => {
+    const ts = new Date(t.date).getTime();
+    backfill.push({ modulo: 'finanzas', tipo: 'movimiento_registrado', entidadId: t.id, payload: t, ts: isNaN(ts) ? Date.now() : ts });
+  });
+  rawSesiones.forEach(s => {
+    const ts = new Date(s.fecha).getTime();
+    backfill.push({ modulo: 'entreno', tipo: 'sesion_registrada', entidadId: s.id, payload: s, ts: isNaN(ts) ? Date.now() : ts });
+  });
+  rawTareas.forEach(t => {
+    const createdTs = t.createdAt ? new Date(t.createdAt).getTime() : Date.now();
+    backfill.push({ modulo: 'tareas', tipo: 'tarea_creada', entidadId: t.id, payload: t, ts: isNaN(createdTs) ? Date.now() : createdTs });
+    if (t.completedAt) {
+      const doneTs = new Date(t.completedAt).getTime();
+      if (!isNaN(doneTs)) backfill.push({ modulo: 'tareas', tipo: 'tarea_completada', entidadId: t.id, payload: t, ts: doneTs });
+    }
+  });
+
+  for (const ev of backfill) {
+    await logEvent(ev);
+  }
+
+  localStorage.setItem('vg_migrated_to_idb', 'true');
+}
+
 // Hash del PIN de bloqueo. Usa claves con prefijo "vglock_" (NO "vg_") a
 // propósito, para que exportAllData/importAllData (que solo copian claves
 // "vg_"/"vanguard:") nunca muevan el PIN entre dispositivos ni lo metan en
-// un respaldo: el PIN es 100% local a este navegador.
+// un respaldo: el PIN es 100% local a este navegador. Por la misma razón
+// se queda en localStorage y no migra a IndexedDB: el candado de la app
+// tiene que poder consultarse de forma inmediata al arrancar, antes de que
+// la conexión a IndexedDB (y su eventual migración) haya terminado.
 async function sha256Hex(text) {
   const data = new TextEncoder().encode(text);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -80,38 +245,38 @@ async function sha256Hex(text) {
 
 export const db = {
   async getDashboardStats() {
-    const sesiones = safeGetItem('vg_sessions', []);
+    const sesiones = await idbGetArray('sesiones');
     if (!sesiones.length) return { sesionesSemana: 0, rachaSemanas: 0 };
-    
+
     const now = new Date();
-    const currentDay = now.getDay(); 
+    const currentDay = now.getDay();
     const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
-    
+
     const startOfThisWeek = new Date(now);
     startOfThisWeek.setDate(now.getDate() - distanceToMonday);
     startOfThisWeek.setHours(0,0,0,0);
-    
+
     let sesionesSemana = 0;
     const weekIds = new Set();
     const knownMonday = new Date('2024-01-01T00:00:00Z'); // A Monday
-    
+
     sesiones.forEach(s => {
       const sDate = new Date(s.fecha);
       if (sDate >= startOfThisWeek) sesionesSemana++;
-      
+
       const diffTime = sDate - knownMonday;
       const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
       weekIds.add(diffWeeks);
     });
-    
+
     const currentWeekDiff = Math.floor((now - knownMonday) / (1000 * 60 * 60 * 24 * 7));
     let racha = 0;
     let checkWeek = currentWeekDiff;
-    
+
     if (!weekIds.has(checkWeek) && weekIds.has(checkWeek - 1)) {
         checkWeek--;
     }
-    
+
     while (weekIds.has(checkWeek)) {
       racha++;
       checkWeek--;
@@ -120,92 +285,46 @@ export const db = {
     return { sesionesSemana, rachaSemanas: racha };
   },
   _triggerUpdate() { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('budget-updated')); },
-  migrateAllStoredData() {
-    // Migrate Transactions
+
+  async init() {
     try {
-      const rawTxs = JSON.parse(localStorage.getItem('vg_transactions') || 'null');
-      if (rawTxs && Array.isArray(rawTxs)) {
-        const isNumericLabel = (label) => /^\d+$/.test((label || '').trim());
-        const migratedTxs = rawTxs.map(tx => {
-          let merged = { ...DEFAULT_TX_SHAPE, ...tx, amount: toSafeNumber(tx.amount) };
-          if (isNumericLabel(merged.label)) {
-            const fallback = merged.type === 'Ingreso' ? 'Ingreso' : (merged.category === 'Savings' ? 'Ahorro' : (merged.category === 'Needs' ? 'Necesidades' : 'Deseos'));
-            merged.label = fallback;
-          }
-          return merged;
-        });
-        safeSetItem('vg_transactions', JSON.stringify(migratedTxs));
-      } else {
-        safeSetItem('vg_transactions', JSON.stringify([]));
-      }
-    } catch(e) { safeSetItem('vg_transactions', JSON.stringify([])); }
-
-    // Migrate Goals
-    try {
-      const rawGoals = JSON.parse(localStorage.getItem('vg_savings_goals') || 'null');
-      if (rawGoals && Array.isArray(rawGoals)) {
-        const migratedGoals = rawGoals.map(g => ({ 
-          ...DEFAULT_GOAL_SHAPE, 
-          ...g,
-          targetAmount: toSafeNumber(g.targetAmount),
-          currentAmount: toSafeNumber(g.currentAmount)
-        }));
-        safeSetItem('vg_savings_goals', JSON.stringify(migratedGoals));
-      } else {
-        safeSetItem('vg_savings_goals', JSON.stringify([]));
-      }
-    } catch(e) { safeSetItem('vg_savings_goals', JSON.stringify([])); }
-
-    // Migrate Settings
-    try {
-      const rawSettings = JSON.parse(localStorage.getItem('vg_settings') || 'null');
-      let migratedSettings = { ...DEFAULT_SETTINGS_SHAPE };
-      if (rawSettings && typeof rawSettings === 'object') {
-        migratedSettings = { ...DEFAULT_SETTINGS_SHAPE, ...rawSettings };
-        if (!migratedSettings.allocationRule || typeof migratedSettings.allocationRule !== 'object') {
-           migratedSettings.allocationRule = DEFAULT_SETTINGS_SHAPE.allocationRule;
-        }
-      }
-      safeSetItem('vg_settings', JSON.stringify(migratedSettings));
-    } catch(e) { safeSetItem('vg_settings', JSON.stringify(DEFAULT_SETTINGS_SHAPE)); }
-
-    // NEW: Migrate Envelopes
-    try {
-      const rawEnvelopes = JSON.parse(localStorage.getItem('vg_envelopes') || 'null');
-      if (!rawEnvelopes || !Array.isArray(rawEnvelopes) || rawEnvelopes.length === 0) {
-        safeSetItem('vg_envelopes', JSON.stringify(DEFAULT_ENVELOPES));
-      }
-    } catch(e) { safeSetItem('vg_envelopes', JSON.stringify(DEFAULT_ENVELOPES)); }
-
-    },
-
-  init() {
-    this.migrateAllStoredData();
+      await migrateFromLocalStorageIfNeeded();
+    } catch (e) {
+      console.error('[Vanguard OS] Error migrando datos a IndexedDB', e);
+    }
   },
 
   async getAllocationRule() {
-    const settings = safeGetItem('vg_settings', {});
+    const settings = await idbGetSingleton('settings', DEFAULT_SETTINGS_SHAPE);
     return settings.allocationRule || DEFAULT_SETTINGS_SHAPE.allocationRule;
   },
 
   async setAllocationRule(rule) {
-    const settings = safeGetItem('vg_settings', {});
+    const settings = await idbGetSingleton('settings', { ...DEFAULT_SETTINGS_SHAPE });
     settings.allocationRule = rule;
-    safeSetItem('vg_settings', JSON.stringify(settings)); this._triggerUpdate();
+    await idbSetSingleton('settings', settings); this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'configuracion_actualizada', payload: { allocationRule: rule } });
   },
 
   async getRestTimerSecs() {
-    const settings = safeGetItem('vg_settings', {});
+    const settings = await idbGetSingleton('settings', DEFAULT_SETTINGS_SHAPE);
     return settings.restTimerSecs || DEFAULT_SETTINGS_SHAPE.restTimerSecs;
   },
 
   async setRestTimerSecs(secs) {
-    const settings = safeGetItem('vg_settings', {});
+    const settings = await idbGetSingleton('settings', { ...DEFAULT_SETTINGS_SHAPE });
     settings.restTimerSecs = Math.max(15, toSafeNumber(secs));
-    safeSetItem('vg_settings', JSON.stringify(settings)); this._triggerUpdate();
+    await idbSetSingleton('settings', settings); this._triggerUpdate();
+    await logEvent({ modulo: 'entreno', tipo: 'configuracion_actualizada', payload: { restTimerSecs: settings.restTimerSecs } });
   },
 
   // --- PIN de acceso (100% local, ver nota sobre "vglock_" en sha256Hex) ---
+  // OJO: a propósito NO son async (salvo las que ya lo eran por el hash) —
+  // isPinEnabled() se usa de forma síncrona para decidir en el primer
+  // render si hay que mostrar el candado (app.js) y dentro de un template
+  // string síncrono (renderPinSecuritySection en finanzas.js). Como el PIN
+  // vive en localStorage (no en IndexedDB), no hay ninguna razón real para
+  // volverlas async.
   isPinEnabled() {
     return localStorage.getItem('vglock_enabled') === 'true' && !!localStorage.getItem('vglock_hash');
   },
@@ -225,44 +344,52 @@ export const db = {
   // Único mecanismo de recuperación: borra TODOS los datos locales (no solo
   // el PIN), por diseño — si el reset fuera gratis, el PIN no protegería
   // nada. Por eso activar el PIN exige antes exportar un respaldo (ver
-  // btn-enable-pin en finanzas.js), para que esto sea recuperable.
-  wipeAllLocalData() {
+  // btn-enable-pin en finanzas.js), para que esto sea recuperable. Ahora
+  // también borra la base de IndexedDB completa (ahí vive todo salvo el
+  // propio PIN y un par de preferencias sueltas).
+  async wipeAllLocalData() {
     localStorage.clear();
+    await idb.deleteDatabase();
   },
 
-  // --- NEW: Envelopes API ---
+  // --- Envelopes API ---
   async createEnvelope(data) {
     let envs = await this.getEnvelopes();
-    const newEnv = { id: generateId(), ...data };
+    const newEnv = { id: generateId(), createdAt: new Date().toISOString(), ...data };
     envs.push(newEnv);
-    safeSetItem('vg_envelopes', JSON.stringify(envs)); this._triggerUpdate(); return newEnv;
+    await idbSetArray('envelopes', envs); this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'sobre_creado', entidadId: newEnv.id, payload: newEnv });
+    return newEnv;
   },
   async updateEnvelope(id, data) {
     let envs = await this.getEnvelopes();
     const idx = envs.findIndex(e => e.id === id);
     if(idx > -1) {
       envs[idx] = { ...envs[idx], ...data };
-      safeSetItem('vg_envelopes', JSON.stringify(envs)); this._triggerUpdate();
+      await idbSetArray('envelopes', envs); this._triggerUpdate();
+      await logEvent({ modulo: 'finanzas', tipo: 'sobre_actualizado', entidadId: id, payload: envs[idx] });
     }
   },
   async deleteEnvelope(id) {
     let envs = await this.getEnvelopes();
     envs = envs.filter(e => e.id !== id);
-    safeSetItem('vg_envelopes', JSON.stringify(envs)); this._triggerUpdate();
+    await idbSetArray('envelopes', envs); this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'sobre_eliminado', entidadId: id, payload: {} });
   },
   async transferEnvelopeFunds(fromId, toId, amount) {
     let envs = await this.getEnvelopes();
     const fromIdx = envs.findIndex(e => e.id === fromId);
     const toIdx = envs.findIndex(e => e.id === toId);
-    
+
     if (fromIdx > -1 && toIdx > -1) {
       envs[fromIdx].assignedAmount = (Number(envs[fromIdx].assignedAmount) || 0) - amount;
       envs[toIdx].assignedAmount = (Number(envs[toIdx].assignedAmount) || 0) + amount;
-      safeSetItem('vg_envelopes', JSON.stringify(envs));
+      await idbSetArray('envelopes', envs);
       this._triggerUpdate();
-      
-      let txs = safeGetItem('vg_transactions', []);
-      txs.push({
+      await logEvent({ modulo: 'finanzas', tipo: 'sobre_transferencia', payload: { fromId, toId, amount } });
+
+      let txs = await idbGetArray('transacciones');
+      const transferTx = {
         id: generateId(),
         date: new Date().toISOString(),
         type: 'Transfer',
@@ -270,49 +397,55 @@ export const db = {
         label: 'Transferencia entre sobres',
         fromEnvelopeId: fromId,
         toEnvelopeId: toId
-      });
-      safeSetItem('vg_transactions', JSON.stringify(txs));
+      };
+      txs.push(transferTx);
+      await idbSetArray('transacciones', txs);
       this._triggerUpdate();
+      await logEvent({ modulo: 'finanzas', tipo: 'movimiento_registrado', entidadId: transferTx.id, payload: transferTx });
     }
   },
 
-    // --- NEW: Recurring Expenses API ---
+  // --- Recurring Expenses API ---
   async getRecurring() {
-    return safeGetItem('vg_recurring', []);
+    return sortByCreatedAt(await idbGetArray('recurrentes'));
   },
   async createRecurring(data) {
     let all = await this.getRecurring();
-    const newItem = { 
-      id: generateId(), 
+    const newItem = {
+      id: generateId(),
       createdAt: new Date().toISOString(),
       lastProcessed: null,
-      ...data 
+      ...data
     };
     all.push(newItem);
-    safeSetItem('vg_recurring', JSON.stringify(all)); this._triggerUpdate(); return newItem;
+    await idbSetArray('recurrentes', all); this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'recurrente_creado', entidadId: newItem.id, payload: newItem });
+    return newItem;
   },
   async deleteRecurring(id) {
     let all = await this.getRecurring();
     all = all.filter(r => r.id !== id);
-    safeSetItem('vg_recurring', JSON.stringify(all)); this._triggerUpdate();
+    await idbSetArray('recurrentes', all); this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'recurrente_eliminado', entidadId: id, payload: {} });
   },
   async processRecurringTransactions() {
     let recurring = await this.getRecurring();
     if (recurring.length === 0) return false;
 
-    let txs = safeGetItem('vg_transactions', []);
+    let txs = await idbGetArray('transacciones');
     let envelopes = await this.getEnvelopes();
     let updated = false;
+    const generatedTxs = [];
 
     const today = new Date();
     today.setHours(0,0,0,0);
 
     recurring.forEach(req => {
       let lastDate = req.lastProcessed ? new Date(req.lastProcessed) : new Date(req.createdAt);
-      
+
       let nextTarget = new Date(lastDate.getFullYear(), lastDate.getMonth(), req.dayOfMonth);
       // Evitar overflow de meses (ej. 31 de Febrero) limitando el dayOfMonth a 28 en UI.
-      
+
       if (lastDate >= nextTarget || req.lastProcessed) {
         nextTarget.setMonth(nextTarget.getMonth() + 1);
       }
@@ -321,7 +454,7 @@ export const db = {
         const env = envelopes.find(e => e.id === req.envelopeId);
         const cat = env ? env.category : 'Needs';
 
-        txs.push({
+        const newTx = {
           id: generateId(),
           date: nextTarget.toISOString(),
           type: 'Gasto',
@@ -330,8 +463,10 @@ export const db = {
           amount: req.amount,
           goalId: null,
           envelopeId: req.envelopeId
-        });
-        
+        };
+        txs.push(newTx);
+        generatedTxs.push(newTx);
+
         req.lastProcessed = nextTarget.toISOString();
         updated = true;
         nextTarget.setMonth(nextTarget.getMonth() + 1);
@@ -339,28 +474,33 @@ export const db = {
     });
 
     if (updated) {
-      safeSetItem('vg_recurring', JSON.stringify(recurring));
-      safeSetItem('vg_transactions', JSON.stringify(txs)); this._triggerUpdate();
+      await idbSetArray('recurrentes', recurring);
+      await idbSetArray('transacciones', txs); this._triggerUpdate();
+      for (const tx of generatedTxs) {
+        await logEvent({ modulo: 'finanzas', tipo: 'movimiento_registrado', entidadId: tx.id, payload: tx, ts: new Date(tx.date).getTime() });
+      }
       return true;
     }
     return false;
   },
 
   async getEnvelopes() {
-    return safeGetItem('vg_envelopes', []);
+    return sortByCreatedAt(await idbGetArray('envelopes'));
   },
 
   // --------------------------
 
   async addTransaction(tx) {
     const prevBudget = await this.getBudget();
-    
-    const txs = safeGetItem('vg_transactions', []);
+
+    const txs = await idbGetArray('transacciones');
     const now = new Date();
     const dateStr = tx.date || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    txs.push({ id: generateId(), date: dateStr, goalId: null, envelopeId: null, ...tx });
-    safeSetItem('vg_transactions', JSON.stringify(txs)); this._triggerUpdate();
-    
+    const newTx = { id: generateId(), date: dateStr, goalId: null, envelopeId: null, ...tx };
+    txs.push(newTx);
+    await idbSetArray('transacciones', txs); this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'movimiento_registrado', entidadId: newTx.id, payload: newTx });
+
     const newBudget = await this.getBudget();
     let triggerAlert = null;
     if (prevBudget.alertLevel !== newBudget.alertLevel && (newBudget.alertLevel === 'warning' || newBudget.alertLevel === 'exceeded')) {
@@ -370,14 +510,15 @@ export const db = {
     }
     return { triggerAlert, excessAmount: newBudget.expenses + newBudget.savedThisMonth - newBudget.budgeted };
   },
-  
+
   async updateTransaction(id, data) {
     const prevBudget = await this.getBudget();
-    let txs = safeGetItem('vg_transactions', []);
+    let txs = await idbGetArray('transacciones');
     const idx = txs.findIndex(t => t.id === id);
     if(idx > -1) {
       txs[idx] = { ...txs[idx], ...data };
-      safeSetItem('vg_transactions', JSON.stringify(txs)); this._triggerUpdate();
+      await idbSetArray('transacciones', txs); this._triggerUpdate();
+      await logEvent({ modulo: 'finanzas', tipo: 'movimiento_actualizado', entidadId: id, payload: txs[idx] });
     }
     const newBudget = await this.getBudget();
     let triggerAlert = null;
@@ -390,13 +531,14 @@ export const db = {
   },
 
   async deleteTransaction(id) {
-    let txs = safeGetItem('vg_transactions', []);
+    let txs = await idbGetArray('transacciones');
     const tx = txs.find(t => t.id === id);
     if (!tx) return {};
 
     txs = txs.filter(t => t.id !== id);
-    safeSetItem('vg_transactions', JSON.stringify(txs)); this._triggerUpdate();
-    
+    await idbSetArray('transacciones', txs); this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'movimiento_eliminado', entidadId: id, payload: tx });
+
     // Revertir transferencia manualmente
     if (tx.type === 'Transfer') {
       let envs = await this.getEnvelopes();
@@ -404,18 +546,18 @@ export const db = {
       let toIdx = envs.findIndex(e => e.id === tx.toEnvelopeId);
       if (fromIdx > -1) envs[fromIdx].assignedAmount = (Number(envs[fromIdx].assignedAmount) || 0) + Number(tx.amount);
       if (toIdx > -1) envs[toIdx].assignedAmount = (Number(envs[toIdx].assignedAmount) || 0) - Number(tx.amount);
-      safeSetItem('vg_envelopes', JSON.stringify(envs));
+      await idbSetArray('envelopes', envs);
       this._triggerUpdate();
     }
-    
+
     return {};
   },
 
   // Metas genéricas: dinero (Finanzas) o sesiones/km/personalizado (Entreno).
-  // Mismo storage de siempre (vg_savings_goals) — el nombre del key queda
-  // por compatibilidad con datos ya guardados, pero ya no es solo de ahorro.
+  // Mismo store de siempre ('goals') — el nombre queda por compatibilidad
+  // conceptual con datos ya guardados, pero ya no es solo de ahorro.
   async getGoals(dominio) {
-    const goals = safeGetItem('vg_savings_goals', []);
+    const goals = sortByCreatedAt(await idbGetArray('goals'));
     const normalizadas = goals.map(g => {
       const c = Number(g.currentAmount) || 0;
       const t = Number(g.targetAmount) || 0;
@@ -431,31 +573,36 @@ export const db = {
   },
 
   async createGoal(goal) {
-    const goals = safeGetItem('vg_savings_goals', []);
-    goals.push({ ...DEFAULT_GOAL_SHAPE, id: generateId(), ...goal });
-    safeSetItem('vg_savings_goals', JSON.stringify(goals)); this._triggerUpdate();
+    const goals = await idbGetArray('goals');
+    const newGoal = { ...DEFAULT_GOAL_SHAPE, id: generateId(), createdAt: new Date().toISOString(), ...goal };
+    goals.push(newGoal);
+    await idbSetArray('goals', goals); this._triggerUpdate();
+    await logEvent({ modulo: newGoal.dominio === 'entreno' ? 'entreno' : 'finanzas', tipo: 'meta_creada', entidadId: newGoal.id, payload: newGoal });
   },
 
   async updateGoal(id, data) {
-    let goals = safeGetItem('vg_savings_goals', []);
+    let goals = await idbGetArray('goals');
     const idx = goals.findIndex(g => g.id === id);
     if(idx > -1) {
       goals[idx] = { ...goals[idx], ...data };
-      safeSetItem('vg_savings_goals', JSON.stringify(goals)); this._triggerUpdate();
+      await idbSetArray('goals', goals); this._triggerUpdate();
+      await logEvent({ modulo: goals[idx].dominio === 'entreno' ? 'entreno' : 'finanzas', tipo: 'meta_actualizada', entidadId: id, payload: goals[idx] });
     }
   },
 
   async deleteGoal(id) {
-    let goals = safeGetItem('vg_savings_goals', []);
+    let goals = await idbGetArray('goals');
+    const goal = goals.find(g => g.id === id);
     goals = goals.filter(g => g.id !== id);
-    safeSetItem('vg_savings_goals', JSON.stringify(goals)); this._triggerUpdate();
+    await idbSetArray('goals', goals); this._triggerUpdate();
+    await logEvent({ modulo: (goal && goal.dominio === 'entreno') ? 'entreno' : 'finanzas', tipo: 'meta_eliminada', entidadId: id, payload: goal || {} });
   },
 
   // Abono manual de progreso a una meta. Para metas de dinero (Finanzas)
   // además registra el movimiento y afecta el presupuesto, igual que
   // siempre. Para metas de Entreno (km, personalizado) solo suma progreso.
   async contributeToGoal(goalId, amount, label = '') {
-    let goals = safeGetItem('vg_savings_goals', []);
+    let goals = await idbGetArray('goals');
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return {};
 
@@ -463,15 +610,18 @@ export const db = {
     const prevBudget = esDinero ? await this.getBudget() : null;
 
     goal.currentAmount = (Number(goal.currentAmount) || 0) + amount;
-    safeSetItem('vg_savings_goals', JSON.stringify(goals)); this._triggerUpdate();
+    await idbSetArray('goals', goals); this._triggerUpdate();
+    await logEvent({ modulo: esDinero ? 'finanzas' : 'entreno', tipo: 'meta_progreso_agregado', entidadId: goalId, payload: { amount, currentAmount: goal.currentAmount } });
 
     if (!esDinero) return { triggerAlert: null };
 
-    const txs = safeGetItem('vg_transactions', []);
+    const txs = await idbGetArray('transacciones');
     const now = new Date();
     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    txs.push({ id: generateId(), date: dateStr, type: 'Gasto', category: 'Savings', label: label || goal.name, amount: amount, goalId: goal.id, envelopeId: null });
-    safeSetItem('vg_transactions', JSON.stringify(txs)); this._triggerUpdate();
+    const newTx = { id: generateId(), date: dateStr, type: 'Gasto', category: 'Savings', label: label || goal.name, amount: amount, goalId: goal.id, envelopeId: null };
+    txs.push(newTx);
+    await idbSetArray('transacciones', txs); this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'movimiento_registrado', entidadId: newTx.id, payload: newTx });
 
     const newBudget = await this.getBudget();
     let triggerAlert = null;
@@ -483,8 +633,8 @@ export const db = {
     return { triggerAlert, excessAmount: newBudget.expenses + newBudget.savedThisMonth - newBudget.budgeted };
   },
 
-  getHistoricalSummaryByEnvelope(envelopeId, monthsBack = 6) {
-    const txsAll = safeGetItem('vg_transactions', []);
+  async getHistoricalSummaryByEnvelope(envelopeId, monthsBack = 6) {
+    const txsAll = await idbGetArray('transacciones');
     let result = [];
     const now = new Date();
     for(let i = monthsBack - 1; i >= 0; i--) {
@@ -498,8 +648,8 @@ export const db = {
     return result;
   },
 
-  getHistoricalSummary(monthsBack = 6) {
-    const txsAll = safeGetItem('vg_transactions', []);
+  async getHistoricalSummary(monthsBack = 6) {
+    const txsAll = await idbGetArray('transacciones');
     let result = [];
     const now = new Date();
     let hasDataBeforeCurrent = false;
@@ -507,7 +657,7 @@ export const db = {
     for(let i = monthsBack - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      
+
       const txs = txsAll.filter(t => t.date && t.date.startsWith(mStr));
       if (i > 0 && txs.length > 0) hasDataBeforeCurrent = true;
 
@@ -520,14 +670,14 @@ export const db = {
       });
       result.push({ month: mStr, income: inc, expenses: exp, saved: sav });
     }
-    
+
     return { data: result, hasEnoughData: hasDataBeforeCurrent };
   },
 
   // --- AGE OF MONEY ---
-  getAgeOfMoney(txsAll) {
-    if (!txsAll) txsAll = safeGetItem('vg_transactions', []);
-    
+  async getAgeOfMoney(txsAll) {
+    if (!txsAll) txsAll = await idbGetArray('transacciones');
+
     // Función auxiliar de limpieza robusta (por si hay transacciones viejas mal formadas)
     const safeNum = (val) => {
       if (typeof val === 'number') return val;
@@ -561,11 +711,11 @@ export const db = {
     for (let exp of expenses) {
       let remainingExp = exp.amt;
       let expDate = new Date(exp.date);
-      
+
       while (remainingExp > 0 && incomeIdx < incomes.length) {
         let inc = incomes[incomeIdx];
         let incDate = new Date(inc.date);
-        
+
         let diffTime = expDate.getTime() - incDate.getTime();
         let diffDays = Math.max(0, Math.floor(diffTime / (1000 * 3600 * 24)));
 
@@ -593,35 +743,39 @@ export const db = {
 
     // --- ENTRENAMIENTO (RUTINAS Y SESIONES) ---
   async getRutinas(categoria) {
-    const rutinas = safeGetItem('vg_routines', []);
+    const rutinas = sortByCreatedAt(await idbGetArray('rutinas'));
     if (!categoria) return rutinas;
     return rutinas.filter(r => r.categoria === categoria);
   },
   async crearRutina(data) {
-    const rutinas = safeGetItem('vg_routines', []);
+    const rutinas = await idbGetArray('rutinas');
     const newRutina = {
       id: generateId(),
+      createdAt: new Date().toISOString(),
       nombre: data.nombre || 'Rutina Sin Nombre',
       categoria: data.categoria || 'gym', // gym, calistenia, hiit
       ejercicios: data.ejercicios || [], // [{nombre, series: [...]}]
       hiitSettings: data.hiitSettings || null // NUEVO
     };
     rutinas.push(newRutina);
-    safeSetItem('vg_routines', JSON.stringify(rutinas));
+    await idbSetArray('rutinas', rutinas);
     this._triggerUpdate();
+    await logEvent({ modulo: 'entreno', tipo: 'rutina_creada', entidadId: newRutina.id, payload: newRutina });
     return newRutina;
   },
   async eliminarRutina(id) {
-    let rutinas = safeGetItem('vg_routines', []);
+    let rutinas = await idbGetArray('rutinas');
     rutinas = rutinas.filter(r => r.id !== id);
-    safeSetItem('vg_routines', JSON.stringify(rutinas));
+    await idbSetArray('rutinas', rutinas);
     this._triggerUpdate();
+    await logEvent({ modulo: 'entreno', tipo: 'rutina_eliminada', entidadId: id, payload: {} });
   },
   async getSesiones() {
-    return safeGetItem('vg_sessions', []).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+    const sesiones = await idbGetArray('sesiones');
+    return sesiones.sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
   },
   async getUltimoRegistro(ejercicioNombre) {
-    const sesiones = safeGetItem('vg_sessions', []).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+    const sesiones = (await idbGetArray('sesiones')).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
     for (let s of sesiones) {
       if (s.ejercicios) {
         const ej = s.ejercicios.find(e => e.nombre.toLowerCase() === ejercicioNombre.toLowerCase());
@@ -632,8 +786,11 @@ export const db = {
     }
     return null;
   },
+  // Un evento por sesión completa (con las series embebidas en el payload),
+  // no uno por serie individual: es como la UI realmente captura el dato
+  // (un solo guardado al terminar la sesión).
   async registrarSesion(data) {
-    const sesiones = safeGetItem('vg_sessions', []);
+    const sesiones = await idbGetArray('sesiones');
     const now = new Date();
     const newSesion = {
       id: generateId(),
@@ -647,23 +804,33 @@ export const db = {
       notas: data.notas || '' // NUEVO: notas libres
     };
     sesiones.push(newSesion);
-    safeSetItem('vg_sessions', JSON.stringify(sesiones));
+    await idbSetArray('sesiones', sesiones);
+
+    const sesionTs = new Date(newSesion.fecha).getTime();
+    await logEvent({ modulo: 'entreno', tipo: 'sesion_registrada', entidadId: newSesion.id, payload: newSesion, ts: isNaN(sesionTs) ? null : sesionTs });
 
     // Auto-track: las metas de Entreno tipo 'sesiones' suman 1 solas al
     // registrarse una sesión (opcionalmente limitado a una categoría).
-    const rutinas = safeGetItem('vg_routines', []);
+    const rutinas = await idbGetArray('rutinas');
     const categoriaSesion = rutinas.find(r => r.id === newSesion.rutinaId)?.categoria || null;
-    let goals = safeGetItem('vg_savings_goals', []);
+    let goals = await idbGetArray('goals');
     let goalsChanged = false;
+    const autoTrackedIds = [];
     goals.forEach(g => {
       if (g.dominio === 'entreno' && g.tipo === 'sesiones' && g.autoTrack) {
         if (!g.rutinaCategoriaFiltro || g.rutinaCategoriaFiltro === categoriaSesion) {
           g.currentAmount = (Number(g.currentAmount) || 0) + 1;
           goalsChanged = true;
+          autoTrackedIds.push(g.id);
         }
       }
     });
-    if (goalsChanged) safeSetItem('vg_savings_goals', JSON.stringify(goals));
+    if (goalsChanged) {
+      await idbSetArray('goals', goals);
+      for (const goalId of autoTrackedIds) {
+        await logEvent({ modulo: 'entreno', tipo: 'meta_progreso_agregado', entidadId: goalId, payload: { amount: 1, automatico: true, sesionId: newSesion.id }, ts: isNaN(sesionTs) ? null : sesionTs });
+      }
+    }
 
     this._triggerUpdate();
     return newSesion;
@@ -671,7 +838,7 @@ export const db = {
 
   // --- PERFIL DE USUARIO ---
   async getProfile() {
-    return safeGetItem('vg_profile', null);
+    return idbGetSingleton('profile', null);
   },
   async saveProfile(data) {
     const profile = {
@@ -683,42 +850,10 @@ export const db = {
       meta: data.meta || 'mantener',
       actualizadoEn: new Date().toISOString()
     };
-    safeSetItem('vg_profile', JSON.stringify(profile));
+    await idbSetSingleton('profile', profile);
     this._triggerUpdate();
+    await logEvent({ modulo: 'entreno', tipo: 'perfil_actualizado', payload: profile });
     return profile;
-  },
-
-
-
-  // --- BACKUP & RESTORE ---
-  async exportarDatos() {
-    return {
-      transacciones: safeGetItem('vg_transactions', []),
-      categorias: safeGetItem('vg_categories', []),
-      presupuestos: safeGetItem('vg_budgets', []),
-      metasAhorro: safeGetItem('vg_savings_goals', []),
-      sobres: safeGetItem('vg_envelopes', []),
-      recurrentes: safeGetItem('vg_recurring', []),
-      configuracion: safeGetItem('vg_settings', {}),
-      rutinas: safeGetItem('vg_routines', []),
-      sesiones: safeGetItem('vg_sessions', [])
-    };
-  },
-
-  async importarDatos(jsonData) {
-    if (!jsonData) throw new Error("JSON vacío");
-    
-    if (jsonData.transacciones) safeSetItem('vg_transactions', JSON.stringify(jsonData.transacciones));
-    if (jsonData.categorias) safeSetItem('vg_categories', JSON.stringify(jsonData.categorias));
-    if (jsonData.presupuestos) safeSetItem('vg_budgets', JSON.stringify(jsonData.presupuestos));
-    if (jsonData.metasAhorro) safeSetItem('vg_savings_goals', JSON.stringify(jsonData.metasAhorro));
-    if (jsonData.sobres) safeSetItem('vg_envelopes', JSON.stringify(jsonData.sobres));
-    if (jsonData.recurrentes) safeSetItem('vg_recurring', JSON.stringify(jsonData.recurrentes));
-    if (jsonData.configuracion) safeSetItem('vg_settings', JSON.stringify(jsonData.configuracion));
-    if (jsonData.rutinas) safeSetItem('vg_routines', JSON.stringify(jsonData.rutinas));
-    if (jsonData.sesiones) safeSetItem('vg_sessions', JSON.stringify(jsonData.sesiones));
-    if (this._triggerUpdate) this._triggerUpdate();
-    return true;
   },
 
   // --- ANALYTICS ENTRENAMIENTO (FASE 1) ---
@@ -726,10 +861,10 @@ export const db = {
   async detectarNecesidadDeload() {
     // Calculamos volumen total de las últimas 4 semanas de forma independiente.
     // W1 (más antigua) a W4 (más reciente)
-    const sesiones = safeGetItem('vg_sessions', []);
+    const sesiones = await idbGetArray('sesiones');
     const now = new Date();
     const weeks = [0, 0, 0, 0]; // index 3 = current week, index 0 = 3 weeks ago
-    
+
     sesiones.forEach(s => {
       const sDate = new Date(s.fecha);
       const diffDays = (now - sDate) / (1000 * 60 * 60 * 24);
@@ -756,12 +891,10 @@ export const db = {
     return false;
   },
 
-
-
   async sugerirProgresion(ejercicioNombre) {
     const nomClean = ejercicioNombre.toLowerCase().trim();
-    const sesiones = safeGetItem('vg_sessions', []).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
-    
+    const sesiones = (await idbGetArray('sesiones')).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+
     for (const s of sesiones) {
       if (!s.ejercicios) continue;
       const ej = s.ejercicios.find(e => e.nombre.toLowerCase().trim() === nomClean);
@@ -770,29 +903,29 @@ export const db = {
         let pMax = 0;
         let rMax = 0;
         let maxRpe = 0;
-        
+
         ej.series.forEach(serie => {
           const p = Number(serie.peso) || 0;
           const match = String(serie.reps).match(/\d+/);
           const r = match ? parseInt(match[0]) : 0;
           const rp = serie.rpe ? parseInt(serie.rpe) : 0;
-          
+
           if (p > pMax) pMax = p;
           if (p === 0 && r > rMax) rMax = r;
-          
+
           if (rp > maxRpe) maxRpe = rp;
         });
-        
+
         let increment = 2.5;
         let repsIncr = 1;
-        
+
         if (maxRpe > 0) {
           if (maxRpe <= 7) { increment = pMax > 0 ? Math.max(2.5, pMax * 0.05) : 0; repsIncr = 2; }
           else if (maxRpe >= 9) { isHard = true; }
         } else {
           isHard = ej.series.some(s => s.tipo === 'fallo' || (s.rpe && parseInt(s.rpe) >= 9));
         }
-        
+
         if (isHard) {
           return { accion: 'mantener', peso: pMax, reps: rMax };
         } else {
@@ -811,12 +944,18 @@ export const db = {
     return Math.round(p * (1 + r / 30));
   },
 
+  // Racha de HIIT específicamente: sigue leyendo de las entidades (sesiones
+  // + rutinas), no del log de eventos, porque la categoría HIIT de una
+  // sesión se resuelve con un heurístico sobre el nombre de rutina que no
+  // vale la pena duplicar en cada evento — no es una de las 4 cosas que se
+  // pidió derivar explícitamente (racha global, heatmap, insignias,
+  // bitácora), así que se deja como estaba salvo el motor de storage.
   async getRachaHiit() {
-    const rutinas = safeGetItem('vg_routines', []);
+    const rutinas = await idbGetArray('rutinas');
     const hitIds = rutinas.filter(r => r.categoria === 'hiit').map(r => r.id);
-    const sesiones = safeGetItem('vg_sessions', []);
+    const sesiones = await idbGetArray('sesiones');
     const sesionesHiit = sesiones.filter(s => hitIds.includes(s.rutinaId) || s.nombreRutina.toLowerCase().includes('hiit') || s.nombreRutina.toLowerCase().includes('tabata'));
-    
+
     // Group by unique day
     const uniqueDays = new Set();
     sesionesHiit.forEach(s => {
@@ -825,19 +964,19 @@ export const db = {
       uniqueDays.add(d.getTime());
     });
     const sortedDays = Array.from(uniqueDays).sort((a,b) => b - a); // newest first
-    
+
     let actual = 0;
     let mejor = 0;
     let tempMejor = 0;
-    
+
     // Calculate current streak
     const today = new Date();
     today.setHours(0,0,0,0);
     const todayTime = today.getTime();
-    
+
     let checkTime = todayTime;
     let index = 0;
-    
+
     // Current streak can start today or yesterday
     if (sortedDays[0] === todayTime || sortedDays[0] === todayTime - 86400000) {
       if (sortedDays[0] === todayTime) {
@@ -845,14 +984,14 @@ export const db = {
       } else {
         checkTime = todayTime - 86400000;
       }
-      
+
       while (index < sortedDays.length && sortedDays[index] === checkTime) {
         actual++;
         checkTime -= 86400000;
         index++;
       }
     }
-    
+
     // Calculate best streak
     if (sortedDays.length > 0) {
       tempMejor = 1;
@@ -866,18 +1005,22 @@ export const db = {
         }
       }
     }
-    
+
     return { actual, mejor };
   },
 
-  // Racha de días consecutivos con al menos una sesión, sin filtrar por
-  // categoría (a diferencia de getRachaHiit). Misma lógica de cómputo.
+  // Racha de días consecutivos con al menos una sesión de Entreno, sin
+  // filtrar por categoría (a diferencia de getRachaHiit). Se deriva del log
+  // de eventos ('sesion_registrada') en vez de leer el store de sesiones
+  // directamente — mismo resultado, pero es la fuente que pidió usarse para
+  // este tipo de agregado.
   async getRachaGeneral() {
-    const sesiones = safeGetItem('vg_sessions', []);
+    const eventos = await idb.getAll('events');
+    const sesionEventos = eventos.filter(e => e.modulo === 'entreno' && e.tipo === 'sesion_registrada');
 
     const uniqueDays = new Set();
-    sesiones.forEach(s => {
-      const d = new Date(s.fecha);
+    sesionEventos.forEach(e => {
+      const d = new Date(e.ts);
       d.setHours(0, 0, 0, 0);
       uniqueDays.add(d.getTime());
     });
@@ -904,42 +1047,25 @@ export const db = {
     return { actual };
   },
 
-  // Racha global: cuenta un día como "activo" si hubo cualquier acción en
-  // Tareas (completar), Entreno (sesión) o Finanzas (movimiento). Distinta
-  // de getRachaGeneral(), que es específica de Entreno y se sigue usando
-  // ahí — esta es para la tarjeta de racha del Dashboard.
+  // Racha global: cuenta un día como "activo" si hubo cualquier evento en
+  // Tareas (tarea_completada), Entreno (sesion_registrada) o Finanzas
+  // (movimiento_registrado). Distinta de getRachaGeneral(), que es
+  // específica de Entreno y se sigue usando ahí — esta es para la tarjeta
+  // de racha del Dashboard. Se deriva enteramente del log de eventos: no
+  // hay un campo "racha" guardado en ningún lado.
   async getRachaGlobal() {
-    const sesiones = safeGetItem('vg_sessions', []);
-    const transacciones = safeGetItem('vg_transactions', []);
-    const tareas = safeGetItem('vg_tasks', []);
+    const eventos = await idb.getAll('events');
+    const relevantes = eventos.filter(e =>
+      e.tipo === 'sesion_registrada' || e.tipo === 'movimiento_registrado' || e.tipo === 'tarea_completada'
+    );
 
-    const toDayKey = (fecha) => {
-      if (!fecha) return null;
-      // Las transacciones guardan fecha como 'YYYY-MM-DD' (sin hora). JS
-      // interpreta ese formato como medianoche UTC, no local — en husos
-      // horarios negativos eso corre la fecha un día hacia atrás al pasarla
-      // a local. Se parsean los componentes a mano para evitarlo.
-      const soloFecha = /^\d{4}-\d{2}-\d{2}$/.test(fecha);
-      let d;
-      if (soloFecha) {
-        const [y, m, day] = fecha.split('-').map(Number);
-        d = new Date(y, m - 1, day);
-      } else {
-        d = new Date(fecha);
-      }
-      if (isNaN(d)) return null;
+    const activityByDay = new Map(); // dayTime -> cantidad de eventos
+    relevantes.forEach(e => {
+      const d = new Date(e.ts);
       d.setHours(0, 0, 0, 0);
-      return d.getTime();
-    };
-
-    const activityByDay = new Map(); // dayTime -> cantidad de acciones
-    const bump = (dayTime) => {
-      if (dayTime === null) return;
+      const dayTime = d.getTime();
       activityByDay.set(dayTime, (activityByDay.get(dayTime) || 0) + 1);
-    };
-    sesiones.forEach(s => bump(toDayKey(s.fecha)));
-    transacciones.forEach(t => bump(toDayKey(t.date)));
-    tareas.forEach(t => { if (t.completedAt) bump(toDayKey(t.completedAt)); });
+    });
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -969,18 +1095,50 @@ export const db = {
     return { actual, last7 };
   },
 
+  // Actividad de Entreno por día de un mes, para el mapa de calor —
+  // derivada del log de eventos ('sesion_registrada'), no de iterar el
+  // store de sesiones a mano en la vista (como hacía antes entrenamiento.js).
+  async getActividadEntrenoPorDia(year, month) {
+    const eventos = await idb.getAll('events');
+    const countByDay = {};
+    const detailByDay = {};
+    const CATEGORY_LABELS = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
+
+    eventos
+      .filter(e => e.modulo === 'entreno' && e.tipo === 'sesion_registrada')
+      .forEach(e => {
+        const d = new Date(e.ts);
+        if (d.getFullYear() !== year || d.getMonth() !== month) return;
+        const day = d.getDate();
+        countByDay[day] = (countByDay[day] || 0) + 1;
+        if (!detailByDay[day]) detailByDay[day] = [];
+        const s = e.payload || {};
+        detailByDay[day].push(`${CATEGORY_LABELS[s.categoria] || s.categoria || 'Sesión'}: ${s.nombreRutina || ''}`);
+      });
+
+    return { countByDay, detailByDay };
+  },
+
+  // Bitácora cronológica de todos los eventos asociados a una entidad
+  // puntual (una tarea, una sesión, una meta...) — se deriva del log en vez
+  // de guardar un historial aparte por entidad.
+  async getBitacoraEntidad(entidadId) {
+    const eventos = await idb.getAllByIndex('events', 'entidadId', entidadId);
+    return eventos.sort((a, b) => a.ts - b.ts);
+  },
+
   // Insignias simples por hito: se recalculan a partir de los datos
   // actuales cada vez que se piden (no se guarda un estado "desbloqueado"
   // aparte, para que nunca queden desincronizadas de los datos reales).
   async getBadges() {
-    const [racha, goals, sesiones] = await Promise.all([
+    const eventos = await idb.getAll('events');
+    const [racha, goals] = await Promise.all([
       this.getRachaGlobal(),
-      this.getGoals(),
-      Promise.resolve(safeGetItem('vg_sessions', []))
+      this.getGoals()
     ]);
 
     const primeraMetaCumplida = goals.some(g => g.completed);
-    const diezSesiones = sesiones.length >= 10;
+    const diezSesiones = eventos.filter(e => e.modulo === 'entreno' && e.tipo === 'sesion_registrada').length >= 10;
 
     // Mes de presupuesto sin excederte: algún mes ANTERIOR al actual (no
     // el que está en curso) donde hubo ingreso y no se llegó a gastar+ahorrar
@@ -1007,11 +1165,11 @@ export const db = {
   // Sesiones completadas esta semana (lunes-domingo) por categoría, para
   // los anillos de progreso semanal en la vista de Entreno.
   async getResumenEntrenoSemanal() {
-    const rutinas = safeGetItem('vg_routines', []);
+    const rutinas = await idbGetArray('rutinas');
     const catMap = {};
     rutinas.forEach(r => catMap[r.id] = r.categoria);
 
-    const sesiones = safeGetItem('vg_sessions', []);
+    const sesiones = await idbGetArray('sesiones');
     const now = new Date();
     const currentDay = now.getDay();
     const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
@@ -1034,11 +1192,11 @@ export const db = {
   },
 
   async getTendenciaSemanal(categoria, semanas = 8) {
-    const rutinas = safeGetItem('vg_routines', []);
+    const rutinas = await idbGetArray('rutinas');
     const catMap = {};
     rutinas.forEach(r => catMap[r.id] = r.categoria);
 
-    const sesiones = safeGetItem('vg_sessions', []);
+    const sesiones = await idbGetArray('sesiones');
     const now = new Date();
     const volumenPorSemana = Array.from({ length: semanas }, () => 0);
     const minutosPorSemana = Array.from({ length: semanas }, () => 0);
@@ -1077,9 +1235,9 @@ export const db = {
     const now = new Date();
     const in7Days = new Date(now);
     in7Days.setDate(now.getDate() + 7);
-    
+
     let alerts = [];
-    
+
     recurring.forEach(r => {
       if (r.type === 'Gasto' && r.envelopeId) {
         const nextDate = new Date(r.nextDate);
@@ -1104,7 +1262,7 @@ export const db = {
   },
 
   async getVolumenPorGrupo(rangoDias) {
-    const sesiones = safeGetItem('vg_sessions', []);
+    const sesiones = await idbGetArray('sesiones');
     const now = new Date();
     const startDate = new Date();
     startDate.setDate(now.getDate() - rangoDias);
@@ -1120,7 +1278,7 @@ export const db = {
             const meta = getEjercicioMetadata(ej.nombre);
             if (volumen[meta.grupoMuscular] !== undefined) volumen[meta.grupoMuscular] += ej.series.length;
             else volumen.otro += ej.series.length;
-            
+
             if (balance[meta.patron] !== undefined) balance[meta.patron] += ej.series.length;
             else balance.otro += ej.series.length;
           });
@@ -1136,7 +1294,7 @@ export const db = {
   // se calculan las 3 métricas seleccionables (series, volumen en kg,
   // repeticiones) más los totales del período.
   async getDesgloseGrupoMuscular(startDate, endDate) {
-    const sesiones = safeGetItem('vg_sessions', []);
+    const sesiones = await idbGetArray('sesiones');
     const start = new Date(startDate); start.setHours(0, 0, 0, 0);
     const end = new Date(endDate); end.setHours(23, 59, 59, 999);
 
@@ -1175,7 +1333,7 @@ export const db = {
   // sesiones, con su grupo muscular resuelto — para el selector de la
   // pestaña Ejercicios de Análisis.
   async getListaEjerciciosRegistrados() {
-    const sesiones = safeGetItem('vg_sessions', []);
+    const sesiones = await idbGetArray('sesiones');
     const map = new Map();
     sesiones.forEach(s => {
       (s.ejercicios || []).forEach(ej => {
@@ -1190,38 +1348,39 @@ export const db = {
 
   // Favoritos de récords personales (pestaña Récords de Análisis): solo
   // afectan el orden en que se muestran, se guardan aparte de los PRs
-  // porque estos últimos se derivan siempre de vg_sessions.
-  getFavoritosPR() {
-    return safeGetItem('vg_pr_favoritos', []);
+  // porque estos últimos se derivan siempre del store de sesiones.
+  async getFavoritosPR() {
+    return idbGetSingleton('prFavoritos', []);
   },
 
   async toggleFavoritoPR(nombre) {
     const key = nombre.toLowerCase().trim();
-    let favoritos = safeGetItem('vg_pr_favoritos', []);
+    let favoritos = await idbGetSingleton('prFavoritos', []);
     if (favoritos.includes(key)) favoritos = favoritos.filter(f => f !== key);
     else favoritos.push(key);
-    safeSetItem('vg_pr_favoritos', JSON.stringify(favoritos));
+    await idbSetSingleton('prFavoritos', favoritos);
     this._triggerUpdate();
+    await logEvent({ modulo: 'entreno', tipo: 'pr_favorito_toggled', entidadId: key, payload: { favorito: favoritos.includes(key) } });
     return favoritos;
   },
 
   async getPRs() {
-    const sesiones = safeGetItem('vg_sessions', []);
+    const sesiones = await idbGetArray('sesiones');
     const prs = {};
-    const favoritos = safeGetItem('vg_pr_favoritos', []);
+    const favoritos = await idbGetSingleton('prFavoritos', []);
 
     sesiones.forEach(s => {
       if (s.ejercicios) {
         s.ejercicios.forEach(ej => {
           const nombre = ej.nombre.toLowerCase().trim();
           if (!prs[nombre]) prs[nombre] = { nombre: ej.nombre.trim(), pesoMax: 0, repsMax: 0, fecha: s.fecha };
-          
+
           ej.series.forEach(serie => {
             const peso = Number(serie.peso) || 0;
             const repsStr = String(serie.reps).trim();
             const match = repsStr.match(/\d+/);
             const reps = match ? parseInt(match[0]) : 0;
-            
+
             if (peso > prs[nombre].pesoMax) {
               prs[nombre].pesoMax = peso;
               prs[nombre].repsMax = reps;
@@ -1249,11 +1408,10 @@ export const db = {
     return prs;
   },
 
-
   async getMejorAmrap(rutinaId) {
-    const sesiones = safeGetItem('vg_sessions', []);
+    const sesiones = await idbGetArray('sesiones');
     let maxRondas = 0;
-    
+
     sesiones.forEach(s => {
       if (s.rutinaId === rutinaId && s.ejercicios && s.ejercicios.length > 0) {
         // En HIIT dummy, guardamos las rondas en reps del primer ejercicio
@@ -1263,13 +1421,13 @@ export const db = {
         }
       }
     });
-    
+
     return maxRondas;
   },
 
   async getHistorialEjercicio(nombre) {
     const nomClean = nombre.toLowerCase().trim();
-    const sesiones = safeGetItem('vg_sessions', []).sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
+    const sesiones = (await idbGetArray('sesiones')).sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
     const historial = [];
 
     sesiones.forEach(s => {
@@ -1325,69 +1483,77 @@ export const db = {
 
   // --- TAREAS ---
   async getTasks() {
-    return safeGetItem('vg_tasks', []);
+    return sortByCreatedAt(await idbGetArray('tareas'));
   },
 
   async saveTask(data) {
-    let tasks = safeGetItem('vg_tasks', []);
+    let tasks = await idbGetArray('tareas');
     if (data.id) {
       const idx = tasks.findIndex(t => t.id === data.id);
       if (idx > -1) {
         tasks[idx] = { ...tasks[idx], ...data };
-        safeSetItem('vg_tasks', JSON.stringify(tasks)); this._triggerUpdate();
+        await idbSetArray('tareas', tasks); this._triggerUpdate();
+        await logEvent({ modulo: 'tareas', tipo: 'tarea_actualizada', entidadId: tasks[idx].id, payload: tasks[idx] });
         return tasks[idx];
       }
     }
     const { id: _ignoredId, ...rest } = data;
     const newTask = { createdAt: new Date().toISOString(), ...rest, id: generateId() };
     tasks.push(newTask);
-    safeSetItem('vg_tasks', JSON.stringify(tasks)); this._triggerUpdate();
+    await idbSetArray('tareas', tasks); this._triggerUpdate();
+    await logEvent({ modulo: 'tareas', tipo: 'tarea_creada', entidadId: newTask.id, payload: newTask });
     return newTask;
   },
 
   async deleteTask(id) {
-    let tasks = safeGetItem('vg_tasks', []);
+    let tasks = await idbGetArray('tareas');
+    const task = tasks.find(t => t.id === id);
     tasks = tasks.filter(t => t.id !== id);
-    safeSetItem('vg_tasks', JSON.stringify(tasks)); this._triggerUpdate();
+    await idbSetArray('tareas', tasks); this._triggerUpdate();
+    await logEvent({ modulo: 'tareas', tipo: 'tarea_eliminada', entidadId: id, payload: task || {} });
   },
 
   async updateTaskStatus(id, status) {
-    let tasks = safeGetItem('vg_tasks', []);
+    let tasks = await idbGetArray('tareas');
     const idx = tasks.findIndex(t => t.id === id);
     if (idx > -1) {
       tasks[idx].status = status;
       // Se usa para la racha global: solo cuenta el día en que la tarea
       // pasó a 'done'. Si se revierte a otro estado, se limpia.
       tasks[idx].completedAt = status === 'done' ? new Date().toISOString() : null;
-      safeSetItem('vg_tasks', JSON.stringify(tasks)); this._triggerUpdate();
+      await idbSetArray('tareas', tasks); this._triggerUpdate();
+      await logEvent({ modulo: 'tareas', tipo: 'tarea_actualizada', entidadId: id, payload: { status } });
+      if (status === 'done') {
+        await logEvent({ modulo: 'tareas', tipo: 'tarea_completada', entidadId: id, payload: tasks[idx] });
+      }
     }
   },
 
   async getBudget(monthFilter = null) {
     await this.processRecurringTransactions();
-    const txsAll = safeGetItem('vg_transactions', []);
-    
+    const txsAll = await idbGetArray('transacciones');
+
     if (!monthFilter) {
       const now = new Date();
       monthFilter = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     }
 
     const txs = txsAll.filter(t => t.date && t.date.startsWith(monthFilter));
-    
+
     // Calculate previous month trend
     const [y, m] = monthFilter.split('-');
     let prevDate = new Date(parseInt(y), parseInt(m) - 2);
     const prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
     const prevTxs = txsAll.filter(t => t.date && t.date.startsWith(prevMonthStr));
-    
+
     let prevExpenses = 0;
-    prevTxs.forEach(t => { 
-      if(t.type !== 'Ingreso' && t.category !== 'Savings') prevExpenses += toSafeNumber(t.amount); 
+    prevTxs.forEach(t => {
+      if(t.type !== 'Ingreso' && t.category !== 'Savings') prevExpenses += toSafeNumber(t.amount);
     });
-    
+
     let income = 0; let expenses = 0;
     let needs = 0; let wants = 0; let savings = 0;
-    
+
     const breakdown = [...txs].sort((a,b) => b.date.localeCompare(a.date));
 
     txs.forEach(t => {
@@ -1407,7 +1573,7 @@ export const db = {
     const savedThisMonth = savings;
     const remaining = budgeted - expenses - savedThisMonth;
     const rule = await this.getAllocationRule();
-    
+
     const rawEnvelopes = await this.getEnvelopes();
     const envelopes = rawEnvelopes.map(env => {
       const assignedAmount = Number(env.assignedAmount) || 0;
@@ -1417,8 +1583,6 @@ export const db = {
       });
       return { ...env, assignedAmount, spent, balance: assignedAmount - spent };
     });
-    // -------------------------------------------------------------
-    // -------------------------------------------------------------
 
     let trend = null;
     if (prevExpenses > 0) {
@@ -1434,10 +1598,10 @@ export const db = {
       else if (usedRatio >= 0.8) alertLevel = 'warning';
       else alertLevel = 'ok';
     }
-    
+
     const goals = await this.getGoals('finanzas');
     const recurring = await this.getRecurring();
-    const ageOfMoney = this.getAgeOfMoney(txsAll);
+    const ageOfMoney = await this.getAgeOfMoney(txsAll);
 
     return {
       currentMonth: monthFilter,
@@ -1447,7 +1611,7 @@ export const db = {
       goals,
       recurring,
       ageOfMoney,
-      
+
       envelopes, // NUEVO
       budgetTarget: {
         needs: income * rule.needs,

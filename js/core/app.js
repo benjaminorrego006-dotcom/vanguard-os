@@ -98,14 +98,16 @@ class Router {
     this.root = document.getElementById('view-root');
     this.navItems = document.querySelectorAll('.nav-item');
     this.currentView = null;
-    
-    db.init();
-    
+
     // Inject icons only if they exist
     this.injectIcons();
-    
-    // Initialize Router
-    this.init();
+
+    // db.init() abre (y de ser necesario migra a) IndexedDB — es async, así
+    // que el resto del arranque espera a que termine antes de decidir si
+    // hay que mostrar el lock screen o ir directo al Dashboard.
+    db.init()
+      .catch(err => console.error('Error inicializando la base de datos', err))
+      .then(() => this.init());
   }
 
   injectIcons() {
@@ -119,7 +121,7 @@ class Router {
     if (iconWallet) iconWallet.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12h-3v4h3v-4z"></path></svg>`;
   }
 
-  init() {
+  async init() {
     this.navItems.forEach(item => {
       item.addEventListener('click', (e) => {
         e.preventDefault();
