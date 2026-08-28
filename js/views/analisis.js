@@ -1,5 +1,5 @@
 import { db } from '../core/db.js';
-import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
+import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar } from '../utils/charts.js';
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { EmptyState, ConfirmDialog } from '../utils/states.js';
@@ -7,8 +7,18 @@ import { GRUPO_MUSCULAR_ORDEN, GRUPO_MUSCULAR_LABELS, agruparPorGrupoMuscular } 
 
 // Variaciones del acento cian de Entreno, de más saturado a más apagado,
 // para distinguir los grupos musculares en la dona sin salirse de la
-// paleta de la app.
-const CYAN_SHADES = ['#06B6D4', '#22D3EE', '#67E8F9', '#0891B2', '#155E75', '#A5F3FC', '#0E7490', '#164E63'];
+// paleta de la app. Se resuelven en el momento (no es una constante fija)
+// porque dependen de las custom properties activas: bajo Vanguard MK III
+// (html.mk3-entreno) toman --cy/--cy2/--cy3/--cyb; fuera de ese scope caen
+// al --accent-teal clásico con alfa. Solo hay 4 tonos con nombre propio en
+// MK III, así que para los 8 grupos musculares posibles se repiten en dos
+// niveles de opacidad.
+function getCyanShades() {
+  const base = document.documentElement.classList.contains('mk3-entreno')
+    ? [cssVar('--cy'), cssVar('--cy2'), cssVar('--cy3'), cssVar('--cyb')]
+    : ['#06B6D4', '#22D3EE', '#67E8F9', '#0891B2'];
+  return [...base, ...base.map(c => c + 'AA')];
+}
 
 let activeAnalisisTab = 'desglose';
 
@@ -69,8 +79,9 @@ async function renderDesglose() {
   const data = await db.getDesgloseGrupoMuscular(start, end);
   const metricLabel = { series: 'Series', volumen: 'Volumen (kg)', reps: 'Repeticiones' }[desgloseMetrica];
 
+  const cyanShades = getCyanShades();
   const entries = GRUPO_MUSCULAR_ORDEN
-    .map((g, i) => ({ grupo: g, label: GRUPO_MUSCULAR_LABELS[g], valor: data.grupos[g][desgloseMetrica], color: CYAN_SHADES[i % CYAN_SHADES.length] }))
+    .map((g, i) => ({ grupo: g, label: GRUPO_MUSCULAR_LABELS[g], valor: data.grupos[g][desgloseMetrica], color: cyanShades[i % cyanShades.length] }))
     .filter(e => e.valor > 0);
   lastDesgloseEntries = entries;
 
@@ -253,7 +264,7 @@ async function initEjercicioChart() {
         tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.parsed.y}${unidad}` } }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
         y: { display: false }
       }
     }

@@ -31,7 +31,7 @@ export async function renderRutinasLista(categoria) {
   let html = `
     <div style="margin-bottom: 24px;">
       <h2 style="font-size: 26px; font-weight: 800; margin: 0 0 16px 0; color: var(--text-primary); letter-spacing: -0.4px;">${catName}</h2>
-      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: rgba(6, 182, 212, 0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); font-size: 15px; font-weight: 700; cursor: pointer;">
+      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: rgba(92, 225, 230, 0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); font-size: 15px; font-weight: 700; cursor: pointer;">
         + Nueva rutina
       </button>
     </div>

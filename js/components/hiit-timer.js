@@ -30,7 +30,7 @@ export function renderHiitTimer(rutina) {
       </div>
 
       <div id="hiit-setup-view" style="display: flex; flex-direction: column; flex: 1;">
-        <div id="hiit-streak-container" style="display: flex; gap: 12px; margin-bottom: 24px; background: rgba(6, 182, 212, 0.06); padding: 14px; border-radius: 16px; border: 1px solid rgba(6, 182, 212, 0.25);">
+        <div id="hiit-streak-container" style="display: flex; gap: 12px; margin-bottom: 24px; background: rgba(92, 225, 230, 0.06); padding: 14px; border-radius: 16px; border: 1px solid rgba(92, 225, 230, 0.25);">
           <div style="flex: 1; text-align: center;">
             <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Racha Actual</div>
             <div id="hiit-racha-actual" style="font-size: 20px; font-weight: 800; color: var(--accent-teal);">0${fireSvg}</div>
@@ -75,7 +75,7 @@ export function renderHiitTimer(rutina) {
         <div id="hiit-next-exercise" style="font-size: 16px; color: var(--accent-teal); font-weight: 700; margin-bottom: 8px; display: none;"></div>
         <div id="hiit-amrap-record" style="font-size: 14px; color: var(--accent-purple); font-weight: 700; margin-bottom: 24px; display: none;"></div>
         
-        <button id="btn-amrap-add" class="tappable" style="display: none; background: rgba(6, 182, 212, 0.1); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 14px 24px; border-radius: 16px; font-size: 18px; font-weight: 700; margin-bottom: 24px; cursor: pointer;">+1 Ronda Completada</button>
+        <button id="btn-amrap-add" class="tappable" style="display: none; background: rgba(92, 225, 230, 0.1); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 14px 24px; border-radius: 16px; font-size: 18px; font-weight: 700; margin-bottom: 24px; cursor: pointer;">+1 Ronda Completada</button>
 
         <div style="display: flex; gap: 16px; width: 100%; margin-top: auto;">
           <button id="btn-hiit-stop" class="tappable" style="flex: 1; padding: 15px; border-radius: 14px; background: rgba(239, 68, 68, 0.1); color: var(--state-high); font-size: 15px; font-weight: 700; border: none; cursor: pointer;">
@@ -85,7 +85,7 @@ export function renderHiitTimer(rutina) {
       </div>
 
       <div id="hiit-summary-view" style="display: none; flex-direction: column; flex: 1; align-items: center; justify-content: center; text-align: center;">
-        <div class="icon-chip" style="width: 72px; height: 72px; background: rgba(6, 182, 212, 0.15); color: var(--accent-teal); margin: 0 auto 20px auto;">
+        <div class="icon-chip" style="width: 72px; height: 72px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal); margin: 0 auto 20px auto;">
           <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
         </div>
         <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-primary); letter-spacing: -0.3px;">¡Sesión Completada!</h2>

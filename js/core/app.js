@@ -198,6 +198,12 @@ class Router {
       item.classList.toggle('active', item.getAttribute('data-view') === viewId);
     });
 
+    // Vanguard MK III (paleta/tipografía/geometría nuevas) está en rollout
+    // por fase — arranca en Entreno. Ver el bloque html.mk3-entreno en
+    // components.css: activa la clase acá porque es el único punto por el
+    // que pasa toda navegación, sin importar qué vista la dispare.
+    document.documentElement.classList.toggle('mk3-entreno', viewId === 'entrenamiento' || viewId === 'analisis');
+
     try {
       this.root.style.animation = 'none';
 

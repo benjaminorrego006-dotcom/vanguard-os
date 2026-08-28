@@ -76,7 +76,7 @@ export async function renderRutinaSession(rutina) {
     if (ej.grupoId && ej.grupoId !== currentGrupoId) {
       if (currentGrupoId !== null) html += `</div>`; // close previous group
       currentGrupoId = ej.grupoId;
-      html += `<div style="border: 2px dashed var(--accent-teal); border-radius: 18px; padding: 14px; background: rgba(6, 182, 212, 0.05); position: relative;">
+      html += `<div style="border: 2px dashed var(--accent-teal); border-radius: 18px; padding: 14px; background: rgba(92, 225, 230, 0.05); position: relative;">
                 <div style="position: absolute; top: -10px; left: 16px; background: var(--surface-1); padding: 0 8px; font-size: 11px; font-weight: 700; color: var(--accent-teal); border-radius: 4px;">Superserie ${ej.grupoId}</div>`;
     } else if (!ej.grupoId && currentGrupoId !== null) {
       html += `</div>`; // close previous group
@@ -115,7 +115,7 @@ export async function renderRutinaSession(rutina) {
     }
 
     if (prog) {
-      chips.push(`<span style="background: rgba(6,182,212,0.12); color: var(--accent-teal); border: 1px solid rgba(6,182,212,0.3); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trendUpSvg}${prog.familia} · Nv.${prog.nivelActual}/${prog.nivelTotal}</span>`);
+      chips.push(`<span style="background: rgba(92,225,230,0.12); color: var(--accent-teal); border: 1px solid rgba(92,225,230,0.3); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trendUpSvg}${prog.familia} · Nv.${prog.nivelActual}/${prog.nivelTotal}</span>`);
     }
 
     html += `<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">${chips.join('')}</div>`;
@@ -123,7 +123,7 @@ export async function renderRutinaSession(rutina) {
     if (sug) {
       const sugText = sug.peso > 0 ? sug.peso + 'kg' : sug.reps + ' reps';
       const sugIcon = sug.accion === 'aumentar' ? arrowUpSvg : arrowDownSvg;
-      html += `<button class="btn-sugerencia" data-ejnombre="${ej.nombre}" data-peso="${sug.peso}" data-reps="${sug.reps}" style="width: 100%; background: rgba(6,182,212,0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 9px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 12px;">${sugIcon}Sugerido: ${sugText} · toca para aplicar</button>`;
+      html += `<button class="btn-sugerencia" data-ejnombre="${ej.nombre}" data-peso="${sug.peso}" data-reps="${sug.reps}" style="width: 100%; background: rgba(92,225,230,0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 9px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 12px;">${sugIcon}Sugerido: ${sugText} · toca para aplicar</button>`;
     }
 
     if (estancado) {

@@ -203,3 +203,72 @@
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.18);
 }
+
+/* ============================================================
+   VANGUARD MK III — activado solo dentro de <html class="mk3-entreno">
+   (alternada por el router en app.js según la vista montada). Fase 1:
+   Entreno únicamente — Finanzas y Tareas se quedan con el sistema
+   anterior hasta que les toque su turno.
+
+   Redefine las variables semánticas de superficie/texto/acento en vez
+   de tocar cada plantilla: todo lo que ya usa var(--surface-1),
+   var(--text-primary), var(--accent-teal), etc. (la enorme mayoría del
+   HTML de Entreno) hereda la paleta nueva automáticamente. Geometría y
+   tipografía sí necesitan reglas con !important porque varias plantillas
+   fijan border-radius/font-family por elemento, que gana por especificidad
+   inline sobre cualquier regla de clase sin !important.
+   ============================================================ */
+html.mk3-entreno {
+  --bg-base: var(--bg);
+  --surface-1: var(--panel);
+  --surface-2: var(--line);
+  --surface-border: var(--line);
+  --text-primary: var(--t1);
+  --text-secondary: var(--t2);
+  --text-disabled: var(--t3);
+  --accent-teal: var(--cy);
+  --state-high: var(--rd); /* el rojo solo debe verse en alertas reales */
+  font-variant-numeric: tabular-nums;
+}
+
+html.mk3-entreno * {
+  font-family: var(--font-mono-mk3) !important;
+  box-shadow: none !important;
+}
+
+/* Geometría — chaflán en vez de radio, en dos tamaños según el elemento.
+   :not([style*="50%"]) protege los círculos genuinos (icon-chip, avatares,
+   el +/- circular del timer de descanso) para que no se compriman a un
+   octógono. */
+html.mk3-entreno .card,
+html.mk3-entreno .list-row,
+html.mk3-entreno .modal-content {
+  border-radius: 0 !important;
+  clip-path: polygon(0 9px, 9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%) !important;
+}
+html.mk3-entreno .btn-primary,
+html.mk3-entreno button:not(.icon-chip):not([style*="50%"]),
+html.mk3-entreno input,
+html.mk3-entreno select {
+  border-radius: 0 !important;
+  clip-path: polygon(0 7px, 7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%) !important;
+}
+
+/* Etiquetas de categoría/sección: todas las que ya se escribieron con
+   text-transform: uppercase inline pasan a 11px / tracking 2px. */
+html.mk3-entreno [style*="text-transform: uppercase"] {
+  font-size: 11px !important;
+  letter-spacing: 2px !important;
+}
+
+/* Accesibilidad de movimiento — global, no depende de qué sección esté
+   activa: no hay razón para esperar el rollout completo del sistema para
+   respetar esta preferencia del sistema operativo. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

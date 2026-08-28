@@ -55,10 +55,22 @@ export function appPalette() {
   };
 }
 
+// Familia tipográfica para texto de Chart.js (ticks, tooltips): el canvas
+// no hereda CSS, así que el toggle de Vanguard MK III (html.mk3-entreno,
+// ver components.css) no le llega solo — hay que preguntarle a la clase
+// directamente. Devuelve undefined fuera de ese scope para que Chart.js
+// use su propia fuente por defecto, sin afectar a Finanzas.
+export function chartFontFamily() {
+  return document.documentElement.classList.contains('mk3-entreno')
+    ? "ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
+    : undefined;
+}
+
 // Config base compartida: sin dependencias externas, fuente y colores
 // consistentes con la paleta oscura de la app.
 export function baseChartOptions() {
   const p = appPalette();
+  const family = chartFontFamily();
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -71,7 +83,9 @@ export function baseChartOptions() {
         borderColor: p.surfaceBorder,
         borderWidth: 1,
         padding: 10,
-        displayColors: false
+        displayColors: false,
+        titleFont: family ? { family } : undefined,
+        bodyFont: family ? { family } : undefined
       }
     }
   };

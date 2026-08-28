@@ -7,7 +7,7 @@ import { renderProgressRing } from '../utils/progressRing.js';
 import { WEEKLY_GOALS, CATEGORY_COLORS } from '../core/trainingConfig.js';
 import { renderProfileForm, setupProfileForm, openProfileForm } from '../components/profile-form.js';
 import { calcularIMC, calcularTMB } from '../utils/bodyMetrics.js';
-import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
+import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 
 let categoriaActiva = null;
@@ -41,7 +41,7 @@ const renderVolumenSemanalChart = async () => {
     options: {
       ...opts,
       scales: {
-        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
         y: { display: false }
       }
     }
@@ -177,14 +177,14 @@ export async function render() {
             <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">¡A darle con todo!</div>
             ${rachaHtml}
           </div>
-          <button id="btn-open-profile" class="icon-chip tappable" style="width: 44px; height: 44px; background: rgba(6, 182, 212, 0.15); color: var(--accent-teal); flex-shrink: 0; border: none; cursor: pointer;">
+          <button id="btn-open-profile" class="icon-chip tappable" style="width: 44px; height: 44px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal); flex-shrink: 0; border: none; cursor: pointer;">
             <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </button>
         </div>
 
         <div style="position: relative; margin-bottom: 20px;">
           <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" placeholder="Encuentra tu próximo entrenamiento..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 20px 14px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-teal)'; this.style.boxShadow='0 0 0 4px rgba(6,182,212,0.18)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+          <input type="text" placeholder="Encuentra tu próximo entrenamiento..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 20px 14px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-teal)'; this.style.boxShadow='0 0 0 4px rgba(92,225,230,0.18)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
         </div>
 
         <div class="card card--glass" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px;">
@@ -224,7 +224,7 @@ export async function render() {
           </div>
 
           <div class="card tappable" id="btn-ir-analisis" style="padding: 20px; display: flex; align-items: center; gap: 18px; border-radius: 20px; cursor: pointer;">
-            <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(6, 182, 212, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(92, 225, 230, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="24" height="24" fill="none" stroke="var(--accent-teal)" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
             </div>
             <div style="flex: 1;">
