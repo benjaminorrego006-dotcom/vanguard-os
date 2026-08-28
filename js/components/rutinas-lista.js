@@ -39,7 +39,7 @@ export async function renderRutinasLista(categoria) {
 
   let balanceHtml = '';
   if (categoria === 'calistenia') {
-    const { balance } = await db.getVolumenPorGrupo(7);
+    const { balance } = await db.getVolumenPorGrupo(7, 'calistenia');
     const emp = balance.empuje || 0;
     const tra = balance.traccion || 0;
     const pie = balance.piernas || 0;
@@ -90,13 +90,13 @@ export async function renderRutinasLista(categoria) {
 
   let volumenGrupoHtml = '';
   if (categoria === 'gym') {
-    const { volumen } = await db.getVolumenPorGrupo(7);
+    const { volumen } = await db.getVolumenPorGrupo(7, 'gym');
     const grupos = [
-      { key: 'pecho', label: 'Pecho', color: 'var(--cy2)' },
-      { key: 'espalda', label: 'Espalda', color: 'var(--accent-teal)' },
+      { key: 'pecho', label: 'Pecho', color: 'var(--accent-teal)' },
+      { key: 'espalda', label: 'Espalda', color: 'var(--cy2)' },
       { key: 'piernas', label: 'Piernas', color: 'var(--cy3)' },
-      { key: 'hombros', label: 'Hombros', color: 'var(--state-medium)' },
-      { key: 'brazos', label: 'Brazos', color: 'var(--state-low, #60a5fa)' }
+      { key: 'hombros', label: 'Hombros', color: 'var(--cy4)' },
+      { key: 'brazos', label: 'Brazos', color: 'var(--cyb)' }
     ];
     const total = grupos.reduce((sum, g) => sum + (volumen[g.key] || 0), 0);
 
@@ -129,7 +129,7 @@ export async function renderRutinasLista(categoria) {
 
   let deloadHtml = '';
   if (categoria === 'gym' || categoria === 'calistenia') {
-    const necesitaDeload = await db.detectarNecesidadDeload();
+    const necesitaDeload = await db.detectarNecesidadDeload(categoria);
     if (necesitaDeload) {
       deloadHtml = `
         <div class="card" style="background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); padding: 14px 16px; border-radius: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">

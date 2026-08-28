@@ -858,14 +858,26 @@ export const db = {
 
   // --- ANALYTICS ENTRENAMIENTO (FASE 1) ---
 
-  async detectarNecesidadDeload() {
+  async detectarNecesidadDeload(categoria = null) {
     // Calculamos volumen total de las últimas 4 semanas de forma independiente.
     // W1 (más antigua) a W4 (más reciente)
     const sesiones = await idbGetArray('sesiones');
+    const rutinas = categoria ? await idbGetArray('rutinas') : null;
+    const catMap = {};
+    if (rutinas) rutinas.forEach(r => catMap[r.id] = r.categoria);
+
     const now = new Date();
     const weeks = [0, 0, 0, 0]; // index 3 = current week, index 0 = 3 weeks ago
 
     sesiones.forEach(s => {
+      if (categoria) {
+        let cat = catMap[s.rutinaId];
+        if (!cat && s.nombreRutina) {
+          const n = s.nombreRutina.toLowerCase();
+          if (n.includes('tabata') || n.includes('emom') || n.includes('amrap') || n.includes('hiit')) cat = 'hiit';
+        }
+        if (cat !== categoria) return;
+      }
       const sDate = new Date(s.fecha);
       const diffDays = (now - sDate) / (1000 * 60 * 60 * 24);
       if (diffDays >= 0 && diffDays < 28) {
@@ -1261,8 +1273,12 @@ export const db = {
     return alerts;
   },
 
-  async getVolumenPorGrupo(rangoDias) {
+  async getVolumenPorGrupo(rangoDias, categoria = null) {
     const sesiones = await idbGetArray('sesiones');
+    const rutinas = categoria ? await idbGetArray('rutinas') : null;
+    const catMap = {};
+    if (rutinas) rutinas.forEach(r => catMap[r.id] = r.categoria);
+
     const now = new Date();
     const startDate = new Date();
     startDate.setDate(now.getDate() - rangoDias);
@@ -1271,6 +1287,14 @@ export const db = {
     const balance = { empuje: 0, traccion: 0, piernas: 0, core: 0, otro: 0 };
 
     sesiones.forEach(s => {
+      if (categoria) {
+        let cat = catMap[s.rutinaId];
+        if (!cat && s.nombreRutina) {
+          const n = s.nombreRutina.toLowerCase();
+          if (n.includes('tabata') || n.includes('emom') || n.includes('amrap') || n.includes('hiit')) cat = 'hiit';
+        }
+        if (cat !== categoria) return;
+      }
       const sDate = new Date(s.fecha);
       if (sDate >= startDate && sDate <= now) {
         if (s.ejercicios) {
