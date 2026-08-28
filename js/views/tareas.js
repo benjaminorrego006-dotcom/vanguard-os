@@ -6,35 +6,21 @@ import { renderActivityHeatmap, initActivityHeatmapListeners } from '../componen
 
 let tasksDonutInstance = null;
 
-const PRIORITY_COLORS = {
-  high: { badge: 'badge--high', label: 'alta', strip: 'var(--state-high)' },
-  medium: { badge: 'badge--medium', label: 'media', strip: 'var(--state-medium)' },
-  low: { badge: 'badge--low', label: 'baja', strip: 'var(--state-low)' }
+// Estado del tablero (qué columna está activa) — vive en el módulo, no en
+// el DOM, igual que `activeFinTab` en finanzas.js: sobrevive a refresh()
+// pero se reinicia si se navega a otra vista y se vuelve.
+let activeTaskState = 'todo';
+
+const STATE_LABELS = {
+  'todo': 'Por Hacer',
+  'in-progress': 'En Curso',
+  'done': 'Hecho'
 };
 
-const COL_META = {
-  'todo': {
-    title: 'Por Hacer',
-    color: 'var(--text-secondary)',
-    emptyTitle: 'Arranca por acá',
-    emptySubtitle: 'Anota lo primero que tengas que hacer hoy.',
-    emptyIcon: `<svg width="26" height="26" fill="none" stroke="var(--text-secondary)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>`,
-    showAddButton: true
-  },
-  'in-progress': {
-    title: 'En Progreso',
-    color: 'var(--accent-blue)',
-    emptyTitle: 'Nada en marcha todavía',
-    emptySubtitle: 'Mové una tarea de "Por Hacer" cuando la empieces.',
-    emptyIcon: `<svg width="26" height="26" fill="none" stroke="var(--accent-blue)" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`
-  },
-  'done': {
-    title: 'Completado',
-    color: 'var(--state-success)',
-    emptyTitle: 'Todavía sin checks',
-    emptySubtitle: 'Cuando termines algo, va a aparecer acá.',
-    emptyIcon: `<svg width="26" height="26" fill="none" stroke="var(--state-success)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>`
-  }
+const EMPTY_MSG = {
+  'todo': 'SIN TAREAS PENDIENTES',
+  'in-progress': 'SIN TAREAS EN CURSO',
+  'done': 'SIN TAREAS COMPLETADAS'
 };
 
 const renderTasksDonut = async (tasks) => {
@@ -69,15 +55,137 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 }
 
+// Vencida/vence-hoy -> rojo (--rd), cualquier otra fecha futura -> texto
+// tenue. Devuelve null si la tarea no tiene fecha límite.
+function dueDateInfo(dueDate) {
+  if (!dueDate) return null;
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const d = new Date(dueDate + 'T00:00:00');
+  const urgente = d <= hoy;
+  let text;
+  if (d.getTime() === hoy.getTime()) text = 'VENCE HOY';
+  else if (d < hoy) text = `VENCIÓ · ${formatDate(dueDate)}`;
+  else text = `VENCE · ${formatDate(dueDate)}`;
+  return { text, urgente };
+}
+
+const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
+
+// Con fecha antes que sin fecha; entre las que tienen fecha, la más
+// próxima primero; a igualdad de fecha, la de mayor prioridad primero.
+function ordenUrgencia(a, b) {
+  const aTiene = !!a.dueDate, bTiene = !!b.dueDate;
+  if (aTiene !== bTiene) return aTiene ? -1 : 1;
+  if (aTiene && a.dueDate !== b.dueDate) return a.dueDate < b.dueDate ? -1 : 1;
+  return (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1);
+}
+
+// Prioridad como 1-3 barritas rellenas en violeta, no como texto — mismo
+// lenguaje visual que el detalle de tarea (task-form.js).
+export function renderPriorityBars(priority) {
+  const level = priority === 'high' ? 3 : priority === 'low' ? 1 : 2;
+  const bars = [1, 2, 3].map(i => {
+    const filled = i <= level;
+    const h = 5 + i * 3;
+    return `<span style="display:inline-block; width:4px; height:${h}px; background:${filled ? 'var(--vi)' : 'var(--surface-2)'}; border:1px solid ${filled ? 'var(--vi)' : 'var(--surface-border)'};"></span>`;
+  }).join('');
+  return `<span style="display:inline-flex; align-items:flex-end; gap:2px; flex-shrink:0;" title="Prioridad">${bars}</span>`;
+}
+
+function renderUrgentTask(task) {
+  const due = dueDateInfo(task.dueDate);
+  return `
+    <div class="card task-card tappable btn-edit-task" data-id="${task.id}" style="position:relative; padding:14px 14px 14px 18px; margin-bottom:10px; cursor:pointer;">
+      <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vi);"></div>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+        <h4 style="margin:0; font-size:15px; font-weight:800; color:var(--text-primary); line-height:1.3;">${task.title}</h4>
+        ${renderPriorityBars(task.priority)}
+      </div>
+      ${due ? `<div style="margin-top:8px; font-size:11px; font-weight:700; letter-spacing:0.4px; color:${due.urgente ? 'var(--rd)' : 'var(--text-secondary)'};">${due.text}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderColaTask(task) {
+  const due = dueDateInfo(task.dueDate);
+  return `
+    <div class="card task-card tappable btn-edit-task" data-id="${task.id}" style="position:relative; padding:12px 12px 12px 16px; margin-bottom:8px; cursor:pointer;">
+      <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vid);"></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <span style="font-size:13px; font-weight:600; color:var(--t5); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${task.title}</span>
+        ${due ? `<span style="font-size:10px; font-weight:700; color:var(--t5); flex-shrink:0;">${due.text}</span>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderStatusTask(task) {
+  const isDone = task.status === 'done';
+  const due = dueDateInfo(task.dueDate);
+  return `
+    <div class="card task-card tappable btn-edit-task" data-id="${task.id}" style="position:relative; padding:14px 14px 14px 18px; margin-bottom:10px; cursor:pointer;">
+      <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vi);"></div>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+        <h4 style="margin:0; font-size:15px; font-weight:800; line-height:1.3; color:${isDone ? 'var(--text-disabled)' : 'var(--text-primary)'}; ${isDone ? 'text-decoration:line-through;' : ''}">${task.title}</h4>
+        ${renderPriorityBars(task.priority)}
+      </div>
+      ${due ? `<div style="margin-top:8px; font-size:11px; font-weight:700; letter-spacing:0.4px; color:${due.urgente && !isDone ? 'var(--rd)' : 'var(--text-secondary)'};">${due.text}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderEmptyBoard(msg) {
+  return `<div style="border:1.5px dashed var(--surface-border); padding:32px 16px; text-align:center; color:var(--text-secondary); font-size:11px; text-transform:uppercase; letter-spacing:1.5px; font-weight:700;">${msg}</div>`;
+}
+
+function renderStateSelector(cols) {
+  return `
+    <div style="display:flex; gap:2px; margin-right:20px; margin-bottom:20px;">
+      ${['todo', 'in-progress', 'done'].map(id => {
+        const isActive = id === activeTaskState;
+        return `
+          <button class="btn-state-tab tappable" data-state="${id}" style="flex:1; padding:14px 8px; background:${isActive ? 'var(--vis)' : 'var(--surface-1)'}; border:1px solid var(--surface-border); border-bottom:2px solid ${isActive ? 'var(--vi)' : 'transparent'}; color:${isActive ? 'var(--text-primary)' : 'var(--text-secondary)'}; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <span style="text-transform:uppercase; font-weight:700;">${STATE_LABELS[id]}</span>
+            <span style="font-size:16px; font-weight:800; font-variant-numeric: tabular-nums;">${cols[id].tasks.length}</span>
+          </button>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderBoardContent(cols) {
+  const activeCol = cols[activeTaskState];
+
+  if (activeTaskState === 'todo') {
+    const sorted = [...activeCol.tasks].sort(ordenUrgencia);
+    if (sorted.length === 0) return renderEmptyBoard(EMPTY_MSG.todo);
+
+    const urgentes = sorted.slice(0, 2);
+    const cola = sorted.slice(2);
+    return `
+      <div style="margin-bottom:22px;">
+        ${urgentes.map(renderUrgentTask).join('')}
+      </div>
+      <div>
+        <h3 style="text-transform:uppercase; font-size:11px; letter-spacing:2px; color:var(--t5); font-weight:700; margin:0 0 10px 0;">Cola · Por Hacer</h3>
+        ${cola.length > 0 ? cola.map(renderColaTask).join('') : renderEmptyBoard('SIN TAREAS EN COLA')}
+      </div>
+    `;
+  }
+
+  if (activeCol.tasks.length === 0) return renderEmptyBoard(EMPTY_MSG[activeTaskState]);
+  return activeCol.tasks.map(renderStatusTask).join('');
+}
+
 export async function render() {
   const tasks = await db.getTasks();
 
   const cols = {
-    'todo': { title: 'Por Hacer', tasks: [] },
-    'in-progress': { title: 'En Progreso', tasks: [] },
-    'done': { title: 'Completado', tasks: [] }
+    'todo': { tasks: [] },
+    'in-progress': { tasks: [] },
+    'done': { tasks: [] }
   };
-
   tasks.forEach(t => {
     if (cols[t.status]) cols[t.status].tasks.push(t);
     else cols['todo'].tasks.push(t); // fallback
@@ -111,107 +219,6 @@ export async function render() {
     emptyLabel: 'Sin tareas completadas'
   });
 
-  const renderCard = (task) => {
-    const p = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium;
-
-    // Metadatos secundarios candidatos (fecha, subtareas, etiqueta/proyecto),
-    // en orden de prioridad. Se muestran como máximo 2 por tarjeta para que
-    // el título quede como el elemento visualmente dominante.
-    const metaCandidates = [];
-    if (task.dueDate) {
-      metaCandidates.push(`<span style="display:flex; align-items:center; gap:4px;">
-        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-        ${formatDate(task.dueDate)}
-      </span>`);
-    }
-    if (task.project) {
-      metaCandidates.push(`<span style="display:flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-        ${task.project}
-      </span>`);
-    }
-    if (task.subtasks && task.subtasks.length > 0) {
-      const doneCount = task.subtasks.filter(s => s.done).length;
-      metaCandidates.push(`<span style="display:flex; align-items:center; gap:4px;">
-        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        ${doneCount}/${task.subtasks.length}
-      </span>`);
-    }
-    const metaHtml = metaCandidates.slice(0, 2).join('');
-
-    const isDone = task.status === 'done';
-    const titleStyle = isDone ? 'text-decoration: line-through; color: var(--text-disabled);' : 'color: var(--text-primary);';
-
-    const arrowSvg = (dir) => dir === 'left'
-      ? `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`
-      : `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
-
-    let moveHtml = '';
-    if (task.status === 'todo') {
-      moveHtml = `<button class="btn-move tappable" data-id="${task.id}" data-to="in-progress" style="background:var(--surface-1); border:1px solid var(--surface-border); border-radius: 8px; color:var(--text-secondary); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer;">${arrowSvg('right')}</button>`;
-    } else if (task.status === 'in-progress') {
-      moveHtml = `
-        <button class="btn-move tappable" data-id="${task.id}" data-to="todo" style="background:var(--surface-1); border:1px solid var(--surface-border); border-radius: 8px; color:var(--text-secondary); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer;">${arrowSvg('left')}</button>
-        <button class="btn-move tappable" data-id="${task.id}" data-to="done" style="background:var(--surface-1); border:1px solid var(--surface-border); border-radius: 8px; color:var(--state-success); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer;">${arrowSvg('right')}</button>
-      `;
-    } else {
-      moveHtml = `<button class="btn-move tappable" data-id="${task.id}" data-to="in-progress" style="background:var(--surface-1); border:1px solid var(--surface-border); border-radius: 8px; color:var(--text-secondary); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer;">${arrowSvg('left')}</button>`;
-    }
-
-    return `
-      <div class="card task-card tappable" data-id="${task.id}" style="padding: 16px 16px 16px 20px; position: relative; overflow: hidden; margin-bottom: 12px; border-radius: 16px;">
-        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: ${p.strip};"></div>
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-          <h4 class="tappable btn-edit-task" data-id="${task.id}" style="font-size: 16px; font-weight: 800; margin: 0; ${titleStyle} flex: 1; cursor: pointer; line-height: 1.3; letter-spacing: -0.2px;">${task.title}</h4>
-          <button class="btn-delete-task tappable" data-id="${task.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; flex-shrink: 0; padding: 2px;">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        </div>
-
-        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
-          <span class="badge ${p.badge}">${p.label}</span>
-          ${metaHtml ? `<div style="display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-secondary); font-weight: 600; min-width: 0;">${metaHtml}</div>` : ''}
-        </div>
-
-        <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--surface-border); padding-top: 10px;">
-          ${moveHtml}
-        </div>
-      </div>
-    `;
-  };
-
-  const renderCol = (id) => {
-    const col = cols[id];
-    const meta = COL_META[id];
-    return `
-      <div style="min-width: 270px; max-width: 300px; flex: 1;">
-        <div class="flex-between" style="margin-bottom: 16px; padding: 0 2px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${meta.color}; flex-shrink: 0;"></span>
-            <h3 style="font-size: 13px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.6px; margin: 0;">${meta.title}</h3>
-          </div>
-          <span style="background: var(--surface-2); color: var(--text-secondary); padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700;">${col.tasks.length}</span>
-        </div>
-        <div>
-          ${col.tasks.map(renderCard).join('')}
-          ${col.tasks.length === 0 ? `
-            <div style="border: 1.5px dashed var(--surface-border); border-radius: 16px; padding: 22px 16px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px;">
-              <div style="margin-bottom: 4px;">${meta.emptyIcon}</div>
-              <div style="color: var(--text-secondary); font-size: 13px; font-weight: 700;">${meta.emptyTitle}</div>
-              <div style="color: var(--text-disabled); font-size: 11px; line-height: 1.4;">${meta.emptySubtitle}</div>
-              ${meta.showAddButton ? `
-                <button class="btn-add-task-empty tappable" style="margin-top: 10px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                  Agregar tarea
-                </button>
-              ` : ''}
-            </div>
-          ` : ''}
-        </div>
-      </div>
-    `;
-  };
-
   return `
     <div style="padding: 20px 0 20px 20px; font-family: var(--font-body);">
       <!-- Header -->
@@ -224,7 +231,7 @@ export async function render() {
 
       ${tasks.length > 0 ? `
         <!-- Completadas vs. pendientes -->
-        <div class="card" style="margin-right: 20px; margin-bottom: 20px; padding: 14px 16px; border-radius: 16px; display: flex; align-items: center; gap: 14px;">
+        <div class="card" style="margin-right: 20px; margin-bottom: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
           <div style="width: 56px; height: 56px; flex-shrink: 0; position: relative;">
             <canvas id="tasks-donut-chart" width="56" height="56"></canvas>
           </div>
@@ -236,7 +243,7 @@ export async function render() {
       ` : ''}
 
       <!-- Mapa de actividad -->
-      <div class="card" style="margin-right: 20px; margin-bottom: 24px; padding: 18px 20px; border-radius: 18px;">
+      <div class="card" style="margin-right: 20px; margin-bottom: 24px; padding: 18px 20px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
         ${heatmapHtml}
       </div>
@@ -244,17 +251,24 @@ export async function render() {
       <!-- Search -->
       <div style="margin-right: 20px; margin-bottom: 24px; position: relative;">
         <svg style="position: absolute; left: 16px; top: 13px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="task-search" placeholder="Buscar tareas, proyectos..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-primary)'; this.style.boxShadow='0 0 0 4px rgba(139,124,246,0.18)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+        <input type="text" id="task-search" placeholder="Buscar tareas, proyectos..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-primary)'; this.style.boxShadow='0 0 0 4px rgba(139,124,246,0.18)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
       </div>
 
-      <!-- Kanban Board -->
-      <div style="display: flex; gap: 16px; overflow-x: auto; padding-right: 20px; padding-bottom: 120px; scroll-snap-type: x mandatory;">
-        ${renderCol('todo')}
-        ${renderCol('in-progress')}
-        ${renderCol('done')}
+      <!-- Tablero por estado -->
+      ${renderStateSelector(cols)}
+      <div style="margin-right: 20px; padding-bottom: 24px;">
+        ${renderBoardContent(cols)}
       </div>
 
-      <!-- FAB -->
+      <!-- Captura rápida -->
+      <div class="list-row" style="margin-right: 20px; margin-bottom: 120px; display: flex; align-items: stretch; border: 1.5px solid var(--vib); overflow: hidden;">
+        <input type="text" id="task-quick-add" placeholder="Nueva tarea rápida..." style="flex: 1; background: transparent; border: none; padding: 14px 16px; color: var(--text-primary); font-size: 14px; outline: none;">
+        <button id="btn-quick-add" class="tappable" style="background: var(--vib); border: none; color: var(--text-primary); padding: 0 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div>
+
+      <!-- FAB (formulario completo: prioridad, fecha, subtareas) -->
       <div style="position: fixed; bottom: 100px; right: 24px; z-index: 2000;">
         <button id="btn-new-task" class="tappable" style="width: 56px; height: 56px; border-radius: 50%; background: var(--accent-purple); color: #000; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px -6px rgba(139, 124, 246, 0.6); cursor: pointer;">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -279,47 +293,37 @@ export function mountListeners() {
   setupTaskForm(refresh);
 
   const btnNew = document.getElementById('btn-new-task');
-  if (btnNew) {
-    btnNew.addEventListener('click', () => openTaskForm());
-  }
+  if (btnNew) btnNew.addEventListener('click', () => openTaskForm());
 
-  // Empty state "+ Agregar tarea" (columna Por Hacer)
-  document.querySelectorAll('.btn-add-task-empty').forEach(btn => {
-    btn.addEventListener('click', () => openTaskForm());
+  // Selector de estado del tablero
+  document.querySelectorAll('.btn-state-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeTaskState = btn.getAttribute('data-state');
+      refresh();
+    });
   });
 
-  // Edit Task
-  document.querySelectorAll('.btn-edit-task').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
+  // Captura rápida: crea la tarea directo en "Por Hacer", prioridad media.
+  const quickInput = document.getElementById('task-quick-add');
+  const quickAdd = async () => {
+    const title = quickInput.value.trim();
+    if (!title) return;
+    await db.saveTask({ title, description: '', priority: 'medium', dueDate: '', project: '', status: 'todo', subtasks: [] });
+    Toast('Tarea agregada', 'success');
+    activeTaskState = 'todo';
+    refresh();
+  };
+  const btnQuickAdd = document.getElementById('btn-quick-add');
+  if (btnQuickAdd) btnQuickAdd.addEventListener('click', quickAdd);
+  if (quickInput) quickInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') quickAdd(); });
+
+  // Abrir detalle de tarea (edición completa, con bitácora)
+  document.querySelectorAll('.btn-edit-task').forEach(el => {
+    el.addEventListener('click', async (e) => {
       const id = e.currentTarget.getAttribute('data-id');
       const tasks = await db.getTasks();
       const task = tasks.find(t => t.id === id);
       if (task) openTaskForm(task);
-    });
-  });
-
-  // Delete Task
-  document.querySelectorAll('.btn-delete-task').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const id = e.currentTarget.getAttribute('data-id');
-      const confirmed = await ConfirmDialog("¿Eliminar tarea?", "Esta acción no se puede deshacer.");
-      if (confirmed) {
-        await db.deleteTask(id);
-        Toast("Tarea eliminada", "success");
-        refresh();
-      }
-    });
-  });
-
-  // Move Task
-  document.querySelectorAll('.btn-move').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const id = e.currentTarget.getAttribute('data-id');
-      const to = e.currentTarget.getAttribute('data-to');
-      await db.updateTaskStatus(id, to);
-      refresh();
     });
   });
 

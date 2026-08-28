@@ -194,12 +194,13 @@
 
 .input-group { margin-bottom: 20px; }
 .input-group label { display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
-.input-group input, .input-group select {
+.input-group input, .input-group select, .input-group textarea {
   width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary);
   padding: 14px 16px; border-radius: 14px; font-size: 16px; box-sizing: border-box; outline: none;
   font-family: inherit; transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.input-group input:focus, .input-group select:focus {
+.input-group textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+.input-group input:focus, .input-group select:focus, .input-group textarea:focus {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.18);
 }
@@ -299,10 +300,10 @@ html.mk3-dashboard .card, html.mk3-dashboard .list-row, html.mk3-dashboard .moda
   border-radius: 0 !important;
   clip-path: polygon(0 9px, 9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%) !important;
 }
-html.mk3-entreno .btn-primary, html.mk3-entreno button:not(.icon-chip):not([style*="50%"]), html.mk3-entreno input, html.mk3-entreno select,
-html.mk3-finanzas .btn-primary, html.mk3-finanzas button:not(.icon-chip):not([style*="50%"]), html.mk3-finanzas input, html.mk3-finanzas select,
-html.mk3-tareas .btn-primary, html.mk3-tareas button:not(.icon-chip):not([style*="50%"]), html.mk3-tareas input, html.mk3-tareas select,
-html.mk3-dashboard .btn-primary, html.mk3-dashboard button:not(.icon-chip):not([style*="50%"]), html.mk3-dashboard input, html.mk3-dashboard select {
+html.mk3-entreno .btn-primary, html.mk3-entreno button:not(.icon-chip):not([style*="50%"]), html.mk3-entreno input, html.mk3-entreno select, html.mk3-entreno textarea,
+html.mk3-finanzas .btn-primary, html.mk3-finanzas button:not(.icon-chip):not([style*="50%"]), html.mk3-finanzas input, html.mk3-finanzas select, html.mk3-finanzas textarea,
+html.mk3-tareas .btn-primary, html.mk3-tareas button:not(.icon-chip):not([style*="50%"]), html.mk3-tareas input, html.mk3-tareas select, html.mk3-tareas textarea,
+html.mk3-dashboard .btn-primary, html.mk3-dashboard button:not(.icon-chip):not([style*="50%"]), html.mk3-dashboard input, html.mk3-dashboard select, html.mk3-dashboard textarea {
   border-radius: 0 !important;
   clip-path: polygon(0 7px, 7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%) !important;
 }
