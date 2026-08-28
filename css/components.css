@@ -262,9 +262,28 @@ html.mk3-tareas {
   font-variant-numeric: tabular-nums;
 }
 
+/* Inicio/Dashboard: a diferencia de las otras tres, esta pantalla muestra
+   Entreno + Finanzas + Tareas a la vez, así que NO tiene un acento único
+   propio — no se redefine --accent-teal/--accent-purple/--accent-primary
+   acá. dashboard.js usa var(--cy)/var(--am)/var(--vi) directo por elemento
+   (reactor, filas heroicas, insignias). Sí hereda superficies/texto/
+   tipografía/geometría como las demás. */
+html.mk3-dashboard {
+  --bg-base: var(--bg);
+  --surface-1: var(--panel);
+  --surface-2: var(--line);
+  --surface-border: var(--line);
+  --text-primary: var(--t1);
+  --text-secondary: var(--t2);
+  --text-disabled: var(--t3);
+  --state-high: var(--rd);
+  font-variant-numeric: tabular-nums;
+}
+
 html.mk3-entreno *,
 html.mk3-finanzas *,
-html.mk3-tareas * {
+html.mk3-tareas *,
+html.mk3-dashboard * {
   font-family: var(--font-mono-mk3) !important;
   box-shadow: none !important;
 }
@@ -275,13 +294,15 @@ html.mk3-tareas * {
    que no se compriman a un octógono. */
 html.mk3-entreno .card, html.mk3-entreno .list-row, html.mk3-entreno .modal-content,
 html.mk3-finanzas .card, html.mk3-finanzas .list-row, html.mk3-finanzas .modal-content,
-html.mk3-tareas .card, html.mk3-tareas .list-row, html.mk3-tareas .modal-content {
+html.mk3-tareas .card, html.mk3-tareas .list-row, html.mk3-tareas .modal-content,
+html.mk3-dashboard .card, html.mk3-dashboard .list-row, html.mk3-dashboard .modal-content {
   border-radius: 0 !important;
   clip-path: polygon(0 9px, 9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%) !important;
 }
 html.mk3-entreno .btn-primary, html.mk3-entreno button:not(.icon-chip):not([style*="50%"]), html.mk3-entreno input, html.mk3-entreno select,
 html.mk3-finanzas .btn-primary, html.mk3-finanzas button:not(.icon-chip):not([style*="50%"]), html.mk3-finanzas input, html.mk3-finanzas select,
-html.mk3-tareas .btn-primary, html.mk3-tareas button:not(.icon-chip):not([style*="50%"]), html.mk3-tareas input, html.mk3-tareas select {
+html.mk3-tareas .btn-primary, html.mk3-tareas button:not(.icon-chip):not([style*="50%"]), html.mk3-tareas input, html.mk3-tareas select,
+html.mk3-dashboard .btn-primary, html.mk3-dashboard button:not(.icon-chip):not([style*="50%"]), html.mk3-dashboard input, html.mk3-dashboard select {
   border-radius: 0 !important;
   clip-path: polygon(0 7px, 7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%) !important;
 }
@@ -290,9 +311,16 @@ html.mk3-tareas .btn-primary, html.mk3-tareas button:not(.icon-chip):not([style*
    text-transform: uppercase inline pasan a 11px / tracking 2px. */
 html.mk3-entreno [style*="text-transform: uppercase"],
 html.mk3-finanzas [style*="text-transform: uppercase"],
-html.mk3-tareas [style*="text-transform: uppercase"] {
+html.mk3-tareas [style*="text-transform: uppercase"],
+html.mk3-dashboard [style*="text-transform: uppercase"] {
   font-size: 11px !important;
   letter-spacing: 2px !important;
+}
+
+/* Panal hexagonal de insignias (Inicio) — hexágono de punta arriba/abajo
+   vía clip-path, reemplaza las cajas redondeadas genéricas. */
+.mk3-hex {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
 
 /* Accesibilidad de movimiento — global, no depende de qué sección esté

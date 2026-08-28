@@ -678,7 +678,7 @@ const QUICK_GASTO_STOPWORDS = new Set(['en', 'de', 'del', 'el', 'la', 'los', 'la
 // monto, y el resto del texto se busca como palabra clave contra el nombre
 // de los sobres existentes (coincidencia de substring, sin distinguir
 // mayúsculas). Devuelve null si no hay un monto válido.
-const parseQuickGasto = (text, envelopes) => {
+export const parseQuickGasto = (text, envelopes) => {
   const match = text.match(/\d+(?:[.,]\d+)?/);
   if (!match) return null;
   const amount = parseFloat(match[0].replace(',', '.'));

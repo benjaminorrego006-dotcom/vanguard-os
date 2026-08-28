@@ -1,18 +1,21 @@
 import { db } from '../core/db.js';
-import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
-import { renderProgressRing } from '../utils/progressRing.js';
+import { formatCurrency } from '../utils/currency.js';
 import { WEEKLY_GOALS } from '../core/trainingConfig.js';
-import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
-
-let rachaGlobalChartInstance = null;
+import { Toast } from '../utils/states.js';
+import { parseQuickGasto } from './finanzas.js';
 
 // Insignias sobrias: sin niveles, sin copy de videojuego. Bloqueada = ícono
-// atenuado en gris; desbloqueada = mismo ícono con el color de acento.
+// de candado atenuado en gris; desbloqueada = ícono propio con el color de
+// acento del módulo al que pertenece (Vanguard MK III). racha_7 no
+// pertenece a ningún módulo en particular (es la racha global del
+// reactor), así que se queda con el naranja de "fuego" que ya tenía;
+// mes_sin_exceder se queda en el verde de éxito, que ya era un semántico
+// aparte del acento de marca.
 const BADGE_META = {
   racha_7: { icon: `<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>`, color: 'var(--accent-orange)' },
-  primera_meta: { icon: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>`, color: 'var(--accent-purple)' },
+  primera_meta: { icon: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>`, color: 'var(--am)' },
   mes_sin_exceder: { icon: `<circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline>`, color: 'var(--state-success)' },
-  diez_sesiones: { icon: `<path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><rect x="4" y="2" width="4" height="20" rx="1"></rect><rect x="16" y="2" width="4" height="20" rx="1"></rect>`, color: 'var(--accent-teal)' }
+  diez_sesiones: { icon: `<path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><rect x="4" y="2" width="4" height="20" rx="1"></rect><rect x="16" y="2" width="4" height="20" rx="1"></rect>`, color: 'var(--cy)' }
 };
 
 function saludoPorHora() {
@@ -32,39 +35,120 @@ function colorAlerta(nivel) {
   return 'var(--state-low)';
 }
 
+// --- Reactor: tres anillos concéntricos de progreso (uno por módulo) más
+// un hexágono central de líneas finas con la racha global. Mismo principio
+// matemático que progressRing.js (círculo de fondo + arco vía
+// stroke-dasharray/dashoffset), pero con tres anillos en un mismo SVG y el
+// texto superpuesto en HTML encima (más simple que centrar dos líneas de
+// texto dentro del SVG). "Avance del día" se aproxima con la métrica de
+// progreso más cercana que ya calcula cada módulo: Entreno usa el avance
+// de la meta semanal de sesiones (no hay meta diaria en la app), Finanzas
+// usa el % del presupuesto del mes ya gastado, Tareas usa el % de tareas
+// completadas sobre el total.
+function renderReactor({ cyPct, amPct, viPct, rachaGlobal }) {
+  const size = 220;
+  const c = 110;
+  const rings = [
+    { r: 96, sw: 10, pct: cyPct, color: 'var(--cy)', track: 'var(--cyb)' },
+    { r: 78, sw: 10, pct: amPct, color: 'var(--am)', track: 'var(--amb)' },
+    { r: 60, sw: 10, pct: viPct, color: 'var(--vi)', track: 'var(--vib)' }
+  ];
+
+  const ringsHtml = rings.map(ring => {
+    const circumference = 2 * Math.PI * ring.r;
+    const clamped = Math.max(0, Math.min(100, ring.pct));
+    const offset = circumference - (clamped / 100) * circumference;
+    return `
+      <circle cx="${c}" cy="${c}" r="${ring.r}" fill="none" stroke="${ring.track}" stroke-width="${ring.sw}"></circle>
+      <circle cx="${c}" cy="${c}" r="${ring.r}" fill="none" stroke="${ring.color}" stroke-width="${ring.sw}"
+        stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"
+        style="transition: stroke-dashoffset 0.6s ease;"></circle>
+    `;
+  }).join('');
+
+  const hexR = 44;
+  const hexPoints = Array.from({ length: 6 }, (_, i) => {
+    const angle = (-90 + i * 60) * Math.PI / 180;
+    return `${(c + hexR * Math.cos(angle)).toFixed(2)},${(c + hexR * Math.sin(angle)).toFixed(2)}`;
+  }).join(' ');
+
+  return `
+    <div style="position: relative; width: ${size}px; height: ${size}px; margin: 0 auto;">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform: rotate(-90deg);">
+        ${ringsHtml}
+        <polygon points="${hexPoints}" fill="none" stroke="var(--t3)" stroke-width="1.5"></polygon>
+      </svg>
+      <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none;">
+        <div style="font-size: 36px; font-weight: 800; color: var(--t1); line-height: 1; font-variant-numeric: tabular-nums;">${rachaGlobal.actual}</div>
+        <div style="font-size: 10px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: 2.5px; margin-top: 5px;">Racha</div>
+      </div>
+    </div>
+  `;
+}
+
+// Fila heroica compacta: barra de color lateral + una sola métrica grande,
+// nada más — reemplaza a las dos tarjetas grandes (círculo de progreso /
+// ícono de billetera) de la versión anterior.
+function renderHeroicRow({ id, color, label, value }) {
+  return `
+    <div id="${id}" class="card tappable" style="display: flex; align-items: center; gap: 14px; padding: 15px 16px; margin-bottom: 10px; border-left: 3px solid ${color}; cursor: pointer;">
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px;">${label}</div>
+        <div style="font-size: 19px; font-weight: 800; color: var(--text-primary); line-height: 1.15; font-variant-numeric: tabular-nums;">${value}</div>
+      </div>
+      <svg width="16" height="16" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
+  `;
+}
+
+// Insignia como celda de panal hexagonal (clase .mk3-hex, ver
+// components.css). Bloqueada = candado atenuado; desbloqueada = ícono
+// propio con el color de su módulo.
+function renderBadgeHex(b) {
+  const meta = BADGE_META[b.id];
+  const bg = b.unlocked ? `${meta.color}22` : 'var(--surface-2)';
+  const fg = b.unlocked ? meta.color : 'var(--text-disabled)';
+  const icon = b.unlocked
+    ? `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">${meta.icon}</svg>`
+    : `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="1"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`;
+  return `
+    <div title="${b.label}" style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 68px; text-align: center;">
+      <div class="mk3-hex" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: ${bg}; color: ${fg};">
+        ${icon}
+      </div>
+      <div style="font-size: 9.5px; font-weight: 600; color: ${b.unlocked ? 'var(--text-secondary)' : 'var(--text-disabled)'}; line-height: 1.25;">${b.label}</div>
+    </div>
+  `;
+}
+
 export async function render() {
-  const [budget, stats, sesiones, resumenSemanal, racha, rachaGlobal, badges] = await Promise.all([
+  const [budget, stats, sesiones, resumenSemanal, racha, rachaGlobal, badges, tareas] = await Promise.all([
     db.getBudget(),
     db.getDashboardStats(),
     db.getSesiones(),
     db.getResumenEntrenoSemanal(),
     db.getRachaGeneral(),
     db.getRachaGlobal(),
-    db.getBadges()
+    db.getBadges(),
+    db.getTasks()
   ]);
 
   const sesionesSemanaTotal = Object.values(resumenSemanal).reduce((a, b2) => a + b2, 0);
   const metaSemanaTotal = Object.values(WEEKLY_GOALS).reduce((a, b2) => a + b2, 0);
 
   const ultimoEntreno = sesiones[0] || null;
-  const ultimaTx = (budget.breakdown && budget.breakdown[0]) || null;
-
   const usado = budget.expenses + budget.savedThisMonth;
   const alertasCaja = await db.getProyeccionRecurrentes();
-
-  const ultimoEntrenoFechaStr = ultimoEntreno
-    ? new Date(ultimoEntreno.fecha).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })
-    : null;
 
   let alertasHtml = '';
   if (alertasCaja && alertasCaja.length > 0) {
     alertasHtml = `
-      <div class="card" style="padding: 16px; margin-bottom: 20px; border-radius: 18px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; gap: 14px;">
+      <div class="card" style="padding: 16px; margin-bottom: 20px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; gap: 14px;">
         <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.18); color: var(--state-high); flex-shrink: 0;">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
         </div>
         <div style="flex: 1;">
-          <div style="font-size: 12px; font-weight: 700; color: var(--state-high); margin-bottom: 4px;">Alerta de Flujo de Caja (7 días)</div>
+          <div style="font-size: 12px; font-weight: 700; color: var(--state-high); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Alerta de flujo de caja (7 días)</div>
           ${alertasCaja.map(a => `<div style="font-size: 12px; color: var(--text-primary); margin-top:4px; line-height: 1.4;">El pago <b>${a.name}</b> (${formatCurrency(a.amount)}) excederá el saldo del sobre <b>${a.envelopeName}</b>. Faltan ${formatCurrency(a.shortfall)}.</div>`).join('')}
         </div>
       </div>
@@ -73,177 +157,144 @@ export async function render() {
 
   const pct = budget.budgeted > 0 ? Math.round((usado / budget.budgeted) * 100) : 0;
   const pctBar = Math.min(pct, 100);
-  const colorFin = colorAlerta(budget.alertLevel);
 
-  const rachaHtml = stats.rachaSemanas > 0
-    ? `<svg width="13" height="13" fill="none" stroke="var(--accent-orange)" stroke-width="2" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>${stats.rachaSemanas} semana${stats.rachaSemanas === 1 ? '' : 's'} de racha`
+  const cyPct = metaSemanaTotal > 0 ? Math.min(100, (sesionesSemanaTotal / metaSemanaTotal) * 100) : 0;
+  const amPct = pctBar;
+  const tareasCompletadas = tareas.filter(t => t.status === 'done').length;
+  const tareasActivas = tareas.length - tareasCompletadas;
+  const viPct = tareas.length > 0 ? (tareasCompletadas / tareas.length) * 100 : 0;
+
+  const rachaSubtitle = stats.rachaSemanas > 0
+    ? `${stats.rachaSemanas} semana${stats.rachaSemanas === 1 ? '' : 's'} de racha en Entreno`
     : 'Empieza tu semana con una sesión';
 
   return `
-    <div style="padding: 20px 20px 8px; font-family: var(--font-body); color: var(--text-primary);">
+    <div style="padding: 20px 20px 8px; color: var(--text-primary);">
 
       <!-- Greeting -->
       <div style="margin-bottom: 20px;">
-        <h1 style="font-family: var(--font-display); font-size: 30px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">${saludoPorHora()}, Benjamín</h1>
-        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-top: 4px; display: flex; align-items: center;">
-          ${rachaHtml}
-        </div>
+        <h1 style="font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">${saludoPorHora()}, Benjamín</h1>
+        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 4px;">${rachaSubtitle}</div>
       </div>
 
       ${alertasHtml}
 
-      <!-- Racha global (con glow radial sutil detrás) -->
-      <div style="position: relative; margin-bottom: 16px;">
-        <div style="position: absolute; inset: -18px; background: radial-gradient(circle at 28% 25%, rgba(168, 85, 247, 0.16), transparent 68%); filter: blur(18px); z-index: 0; pointer-events: none;"></div>
-        <div class="card" style="position: relative; z-index: 1; padding: 16px 18px; margin-bottom: 0; border-radius: 18px; display: flex; align-items: center; gap: 16px;">
-          <div style="flex-shrink: 0;">
-            <div style="font-size: 26px; font-weight: 800; color: var(--text-primary); line-height: 1;">${rachaGlobal.actual}</div>
-            <div style="font-size: 11px; color: var(--text-secondary); font-weight: 600; margin-top: 2px; white-space: nowrap;">día${rachaGlobal.actual === 1 ? '' : 's'} de racha</div>
-          </div>
-          <div style="flex: 1; height: 40px; min-width: 0;"><canvas id="chart-racha-global"></canvas></div>
-        </div>
+      <!-- Reactor: tres anillos (Entreno/Finanzas/Tareas) + racha global -->
+      <div class="card" style="padding: 24px 18px; margin-bottom: 20px;">
+        ${renderReactor({ cyPct, amPct, viPct, rachaGlobal })}
       </div>
 
-      <!-- Insignias -->
+      <!-- Insignias: panal hexagonal -->
       <div style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 2px;">
-        ${badges.map(b => `
-          <div title="${b.label}" style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 68px; text-align: center;">
-            <div style="width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: ${b.unlocked ? `${BADGE_META[b.id].color}1f` : 'var(--surface-2)'}; color: ${b.unlocked ? BADGE_META[b.id].color : 'var(--text-disabled)'}; border: 1px solid ${b.unlocked ? 'transparent' : 'var(--surface-border)'};">
-              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">${BADGE_META[b.id].icon}</svg>
-            </div>
-            <div style="font-size: 9.5px; font-weight: 600; color: ${b.unlocked ? 'var(--text-secondary)' : 'var(--text-disabled)'}; line-height: 1.25;">${b.label}</div>
-          </div>
-        `).join('')}
+        ${badges.map(renderBadgeHex).join('')}
       </div>
 
       <!-- Quick Actions -->
-      <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-        <button id="qa-gasto" class="tappable card" style="flex: 1; padding: 14px; border-radius: 16px; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
-          <div class="icon-chip" style="width: 26px; height: 26px; background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); flex-shrink: 0;">
+      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+        <button id="qa-gasto" class="tappable card" style="flex: 1; padding: 14px; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
+          <div class="icon-chip" style="width: 26px; height: 26px; background: rgba(255, 182, 39, 0.15); color: var(--am); flex-shrink: 0;">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           </div>
           Registrar gasto
         </button>
-        <button id="qa-entreno" class="tappable card" style="flex: 1; padding: 14px; border-radius: 16px; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
-          <div class="icon-chip" style="width: 26px; height: 26px; background: rgba(6, 182, 212, 0.15); color: var(--accent-teal); flex-shrink: 0;">
+        <button id="qa-entreno" class="tappable card" style="flex: 1; padding: 14px; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
+          <div class="icon-chip" style="width: 26px; height: 26px; background: rgba(92, 225, 230, 0.15); color: var(--cy); flex-shrink: 0;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
           </div>
           Entrenar ahora
         </button>
       </div>
 
-      <!-- SPLIT CARDS -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-
-        <!-- ENTRENAMIENTO -->
-        <div id="card-entreno" class="card tappable" style="padding: 18px 16px; display: flex; flex-direction: column; border-radius: 20px;">
-          <div class="flex-between" style="margin-bottom: 4px;">
-            <h3 style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin: 0;">ENTRENAMIENTO</h3>
-            <span style="color: var(--text-secondary);"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 10h3v4h-3M3 10H0v4h3"></path><rect x="3" y="8" width="4" height="8" rx="1"></rect><rect x="17" y="8" width="4" height="8" rx="1"></rect><line x1="7" y1="12" x2="17" y2="12"></line></svg></span>
-          </div>
-          <div style="width: 18px; height: 2px; background: var(--accent-teal); margin-bottom: 12px; border-radius: 1px;"></div>
-
-          <div style="display: flex; justify-content: center; margin-bottom: 10px;">
-            ${renderProgressRing({
-              percent: metaSemanaTotal > 0 ? Math.min(100, (sesionesSemanaTotal / metaSemanaTotal) * 100) : 0,
-              color: 'var(--accent-teal)',
-              size: 48,
-              strokeWidth: 4,
-              centerText: `${sesionesSemanaTotal}/${metaSemanaTotal}`
-            })}
-          </div>
-
-          <div style="font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 4px;">${stats.sesionesSemana} sesión${stats.sesionesSemana === 1 ? '' : 'es'} esta semana</div>
-          <div style="font-family: var(--font-mono); font-size: 10.5px; color: var(--text-secondary); text-align: center; line-height: 1.4; margin-bottom: 14px;">
-            ${racha.actual > 0 ? `🔥 ${racha.actual} día${racha.actual === 1 ? '' : 's'} seguidos` : 'Empieza tu racha hoy'}
-          </div>
-
-          <div style="margin-top: auto;">
-            <div style="font-size: 9px; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 2px; text-transform: uppercase;">Último entrenamiento</div>
-            <div style="font-size: 11.5px; margin-bottom: 10px;">${ultimoEntreno ? `${ultimoEntrenoFechaStr} · ${ultimoEntreno.nombreRutina}` : 'Aún no registras ninguno'}</div>
-            <button class="tappable btn-ver-progreso-nav" style="width: 100%; background: rgba(6, 182, 212, 0.1); border: 1px solid var(--accent-teal); color: var(--accent-teal); padding: 9px; border-radius: 10px; font-size: 11.5px; font-weight: 700; cursor: pointer;">Ver progreso</button>
-          </div>
-        </div>
-
-        <!-- FINANZAS -->
-        <div id="card-finanzas" class="card tappable" style="padding: 18px 16px; display: flex; flex-direction: column; border-radius: 20px;">
-          <div class="flex-between" style="margin-bottom: 4px;">
-            <h3 style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin: 0;">FINANZAS</h3>
-            <span style="color: var(--text-secondary);"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12h-3v4h3v-4z"></path></svg></span>
-          </div>
-          <div style="width: 18px; height: 2px; background: var(--accent-purple); margin-bottom: 12px; border-radius: 1px;"></div>
-
-          <div style="display: flex; justify-content: center; margin-bottom: 10px;">
-            <div class="icon-chip" style="width: 48px; height: 48px; background: rgba(168, 85, 247, 0.15); color: var(--accent-purple);">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12h-3v4h3v-4z"></path></svg>
-            </div>
-          </div>
-
-          <div style="font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 4px;">Presupuesto</div>
-          <div style="font-family: var(--font-mono); font-size: 12px; text-align: center; margin-bottom: 8px;">
-            <span style="color: var(--text-primary); font-weight: 700;">${formatCompactCurrency(usado)}</span>
-            <span style="color: var(--text-secondary);"> / ${formatCompactCurrency(budget.budgeted)}</span>
-          </div>
-
-          <div style="height: 6px; background: var(--surface-2); border-radius: 3px; margin-bottom: 6px; overflow: hidden; position: relative;">
-            <div style="position: absolute; top:0; left:0; height:100%; width: ${pctBar}%; background: ${colorFin}; border-radius: 3px; transition: width 0.5s ease;"></div>
-          </div>
-          <div style="text-align: right; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-secondary); margin-bottom: 10px;">${pct}%</div>
-
-          <div style="margin-top: auto;">
-            <div style="font-size: 9px; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 2px; text-transform: uppercase;">Reciente</div>
-            <div style="font-size: 11.5px;">${ultimaTx ? `${ultimaTx.label || ultimaTx.category} · <span style="font-family: var(--font-mono);">${formatCurrency(ultimaTx.amount)}</span>` : 'Sin movimientos aún'}</div>
-          </div>
-        </div>
-
+      <!-- Filas heroicas por módulo -->
+      <div style="margin-bottom: 20px;">
+        ${renderHeroicRow({
+          id: 'row-entreno',
+          color: 'var(--cy)',
+          label: 'Entreno',
+          value: `${stats.sesionesSemana} sesión${stats.sesionesSemana === 1 ? '' : 'es'} esta semana`
+        })}
+        ${renderHeroicRow({
+          id: 'row-finanzas',
+          color: 'var(--am)',
+          label: 'Finanzas',
+          value: `${formatCurrency(Math.max(0, budget.remaining))} disponibles`
+        })}
+        ${renderHeroicRow({
+          id: 'row-tareas',
+          color: 'var(--vi)',
+          label: 'Tareas',
+          value: `${tareasActivas} activa${tareasActivas === 1 ? '' : 's'}`
+        })}
       </div>
+
+      <!-- Captura rápida global -->
+      <div style="margin-bottom: 20px;">
+        <div style="position: relative;">
+          <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
+          <input type="text" id="quick-capture-input" placeholder="Anotá algo — tarea o gasto (ej. &quot;50 en super&quot;)..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box;" autocomplete="off">
+        </div>
+        <div id="quick-capture-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px; text-transform: uppercase; letter-spacing: 1px;"></div>
+      </div>
+
     </div>
   `;
 }
 
-const renderRachaGlobalChart = async () => {
-  const canvas = document.getElementById('chart-racha-global');
-  if (!canvas) return;
-  const { last7 } = await db.getRachaGlobal();
-  const Chart = await ensureChartJs();
-  const palette = appPalette();
-
-  if (rachaGlobalChartInstance) rachaGlobalChartInstance.destroy();
-  rachaGlobalChartInstance = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels: last7.map(d => d.date.slice(8, 10)),
-      datasets: [{
-        data: last7.map(d => d.count),
-        borderColor: palette.orange,
-        backgroundColor: palette.orange + '26',
-        fill: true,
-        tension: 0.35,
-        pointRadius: 0,
-        pointHoverRadius: 3,
-        borderWidth: 2
-      }]
-    },
-    options: {
-      ...baseChartOptions(),
-      scales: { x: { display: false }, y: { display: false } }
-    }
-  });
-};
-
 export function mountListeners() {
-  renderRachaGlobalChart();
-
   const go = (view) => {
     if (window.appRouter) window.appRouter.navigate(view);
   };
+  const refresh = () => { if (window.appRouter) window.appRouter.navigate('dashboard'); };
+
   const qaGasto = document.getElementById('qa-gasto');
   const qaEntreno = document.getElementById('qa-entreno');
-  const cardEntreno = document.getElementById('card-entreno');
-  const cardFinanzas = document.getElementById('card-finanzas');
+  const rowEntreno = document.getElementById('row-entreno');
+  const rowFinanzas = document.getElementById('row-finanzas');
+  const rowTareas = document.getElementById('row-tareas');
 
   if (qaGasto) qaGasto.addEventListener('click', () => go('finanzas'));
   if (qaEntreno) qaEntreno.addEventListener('click', () => go('entrenamiento'));
-  if (cardEntreno) cardEntreno.addEventListener('click', () => go('entrenamiento'));
-  if (cardFinanzas) cardFinanzas.addEventListener('click', () => go('finanzas'));
+  if (rowEntreno) rowEntreno.addEventListener('click', () => go('entrenamiento'));
+  if (rowFinanzas) rowFinanzas.addEventListener('click', () => go('finanzas'));
+  if (rowTareas) rowTareas.addEventListener('click', () => go('tareas'));
+
+  // Captura rápida: si el texto trae un monto, se registra como gasto
+  // (mismo parser que "Agregar gasto rápido" de Finanzas); si no, se crea
+  // como tarea. Dos destinos nada más — evita inventar un "log de nota
+  // libre" de Entreno que la app no tiene forma estructurada de guardar.
+  const quickInput = document.getElementById('quick-capture-input');
+  const quickHint = document.getElementById('quick-capture-hint');
+  if (quickInput) {
+    quickInput.addEventListener('keydown', async (e) => {
+      if (e.key !== 'Enter') return;
+      const text = quickInput.value.trim();
+      if (!text) return;
+
+      const amountFound = /\d+(?:[.,]\d+)?/.test(text);
+      if (amountFound) {
+        const budget = await db.getBudget();
+        const parsed = parseQuickGasto(text, budget.envelopes);
+        if (!parsed) {
+          quickHint.textContent = 'No encontré un monto válido';
+          return;
+        }
+        const env = parsed.matches[0] || null;
+        await db.addTransaction({
+          type: 'Gasto',
+          category: env ? env.category : 'Needs',
+          label: parsed.label || 'Gasto',
+          amount: parsed.amount,
+          envelopeId: env ? env.id : null,
+          goalId: null
+        });
+        Toast(`Gasto de ${formatCurrency(parsed.amount)} registrado`, 'success');
+      } else {
+        await db.saveTask({ title: text, status: 'todo', priority: 'medium' });
+        Toast('Tarea creada', 'success');
+      }
+      quickInput.value = '';
+      quickHint.textContent = '';
+      refresh();
+    });
+  }
 }

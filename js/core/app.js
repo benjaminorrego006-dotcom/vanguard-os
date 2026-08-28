@@ -199,13 +199,15 @@ class Router {
     });
 
     // Vanguard MK III (paleta/tipografía/geometría nuevas): rollout
-    // completo — Entreno, Finanzas y Tareas. Ver los bloques
-    // html.mk3-entreno / html.mk3-finanzas / html.mk3-tareas en
-    // components.css: se activan acá porque es el único punto por el que
-    // pasa toda navegación, sin importar qué vista la dispare.
+    // completo — Entreno, Finanzas, Tareas y ahora Inicio. Ver los bloques
+    // html.mk3-entreno / html.mk3-finanzas / html.mk3-tareas /
+    // html.mk3-dashboard en components.css: se activan acá porque es el
+    // único punto por el que pasa toda navegación, sin importar qué vista
+    // la dispare.
     document.documentElement.classList.toggle('mk3-entreno', viewId === 'entrenamiento' || viewId === 'analisis');
     document.documentElement.classList.toggle('mk3-finanzas', viewId === 'finanzas');
     document.documentElement.classList.toggle('mk3-tareas', viewId === 'tareas');
+    document.documentElement.classList.toggle('mk3-dashboard', viewId === 'dashboard');
 
     try {
       this.root.style.animation = 'none';
