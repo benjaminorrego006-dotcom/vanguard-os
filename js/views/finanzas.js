@@ -12,7 +12,7 @@ import { renderAhorroForm, initAhorroForm } from '../components/AhorroForm.js';
 import { renderEnvelopeForm, initEnvelopeForm } from '../components/EnvelopeForm.js';
 import { renderTransferForm, initTransferForm } from '../components/TransferForm.js';
 import { renderRecurringForm, initRecurringForm } from '../components/RecurringForm.js';
-import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
+import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '../utils/charts.js';
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 
@@ -88,7 +88,7 @@ export async function init() {
     const getPct = (val) => b.budgeted > 0 ? Math.round((val / b.budgeted) * 100) : 0;
 
     const segments = [
-      { percent: getPct(totalNeeds), color: 'var(--state-high)' },
+      { percent: getPct(totalNeeds), color: 'var(--am2)' },
       { percent: getPct(totalWants), color: 'var(--accent-blue)' },
       { percent: getPct(totalSavings), color: 'var(--accent-purple)' }
     ];
@@ -575,7 +575,7 @@ const renderAgeOfMoneyHTML = (b) => {
   return `
     <div class="card" id="card-ageofmoney" style="padding: 16px; margin-bottom: 24px; border-radius: 16px; background: linear-gradient(145deg, var(--surface-1), var(--surface-2)); display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--surface-border);">
       <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(168, 85, 247, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-purple);">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(255, 182, 39, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-purple);">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
         </div>
         <div>
@@ -704,7 +704,7 @@ const parseQuickGasto = (text, envelopes) => {
 };
 
 const getCatColor = (cat) => {
-  if(cat === 'Needs') return 'var(--state-high)';
+  if(cat === 'Needs') return 'var(--am2)';
   if(cat === 'Wants') return 'var(--accent-blue)';
   if(cat === 'Savings') return 'var(--accent-purple)';
   if(cat === 'Income') return 'var(--state-success)';
@@ -777,7 +777,7 @@ const renderResumenLegend = (b) => {
   const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
   const rule = b.rule || { needs: 0.5, wants: 0.3, savings: 0.2 };
   const items = [
-    { label: 'Necesidades', amount: totalNeeds, color: 'var(--state-high)', share: rule.needs },
+    { label: 'Necesidades', amount: totalNeeds, color: 'var(--am2)', share: rule.needs },
     { label: 'Deseos', amount: totalWants, color: 'var(--accent-blue)', share: rule.wants },
     { label: 'Ahorros', amount: totalSavings, color: 'var(--accent-purple)', share: rule.savings }
   ];
@@ -985,7 +985,7 @@ const renderResumenCharts = async (b) => {
         indexAxis: 'y',
         scales: {
           x: { display: false },
-          y: { display: true, grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 12, weight: '600' } } }
+          y: { display: true, grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 12, weight: '600', family: chartFontFamily() } } }
         }
       }
     });
@@ -1014,7 +1014,7 @@ const renderPresupuestoLegend = async (b) => {
     const totalAmt = isNeeds ? totalNeeds : (isWants ? totalWants : totalSavings);
     const getPctVal = isNeeds ? getPct(totalNeeds) : (isWants ? getPct(totalWants) : getPct(totalSavings));
     const rulePct = isNeeds ? ruleDisplay.needs : (isWants ? ruleDisplay.wants : ruleDisplay.savings);
-    const color = isNeeds ? 'var(--state-high)' : (isWants ? 'var(--accent-blue)' : 'var(--accent-purple)');
+    const color = isNeeds ? 'var(--am2)' : (isWants ? 'var(--accent-blue)' : 'var(--accent-purple)');
 
     // Barra de progreso "gastado vs disponible" de la categoría, coloreada
     // por nivel de uso respecto de lo que le corresponde según la regla 50/30/20.
@@ -1122,7 +1122,7 @@ export async function render() {
   const projectedPct = b.budgeted > 0 ? (projectedExpense / b.budgeted) * 100 : 0;
   
   const segments = [
-    { percent: getPct(totalNeeds), color: 'var(--state-high)' },
+    { percent: getPct(totalNeeds), color: 'var(--am2)' },
     { percent: getPct(totalWants), color: 'var(--accent-blue)' },
     { percent: getPct(totalSavings), color: 'var(--accent-purple)' }
   ];
@@ -1288,7 +1288,7 @@ export async function render() {
             <span style="font-size: 11px; font-weight: 700;">Gasto</span>
           </button>
           <button id="btn-fab-ahorro" class="tappable" style="flex: 1; padding: 14px 8px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
-            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(168, 85, 247, 0.15); color: var(--accent-purple);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg></div>
+            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(255, 182, 39, 0.15); color: var(--accent-purple);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg></div>
             <span style="font-size: 11px; font-weight: 700;">Ahorro</span>
           </button>
         </div>

@@ -56,12 +56,14 @@ export function appPalette() {
 }
 
 // Familia tipográfica para texto de Chart.js (ticks, tooltips): el canvas
-// no hereda CSS, así que el toggle de Vanguard MK III (html.mk3-entreno,
-// ver components.css) no le llega solo — hay que preguntarle a la clase
-// directamente. Devuelve undefined fuera de ese scope para que Chart.js
-// use su propia fuente por defecto, sin afectar a Finanzas.
+// no hereda CSS, así que el toggle de Vanguard MK III (html.mk3-entreno /
+// html.mk3-finanzas, ver components.css) no le llega solo — hay que
+// preguntarle a la clase directamente. Devuelve undefined fuera de esos
+// scopes para que Chart.js use su propia fuente por defecto (Tareas, que
+// todavía no migró).
 export function chartFontFamily() {
-  return document.documentElement.classList.contains('mk3-entreno')
+  const root = document.documentElement.classList;
+  return (root.contains('mk3-entreno') || root.contains('mk3-finanzas'))
     ? "ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
     : undefined;
 }

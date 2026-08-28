@@ -205,18 +205,20 @@
 }
 
 /* ============================================================
-   VANGUARD MK III — activado solo dentro de <html class="mk3-entreno">
-   (alternada por el router en app.js según la vista montada). Fase 1:
-   Entreno únicamente — Finanzas y Tareas se quedan con el sistema
-   anterior hasta que les toque su turno.
+   VANGUARD MK III — activado dentro de <html class="mk3-entreno"> o
+   <html class="mk3-finanzas"> (alternadas por el router en app.js según
+   la vista montada, nunca las dos a la vez). Rollout por fase: Entreno
+   primero, Finanzas ahora — Tareas se queda con el sistema anterior
+   hasta que le toque su turno.
 
    Redefine las variables semánticas de superficie/texto/acento en vez
    de tocar cada plantilla: todo lo que ya usa var(--surface-1),
-   var(--text-primary), var(--accent-teal), etc. (la enorme mayoría del
-   HTML de Entreno) hereda la paleta nueva automáticamente. Geometría y
-   tipografía sí necesitan reglas con !important porque varias plantillas
-   fijan border-radius/font-family por elemento, que gana por especificidad
-   inline sobre cualquier regla de clase sin !important.
+   var(--text-primary), var(--accent-teal)/var(--accent-purple), etc. (la
+   enorme mayoría del HTML de cada sección) hereda la paleta nueva
+   automáticamente. Geometría y tipografía sí necesitan reglas con
+   !important porque varias plantillas fijan border-radius/font-family por
+   elemento, que gana por especificidad inline sobre cualquier regla de
+   clase sin !important.
    ============================================================ */
 html.mk3-entreno {
   --bg-base: var(--bg);
@@ -227,11 +229,27 @@ html.mk3-entreno {
   --text-secondary: var(--t2);
   --text-disabled: var(--t3);
   --accent-teal: var(--cy);
+  --accent-primary: var(--cy); /* focus ring de inputs (.input-group input:focus) */
   --state-high: var(--rd); /* el rojo solo debe verse en alertas reales */
   font-variant-numeric: tabular-nums;
 }
 
-html.mk3-entreno * {
+html.mk3-finanzas {
+  --bg-base: var(--bg);
+  --surface-1: var(--panel);
+  --surface-2: var(--line);
+  --surface-border: var(--line);
+  --text-primary: var(--t1);
+  --text-secondary: var(--t2);
+  --text-disabled: var(--t3);
+  --accent-purple: var(--am); /* Finanzas dejaba de compartir el morado con Tareas */
+  --accent-primary: var(--am);
+  --state-high: var(--rd);
+  font-variant-numeric: tabular-nums;
+}
+
+html.mk3-entreno *,
+html.mk3-finanzas * {
   font-family: var(--font-mono-mk3) !important;
   box-shadow: none !important;
 }
@@ -240,23 +258,21 @@ html.mk3-entreno * {
    :not([style*="50%"]) protege los círculos genuinos (icon-chip, avatares,
    el +/- circular del timer de descanso) para que no se compriman a un
    octógono. */
-html.mk3-entreno .card,
-html.mk3-entreno .list-row,
-html.mk3-entreno .modal-content {
+html.mk3-entreno .card, html.mk3-entreno .list-row, html.mk3-entreno .modal-content,
+html.mk3-finanzas .card, html.mk3-finanzas .list-row, html.mk3-finanzas .modal-content {
   border-radius: 0 !important;
   clip-path: polygon(0 9px, 9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%) !important;
 }
-html.mk3-entreno .btn-primary,
-html.mk3-entreno button:not(.icon-chip):not([style*="50%"]),
-html.mk3-entreno input,
-html.mk3-entreno select {
+html.mk3-entreno .btn-primary, html.mk3-entreno button:not(.icon-chip):not([style*="50%"]), html.mk3-entreno input, html.mk3-entreno select,
+html.mk3-finanzas .btn-primary, html.mk3-finanzas button:not(.icon-chip):not([style*="50%"]), html.mk3-finanzas input, html.mk3-finanzas select {
   border-radius: 0 !important;
   clip-path: polygon(0 7px, 7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%) !important;
 }
 
 /* Etiquetas de categoría/sección: todas las que ya se escribieron con
    text-transform: uppercase inline pasan a 11px / tracking 2px. */
-html.mk3-entreno [style*="text-transform: uppercase"] {
+html.mk3-entreno [style*="text-transform: uppercase"],
+html.mk3-finanzas [style*="text-transform: uppercase"] {
   font-size: 11px !important;
   letter-spacing: 2px !important;
 }

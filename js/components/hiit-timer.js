@@ -73,7 +73,7 @@ export function renderHiitTimer(rutina) {
         
         <div id="hiit-round-label" style="font-size: 18px; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Ronda 1 / 8</div>
         <div id="hiit-next-exercise" style="font-size: 16px; color: var(--accent-teal); font-weight: 700; margin-bottom: 8px; display: none;"></div>
-        <div id="hiit-amrap-record" style="font-size: 14px; color: var(--accent-purple); font-weight: 700; margin-bottom: 24px; display: none;"></div>
+        <div id="hiit-amrap-record" style="font-size: 14px; color: var(--accent-teal); font-weight: 700; margin-bottom: 24px; display: none;"></div>
         
         <button id="btn-amrap-add" class="tappable" style="display: none; background: rgba(92, 225, 230, 0.1); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 14px 24px; border-radius: 16px; font-size: 18px; font-weight: 700; margin-bottom: 24px; cursor: pointer;">+1 Ronda Completada</button>
 
@@ -284,8 +284,8 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
         currentState.phase = 'work';
         currentState.timeRemaining = currentState.workSecs;
         phaseLabel.innerText = "TRABAJO";
-        phaseLabel.style.color = "var(--accent-purple)";
-        timeDisplay.style.color = "var(--accent-purple)";
+        phaseLabel.style.color = "var(--accent-teal)";
+        timeDisplay.style.color = "var(--accent-teal)";
         nextExerciseLabel.style.display = 'none';
         
         if (currentState.currentRound === currentState.totalRounds) {
@@ -334,7 +334,7 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
     document.getElementById('hiit-summary-stats').innerHTML = `
       <div>Duración: <strong style="color:var(--text-primary);">${duracionMin} min</strong></div>
       <div>Energía Estimada: <strong style="color:var(--accent-teal);">~${estKcal} kcal</strong></div>
-      ${currentState.mode === 'amrap' ? `<div>Rondas completadas: <strong style="color:var(--accent-purple);">${currentState.amrapCount}</strong></div>` : ''}
+      ${currentState.mode === 'amrap' ? `<div>Rondas completadas: <strong style="color:var(--accent-teal);">${currentState.amrapCount}</strong></div>` : ''}
     `;
   };
 
@@ -375,20 +375,20 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
       currentState.phase = 'work';
       currentState.timeRemaining = currentState.workSecs;
       phaseLabel.innerText = "TRABAJO";
-      phaseLabel.style.color = "var(--accent-purple)";
-      timeDisplay.style.color = "var(--accent-purple)";
+      phaseLabel.style.color = "var(--accent-teal)";
+      timeDisplay.style.color = "var(--accent-teal)";
       speakPhase("Trabajo");
     } else if (currentState.mode === 'emom') {
       currentState.phase = 'work';
       currentState.timeRemaining = currentState.emomIntervalSecs;
       phaseLabel.innerText = "TRABAJANDO";
-      phaseLabel.style.color = "var(--accent-purple)";
+      phaseLabel.style.color = "var(--accent-teal)";
       timeDisplay.style.color = "var(--text-primary)";
       speakPhase("Comenzando EMOM");
     } else if (currentState.mode === 'amrap') {
       currentState.phase = 'work';
       phaseLabel.innerText = "AMRAP";
-      phaseLabel.style.color = "var(--accent-purple)";
+      phaseLabel.style.color = "var(--accent-teal)";
       timeDisplay.style.color = "var(--text-primary)";
       speakPhase("Comenzando AMRAP");
     }

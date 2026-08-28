@@ -62,7 +62,7 @@ export async function renderRutinasLista(categoria) {
           <div style="display: flex; align-items: center; gap: 8px;">
             <div style="width: 60px; color: var(--text-secondary);">Empuje</div>
             <div style="flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden;">
-              <div style="height: 100%; width: ${wEmp}%; background: var(--accent-purple);"></div>
+              <div style="height: 100%; width: ${wEmp}%; background: var(--cy2);"></div>
             </div>
             <div style="width: 24px; text-align: right; color: var(--text-primary);">${emp}</div>
           </div>
@@ -76,7 +76,7 @@ export async function renderRutinasLista(categoria) {
           <div style="display: flex; align-items: center; gap: 8px;">
             <div style="width: 60px; color: var(--text-secondary);">Piernas</div>
             <div style="flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden;">
-              <div style="height: 100%; width: ${wPie}%; background: var(--state-high);"></div>
+              <div style="height: 100%; width: ${wPie}%; background: var(--cy3);"></div>
             </div>
             <div style="width: 24px; text-align: right; color: var(--text-primary);">${pie}</div>
           </div>
@@ -92,9 +92,9 @@ export async function renderRutinasLista(categoria) {
   if (categoria === 'gym') {
     const { volumen } = await db.getVolumenPorGrupo(7);
     const grupos = [
-      { key: 'pecho', label: 'Pecho', color: 'var(--accent-purple)' },
+      { key: 'pecho', label: 'Pecho', color: 'var(--cy2)' },
       { key: 'espalda', label: 'Espalda', color: 'var(--accent-teal)' },
-      { key: 'piernas', label: 'Piernas', color: 'var(--state-high)' },
+      { key: 'piernas', label: 'Piernas', color: 'var(--cy3)' },
       { key: 'hombros', label: 'Hombros', color: 'var(--state-medium)' },
       { key: 'brazos', label: 'Brazos', color: 'var(--state-low, #60a5fa)' }
     ];

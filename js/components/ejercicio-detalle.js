@@ -57,7 +57,7 @@ export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
         ${prEvents.map(ev => `
           <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
             <span style="color: var(--text-secondary);">${new Date(ev.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-            <span style="color: var(--accent-purple); font-weight: 700;">🏆 ${ev.texto}</span>
+            <span style="color: var(--accent-teal); font-weight: 700;">🏆 ${ev.texto}</span>
           </div>
         `).join('')}
       </div>
