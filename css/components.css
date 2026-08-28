@@ -205,11 +205,11 @@
 }
 
 /* ============================================================
-   VANGUARD MK III — activado dentro de <html class="mk3-entreno"> o
-   <html class="mk3-finanzas"> (alternadas por el router en app.js según
-   la vista montada, nunca las dos a la vez). Rollout por fase: Entreno
-   primero, Finanzas ahora — Tareas se queda con el sistema anterior
-   hasta que le toque su turno.
+   VANGUARD MK III — activado dentro de <html class="mk3-entreno">,
+   <html class="mk3-finanzas"> o <html class="mk3-tareas"> (alternadas
+   por el router en app.js según la vista montada, nunca dos a la vez).
+   Rollout por fase: Entreno, Finanzas, y ahora Tareas — con esto las
+   tres secciones quedan migradas.
 
    Redefine las variables semánticas de superficie/texto/acento en vez
    de tocar cada plantilla: todo lo que ya usa var(--surface-1),
@@ -248,23 +248,40 @@ html.mk3-finanzas {
   font-variant-numeric: tabular-nums;
 }
 
+html.mk3-tareas {
+  --bg-base: var(--bg);
+  --surface-1: var(--panel);
+  --surface-2: var(--line);
+  --surface-border: var(--line);
+  --text-primary: var(--t1);
+  --text-secondary: var(--t2);
+  --text-disabled: var(--t3);
+  --accent-purple: var(--vi); /* Tareas ya no comparte el morado con Finanzas */
+  --accent-primary: var(--vi);
+  --state-high: var(--rd);
+  font-variant-numeric: tabular-nums;
+}
+
 html.mk3-entreno *,
-html.mk3-finanzas * {
+html.mk3-finanzas *,
+html.mk3-tareas * {
   font-family: var(--font-mono-mk3) !important;
   box-shadow: none !important;
 }
 
 /* Geometría — chaflán en vez de radio, en dos tamaños según el elemento.
    :not([style*="50%"]) protege los círculos genuinos (icon-chip, avatares,
-   el +/- circular del timer de descanso) para que no se compriman a un
-   octógono. */
+   el +/- circular del timer de descanso, el botón "+" de nueva tarea) para
+   que no se compriman a un octógono. */
 html.mk3-entreno .card, html.mk3-entreno .list-row, html.mk3-entreno .modal-content,
-html.mk3-finanzas .card, html.mk3-finanzas .list-row, html.mk3-finanzas .modal-content {
+html.mk3-finanzas .card, html.mk3-finanzas .list-row, html.mk3-finanzas .modal-content,
+html.mk3-tareas .card, html.mk3-tareas .list-row, html.mk3-tareas .modal-content {
   border-radius: 0 !important;
   clip-path: polygon(0 9px, 9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%) !important;
 }
 html.mk3-entreno .btn-primary, html.mk3-entreno button:not(.icon-chip):not([style*="50%"]), html.mk3-entreno input, html.mk3-entreno select,
-html.mk3-finanzas .btn-primary, html.mk3-finanzas button:not(.icon-chip):not([style*="50%"]), html.mk3-finanzas input, html.mk3-finanzas select {
+html.mk3-finanzas .btn-primary, html.mk3-finanzas button:not(.icon-chip):not([style*="50%"]), html.mk3-finanzas input, html.mk3-finanzas select,
+html.mk3-tareas .btn-primary, html.mk3-tareas button:not(.icon-chip):not([style*="50%"]), html.mk3-tareas input, html.mk3-tareas select {
   border-radius: 0 !important;
   clip-path: polygon(0 7px, 7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%) !important;
 }
@@ -272,7 +289,8 @@ html.mk3-finanzas .btn-primary, html.mk3-finanzas button:not(.icon-chip):not([st
 /* Etiquetas de categoría/sección: todas las que ya se escribieron con
    text-transform: uppercase inline pasan a 11px / tracking 2px. */
 html.mk3-entreno [style*="text-transform: uppercase"],
-html.mk3-finanzas [style*="text-transform: uppercase"] {
+html.mk3-finanzas [style*="text-transform: uppercase"],
+html.mk3-tareas [style*="text-transform: uppercase"] {
   font-size: 11px !important;
   letter-spacing: 2px !important;
 }
