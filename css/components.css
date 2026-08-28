@@ -324,6 +324,15 @@ html.mk3-dashboard [style*="text-transform: uppercase"] {
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
 
+/* Flecha de avance rápido (Tareas) — feedback sutil de opacidad, sin
+   sombras (la regla global ya fuerza box-shadow:none en todo mk3-tareas). */
+.btn-advance-task {
+  opacity: 0.8;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+.btn-advance-task:hover { opacity: 1; }
+.btn-advance-task:active { opacity: 0.5; transform: scale(0.88); }
+
 /* Accesibilidad de movimiento — global, no depende de qué sección esté
    activa: no hay razón para esperar el rollout completo del sistema para
    respetar esta preferencia del sistema operativo. */

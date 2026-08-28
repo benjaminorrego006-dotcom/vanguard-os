@@ -92,14 +92,29 @@ export function renderPriorityBars(priority) {
   return `<span style="display:inline-flex; align-items:flex-end; gap:2px; flex-shrink:0;" title="Prioridad">${bars}</span>`;
 }
 
+// Flecha de avance rápido: Por Hacer -> En Curso -> Hecho, sin pasar por el
+// detalle. Hecho ya es el final, no tiene siguiente estado.
+function renderAdvanceButton(task) {
+  if (task.status === 'done') return '';
+  const to = task.status === 'todo' ? 'in-progress' : 'done';
+  return `
+    <button class="btn-advance-task tappable" data-id="${task.id}" data-from="${task.status}" data-to="${to}" title="Avanzar a ${STATE_LABELS[to]}" style="width:32px; height:32px; padding:0; background:transparent; border:none; color:var(--accent-purple); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+    </button>
+  `;
+}
+
 function renderUrgentTask(task) {
   const due = dueDateInfo(task.dueDate);
   return `
     <div class="card task-card tappable btn-edit-task" data-id="${task.id}" style="position:relative; padding:14px 14px 14px 18px; margin-bottom:10px; cursor:pointer;">
       <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vi);"></div>
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
         <h4 style="margin:0; font-size:15px; font-weight:800; color:var(--text-primary); line-height:1.3;">${task.title}</h4>
-        ${renderPriorityBars(task.priority)}
+        <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+          ${renderPriorityBars(task.priority)}
+          ${renderAdvanceButton(task)}
+        </div>
       </div>
       ${due ? `<div style="margin-top:8px; font-size:11px; font-weight:700; letter-spacing:0.4px; color:${due.urgente ? 'var(--rd)' : 'var(--text-secondary)'};">${due.text}</div>` : ''}
     </div>
@@ -113,7 +128,10 @@ function renderColaTask(task) {
       <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vid);"></div>
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
         <span style="font-size:13px; font-weight:600; color:var(--t5); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${task.title}</span>
-        ${due ? `<span style="font-size:10px; font-weight:700; color:var(--t5); flex-shrink:0;">${due.text}</span>` : ''}
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+          ${due ? `<span style="font-size:10px; font-weight:700; color:var(--t5); flex-shrink:0;">${due.text}</span>` : ''}
+          ${renderAdvanceButton(task)}
+        </div>
       </div>
     </div>
   `;
@@ -125,9 +143,12 @@ function renderStatusTask(task) {
   return `
     <div class="card task-card tappable btn-edit-task" data-id="${task.id}" style="position:relative; padding:14px 14px 14px 18px; margin-bottom:10px; cursor:pointer;">
       <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vi);"></div>
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
         <h4 style="margin:0; font-size:15px; font-weight:800; line-height:1.3; color:${isDone ? 'var(--text-disabled)' : 'var(--text-primary)'}; ${isDone ? 'text-decoration:line-through;' : ''}">${task.title}</h4>
-        ${renderPriorityBars(task.priority)}
+        <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+          ${renderPriorityBars(task.priority)}
+          ${renderAdvanceButton(task)}
+        </div>
       </div>
       ${due ? `<div style="margin-top:8px; font-size:11px; font-weight:700; letter-spacing:0.4px; color:${due.urgente && !isDone ? 'var(--rd)' : 'var(--text-secondary)'};">${due.text}</div>` : ''}
     </div>
@@ -324,6 +345,42 @@ export function mountListeners() {
       const tasks = await db.getTasks();
       const task = tasks.find(t => t.id === id);
       if (task) openTaskForm(task);
+    });
+  });
+
+  // Flecha de avance rápido en la tarjeta: mueve de estado sin abrir el
+  // detalle. db.updateTaskStatus ya registra el evento correspondiente en
+  // el log (tarea_actualizada / tarea_completada), igual que si el cambio
+  // viniera de los chips del detalle — la bitácora queda completa. El
+  // contador de ambas columnas se ajusta a mano para que se vea moverse
+  // en el momento; el tablero recién se vuelve a pintar del todo cuando
+  // termina la transición (la duración real la maneja el CSS de
+  // .btn-advance-task / prefers-reduced-motion, acá solo esperamos el
+  // tiempo que dura para no cortar la animación a la mitad).
+  const bumpStateCount = (status, delta) => {
+    const btn = document.querySelector(`.btn-state-tab[data-state="${status}"]`);
+    const countEl = btn && btn.querySelector('span:last-child');
+    if (countEl) countEl.textContent = String(Number(countEl.textContent) + delta);
+  };
+  document.querySelectorAll('.btn-advance-task').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      const from = btn.getAttribute('data-from');
+      const to = btn.getAttribute('data-to');
+      const card = btn.closest('.task-card');
+
+      bumpStateCount(from, -1);
+      bumpStateCount(to, 1);
+      if (card) {
+        card.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(12px)';
+        card.style.pointerEvents = 'none';
+      }
+
+      await db.updateTaskStatus(id, to);
+      setTimeout(refresh, 220);
     });
   });
 
