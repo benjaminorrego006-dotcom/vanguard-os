@@ -69,7 +69,14 @@
   --vi: #8B7CF6; --vib: #3A3470; --vid: #2E2B52; --vip: #0D0A18; --vis: #12102B;
   --rd: #FF4D3D; --rdb: #5C1F1F; --rd2: #993C1D;
 
-  --t1: #C8DDE4; --t2: #8CA9B4; --t3: #3E5A66; --t4: #2E4652; --t5: #6B7F8A;
+  /* t3/t4/t5 aclarados (Fase 7, auditoría WCAG): fallaban 4.5:1 contra
+     --panel (t3 2.56:1, t4 1.89:1) o lo pasaban raspando (t5 4.49:1) —
+     --t3 en particular es --text-disabled en los 4 scopes MK III, así que
+     cubre bastante más que texto secundario suelto: "Sin movimientos",
+     etiquetas de insignias bloqueadas, botones de eliminar. Mismo tono
+     azul-grisáceo, solo más claro; t1/t2 y los acentos ya pasaban y quedan
+     sin tocar. */
+  --t1: #C8DDE4; --t2: #8CA9B4; --t3: #698692; --t4: #64828E; --t5: #6E838E;
 
   --font-mono-mk3: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
