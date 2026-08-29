@@ -88,6 +88,25 @@ const safeGetItem = (key, defaultValue) => {
   }
 };
 
+// --- Almacenamiento persistente -----------------------------------------
+// iOS Safari puede borrar el IndexedDB de una PWA no instalada tras ~7 días
+// sin uso, y Chrome desaloja datos bajo presión de espacio, salvo que el
+// origen tenga concedido "almacenamiento persistente". Se pide una sola vez
+// al arrancar (persisted() primero, para no re-pedir si ya estaba
+// concedido) y el resultado queda guardado para poder mostrarlo en Ajustes.
+// El navegador decide según heurísticas propias (app instalada, engagement
+// del usuario) — nunca asumir que persist() devuelve true, sobre todo en
+// iOS, donde el soporte es más débil y por eso el riesgo es mayor.
+async function solicitarAlmacenamientoPersistente() {
+  if (!(navigator.storage && navigator.storage.persist && navigator.storage.persisted)) return;
+
+  let concedido = await navigator.storage.persisted();
+  if (!concedido) {
+    concedido = await navigator.storage.persist();
+  }
+  await idbSetSingleton('storagePersistente', { concedido, verificadoEn: new Date().toISOString() });
+}
+
 const generateId = () => {
   return typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -376,6 +395,24 @@ export const db = {
     } catch (e) {
       console.error('[Vanguard OS] Error migrando datos a IndexedDB', e);
     }
+    try {
+      await solicitarAlmacenamientoPersistente();
+    } catch (e) {
+      console.error('[Vanguard OS] Error solicitando almacenamiento persistente', e);
+    }
+  },
+
+  // Estado de almacenamiento para mostrar en Ajustes: si el navegador
+  // concedió persistencia (ver solicitarAlmacenamientoPersistente arriba) y,
+  // cuando el navegador lo soporta, cuánto espacio se está usando.
+  async getEstadoAlmacenamiento() {
+    const persistencia = await idbGetSingleton('storagePersistente', null);
+    let estimacion = null;
+    if (navigator.storage && navigator.storage.estimate) {
+      try { estimacion = await navigator.storage.estimate(); }
+      catch (e) { estimacion = null; }
+    }
+    return { persistencia, estimacion };
   },
 
   async getAllocationRule() {

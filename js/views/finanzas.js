@@ -3,7 +3,7 @@ import { animateNumber } from '../utils/animate.js';
 import { renderDonut } from '../utils/donut.js';
 import { db } from '../core/db.js';
 import { formatCurrency, getCurrency, setCurrency, formatCompactCurrency } from '../utils/currency.js';
-import { exportAllData, importAllData } from '../utils/backup.js';
+import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import { mountSetPinFlow, requestPinVerification } from '../core/lock.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { renderIngresoForm, initIngresoForm } from '../components/IngresoForm.js';
@@ -1170,6 +1170,43 @@ export async function render() {
     </div>`;
   })();
 
+  // Estado de respaldo/persistencia para el bloque "Respaldos" de Ajustes.
+  // Se precalcula acá (async) porque el template de más abajo es un string
+  // síncrono — mismo patrón que presupuestoLegendHtml/trendHtml arriba.
+  const diasDesdeBackup = await getDiasDesdeUltimoBackup();
+  const estadoAlmacenamiento = await db.getEstadoAlmacenamiento();
+  const backupStatusHtml = (() => {
+    let backupMsg, backupColor;
+    if (diasDesdeBackup === null) {
+      backupMsg = 'Nunca has exportado un respaldo';
+      backupColor = 'var(--state-medium)';
+    } else if (diasDesdeBackup > 14) {
+      backupMsg = `Último respaldo hace ${diasDesdeBackup} días`;
+      backupColor = 'var(--state-medium)';
+    } else if (diasDesdeBackup === 0) {
+      backupMsg = 'Último respaldo: hoy';
+      backupColor = 'var(--text-secondary)';
+    } else {
+      backupMsg = `Último respaldo hace ${diasDesdeBackup} día${diasDesdeBackup === 1 ? '' : 's'}`;
+      backupColor = 'var(--text-secondary)';
+    }
+
+    const persistida = estadoAlmacenamiento.persistencia ? estadoAlmacenamiento.persistencia.concedido : undefined;
+    let persistMsg;
+    if (persistida === true) {
+      persistMsg = 'Almacenamiento persistente: concedido. El navegador no debería borrar tus datos por falta de espacio o inactividad.';
+    } else if (persistida === false) {
+      persistMsg = 'Almacenamiento persistente: no concedido. En iOS, si no abres la app por ~7 días, el sistema puede borrar tus datos — exporta respaldos seguido.';
+    } else {
+      persistMsg = 'Este navegador no soporta almacenamiento persistente. Exporta respaldos seguido para no perder tu progreso.';
+    }
+
+    return `
+      <p style="color: ${backupColor}; font-size: 13px; margin: 0 0 8px 0; font-weight: 600;">${backupMsg}</p>
+      <p style="color: var(--text-secondary); font-size: 12px; margin: 0 0 16px 0;">${persistMsg}</p>
+    `;
+  })();
+
   const [heatYear, heatMonthNum] = currentMonth.split('-').map(Number);
   const nombreMesActual = new Date(heatYear, heatMonthNum - 1, 1).toLocaleDateString('es-ES', { month: 'long' });
   const heatmapHtml = buildFinanzasHeatmapHtml();
@@ -1442,6 +1479,7 @@ export async function render() {
         </form>
         <hr style="border: none; border-top: 1px solid var(--surface-border); margin: 24px 0;">
         <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">Respaldos</h3>
+        ${backupStatusHtml}
         <button id="btn-export-data" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); margin-bottom: 16px; border: 1px solid var(--surface-border);">Exportar respaldo</button>
         <div style="position: relative;">
           <input type="file" id="file-import-data" accept=".json" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;">

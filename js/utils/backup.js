@@ -46,6 +46,20 @@ export async function exportAllData() {
   a.click();
   URL.revokeObjectURL(url);
   Toast("Respaldo exportado con éxito", "success");
+
+  // No crítico: si esto falla, el archivo ya se descargó igual — el usuario
+  // solo perdería el aviso de "días desde el último respaldo" en Ajustes.
+  try { await idb.put('singletons', { key: 'ultimoBackup', value: Date.now() }); }
+  catch (e) { console.error('[Vanguard OS] Error guardando fecha de último respaldo', e); }
+}
+
+// Días transcurridos desde el último exportAllData() exitoso, o null si
+// nunca se exportó un respaldo en este navegador. Usado en Ajustes de
+// Finanzas para avisar cuando el respaldo manual quedó desactualizado.
+export async function getDiasDesdeUltimoBackup() {
+  const row = await idb.getOne('singletons', 'ultimoBackup');
+  if (!row || typeof row.value !== 'number') return null;
+  return Math.floor((Date.now() - row.value) / 86400000);
 }
 
 async function restoreNewFormat(data) {
