@@ -89,6 +89,27 @@ export async function renderRutinasLista(categoria) {
 
   html += balanceHtml;
 
+  // Herramienta específica de Calistenia — no tiene sentido en gym (ahí se
+  // progresa subiendo peso, no cambiando de ejercicio) ni en HIIT, así que
+  // vive acá adentro en vez de listarse aparte en el nivel superior de
+  // Entrenamiento. Mismo formato de tarjeta que las de modalidad (ícono,
+  // título, subtítulo, chevron); como ya está dentro de Calistenia el
+  // subtítulo no necesita repetirlo.
+  if (categoria === 'calistenia') {
+    html += `
+      <div class="card tappable" id="btn-ir-arbol-progresion" style="padding: 20px; display: flex; align-items: center; gap: 18px; border-radius: 20px; cursor: pointer; margin-bottom: 24px;">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(92, 225, 230, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="24" height="24" fill="none" stroke="var(--accent-teal)" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="22" x2="12" y2="12"></line><path d="M12 12 5 5"></path><path d="M12 12l7-7"></path><circle cx="12" cy="12" r="2"></circle><circle cx="5" cy="5" r="2"></circle><circle cx="19" cy="5" r="2"></circle></svg>
+        </div>
+        <div style="flex: 1;">
+          <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 3px 0; color: var(--text-primary);">Árbol de Progresión</h3>
+          <p style="color: var(--text-secondary); font-size: 12px; margin: 0; font-weight: 500;">Qué entrenar después</p>
+        </div>
+        <svg width="18" height="18" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </div>
+    `;
+  }
+
   let volumenGrupoHtml = '';
   if (categoria === 'gym') {
     const { volumen } = await db.getVolumenPorGrupo(7, 'gym');
@@ -347,12 +368,17 @@ export function renderPlantillaPreview(plantilla) {
   return html;
 }
 
-export function initRutinasListaListeners(categoria, onNewRoutine, onStartSession, onPreviewMode, signal) {
+export function initRutinasListaListeners(categoria, onNewRoutine, onStartSession, onPreviewMode, signal, onArbolProgresion) {
   const btnNueva = document.getElementById('btn-nueva-rutina');
   if (btnNueva) {
     btnNueva.addEventListener('click', () => {
       onNewRoutine();
     }, { signal });
+  }
+
+  const btnArbol = document.getElementById('btn-ir-arbol-progresion');
+  if (btnArbol && onArbolProgresion) {
+    btnArbol.addEventListener('click', () => onArbolProgresion(), { signal });
   }
 
   document.querySelectorAll('.btn-iniciar-sesion').forEach(btn => {

@@ -11,6 +11,7 @@ import { calcularIMC, calcularTMB } from '../utils/bodyMetrics.js';
 import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
+import { renderArbolProgresion } from '../components/arbol-progresion.js';
 
 let categoriaActiva = null;
 let viewState = 'main'; // 'main', 'rutinas', 'form', 'session'
@@ -105,8 +106,10 @@ export async function render() {
     ? recientesEmptyHtml()
     : sesiones.slice(0, 5).map(sesionCardHtml).join('');
 
+  // Racha en cian (--cy): es un logro, no una alerta — el rojo (--state-high)
+  // en MK III queda reservado para alertas reales (ver auditoría de Fase 6).
   const rachaHtml = racha.actual > 0
-    ? `<div style="display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--state-high); font-size: 12px; font-weight: 700; padding: 3px 10px 3px 8px; border-radius: 999px;">
+    ? `<div style="display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; background: rgba(92, 225, 230, 0.12); border: 1px solid rgba(92, 225, 230, 0.3); color: var(--accent-teal); font-size: 12px; font-weight: 700; padding: 3px 10px 3px 8px; border-radius: 999px;">
         🔥 ${racha.actual} día${racha.actual === 1 ? '' : 's'} seguidos
       </div>`
     : '';
@@ -238,17 +241,6 @@ export async function render() {
             </div>
             <svg width="18" height="18" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </div>
-
-          <div class="card tappable" id="btn-ir-analisis" style="padding: 20px; display: flex; align-items: center; gap: 18px; border-radius: 20px; cursor: pointer;">
-            <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(92, 225, 230, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="24" height="24" fill="none" stroke="var(--accent-teal)" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-            </div>
-            <div style="flex: 1;">
-              <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 3px 0; color: var(--text-primary);">Análisis</h3>
-              <p style="color: var(--text-secondary); font-size: 12px; margin: 0; font-weight: 500;">Desglose, progreso, metas y récords</p>
-            </div>
-            <svg width="18" height="18" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-          </div>
         </div>
 
         <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px;">
@@ -302,12 +294,11 @@ mountListeners = () => {
   renderVolumenSemanalChart();
   initActivityHeatmapListeners('entreno-heatmap', 'var(--accent-teal)');
 
-  const btnIrAnalisis = document.getElementById('btn-ir-analisis');
-  if (btnIrAnalisis) {
-    btnIrAnalisis.addEventListener('click', () => {
-      if (window.appRouter) window.appRouter.navigate('analisis');
-    });
-  }
+  // La tarjeta de Análisis vivía acá, duplicando la navbar (Limpieza C ya
+  // la agregó como 5º ítem de primer nivel) — se sacó, ese es el único
+  // camino ahora. "+ Nueva meta" sigue yendo a Análisis > Metas porque no
+  // es un acceso a la vista en general, sino a una pestaña puntual dentro
+  // de ella.
   const btnIrMetasAnalisis = document.getElementById('btn-ir-metas-analisis');
   if (btnIrMetasAnalisis) {
     btnIrMetasAnalisis.addEventListener('click', () => {
@@ -368,10 +359,27 @@ mountListeners = () => {
       () => goToForm(cat),
       (rutina) => goToSession(rutina),
       (plantilla) => goToPreview(plantilla, cat),
-      signal
+      signal,
+      cat === 'calistenia' ? () => goToArbolProgresion() : undefined
     );
   };
   
+  const goToArbolProgresion = async () => {
+    if (currentViewController) currentViewController.abort();
+    currentViewController = new AbortController();
+
+    viewState = 'arbol';
+    mainView.style.display = 'none';
+    subView.style.display = 'block';
+
+    try {
+      subContent.innerHTML = await renderArbolProgresion();
+    } catch (err) {
+      console.error('Error renderizando árbol de progresión:', err);
+      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
+    }
+  };
+
   const goToPreview = (plantilla, cat) => {
     if (currentViewController) currentViewController.abort();
     currentViewController = new AbortController();
@@ -446,7 +454,7 @@ mountListeners = () => {
   const btnVolver = document.getElementById('btn-entrenamiento-volver');
   if (btnVolver) {
     btnVolver.addEventListener('click', () => {
-      if (viewState === 'form' || viewState === 'preview') {
+      if (viewState === 'form' || viewState === 'preview' || viewState === 'arbol') {
         goToRutinas(categoriaActiva);
       } else if (viewState === 'session') {
         cleanupSessionTimer();
