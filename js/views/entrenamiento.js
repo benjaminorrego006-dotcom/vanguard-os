@@ -12,6 +12,7 @@ import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '..
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
 import { renderArbolProgresion } from '../components/arbol-progresion.js';
+import { renderEstandaresFuerza, initEstandaresFuerzaListeners } from '../components/estandares-fuerza.js';
 
 let categoriaActiva = null;
 let viewState = 'main'; // 'main', 'rutinas', 'form', 'session'
@@ -360,10 +361,11 @@ mountListeners = () => {
       (rutina) => goToSession(rutina),
       (plantilla) => goToPreview(plantilla, cat),
       signal,
-      cat === 'calistenia' ? () => goToArbolProgresion() : undefined
+      cat === 'calistenia' ? () => goToArbolProgresion() : undefined,
+      cat === 'gym' ? () => goToEstandaresFuerza() : undefined
     );
   };
-  
+
   const goToArbolProgresion = async () => {
     if (currentViewController) currentViewController.abort();
     currentViewController = new AbortController();
@@ -376,6 +378,24 @@ mountListeners = () => {
       subContent.innerHTML = await renderArbolProgresion();
     } catch (err) {
       console.error('Error renderizando árbol de progresión:', err);
+      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
+    }
+  };
+
+  const goToEstandaresFuerza = async () => {
+    if (currentViewController) currentViewController.abort();
+    currentViewController = new AbortController();
+    const signal = currentViewController.signal;
+
+    viewState = 'estandares';
+    mainView.style.display = 'none';
+    subView.style.display = 'block';
+
+    try {
+      subContent.innerHTML = await renderEstandaresFuerza();
+      initEstandaresFuerzaListeners(signal);
+    } catch (err) {
+      console.error('Error renderizando estándares de fuerza:', err);
       subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
     }
   };
@@ -454,7 +474,7 @@ mountListeners = () => {
   const btnVolver = document.getElementById('btn-entrenamiento-volver');
   if (btnVolver) {
     btnVolver.addEventListener('click', () => {
-      if (viewState === 'form' || viewState === 'preview' || viewState === 'arbol') {
+      if (viewState === 'form' || viewState === 'preview' || viewState === 'arbol' || viewState === 'estandares') {
         goToRutinas(categoriaActiva);
       } else if (viewState === 'session') {
         cleanupSessionTimer();

@@ -110,6 +110,25 @@ export async function renderRutinasLista(categoria) {
     `;
   }
 
+  // Hermano del Árbol de Progresión de Calistenia, pero para pesas — vive
+  // adentro de GYM por la misma razón: es específico de esta modalidad
+  // (en gym se progresa subiendo peso del mismo ejercicio, no cambiando
+  // de ejercicio, así que no tiene sentido en calistenia ni en HIIT).
+  if (categoria === 'gym') {
+    html += `
+      <div class="card tappable" id="btn-ir-estandares-fuerza" style="padding: 20px; display: flex; align-items: center; gap: 18px; border-radius: 20px; cursor: pointer; margin-bottom: 24px;">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(92, 225, 230, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="24" height="24" fill="none" stroke="var(--accent-teal)" stroke-width="2" viewBox="0 0 24 24"><path d="M6 7v10M4 9v6M2 10v4"></path><path d="M18 7v10M20 9v6M22 10v4"></path><line x1="6" y1="12" x2="18" y2="12"></line></svg>
+        </div>
+        <div style="flex: 1;">
+          <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 3px 0; color: var(--text-primary);">Estándares de Fuerza</h3>
+          <p style="color: var(--text-secondary); font-size: 12px; margin: 0; font-weight: 500;">Dónde estás y qué falta</p>
+        </div>
+        <svg width="18" height="18" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </div>
+    `;
+  }
+
   let volumenGrupoHtml = '';
   if (categoria === 'gym') {
     const { volumen } = await db.getVolumenPorGrupo(7, 'gym');
@@ -368,7 +387,7 @@ export function renderPlantillaPreview(plantilla) {
   return html;
 }
 
-export function initRutinasListaListeners(categoria, onNewRoutine, onStartSession, onPreviewMode, signal, onArbolProgresion) {
+export function initRutinasListaListeners(categoria, onNewRoutine, onStartSession, onPreviewMode, signal, onArbolProgresion, onEstandaresFuerza) {
   const btnNueva = document.getElementById('btn-nueva-rutina');
   if (btnNueva) {
     btnNueva.addEventListener('click', () => {
@@ -379,6 +398,11 @@ export function initRutinasListaListeners(categoria, onNewRoutine, onStartSessio
   const btnArbol = document.getElementById('btn-ir-arbol-progresion');
   if (btnArbol && onArbolProgresion) {
     btnArbol.addEventListener('click', () => onArbolProgresion(), { signal });
+  }
+
+  const btnEstandares = document.getElementById('btn-ir-estandares-fuerza');
+  if (btnEstandares && onEstandaresFuerza) {
+    btnEstandares.addEventListener('click', () => onEstandaresFuerza(), { signal });
   }
 
   document.querySelectorAll('.btn-iniciar-sesion').forEach(btn => {
