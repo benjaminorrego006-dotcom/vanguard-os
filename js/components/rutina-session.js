@@ -410,10 +410,20 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
 
   document.querySelectorAll('.btn-plate-calc').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const row = e.target.closest('.serie-row');
-      const pesoInput = row.querySelector('.serie-peso');
-      const peso = parseFloat(pesoInput.value) || 0;
-      
+      // El botón vive en el header del ejercicio, no dentro de una fila de
+      // serie (closest('.serie-row') siempre daba null acá y tiraba el
+      // click entero) — usamos el peso más alto entre las series de este
+      // ejercicio, que es el caso de uso real de una calculadora de discos
+      // (cargar la barra para la serie de trabajo, no una de calentamiento).
+      const card = btn.closest('.ejercicio-sesion-block');
+      let peso = 0;
+      if (card) {
+        card.querySelectorAll('.serie-row').forEach(row => {
+          const p = parseFloat(row.querySelector('.serie-peso').value) || 0;
+          if (p > peso) peso = p;
+        });
+      }
+
       const discos = calcularDiscos(peso);
       const html = renderPlateCalculatorPopover(discos, 20);
       
@@ -432,7 +442,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
       document.querySelectorAll('.plate-popover').forEach(p => p.remove());
       
       popover.className = 'plate-popover';
-      e.target.parentElement.appendChild(popover);
+      btn.parentElement.appendChild(popover);
       
       setTimeout(() => popover.remove(), 4000);
     });

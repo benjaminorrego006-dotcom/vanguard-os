@@ -211,7 +211,7 @@ export async function render() {
           id: 'row-entreno',
           color: 'var(--cy)',
           label: 'Entreno',
-          value: `${stats.sesionesSemana} sesión${stats.sesionesSemana === 1 ? '' : 'es'} esta semana`
+          value: `${stats.sesionesSemana} ${stats.sesionesSemana === 1 ? 'sesión' : 'sesiones'} esta semana`
         })}
         ${renderHeroicRow({
           id: 'row-finanzas',

@@ -740,6 +740,14 @@ export async function render() {
 
 mountListeners = () => {
   const refresh = async () => {
+    // cleanup() no es solo para cuando el router se va a OTRA vista: acá
+    // adentro se usa constantemente (cada cambio de módulo o de pestaña
+    // pasa por este mismo refresh), y cada uno de esos cambios reemplaza
+    // el HTML entero — sin este llamado, las canvas de los módulos/tabs
+    // que se dejan atrás quedan fuera del DOM pero sus instancias de
+    // Chart.js siguen vivas (confirmado: 12 vueltas por las pestañas del
+    // hub sin esto llevaban Chart.instances de 1 a 4 acumulados).
+    cleanup();
     const root = document.getElementById('view-root');
     root.innerHTML = await render();
     mountListeners();
