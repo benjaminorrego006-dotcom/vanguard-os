@@ -1,5 +1,6 @@
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
+import { escapeHtml } from '../utils/escape.js';
 
 export function renderGastoForm() {
   return `
@@ -197,7 +198,7 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
     if (b.envelopes.length > 0) {
       chipContainer.innerHTML = b.envelopes.map(env => `
         <div class="chip tappable" data-id="${env.id}" data-cat="${env.category}" style="background: transparent; color: var(--text-primary); border-color: var(--surface-border);">
-          ${env.name}
+          ${escapeHtml(env.name)}
         </div>
       `).join('');
       

@@ -15,6 +15,7 @@ import { renderRecurringForm, initRecurringForm } from '../components/RecurringF
 import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '../utils/charts.js';
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
+import { escapeHtml } from '../utils/escape.js';
 
 const editSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const transferSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
@@ -428,7 +429,7 @@ export async function init() {
             envelopeId: env.id,
             goalId: null
           });
-          Toast(`Gasto de ${formatCurrency(parsed.amount)} agregado a ${env.name}`, 'success');
+          Toast(`Gasto de ${formatCurrency(parsed.amount)} agregado a ${escapeHtml(env.name)}`, 'success');
           quickGastoInput.value = '';
           quickGastoHint.textContent = '';
         } else {
@@ -619,7 +620,7 @@ const renderRecurringHTML = (b) => {
     html += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
     html += b.recurring.map(req => {
       const env = b.envelopes.find(e => e.id === req.envelopeId);
-      const envName = env ? env.name : 'Desconocido';
+      const envName = env ? escapeHtml(env.name) : 'Desconocido';
       return `
         <div class="card recurring-row" data-id="${req.id}" style="padding: 16px; border-radius: 16px;">
           <div class="flex-between">
@@ -628,7 +629,7 @@ const renderRecurringHTML = (b) => {
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
               </div>
               <div>
-                <div style="font-size: 14px; font-weight: 700;">${req.label}</div>
+                <div style="font-size: 14px; font-weight: 700;">${escapeHtml(req.label)}</div>
                 <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Día ${req.dayOfMonth} &bull; ${envName}</div>
               </div>
             </div>
@@ -738,20 +739,20 @@ export const txHtml = (tx, envelopes) => {
     if (env) {
       if (tx.type === 'Gasto') {
         iconSvg = getSVG(env.icon, catColor);
-        subText = `${tx.date.substring(0,10)} &bull; ${env.name}`;
+        subText = `${tx.date.substring(0,10)} &bull; ${escapeHtml(env.name)}`;
       } else if (tx.type === 'Assignment') {
         catColor = 'var(--accent-blue)';
         iconSvg = transferSvg;
         amountColor = tx.isSubtraction ? 'var(--text-primary)' : 'var(--state-success)';
         amountPrefix = tx.isSubtraction ? '-' : '+';
-        subText = `${tx.date.substring(0,10)} &bull; ${tx.isSubtraction ? 'Retirado de' : 'Asignado a'} ${env.name}`;
+        subText = `${tx.date.substring(0,10)} &bull; ${tx.isSubtraction ? 'Retirado de' : 'Asignado a'} ${escapeHtml(env.name)}`;
       }
     }
   } else if (tx.type === 'Transfer' && envelopes) {
     catColor = 'var(--accent-blue)';
     iconSvg = transferSvg;
-    const fromEnv = envelopes.find(e => e.id === tx.fromEnvelopeId)?.name || 'Desconocido';
-    const toEnv = envelopes.find(e => e.id === tx.toEnvelopeId)?.name || 'Desconocido';
+    const fromEnv = escapeHtml(envelopes.find(e => e.id === tx.fromEnvelopeId)?.name || 'Desconocido');
+    const toEnv = escapeHtml(envelopes.find(e => e.id === tx.toEnvelopeId)?.name || 'Desconocido');
     subText = `${tx.date.substring(0,10)} &bull; ${fromEnv} &rarr; ${toEnv}`;
     amountPrefix = '';
     amountColor = 'var(--text-secondary)';
@@ -764,7 +765,7 @@ export const txHtml = (tx, envelopes) => {
           ${iconSvg}
         </div>
         <div>
-          <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); text-transform: capitalize;">${displayLabel}</div>
+          <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); text-transform: capitalize;">${escapeHtml(displayLabel)}</div>
           <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${subText}</div>
         </div>
       </div>
@@ -1078,7 +1079,7 @@ const renderPresupuestoLegend = async (b) => {
                   ${iconSvg}
                 </div>
                 <div>
-                  <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center;">${env.name} ${sparklineHtml}</div>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center;">${escapeHtml(env.name)} ${sparklineHtml}</div>
                   <div style="font-size: 10px; color: var(--text-disabled);">Asignado: ${formatCurrency(env.assignedAmount)}</div>
                 </div>
               </div>

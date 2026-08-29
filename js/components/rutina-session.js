@@ -6,6 +6,7 @@ import { getProgressionLevel } from '../core/progresiones-calistenia.js';
 import { getEjercicioMetadata, CATALOGO_EJERCICIOS, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
 import { ConfirmDialog, Toast } from '../utils/states.js';
 import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
+import { escapeHtml } from '../utils/escape.js';
 
 const trophySvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path></svg>`;
 const historySvg = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg>`;
@@ -25,6 +26,15 @@ let currentHistorial = {};
 let currentEstancamiento = {};
 let currentRestTimerSecs = 90;
 
+// El id del contenedor de "Ver progreso" depende del nombre del ejercicio:
+// no puede llevar el nombre crudo (una comilla o "<" en un nombre de
+// ejercicio personalizado rompería el atributo id), pero tampoco puede
+// pasar por escapeHtml, porque el listener de "Ver progreso" reconstruye
+// el mismo id a partir del nombre ya decodificado (vía getAttribute) sin
+// volver a tocar el DOM — quedarían desincronizados. Se usa esta función en
+// ambos lados en vez de escapeHtml.
+const idSafeFragment = (nombre) => nombre.replace(/[^a-zA-Z0-9_-]/g, '');
+
 export async function renderRutinaSession(rutina) {
   // Preload data
   currentPRs = await db.getPRs();
@@ -41,7 +51,7 @@ export async function renderRutinaSession(rutina) {
   let html = `
     <div class="card" style="padding: 22px; border-radius: 20px;">
       <div class="flex-between" style="margin-bottom: 4px;">
-        <h2 style="font-size: 21px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.3px;">${rutina.nombre}</h2>
+        <h2 style="font-size: 21px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.3px;">${escapeHtml(rutina.nombre)}</h2>
         <div id="session-timer" style="font-size: 16px; font-weight: 700; color: var(--accent-teal); font-variant-numeric: tabular-nums; font-family: var(--font-mono);">00:00</div>
       </div>
       <div class="flex-between" style="margin-bottom: 20px;">
@@ -84,18 +94,18 @@ export async function renderRutinaSession(rutina) {
     }
 
     html += `
-      <div class="card ejercicio-sesion-block" data-ej-nombre="${ej.nombre}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; margin-bottom: ${ej.grupoId ? '12px' : '0'};">
+      <div class="card ejercicio-sesion-block" data-ej-nombre="${escapeHtml(ej.nombre)}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; margin-bottom: ${ej.grupoId ? '12px' : '0'};">
 
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;">
           <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
-            <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary); white-space: normal; line-height: 1.2; word-break: break-word;">${ej.nombre}</h3>
-            ${meta && (meta.posturaInicial || (meta.pasosEjecucion && meta.pasosEjecucion.length)) ? `<button class="btn-info-ejercicio" data-ejnombre="${ej.nombre}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); width:22px; height:22px; border-radius:50%; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>` : ''}
+            <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary); white-space: normal; line-height: 1.2; word-break: break-word;">${escapeHtml(ej.nombre)}</h3>
+            ${meta && (meta.posturaInicial || (meta.pasosEjecucion && meta.pasosEjecucion.length)) ? `<button class="btn-info-ejercicio" data-ejnombre="${escapeHtml(ej.nombre)}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); width:22px; height:22px; border-radius:50%; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>` : ''}
           </div>
           <button class="btn-plate-calc" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 6px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Calculadora de discos"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="8" y1="10" x2="8.01" y2="10"></line><line x1="12" y1="10" x2="12.01" y2="10"></line><line x1="16" y1="10" x2="16.01" y2="10"></line><line x1="8" y1="14" x2="8.01" y2="14"></line><line x1="12" y1="14" x2="12.01" y2="14"></line><line x1="16" y1="14" x2="16.01" y2="14"></line><line x1="8" y1="18" x2="16" y2="18"></line></svg></button>
-            <button class="btn-ver-progreso" data-ejnombre="${ej.nombre}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--accent-teal); font-size: 12px; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 20px; white-space: nowrap; display: flex; align-items: center;">${trendUpSvg}Progreso</button>
+            <button class="btn-ver-progreso" data-ejnombre="${escapeHtml(ej.nombre)}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--accent-teal); font-size: 12px; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 20px; white-space: nowrap; display: flex; align-items: center;">${trendUpSvg}Progreso</button>
         </div>
 
-        <div id="progreso-container-${ej.nombre.replace(/\s+/g, '')}" style="display: none; width: 100%; margin-bottom: 12px;"></div>
+        <div id="progreso-container-${idSafeFragment(ej.nombre)}" style="display: none; width: 100%; margin-bottom: 12px;"></div>
     `;
 
     const chips = [];
@@ -123,7 +133,7 @@ export async function renderRutinaSession(rutina) {
     if (sug) {
       const sugText = sug.peso > 0 ? sug.peso + 'kg' : sug.reps + ' reps';
       const sugIcon = sug.accion === 'aumentar' ? arrowUpSvg : arrowDownSvg;
-      html += `<button class="btn-sugerencia" data-ejnombre="${ej.nombre}" data-peso="${sug.peso}" data-reps="${sug.reps}" style="width: 100%; background: rgba(92,225,230,0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 9px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 12px;">${sugIcon}Sugerido: ${sugText} · toca para aplicar</button>`;
+      html += `<button class="btn-sugerencia" data-ejnombre="${escapeHtml(ej.nombre)}" data-peso="${sug.peso}" data-reps="${sug.reps}" style="width: 100%; background: rgba(92,225,230,0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 9px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 12px;">${sugIcon}Sugerido: ${sugText} · toca para aplicar</button>`;
     }
 
     if (estancado) {
@@ -357,7 +367,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
       overlay.innerHTML = `
         <div class="modal-content" style="max-height: 80vh; overflow-y: auto; padding: 22px;">
           <div class="flex-between" style="margin-bottom: 14px;">
-            <h3 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; color: var(--text-primary);">${nombre}</h3>
+            <h3 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; color: var(--text-primary);">${escapeHtml(nombre)}</h3>
             <button id="btn-close-tecnica" style="background: transparent; border: none; color: var(--text-disabled); font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
           </div>
           ${meta.posturaInicial ? `
@@ -394,7 +404,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
   document.querySelectorAll('.btn-ver-progreso').forEach(btn => {
     btn.addEventListener('click', () => {
       const nombre = btn.getAttribute('data-ejnombre');
-      const containerId = 'progreso-container-' + nombre.replace(/\s+/g, '');
+      const containerId = 'progreso-container-' + idSafeFragment(nombre);
       const chartCanvasId = containerId + '-chart';
       const container = document.getElementById(containerId);
       if (container.style.display === 'none') {
@@ -534,11 +544,11 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
 
             const mensaje = pesoVal > 0
               ? (prevPeso > 0
-                  ? `🏆 ¡Nuevo récord! ${pesoVal}kg en ${ejNombre}, superaste tus ${prevPeso}kg anteriores.`
-                  : `🏆 ¡Nuevo récord! ${pesoVal}kg en ${ejNombre}.`)
+                  ? `🏆 ¡Nuevo récord! ${pesoVal}kg en ${escapeHtml(ejNombre)}, superaste tus ${prevPeso}kg anteriores.`
+                  : `🏆 ¡Nuevo récord! ${pesoVal}kg en ${escapeHtml(ejNombre)}.`)
               : (prevReps > 0
-                  ? `🏆 ¡Nuevo récord! ${repsVal} reps en ${ejNombre}, superaste tus ${prevReps} reps anteriores.`
-                  : `🏆 ¡Nuevo récord! ${repsVal} reps en ${ejNombre}.`);
+                  ? `🏆 ¡Nuevo récord! ${repsVal} reps en ${escapeHtml(ejNombre)}, superaste tus ${prevReps} reps anteriores.`
+                  : `🏆 ¡Nuevo récord! ${repsVal} reps en ${escapeHtml(ejNombre)}.`);
             Toast(mensaje, 'pr', 4000);
 
             pr.pesoMax = Math.max(pr.pesoMax, pesoVal);
@@ -598,8 +608,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
           if (btnCustom) btnCustom.onclick = () => close(q);
         } else {
           resultsContainer.innerHTML = matches.map(e => `
-            <div class="picker-item tappable" data-nombre="${e.nombre}" style="padding: 13px 16px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 600; font-size: 15px;">${e.nombre}</span>
+            <div class="picker-item tappable" data-nombre="${escapeHtml(e.nombre)}" style="padding: 13px 16px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 600; font-size: 15px;">${escapeHtml(e.nombre)}</span>
               <span style="font-size: 11px; color: var(--accent-teal); text-transform: uppercase; border: 1px solid var(--accent-teal); padding: 2px 6px; border-radius: 4px;">${e.musculo}</span>
             </div>
           `).join('');

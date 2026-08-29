@@ -1,6 +1,7 @@
 import { db } from '../core/db.js';
 import { playBeep, speakPhase } from '../core/audio.js';
 import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
+import { escapeHtml } from '../utils/escape.js';
 
 const fireSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align: -3px; margin-left: 4px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`;
 const trophySvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align: -3px; margin-left: 4px;"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path></svg>`;
@@ -26,7 +27,7 @@ export function renderHiitTimer(rutina) {
   return `
     <div id="hiit-container" class="card" style="padding: 22px; border-radius: 20px; min-height: 70vh; display: flex; flex-direction: column;">
       <div class="flex-between" style="margin-bottom: 24px;">
-        <h2 style="font-size: 21px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.3px;">${rutina.nombre}</h2>
+        <h2 style="font-size: 21px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.3px;">${escapeHtml(rutina.nombre)}</h2>
       </div>
 
       <div id="hiit-setup-view" style="display: flex; flex-direction: column; flex: 1;">

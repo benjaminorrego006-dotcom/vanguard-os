@@ -1,6 +1,7 @@
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
 import { formatCurrency } from '../utils/currency.js';
 import { Toast } from '../utils/states.js';
+import { escapeHtml } from '../utils/escape.js';
 
 export function renderTransferForm() {
   return `
@@ -96,7 +97,7 @@ export function initTransferForm(db, getBudgetFn, refreshCallback) {
     const envFrom = b.envelopes.find(e => e.id === selectFrom.value);
     if (envFrom) {
       const sameCatEnvs = b.envelopes.filter(e => e.category === envFrom.category);
-      selectTo.innerHTML = sameCatEnvs.map(env => `<option value="${env.id}">${env.name} (${formatCurrency(env.balance)})</option>`).join('');
+      selectTo.innerHTML = sameCatEnvs.map(env => `<option value="${env.id}">${escapeHtml(env.name)} (${formatCurrency(env.balance)})</option>`).join('');
       if (sameCatEnvs.length > 1) {
         const other = sameCatEnvs.find(e => e.id !== envFrom.id);
         if (other) selectTo.value = other.id;
@@ -142,11 +143,11 @@ export function initTransferForm(db, getBudgetFn, refreshCallback) {
     if (b.envelopes.length > 0) {
       const defaultId = preselectFromId || b.envelopes[0].id;
       const defaultEnv = b.envelopes.find(e => e.id === defaultId);
-      selectFrom.innerHTML = b.envelopes.map(env => `<option value="${env.id}">${env.name} (${formatCurrency(env.balance)})</option>`).join('');
+      selectFrom.innerHTML = b.envelopes.map(env => `<option value="${env.id}">${escapeHtml(env.name)} (${formatCurrency(env.balance)})</option>`).join('');
       selectFrom.value = defaultId;
       
       const sameCatEnvs = b.envelopes.filter(e => e.category === defaultEnv.category);
-      selectTo.innerHTML = sameCatEnvs.map(env => `<option value="${env.id}">${env.name} (${formatCurrency(env.balance)})</option>`).join('');
+      selectTo.innerHTML = sameCatEnvs.map(env => `<option value="${env.id}">${escapeHtml(env.name)} (${formatCurrency(env.balance)})</option>`).join('');
     }
     if (selectTo.options.length > 1) {
        for(let i=0; i<selectTo.options.length; i++){

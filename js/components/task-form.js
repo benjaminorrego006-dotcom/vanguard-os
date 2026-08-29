@@ -1,5 +1,6 @@
 import { db } from '../core/db.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
+import { escapeHtml } from '../utils/escape.js';
 
 const STATE_CHIPS = [
   { value: 'todo', label: 'Por Hacer' },
@@ -295,7 +296,7 @@ export function openTaskForm(task = null) {
         div.style.gap = '8px';
         div.innerHTML = `
           <input type="checkbox" class="subtask-check" style="width: 20px; height: 20px;" ${sub.done ? 'checked' : ''}>
-          <input type="text" class="subtask-title" value="${sub.title}" style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 14px;">
+          <input type="text" class="subtask-title" value="${escapeHtml(sub.title)}" style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 14px;">
           <button class="tappable btn-remove-sub" type="button" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
         `;
         div.querySelector('.btn-remove-sub').addEventListener('click', () => div.remove());

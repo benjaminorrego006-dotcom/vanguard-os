@@ -3,6 +3,7 @@ import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-
 import { Toast, ConfirmDialog } from '../utils/states.js';
 import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
+import { escapeHtml } from '../utils/escape.js';
 
 let tasksDonutInstance = null;
 
@@ -116,7 +117,7 @@ function renderUrgentTask(task) {
     <div class="card task-card tappable btn-edit-task" data-id="${task.id}" style="position:relative; padding:14px 14px 14px 18px; margin-bottom:10px; cursor:pointer;">
       <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vi);"></div>
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
-        <h4 style="margin:0; font-size:15px; font-weight:800; color:var(--text-primary); line-height:1.3;">${task.title}</h4>
+        <h4 style="margin:0; font-size:15px; font-weight:800; color:var(--text-primary); line-height:1.3;">${escapeHtml(task.title)}</h4>
         <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
           ${renderPriorityBars(task.priority)}
           ${renderAdvanceButton(task)}
@@ -133,7 +134,7 @@ function renderColaTask(task) {
     <div class="card task-card tappable btn-edit-task" data-id="${task.id}" style="position:relative; padding:12px 12px 12px 16px; margin-bottom:8px; cursor:pointer;">
       <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vid);"></div>
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-        <span style="font-size:13px; font-weight:600; color:var(--t5); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${task.title}</span>
+        <span style="font-size:13px; font-weight:600; color:var(--t5); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(task.title)}</span>
         <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
           ${due ? `<span style="font-size:10px; font-weight:700; color:var(--t5); flex-shrink:0;">${due.text}</span>` : ''}
           ${renderAdvanceButton(task)}
@@ -150,7 +151,7 @@ function renderStatusTask(task) {
     <div class="card task-card tappable btn-edit-task" data-id="${task.id}" style="position:relative; padding:14px 14px 14px 18px; margin-bottom:10px; cursor:pointer;">
       <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vi);"></div>
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
-        <h4 style="margin:0; font-size:15px; font-weight:800; line-height:1.3; color:${isDone ? 'var(--text-disabled)' : 'var(--text-primary)'}; ${isDone ? 'text-decoration:line-through;' : ''}">${task.title}</h4>
+        <h4 style="margin:0; font-size:15px; font-weight:800; line-height:1.3; color:${isDone ? 'var(--text-disabled)' : 'var(--text-primary)'}; ${isDone ? 'text-decoration:line-through;' : ''}">${escapeHtml(task.title)}</h4>
         <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
           ${renderPriorityBars(task.priority)}
           ${renderAdvanceButton(task)}

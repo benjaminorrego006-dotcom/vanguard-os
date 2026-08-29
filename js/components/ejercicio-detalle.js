@@ -1,6 +1,7 @@
 // js/components/ejercicio-detalle.js
 import { db } from '../core/db.js';
 import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
+import { escapeHtml } from '../utils/escape.js';
 
 const chartInstances = new Map(); // canvasId -> Chart instance (para destruir al re-togglear)
 
@@ -74,7 +75,7 @@ export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
 
   return `
     <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 16px;">
-      <h4 style="margin: 0 0 12px 0; color: var(--text-primary); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Progreso: ${nombre}</h4>
+      <h4 style="margin: 0 0 12px 0; color: var(--text-primary); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Progreso: ${escapeHtml(nombre)}</h4>
 
       ${toggleHtml}
       ${chartHtml}

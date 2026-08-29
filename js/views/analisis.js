@@ -8,6 +8,7 @@ import { renderDonutChart, renderDonutLegend, destroyAllDonuts } from '../compon
 import { renderMiniChart } from '../components/mini-chart.js';
 import { txHtml } from './finanzas.js';
 import { formatCurrency } from '../utils/currency.js';
+import { escapeHtml } from '../utils/escape.js';
 
 // Análisis es un hub centralizado para los 3 módulos (Entreno/Finanzas/
 // Tareas) — un solo punto de entrada, siempre montado dentro del scope
@@ -266,7 +267,7 @@ async function renderEjercicios() {
       </select>
 
       <select id="analisis-ejercicio-select" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 13px; font-weight: 600; margin-bottom: 14px;">
-        ${listaFiltrada.map(e => `<option value="${e.nombre}" ${e.nombre === ejercicioSeleccionado ? 'selected' : ''}>${e.nombre}</option>`).join('')}
+        ${listaFiltrada.map(e => `<option value="${escapeHtml(e.nombre)}" ${e.nombre === ejercicioSeleccionado ? 'selected' : ''}>${escapeHtml(e.nombre)}</option>`).join('')}
       </select>
 
       <div style="display: flex; gap: 6px; margin-bottom: 14px;">
@@ -358,12 +359,12 @@ const renderPRCard = (pr) => {
   return `
     <div class="card" style="padding: 14px 16px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
       <div style="min-width: 0;">
-        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${pr.nombre}</div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(pr.nombre)}</div>
         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${new Date(pr.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
       </div>
       <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
         <div style="font-size: 14px; font-weight: 800; color: var(--accent-teal); white-space: nowrap;">${valorTxt}</div>
-        <button class="btn-fav-pr" data-nombre="${pr.nombre}" style="background: transparent; border: none; cursor: pointer; padding: 2px; color: ${pr.favorito ? '#FBBF24' : 'var(--text-disabled)'};">
+        <button class="btn-fav-pr" data-nombre="${escapeHtml(pr.nombre)}" style="background: transparent; border: none; cursor: pointer; padding: 2px; color: ${pr.favorito ? '#FBBF24' : 'var(--text-disabled)'};">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="${pr.favorito ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
         </button>
       </div>

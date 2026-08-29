@@ -1,6 +1,7 @@
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { Toast } from '../utils/states.js';
+import { escapeHtml } from '../utils/escape.js';
 
 export function renderAhorroForm() {
   return `
@@ -59,7 +60,7 @@ export function initAhorroForm(db, getBudgetFn, refreshCallback) {
     } else {
       if (!selectedGoalId || !b.goals.find(g => g.id === selectedGoalId)) selectedGoalId = b.goals[0].id;
       chipContainer.innerHTML = b.goals.map(g => `
-        <div class="chip tappable ${selectedGoalId === g.id ? 'active' : ''}" data-goal-id="${g.id}" style="${selectedGoalId === g.id ? 'background: var(--accent-purple); color: #000; border-color: transparent;' : 'background: transparent; color: var(--accent-purple); border-color: rgba(187,134,252,0.3);'}">${g.name}</div>
+        <div class="chip tappable ${selectedGoalId === g.id ? 'active' : ''}" data-goal-id="${g.id}" style="${selectedGoalId === g.id ? 'background: var(--accent-purple); color: #000; border-color: transparent;' : 'background: transparent; color: var(--accent-purple); border-color: rgba(187,134,252,0.3);'}">${escapeHtml(g.name)}</div>
       `).join('');
       
       chipContainer.querySelectorAll('.chip').forEach(c => {

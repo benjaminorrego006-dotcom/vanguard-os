@@ -3,6 +3,7 @@
 // metas de Entreno (sesiones, km, personalizado). Misma barra de progreso
 // y fecha límite en los dos casos, solo cambia cómo se formatea el número.
 import { formatCurrency } from '../utils/currency.js';
+import { escapeHtml } from '../utils/escape.js';
 
 export const GOAL_ICONS = ['shield', 'plane', 'car', 'home', 'laptop', 'education', 'run', 'target'];
 export const GOAL_ICON_LABELS = {
@@ -66,7 +67,7 @@ export function renderGoalCard(goal) {
           <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 16px;">
             ${getGoalSVG(goal.icon, 'var(--text-primary)')}
           </div>
-          <div style="font-size: 14px; font-weight: 700;">${goal.name}</div>
+          <div style="font-size: 14px; font-weight: 700;">${escapeHtml(goal.name)}</div>
         </div>
         <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
           <div style="font-size: 12px; color: var(--text-secondary);">${formatGoalValue(goal, goal.currentAmount)} / ${formatGoalValue(goal, goal.targetAmount)}</div>

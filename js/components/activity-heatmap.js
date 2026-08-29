@@ -4,13 +4,9 @@
 // Tareas y Finanzas) — este componente no sabe nada de sesiones, tareas ni
 // transacciones, solo dibuja la grilla y maneja la interacción.
 
-const WEEKDAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']; // lunes primero
+import { escapeHtml } from '../utils/escape.js';
 
-const escapeHtml = (str) => String(str)
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;');
+const WEEKDAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']; // lunes primero
 
 // countByDay: { [day]: number }, detailByDay: { [day]: string[] }
 export function renderActivityHeatmap({ id, monthLabel, year, month, countByDay, detailByDay, accentVar, emptyLabel = 'Sin actividad' }) {

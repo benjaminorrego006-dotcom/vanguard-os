@@ -3,6 +3,7 @@ import { PLANTILLAS } from '../core/plantillas.js';
 import { getEjercicioPorId, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
 import { renderMiniChart } from './mini-chart.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
+import { escapeHtml } from '../utils/escape.js';
 
 // Escala de dificultad para ordenar "Plantillas sugeridas" de menor a mayor.
 // 'Todos los niveles' se trata como accesible para principiantes (rango 1).
@@ -268,7 +269,7 @@ export async function renderRutinasLista(categoria) {
       html += `
         <div class="card" style="padding: 20px; border-radius: 18px;">
           <div class="flex-between" style="margin-bottom: 12px;">
-            <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: var(--text-primary);">${r.nombre}</h3>
+            <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: var(--text-primary);">${escapeHtml(r.nombre)}</h3>
             <button class="btn-eliminar-rutina" data-id="${r.id}" style="background: transparent; border: none; color: var(--text-disabled); cursor: pointer;" title="Eliminar">
               <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>

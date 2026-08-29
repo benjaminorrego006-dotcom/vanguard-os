@@ -1,6 +1,7 @@
 import { Toast, ConfirmDialog } from '../utils/states.js';
 import { formatCurrency } from '../utils/currency.js';
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
+import { escapeHtml } from '../utils/escape.js';
 
 export function renderRecurringForm() {
   return `
@@ -124,7 +125,7 @@ export function initRecurringForm(db, getBudgetFn, refreshCallback) {
     document.getElementById('recurring-label').value = '';
     document.getElementById('recurring-day').value = '15';
     
-    selectEnv.innerHTML = b.envelopes.map(env => `<option value="${env.id}">${env.name}</option>`).join('');
+    selectEnv.innerHTML = b.envelopes.map(env => `<option value="${env.id}">${escapeHtml(env.name)}</option>`).join('');
     if (b.envelopes.length > 0) selectEnv.value = b.envelopes[0].id;
     
     updateUI();
