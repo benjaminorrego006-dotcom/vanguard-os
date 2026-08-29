@@ -94,6 +94,57 @@ const generateId = () => {
     : Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 };
 
+// --- Racha de días consecutivos: algoritmo compartido ------------------
+// getRachaHiit, getRachaGeneral y getRachaTareas calculaban cada una por
+// su cuenta "cuántos días seguidos hay actividad" a partir de timestamps
+// de medianoche — mismo algoritmo, tres copias. Ahora es una función pura
+// que solo necesita la lista de días únicos (ya ordenada de más reciente a
+// más antiguo); de dónde salen esos días (eventos, sesiones, lo que sea)
+// lo decide cada caller.
+function calcularRachaDesdeDias(sortedDays) {
+  if (sortedDays.length === 0) return { actual: 0, mejor: 0 };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTime = today.getTime();
+
+  let actual = 0;
+  if (sortedDays[0] === todayTime || sortedDays[0] === todayTime - 86400000) {
+    let checkTime = sortedDays[0];
+    let index = 0;
+    while (index < sortedDays.length && sortedDays[index] === checkTime) {
+      actual++;
+      checkTime -= 86400000;
+      index++;
+    }
+  }
+
+  let mejor = 1;
+  let tempMejor = 1;
+  for (let i = 0; i < sortedDays.length - 1; i++) {
+    if (sortedDays[i] - sortedDays[i + 1] === 86400000) {
+      tempMejor++;
+      if (tempMejor > mejor) mejor = tempMejor;
+    } else {
+      tempMejor = 1;
+    }
+  }
+
+  return { actual, mejor };
+}
+
+// Timestamps de medianoche (uno por día con al menos un evento), de más
+// reciente a más antiguo — la forma que espera calcularRachaDesdeDias.
+function diasUnicosDesdeEventos(eventos) {
+  const uniqueDays = new Set();
+  eventos.forEach(e => {
+    const d = new Date(e.ts);
+    d.setHours(0, 0, 0, 0);
+    uniqueDays.add(d.getTime());
+  });
+  return Array.from(uniqueDays).sort((a, b) => b - a);
+}
+
 // --- Log de eventos central --------------------------------------------
 // Cada mutación de cualquier módulo (entreno/finanzas/tareas) agrega acá
 // una fila inmutable: nunca se edita ni se borra un evento existente. Sirve
@@ -968,57 +1019,13 @@ export const db = {
     const sesiones = await idbGetArray('sesiones');
     const sesionesHiit = sesiones.filter(s => hitIds.includes(s.rutinaId) || s.nombreRutina.toLowerCase().includes('hiit') || s.nombreRutina.toLowerCase().includes('tabata'));
 
-    // Group by unique day
     const uniqueDays = new Set();
     sesionesHiit.forEach(s => {
       const d = new Date(s.fecha);
-      d.setHours(0,0,0,0);
+      d.setHours(0, 0, 0, 0);
       uniqueDays.add(d.getTime());
     });
-    const sortedDays = Array.from(uniqueDays).sort((a,b) => b - a); // newest first
-
-    let actual = 0;
-    let mejor = 0;
-    let tempMejor = 0;
-
-    // Calculate current streak
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const todayTime = today.getTime();
-
-    let checkTime = todayTime;
-    let index = 0;
-
-    // Current streak can start today or yesterday
-    if (sortedDays[0] === todayTime || sortedDays[0] === todayTime - 86400000) {
-      if (sortedDays[0] === todayTime) {
-        checkTime = todayTime;
-      } else {
-        checkTime = todayTime - 86400000;
-      }
-
-      while (index < sortedDays.length && sortedDays[index] === checkTime) {
-        actual++;
-        checkTime -= 86400000;
-        index++;
-      }
-    }
-
-    // Calculate best streak
-    if (sortedDays.length > 0) {
-      tempMejor = 1;
-      mejor = 1;
-      for (let i = 0; i < sortedDays.length - 1; i++) {
-        if (sortedDays[i] - sortedDays[i+1] === 86400000) {
-          tempMejor++;
-          if (tempMejor > mejor) mejor = tempMejor;
-        } else {
-          tempMejor = 1;
-        }
-      }
-    }
-
-    return { actual, mejor };
+    return calcularRachaDesdeDias(Array.from(uniqueDays).sort((a, b) => b - a));
   },
 
   // Racha de días consecutivos con al menos una sesión de Entreno, sin
@@ -1029,34 +1036,16 @@ export const db = {
   async getRachaGeneral() {
     const eventos = await idb.getAll('events');
     const sesionEventos = eventos.filter(e => e.modulo === 'entreno' && e.tipo === 'sesion_registrada');
+    return calcularRachaDesdeDias(diasUnicosDesdeEventos(sesionEventos));
+  },
 
-    const uniqueDays = new Set();
-    sesionEventos.forEach(e => {
-      const d = new Date(e.ts);
-      d.setHours(0, 0, 0, 0);
-      uniqueDays.add(d.getTime());
-    });
-    const sortedDays = Array.from(uniqueDays).sort((a, b) => b - a);
-    if (sortedDays.length === 0) return { actual: 0 };
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTime = today.getTime();
-
-    let actual = 0;
-    let checkTime = todayTime;
-    let index = 0;
-
-    if (sortedDays[0] === todayTime || sortedDays[0] === todayTime - 86400000) {
-      checkTime = sortedDays[0];
-      while (index < sortedDays.length && sortedDays[index] === checkTime) {
-        actual++;
-        checkTime -= 86400000;
-        index++;
-      }
-    }
-
-    return { actual };
+  // Racha de productividad de Tareas: días consecutivos con al menos una
+  // tarea completada. Mismo algoritmo que getRachaGeneral, misma fuente
+  // (log de eventos) — usada por Análisis > Tareas > Racha.
+  async getRachaTareas() {
+    const eventos = await idb.getAll('events');
+    const tareaEventos = eventos.filter(e => e.modulo === 'tareas' && e.tipo === 'tarea_completada');
+    return calcularRachaDesdeDias(diasUnicosDesdeEventos(tareaEventos));
   },
 
   // Racha global: cuenta un día como "activo" si hubo cualquier evento en
@@ -1107,27 +1096,52 @@ export const db = {
     return { actual, last7 };
   },
 
-  // Actividad de Entreno por día de un mes, para el mapa de calor —
-  // derivada del log de eventos ('sesion_registrada'), no de iterar el
-  // store de sesiones a mano en la vista (como hacía antes entrenamiento.js).
-  async getActividadEntrenoPorDia(year, month) {
+  // Actividad por día de un mes para un módulo+tipo de evento dado — la
+  // base de cualquier mapa de calor tipo GitHub derivado del log. Devuelve
+  // los payloads crudos agrupados por día (eventsByDay) en vez de un texto
+  // ya armado, para que cada módulo arme su propio detalle sin que esta
+  // función tenga que conocer la forma de cada payload.
+  async getActividadPorDia(modulo, tipo, year, month) {
     const eventos = await idb.getAll('events');
     const countByDay = {};
-    const detailByDay = {};
-    const CATEGORY_LABELS = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
+    const eventsByDay = {};
 
     eventos
-      .filter(e => e.modulo === 'entreno' && e.tipo === 'sesion_registrada')
+      .filter(e => e.modulo === modulo && e.tipo === tipo)
       .forEach(e => {
         const d = new Date(e.ts);
         if (d.getFullYear() !== year || d.getMonth() !== month) return;
         const day = d.getDate();
         countByDay[day] = (countByDay[day] || 0) + 1;
-        if (!detailByDay[day]) detailByDay[day] = [];
-        const s = e.payload || {};
-        detailByDay[day].push(`${CATEGORY_LABELS[s.categoria] || s.categoria || 'Sesión'}: ${s.nombreRutina || ''}`);
+        if (!eventsByDay[day]) eventsByDay[day] = [];
+        eventsByDay[day].push(e.payload || {});
       });
 
+    return { countByDay, eventsByDay };
+  },
+
+  // Actividad de Entreno por día de un mes, para el mapa de calor —
+  // derivada del log de eventos ('sesion_registrada'), no de iterar el
+  // store de sesiones a mano en la vista (como hacía antes entrenamiento.js).
+  async getActividadEntrenoPorDia(year, month) {
+    const { countByDay, eventsByDay } = await this.getActividadPorDia('entreno', 'sesion_registrada', year, month);
+    const CATEGORY_LABELS = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
+    const detailByDay = {};
+    Object.keys(eventsByDay).forEach(day => {
+      detailByDay[day] = eventsByDay[day].map(s => `${CATEGORY_LABELS[s.categoria] || s.categoria || 'Sesión'}: ${s.nombreRutina || ''}`);
+    });
+    return { countByDay, detailByDay };
+  },
+
+  // Actividad de Tareas por día de un mes (tareas completadas), misma
+  // fuente/forma que getActividadEntrenoPorDia — usada por el heatmap de
+  // Tareas y por Análisis > Tareas.
+  async getActividadTareasPorDia(year, month) {
+    const { countByDay, eventsByDay } = await this.getActividadPorDia('tareas', 'tarea_completada', year, month);
+    const detailByDay = {};
+    Object.keys(eventsByDay).forEach(day => {
+      detailByDay[day] = eventsByDay[day].map(t => t.title || 'Tarea completada');
+    });
     return { countByDay, detailByDay };
   },
 
@@ -1137,6 +1151,64 @@ export const db = {
   async getBitacoraEntidad(entidadId) {
     const eventos = await idb.getAllByIndex('events', 'entidadId', entidadId);
     return eventos.sort((a, b) => a.ts - b.ts);
+  },
+
+  // Meses ANTERIORES al actual (no el que está en curso) donde hubo
+  // ingreso y no se llegó a gastar+ahorrar el total disponible. Devuelve la
+  // lista completa (no solo si existe alguno) — getBadges() la usa para la
+  // insignia, Análisis > Finanzas > Hitos para mostrarlos todos.
+  async getMesesSinExceder(n = 6) {
+    const now = new Date();
+    const meses = [];
+    for (let i = 1; i <= n; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const budgetMes = await this.getBudget(monthStr);
+      const gastado = budgetMes.expenses + budgetMes.savedThisMonth;
+      if (budgetMes.budgeted > 0 && gastado < budgetMes.budgeted) {
+        meses.push({ mes: monthStr, disponible: budgetMes.budgeted, gastado });
+      }
+    }
+    return meses;
+  },
+
+  // Ahorro guardado (savedThisMonth) de cada uno de los últimos n meses, en
+  // orden cronológico (antiguo -> reciente) — la forma que espera
+  // renderMiniChart. Usada por Análisis > Finanzas > Hitos.
+  async getTendenciaAhorro(n = 6) {
+    const now = new Date();
+    const meses = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const budgetMes = await this.getBudget(monthStr);
+      meses.push(Math.round(budgetMes.savedThisMonth));
+    }
+    return meses;
+  },
+
+  // Categorías (Necesidades/Deseos) que se pasaron de su porcentaje
+  // objetivo (allocationRule) en la mitad o más de los últimos n meses con
+  // datos — "consistentemente fuera de rango", no un mes suelto.
+  async getCategoriasFueraDeRango(n = 6) {
+    const rule = await this.getAllocationRule();
+    const now = new Date();
+    const conteo = { Needs: 0, Wants: 0 };
+    let mesesConDatos = 0;
+    for (let i = 1; i <= n; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const budgetMes = await this.getBudget(monthStr);
+      if (budgetMes.budgeted <= 0) continue;
+      mesesConDatos++;
+      if (budgetMes.needs > budgetMes.budgeted * rule.needs) conteo.Needs++;
+      if (budgetMes.wants > budgetMes.budgeted * rule.wants) conteo.Wants++;
+    }
+    if (mesesConDatos === 0) return [];
+    const labels = { Needs: 'Necesidades', Wants: 'Deseos' };
+    return Object.entries(conteo)
+      .filter(([, count]) => count / mesesConDatos >= 0.5)
+      .map(([cat, count]) => ({ categoria: labels[cat], meses: count, totalMeses: mesesConDatos }));
   },
 
   // Insignias simples por hito: se recalculan a partir de los datos
@@ -1152,19 +1224,7 @@ export const db = {
     const primeraMetaCumplida = goals.some(g => g.completed);
     const diezSesiones = eventos.filter(e => e.modulo === 'entreno' && e.tipo === 'sesion_registrada').length >= 10;
 
-    // Mes de presupuesto sin excederte: algún mes ANTERIOR al actual (no
-    // el que está en curso) donde hubo ingreso y no se llegó a gastar+ahorrar
-    // el total disponible.
-    let mesSinExceder = false;
-    const now = new Date();
-    for (let i = 1; i <= 6 && !mesSinExceder; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const budgetMes = await this.getBudget(monthStr);
-      if (budgetMes.budgeted > 0 && (budgetMes.expenses + budgetMes.savedThisMonth) < budgetMes.budgeted) {
-        mesSinExceder = true;
-      }
-    }
+    const mesSinExceder = (await this.getMesesSinExceder(6)).length > 0;
 
     return [
       { id: 'racha_7', label: '7 días de racha', unlocked: racha.actual >= 7 },
@@ -1510,6 +1570,39 @@ export const db = {
     return sortByCreatedAt(await idbGetArray('tareas'));
   },
 
+  // % de tareas completadas a tiempo (completedAt <= dueDate) vs vencidas,
+  // entre las que tienen fecha límite Y ya están hechas. tasa: null si
+  // todavía no hay ninguna tarea completada con fecha límite para medir.
+  async getTasaCumplimientoTareas() {
+    const tasks = await idbGetArray('tareas');
+    const conFecha = tasks.filter(t => t.status === 'done' && t.dueDate && t.completedAt);
+    if (conFecha.length === 0) return { aTiempo: 0, vencidas: 0, total: 0, tasa: null };
+    let aTiempo = 0;
+    conFecha.forEach(t => {
+      const due = new Date(t.dueDate + 'T23:59:59');
+      if (new Date(t.completedAt) <= due) aTiempo++;
+    });
+    return { aTiempo, vencidas: conFecha.length - aTiempo, total: conFecha.length, tasa: Math.round((aTiempo / conFecha.length) * 100) };
+  },
+
+  // Tareas completadas por semana, últimas `semanas` semanas — mismo
+  // patrón que getTendenciaSemanal (Entreno) pero sobre el log de eventos
+  // de Tareas ('tarea_completada'). Orden cronológico (antiguo -> reciente).
+  async getTendenciaTareasCompletadas(semanas = 8) {
+    const eventos = await idb.getAll('events');
+    const tareaEventos = eventos.filter(e => e.modulo === 'tareas' && e.tipo === 'tarea_completada');
+    const now = new Date();
+    const porSemana = Array.from({ length: semanas }, () => 0);
+    tareaEventos.forEach(e => {
+      const d = new Date(e.ts);
+      const diffDays = (now - d) / (1000 * 60 * 60 * 24);
+      const weekIdx = semanas - 1 - Math.floor(diffDays / 7);
+      if (weekIdx < 0 || weekIdx >= semanas) return;
+      porSemana[weekIdx]++;
+    });
+    return porSemana;
+  },
+
   async saveTask(data) {
     let tasks = await idbGetArray('tareas');
     if (data.id) {
@@ -1551,6 +1644,23 @@ export const db = {
         await logEvent({ modulo: 'tareas', tipo: 'tarea_completada', entidadId: id, payload: tasks[idx] });
       }
     }
+  },
+
+  // Transacciones dentro de un rango de fechas arbitrario (a diferencia de
+  // getBudget, que solo mira un mes calendario) — usada por Análisis >
+  // Finanzas > Movimientos para los filtros de trimestre/año/todo.
+  // startDate/endDate en formato 'YYYY-MM-DD'; cualquiera de los dos puede
+  // omitirse para dejar ese extremo abierto.
+  async getTransaccionesEnRango(startDate = null, endDate = null) {
+    await this.processRecurringTransactions();
+    const txs = await idbGetArray('transacciones');
+    const filtered = txs.filter(t => {
+      if (!t.date) return false;
+      if (startDate && t.date < startDate) return false;
+      if (endDate && t.date > endDate) return false;
+      return true;
+    });
+    return filtered.sort((a, b) => b.date.localeCompare(a.date));
   },
 
   async getBudget(monthFilter = null) {

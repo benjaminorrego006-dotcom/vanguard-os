@@ -120,7 +120,7 @@ export async function init() {
     // Update transactions
     const txContainer = document.getElementById('recent-tx-list');
     if(txContainer) {
-      txContainer.innerHTML = b.breakdown.length === 0 ? EmptyState("No hay movimientos", "Toca el botón + para registrar uno") : b.breakdown.slice(0, 5).map(tx => txHtml(tx)).join('');
+      txContainer.innerHTML = b.breakdown.length === 0 ? EmptyState("No hay movimientos", "Toca el botón + para registrar uno") : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.envelopes)).join('');
     }
     
     // Update Presupuesto Tab Legend (Replaces old envelopes-container)
@@ -178,7 +178,7 @@ export async function init() {
       return;
     }
 
-    container.innerHTML = filtered.map(tx => txHtml(tx)).join('');
+    container.innerHTML = filtered.map(tx => txHtml(tx, b.envelopes)).join('');
     attachTxListeners();
   };
 
@@ -711,18 +711,21 @@ const getCatColor = (cat) => {
   return 'var(--text-secondary)';
 };
 
-const txHtml = (tx) => {
+// envelopes se pasa explícito (en vez de leer el `b` del módulo) para que
+// esto sea llamable desde afuera de finanzas.js (ver Análisis > Finanzas >
+// Movimientos) sin depender de que finanzas.js esté montado.
+export const txHtml = (tx, envelopes) => {
   let catColor = getCatColor(tx.category);
   let iconSvg = getSVG(tx.category, catColor);
   let fallbackLabel = tx.type === 'Ingreso' ? 'Ingreso' : (tx.category === 'Savings' ? 'Ahorro' : (tx.category === 'Needs' ? 'Necesidades' : 'Deseos'));
   let displayLabel = tx.label || fallbackLabel;
   let subText = `${tx.date.substring(0,10)} &bull; ${tx.category === 'Needs' ? 'Necesidades' : tx.category === 'Wants' ? 'Deseos' : tx.category === 'Savings' ? 'Ahorros' : 'Ingreso'}`;
-  
+
   let amountPrefix = tx.type === 'Ingreso' ? '+' : '-';
   let amountColor = tx.type === 'Ingreso' ? 'var(--state-success)' : 'var(--text-primary)';
-  
-  if (tx.envelopeId && b && b.envelopes) {
-    const env = b.envelopes.find(e => e.id === tx.envelopeId);
+
+  if (tx.envelopeId && envelopes) {
+    const env = envelopes.find(e => e.id === tx.envelopeId);
     if (env) {
       if (tx.type === 'Gasto') {
         iconSvg = getSVG(env.icon, catColor);
@@ -735,11 +738,11 @@ const txHtml = (tx) => {
         subText = `${tx.date.substring(0,10)} &bull; ${tx.isSubtraction ? 'Retirado de' : 'Asignado a'} ${env.name}`;
       }
     }
-  } else if (tx.type === 'Transfer' && b && b.envelopes) {
+  } else if (tx.type === 'Transfer' && envelopes) {
     catColor = 'var(--accent-blue)';
     iconSvg = transferSvg;
-    const fromEnv = b.envelopes.find(e => e.id === tx.fromEnvelopeId)?.name || 'Desconocido';
-    const toEnv = b.envelopes.find(e => e.id === tx.toEnvelopeId)?.name || 'Desconocido';
+    const fromEnv = envelopes.find(e => e.id === tx.fromEnvelopeId)?.name || 'Desconocido';
+    const toEnv = envelopes.find(e => e.id === tx.toEnvelopeId)?.name || 'Desconocido';
     subText = `${tx.date.substring(0,10)} &bull; ${fromEnv} &rarr; ${toEnv}`;
     amountPrefix = '';
     amountColor = 'var(--text-secondary)';
@@ -1345,7 +1348,7 @@ export async function render() {
             <span class="btn-go-movimientos" id="btn-ver-todos" style="font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">Ver todos</span>
           </div>
           <div id="recent-tx-list" style="display: flex; flex-direction: column; gap: 8px;">
-            ${b.breakdown.length === 0 ? EmptyState("No hay movimientos", "Toca el botón Ingreso o Gasto") : b.breakdown.slice(0, 5).map(tx => txHtml(tx)).join('')}
+            ${b.breakdown.length === 0 ? EmptyState("No hay movimientos", "Toca el botón Ingreso o Gasto") : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.envelopes)).join('')}
           </div>
         </div>
       </div>

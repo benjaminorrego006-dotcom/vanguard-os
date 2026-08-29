@@ -217,18 +217,7 @@ export async function render() {
   const heatYear = now_.getFullYear();
   const heatMonth = now_.getMonth();
   const nombreMesActual = now_.toLocaleDateString('es-ES', { month: 'long' });
-  const countByDay = {};
-  const detailByDay = {};
-  tasks.forEach(t => {
-    if (!t.completedAt) return;
-    const d = new Date(t.completedAt);
-    if (d.getFullYear() === heatYear && d.getMonth() === heatMonth) {
-      const day = d.getDate();
-      countByDay[day] = (countByDay[day] || 0) + 1;
-      if (!detailByDay[day]) detailByDay[day] = [];
-      detailByDay[day].push(t.title);
-    }
-  });
+  const { countByDay, detailByDay } = await db.getActividadTareasPorDia(heatYear, heatMonth);
   const heatmapHtml = renderActivityHeatmap({
     id: 'tareas-heatmap',
     monthLabel: nombreMesActual,
