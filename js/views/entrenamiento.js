@@ -10,6 +10,7 @@ import { renderProfileForm, setupProfileForm, openProfileForm } from '../compone
 import { calcularIMC, calcularTMB } from '../utils/bodyMetrics.js';
 import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
+import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
 
 let categoriaActiva = null;
 let viewState = 'main'; // 'main', 'rutinas', 'form', 'session'
@@ -50,6 +51,20 @@ const renderVolumenSemanalChart = async () => {
 };
 
 export let mountListeners;
+
+// Llamado por el router (app.js) antes de desmontar esta vista. Cubre dos
+// fugas: el gráfico de volumen semanal (Chart.js, canvas ya fuera del DOM
+// si no se destruye acá) y, si el usuario se va a otra pestaña de la barra
+// lateral en medio de una sesión/timer en curso (en vez de tocar
+// "Volver", el único lugar que hoy los limpiaba), el setInterval del
+// cronómetro de sesión o del timer HIIT, que si no, sigue corriendo en
+// segundo plano indefinidamente.
+export function cleanup() {
+  if (volumenChartInstance) { volumenChartInstance.destroy(); volumenChartInstance = null; }
+  cleanupEjercicioCharts();
+  cleanupSessionTimer();
+  cleanupHiitTimer();
+}
 
 const sesionCardHtml = (s) => {
   const timeStr = new Date(s.fecha).toLocaleDateString();

@@ -98,6 +98,7 @@ class Router {
     this.root = document.getElementById('view-root');
     this.navItems = document.querySelectorAll('.nav-item');
     this.currentView = null;
+    this.currentModule = null; // vista actualmente montada, para poder limpiarla antes de la próxima navegación
 
     // Inject icons only if they exist
     this.injectIcons();
@@ -212,12 +213,22 @@ class Router {
     try {
       this.root.style.animation = 'none';
 
+      // Limpia la vista saliente ANTES de tirar su HTML (que se lleva sus
+      // canvases con él) — si esa vista tenía instancias de Chart.js o
+      // timers corriendo, esto es lo único que los para. Sin este hook, el
+      // único momento en que se destruían era la próxima vez que esa misma
+      // vista se volvía a montar (si es que se volvía a montar).
+      if (this.currentModule && typeof this.currentModule.cleanup === 'function') {
+        try { this.currentModule.cleanup(); } catch (e) { console.error('Error limpiando la vista anterior:', e); }
+      }
+
       // OJO: no usar import.meta.url aquí — cuando app.js se carga desde un
       // Blob URL (ver loadModuleGraph), import.meta.url es ese blob: URL y
       // resolver rutas relativas contra él no funciona de forma fiable.
       const viewUrl = new URL(`js/views/${viewId}.js`, location.href).href;
       const blobUrl = await loadModuleGraph(viewUrl);
       const module = await import(blobUrl);
+      this.currentModule = module;
       this.root.innerHTML = await module.render();
       if (typeof module.mountListeners === 'function') module.mountListeners();
       void this.root.offsetWidth;

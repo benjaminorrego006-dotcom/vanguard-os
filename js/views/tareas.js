@@ -6,6 +6,12 @@ import { renderActivityHeatmap, initActivityHeatmapListeners } from '../componen
 
 let tasksDonutInstance = null;
 
+// Llamado por el router (app.js) antes de desmontar esta vista — evita que
+// la instancia de Chart.js siga viva con su canvas ya fuera del DOM.
+export function cleanup() {
+  if (tasksDonutInstance) { tasksDonutInstance.destroy(); tasksDonutInstance = null; }
+}
+
 // Estado del tablero (qué columna está activa) — vive en el módulo, no en
 // el DOM, igual que `activeFinTab` en finanzas.js: sobrevive a refresh()
 // pero se reinicia si se navega a otra vista y se vuelve.

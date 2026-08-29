@@ -163,7 +163,40 @@ async function logEvent({ modulo, tipo, entidadId = null, payload = {}, ts = nul
   };
   try { await idb.put('events', event); }
   catch (e) { console.error('[Vanguard OS] Error registrando evento', tipo, e); }
+  memoCache.clear(); // ver nota sobre memoize() más abajo: un evento nuevo invalida todo lo cacheado.
   return event;
+}
+
+// --- Memoización de agregaciones caras sobre el log de eventos -----------
+// getBadges(), las rachas, los heatmaps y las pestañas de Análisis
+// recalculan todo desde cero en cada render — por diseño, para que nunca
+// quede un agregado guardado que se desincronice del dato real. El costo es
+// que un solo render termina pidiendo lo mismo varias veces (ej. Dashboard
+// hace Promise.all de ~8 llamadas; getBadges() sola dispara 6 getBudget()
+// internos por getMesesSinExceder). Se cachea el resultado hasta que: (a)
+// logEvent() confirma que algo realmente cambió (arriba), o (b) pasan
+// MEMO_TTL_MS — esto último es solo una red de seguridad para el caso
+// límite en que nada dispare un logEvent() mientras tanto (ej. un
+// recurrente que se volvió "vencido" por el simple paso del tiempo, sin
+// que el usuario haya tocado nada); tolerar unos segundos de esa clase de
+// desactualización es imperceptible, no vale la pena resolverlo con más
+// cuidado. Deliberadamente NO se usa para getBudget() ni para ningún
+// método con efectos secundarios (ej. processRecurringTransactions puede
+// escribir), ni para los getters simples de un solo store (ya son baratos
+// y algunos flujos de mutación dependen de leerlos frescos).
+const MEMO_TTL_MS = 5000;
+const memoCache = new Map();
+
+function memoize(fn) {
+  return function (...args) {
+    const key = fn.name + '|' + JSON.stringify(args);
+    const cached = memoCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) return cached.promise;
+    const promise = Promise.resolve(fn.apply(this, args));
+    memoCache.set(key, { promise, expiresAt: Date.now() + MEMO_TTL_MS });
+    promise.catch(() => memoCache.delete(key));
+    return promise;
+  };
 }
 
 // Ordena por fecha de creación ascendente (más viejo primero), igual que el
@@ -1761,3 +1794,16 @@ export const db = {
     };
   }
 };
+
+// Envuelve después de definir el objeto para no interrumpir el resto del
+// archivo — funciona igual sea que se llame db.xxx() o this.xxx() desde
+// otro método, porque memoize() preserva el `this` con el que se invoque.
+// Ver la nota junto a memoize()/MEMO_TTL_MS más arriba para qué queda
+// afuera y por qué.
+[
+  'getBadges', 'getRachaGlobal', 'getRachaGeneral', 'getRachaTareas', 'getRachaHiit',
+  'getMesesSinExceder', 'getCategoriasFueraDeRango', 'getTendenciaAhorro',
+  'getActividadPorDia', 'getDesgloseGrupoMuscular', 'getVolumenPorGrupo',
+  'getTendenciaSemanal', 'getResumenEntrenoSemanal', 'detectarNecesidadDeload',
+  'getTasaCumplimientoTareas', 'getTendenciaTareasCompletadas'
+].forEach(name => { db[name] = memoize(db[name]); });

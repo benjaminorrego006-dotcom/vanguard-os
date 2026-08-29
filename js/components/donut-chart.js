@@ -66,6 +66,15 @@ export async function renderDonutChart(canvasId, entries, opts = {}) {
   return chart;
 }
 
+// El router (app.js) llama esto al salir de la vista que montó estas donas
+// — sin esto, navegar a otra pestaña deja el canvas viejo desmontado del
+// DOM pero la instancia de Chart.js sigue viva en este Map hasta que
+// alguien vuelva a pedir esa misma canvasId (si es que vuelve).
+export function destroyAllDonuts() {
+  instances.forEach(chart => chart.destroy());
+  instances.clear();
+}
+
 // Leyenda simple a juego con la dona: color + etiqueta + % del total.
 export function renderDonutLegend(entries) {
   const total = entries.reduce((sum, e) => sum + e.valor, 0);

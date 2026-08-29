@@ -4,7 +4,7 @@ import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { EmptyState, ConfirmDialog } from '../utils/states.js';
 import { GRUPO_MUSCULAR_ORDEN, GRUPO_MUSCULAR_LABELS, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
-import { renderDonutChart, renderDonutLegend } from '../components/donut-chart.js';
+import { renderDonutChart, renderDonutLegend, destroyAllDonuts } from '../components/donut-chart.js';
 import { renderMiniChart } from '../components/mini-chart.js';
 import { txHtml } from './finanzas.js';
 import { formatCurrency } from '../utils/currency.js';
@@ -86,6 +86,14 @@ let donutChartInstance = null;
 let ejercicioChartInstance = null;
 
 export let mountListeners;
+
+// Llamado por el router (app.js) antes de desmontar esta vista — evita que
+// las instancias de Chart.js sigan vivas con su canvas ya fuera del DOM.
+export function cleanup() {
+  if (donutChartInstance) { donutChartInstance.destroy(); donutChartInstance = null; }
+  if (ejercicioChartInstance) { ejercicioChartInstance.destroy(); ejercicioChartInstance = null; }
+  destroyAllDonuts();
+}
 
 function rangoFechasPeriodo() {
   const hoy = new Date();

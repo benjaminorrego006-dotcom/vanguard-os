@@ -60,6 +60,15 @@ const getSVG = (key, color = 'currentColor') => {
 
 
 export let mountListeners;
+
+// Llamado por el router (app.js) antes de desmontar esta vista — evita que
+// las instancias de Chart.js sigan vivas con su canvas ya fuera del DOM.
+export function cleanup() {
+  if (donutChartInstance) { donutChartInstance.destroy(); donutChartInstance = null; }
+  if (dailyBalanceChartInstance) { dailyBalanceChartInstance.destroy(); dailyBalanceChartInstance = null; }
+  if (monthCompareChartInstance) { monthCompareChartInstance.destroy(); monthCompareChartInstance = null; }
+}
+
 export async function init() {
   b = await db.getBudget(currentMonth);
 

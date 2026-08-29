@@ -4,6 +4,14 @@ import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js'
 
 const chartInstances = new Map(); // canvasId -> Chart instance (para destruir al re-togglear)
 
+// Llamado por entrenamiento.js al salir de Entreno (o de una sesión en
+// curso) — mismo motivo que destroyAllDonuts() en donut-chart.js: sin
+// esto, la instancia sigue viva con el canvas ya desmontado del DOM.
+export function cleanupEjercicioCharts() {
+  chartInstances.forEach(chart => chart.destroy());
+  chartInstances.clear();
+}
+
 export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
   if (!historial || historial.length === 0) {
     return `<div style="padding: 16px; color: var(--text-secondary); text-align: center; font-size: 13px;">Aún no hay historial para graficar este ejercicio.</div>`;

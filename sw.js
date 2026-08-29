@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v15';
+const CACHE_NAME = 'vanguard-os-v16';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -7,6 +7,8 @@ const PRECACHE_URLS = [
   './css/components.css',
   './js/core/app.js',
   './js/core/db.js',
+  './js/core/idb.js',
+  './js/core/lock.js',
   './js/core/audio.js',
   './js/core/ejercicios-catalogo.js',
   './js/core/progresiones-calistenia.js',
@@ -25,6 +27,9 @@ const PRECACHE_URLS = [
   './js/views/entrenamiento.js',
   './js/views/finanzas.js',
   './js/views/tareas.js',
+  './js/views/analisis.js',
+  './js/components/activity-heatmap.js',
+  './js/components/donut-chart.js',
   './js/components/rutina-session.js',
   './js/components/rutinas-lista.js',
   './js/components/mini-chart.js',
@@ -32,6 +37,7 @@ const PRECACHE_URLS = [
   './js/components/ejercicio-detalle.js',
   './js/components/plate-calculator.js',
   './js/components/hiit-timer.js',
+  './js/components/hiit-rutina-form.js',
   './js/components/rutina-form.js',
   './js/components/IngresoForm.js',
   './js/components/GastoForm.js',
@@ -72,16 +78,34 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Network-first: siempre intenta traer la versión más reciente del archivo.
-  // Si la red falla (offline), recién ahí cae al caché como respaldo.
-  // Esto evita quedar sirviendo indefinidamente una copia vieja o rota.
+  // Cache-first: todo lo que sirve este SW es estático (JS/CSS/Chart.js) y
+  // no cambia dentro de la misma versión de deploy, así que responder desde
+  // caché es instantáneo y evita un round-trip de red en cada carga. La
+  // forma en que una actualización real llega es el propio versionado de
+  // CACHE_NAME (arriba) — un deploy nuevo cambia el contenido de sw.js, el
+  // navegador detecta el Service Worker distinto, lo instala, y "activate"
+  // purga el caché viejo. No hace falta pegarle a la red en cada fetch solo
+  // para no quedar sirviendo algo desactualizado; ese chequeo ya lo hace el
+  // ciclo de vida del propio SW.
+  //
+  // IndexedDB (donde vive todo el dato del usuario: sesiones, tareas,
+  // transacciones, log de eventos) nunca pasa por acá — no es una petición
+  // de red, es una API del navegador aparte que el evento 'fetch' jamás
+  // intercepta. No hay forma de que este caché sirva datos del usuario
+  // desactualizados porque nunca los toca.
+  const req = event.request;
+  if (req.method !== 'GET' || !req.url.startsWith('http')) return;
+
   event.respondWith(
-    fetch(event.request).then(response => {
-      if (response && response.status === 200 && response.type === 'basic' && event.request.url.startsWith('http')) {
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
-      }
-      return response;
-    }).catch(() => caches.match(event.request))
+    caches.match(req).then(cached => {
+      if (cached) return cached;
+      return fetch(req).then(response => {
+        if (response && response.status === 200 && response.type === 'basic') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, responseToCache));
+        }
+        return response;
+      });
+    }).catch(() => caches.match(req))
   );
 });
