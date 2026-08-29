@@ -21,7 +21,7 @@ body {
 .nav-brand { display: none; }
 .nav-item {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  color: var(--text-disabled); text-decoration: none; height: 100%; width: 25%;
+  color: var(--text-disabled); text-decoration: none; height: 100%; flex: 1 1 0;
   gap: 4px;
   -webkit-tap-highlight-color: transparent;
 }
@@ -65,6 +65,7 @@ body {
   }
 
   .nav-item {
+    flex: none;
     flex-direction: row;
     width: 100%;
     height: 48px;
