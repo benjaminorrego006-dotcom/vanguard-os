@@ -3,6 +3,7 @@ import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-
 import { Toast, ConfirmDialog } from '../utils/states.js';
 import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
+import { renderRecurringTaskForm, initRecurringTaskForm, attachRecurringTaskDeleteListeners, describeRecurringTaskFreq } from '../components/recurring-task-form.js';
 import { escapeHtml } from '../utils/escape.js';
 
 let tasksDonutInstance = null;
@@ -162,6 +163,34 @@ function renderStatusTask(task) {
   `;
 }
 
+function renderRecurringTaskRow(item) {
+  return `
+    <div class="card" data-id="${item.id}" style="padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+      <div>
+        <div style="font-size:13px; font-weight:700; color:var(--text-primary);">${escapeHtml(item.title)}</div>
+        <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${describeRecurringTaskFreq(item)}</div>
+      </div>
+      <button class="delete-recurring-task tappable" data-id="${item.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; flex-shrink:0;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </button>
+    </div>
+  `;
+}
+
+function renderRecurringTasksSection(recurringTasks) {
+  return `
+    <div class="card" style="margin-right:20px; margin-bottom:24px; padding:18px 20px;">
+      <div class="flex-between" style="margin-bottom:${recurringTasks.length ? '14px' : '4px'};">
+        <h3 style="font-size:13px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin:0;">Tareas Recurrentes</h3>
+        <button id="btn-add-recurring-task" class="tappable" style="background:transparent; border:none; color:var(--accent-purple); font-size:13px; font-weight:700; cursor:pointer;">+ Nueva</button>
+      </div>
+      ${recurringTasks.length === 0
+        ? `<div style="font-size:12px; color:var(--text-secondary);">Automatiza tareas que se repiten: pagos, revisiones, rutinas.</div>`
+        : recurringTasks.map(renderRecurringTaskRow).join('')}
+    </div>
+  `;
+}
+
 function renderEmptyBoard(msg) {
   return `<div style="border:1.5px dashed var(--surface-border); padding:32px 16px; text-align:center; color:var(--text-secondary); font-size:11px; text-transform:uppercase; letter-spacing:1.5px; font-weight:700;">${msg}</div>`;
 }
@@ -208,6 +237,7 @@ function renderBoardContent(cols) {
 
 export async function render() {
   const tasks = await db.getTasks();
+  const recurringTasks = await db.getRecurringTasks();
 
   const cols = {
     'todo': { tasks: [] },
@@ -265,6 +295,9 @@ export async function render() {
         ${heatmapHtml}
       </div>
 
+      <!-- Recurrentes -->
+      ${renderRecurringTasksSection(recurringTasks)}
+
       <!-- Search -->
       <div style="margin-right: 20px; margin-bottom: 24px; position: relative;">
         <svg style="position: absolute; left: 16px; top: 13px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -293,6 +326,7 @@ export async function render() {
       </div>
 
       ${renderTaskForm()}
+      ${renderRecurringTaskForm()}
     </div>
   `;
 }
@@ -308,9 +342,18 @@ export function mountListeners() {
   initActivityHeatmapListeners('tareas-heatmap', 'var(--accent-purple)');
 
   setupTaskForm(refresh);
+  initRecurringTaskForm(db, refresh);
+  attachRecurringTaskDeleteListeners(db, refresh);
 
   const btnNew = document.getElementById('btn-new-task');
   if (btnNew) btnNew.addEventListener('click', () => openTaskForm());
+
+  const btnAddRecurringTask = document.getElementById('btn-add-recurring-task');
+  if (btnAddRecurringTask) {
+    btnAddRecurringTask.addEventListener('click', () => {
+      document.getElementById('task-recurring-modal').openForm();
+    });
+  }
 
   // Selector de estado del tablero
   document.querySelectorAll('.btn-state-tab').forEach(btn => {

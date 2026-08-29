@@ -12,7 +12,7 @@
 // esos agregados como campos aparte.
 
 const DB_NAME = 'vanguard_os';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // keyPath por store. `events` además indexa por ts/modulo+ts/entidadId/tipo
 // para poder consultar por rango cronológico o por entidad sin leer todo el
@@ -35,6 +35,7 @@ const STORE_DEFS = {
   envelopes: { keyPath: 'id' },
   recurrentes: { keyPath: 'id' },
   tareas: { keyPath: 'id' },
+  tareas_recurrentes: { keyPath: 'id' },
   // Singletons de app (perfil, ajustes, favoritos de PR): una sola fila por
   // `key`, con el valor completo en `value`. Evita inventar un keyPath
   // artificial para datos que siempre fueron un único objeto/array.

@@ -1637,7 +1637,100 @@ export const db = {
 
   // --- TAREAS ---
   async getTasks() {
+    await this.processRecurringTasks();
     return sortByCreatedAt(await idbGetArray('tareas'));
+  },
+
+  // --- Tareas Recurrentes API ---
+  // Plantillas que generan una tarea normal (en 'tareas') cada vez que se
+  // cumple su frecuencia. Mismo patrón lazy que processRecurringTransactions
+  // en Finanzas: no hay timer ni cron, se procesa en cada getTasks().
+  async getRecurringTasks() {
+    return sortByCreatedAt(await idbGetArray('tareas_recurrentes'));
+  },
+  async createRecurringTask(data) {
+    let all = await this.getRecurringTasks();
+    const newItem = {
+      id: generateId(),
+      createdAt: new Date().toISOString(),
+      lastProcessed: null,
+      ...data
+    };
+    all.push(newItem);
+    await idbSetArray('tareas_recurrentes', all); this._triggerUpdate();
+    await logEvent({ modulo: 'tareas', tipo: 'recurrente_creada', entidadId: newItem.id, payload: newItem });
+    return newItem;
+  },
+  async deleteRecurringTask(id) {
+    let all = await this.getRecurringTasks();
+    all = all.filter(r => r.id !== id);
+    await idbSetArray('tareas_recurrentes', all); this._triggerUpdate();
+    await logEvent({ modulo: 'tareas', tipo: 'recurrente_eliminada', entidadId: id, payload: {} });
+  },
+  // Calcula la próxima ocurrencia estrictamente posterior a `fromDate` (nunca
+  // el mismo día) — así crear una recurrente hoy no duplica la tarea que el
+  // usuario probablemente ya creó a mano para hoy mismo.
+  _nextRecurringTaskDate(fromDate, item) {
+    const d = new Date(fromDate);
+    d.setHours(0, 0, 0, 0);
+    if (item.frequency === 'daily') {
+      d.setDate(d.getDate() + 1);
+      return d;
+    }
+    if (item.frequency === 'weekly') {
+      d.setDate(d.getDate() + 1);
+      while (d.getDay() !== item.weekday) d.setDate(d.getDate() + 1);
+      return d;
+    }
+    // monthly (dayOfMonth acotado a 1-28 en el formulario, evita overflow de mes)
+    const next = new Date(d.getFullYear(), d.getMonth(), item.dayOfMonth);
+    if (next <= d) next.setMonth(next.getMonth() + 1);
+    return next;
+  },
+  async processRecurringTasks() {
+    const recurring = await this.getRecurringTasks();
+    if (recurring.length === 0) return false;
+
+    let tasks = await idbGetArray('tareas');
+    let updated = false;
+    const generated = [];
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+
+    recurring.forEach(item => {
+      let cursor = item.lastProcessed ? new Date(item.lastProcessed) : new Date(item.createdAt);
+      let next = this._nextRecurringTaskDate(cursor, item);
+      let guard = 0; // tope defensivo: evita un loop largo si la app estuvo mucho tiempo sin abrirse
+      while (today >= next && guard < 366) {
+        guard++;
+        const newTask = {
+          id: generateId(),
+          createdAt: new Date().toISOString(),
+          title: item.title,
+          description: item.description || '',
+          priority: item.priority || 'medium',
+          dueDate: next.toISOString().slice(0, 10),
+          project: item.project || '',
+          status: 'todo',
+          subtasks: [],
+          recurringId: item.id
+        };
+        tasks.push(newTask);
+        generated.push(newTask);
+        item.lastProcessed = next.toISOString();
+        updated = true;
+        next = this._nextRecurringTaskDate(next, item);
+      }
+    });
+
+    if (updated) {
+      await idbSetArray('tareas', tasks);
+      await idbSetArray('tareas_recurrentes', recurring); this._triggerUpdate();
+      for (const t of generated) {
+        await logEvent({ modulo: 'tareas', tipo: 'tarea_creada', entidadId: t.id, payload: t, ts: new Date(t.createdAt).getTime() });
+      }
+      return true;
+    }
+    return false;
   },
 
   // % de tareas completadas a tiempo (completedAt <= dueDate) vs vencidas,
