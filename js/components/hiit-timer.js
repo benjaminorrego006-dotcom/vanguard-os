@@ -120,9 +120,9 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
     totalRounds: hs?.totalRounds || 8,
     workSecs: hs?.workSecs || 30,
     restSecs: hs?.restSecs || 15,
-    emomTotalMins: 10,
-    emomIntervalSecs: 60,
-    amrapTotalMins: 15,
+    emomTotalMins: hs?.emomTotalMins || 10,
+    emomIntervalSecs: hs?.emomIntervalSecs || 60,
+    amrapTotalMins: hs?.amrapTotalMins || 15,
     amrapCount: 0,
     startTime: null
   };

@@ -1,6 +1,7 @@
 import { db } from '../core/db.js';
 import { renderRutinasLista, initRutinasListaListeners, renderPlantillaPreview, initPlantillaPreviewListeners } from '../components/rutinas-lista.js';
 import { renderRutinaForm, initRutinaFormListeners } from '../components/rutina-form.js';
+import { renderHiitRutinaForm, initHiitRutinaFormListeners } from '../components/hiit-rutina-form.js';
 import { renderRutinaSession, initRutinaSessionListeners, cleanupSessionTimer } from '../components/rutina-session.js';
 import { renderHiitTimer, initHiitTimerListeners, cleanupHiitTimer } from '../components/hiit-timer.js';
 import { renderProgressRing } from '../utils/progressRing.js';
@@ -380,12 +381,19 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'form';
-    
+
     try {
-      subContent.innerHTML = renderRutinaForm(cat);
-      initRutinaFormListeners(cat, async () => {
-        await goToRutinas(cat);
-      }, signal);
+      if (cat === 'hiit') {
+        subContent.innerHTML = renderHiitRutinaForm();
+        initHiitRutinaFormListeners(async () => {
+          await goToRutinas(cat);
+        }, signal);
+      } else {
+        subContent.innerHTML = renderRutinaForm(cat);
+        initRutinaFormListeners(cat, async () => {
+          await goToRutinas(cat);
+        }, signal);
+      }
     } catch (err) {
       console.error('Error renderizando formulario:', err);
       subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
