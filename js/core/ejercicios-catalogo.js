@@ -511,6 +511,109 @@ export const CATALOGO_EJERCICIOS = {
       'Rango de movimiento incompleto por la mayor exigencia.'
     ]
   },
+  // --- Árbol de progresión de flexiones (progresiones-calistenia.js) ---
+  'flexiones inclinadas': {
+    id: 'flexiones inclinadas',
+    nombre: 'Flexiones Inclinadas',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, core',
+    posturaInicial: 'Manos apoyadas en una superficie elevada (banco, escalón o pared), cuerpo en línea recta.',
+    pasosEjecucion: [
+      'Baja el pecho hacia el borde flexionando los codos a unos 45° del cuerpo.',
+      'Empuja de vuelta hasta extensión completa de codos.'
+    ],
+    erroresComunes: [
+      'Dejar caer la cadera.',
+      'Elegir una superficie tan alta que quite todo el estímulo.'
+    ]
+  },
+  'flexiones con rodillas': {
+    id: 'flexiones con rodillas',
+    nombre: 'Flexiones con Rodillas',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps',
+    posturaInicial: 'Rodillas apoyadas en el piso, manos al ancho de hombros, línea recta desde la rodilla hasta la cabeza.',
+    pasosEjecucion: [
+      'Baja el pecho hacia el piso con los codos a unos 45°.',
+      'Empuja de vuelta a extensión completa sin perder la línea cadera-rodilla.'
+    ],
+    erroresComunes: [
+      'Doblar la cadera en vez de mantenerla en línea recta.',
+      'Rango de movimiento incompleto.'
+    ]
+  },
+  'flexiones declinadas': {
+    id: 'flexiones declinadas',
+    nombre: 'Flexiones Declinadas',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'hombros, tríceps',
+    posturaInicial: 'Pies apoyados en una superficie elevada, manos en el piso al ancho de hombros.',
+    pasosEjecucion: [
+      'Baja el pecho hacia el piso manteniendo el core apretado.',
+      'Empuja de vuelta hasta extensión completa.'
+    ],
+    erroresComunes: [
+      'Elegir una elevación tan alta que se vuelva un pike push-up.',
+      'Dejar caer la cadera.'
+    ]
+  },
+  'flexiones de arquero': {
+    id: 'flexiones de arquero',
+    nombre: 'Flexiones de Arquero',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, hombros',
+    posturaInicial: 'Manos separadas más allá del ancho de hombros, cuerpo en línea recta.',
+    pasosEjecucion: [
+      'Baja desplazando el peso hacia un lado: ese brazo se flexiona y el otro queda casi extendido.',
+      'Empuja de vuelta al centro y alterna de lado.'
+    ],
+    erroresComunes: [
+      'Rotar el torso en vez de desplazar el peso lateralmente.',
+      'No bajar lo suficiente del lado de trabajo.'
+    ]
+  },
+  'flexiones a una mano asistidas': {
+    id: 'flexiones a una mano asistidas',
+    nombre: 'Flexiones a Una Mano Asistidas',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, core (anti-rotación)',
+    posturaInicial: 'Una mano en el piso, la otra apoyada en un soporte bajo (pelota, step) que asiste el equilibrio.',
+    pasosEjecucion: [
+      'Baja controladamente con el peso mayormente en el brazo de trabajo.',
+      'Empuja de vuelta manteniendo las caderas cuadradas.'
+    ],
+    erroresComunes: [
+      'Rotar el torso para compensar.',
+      'Apoyar demasiado peso en la mano de asistencia.'
+    ]
+  },
+  'flexiones a una mano': {
+    id: 'flexiones a una mano',
+    nombre: 'Flexiones a Una Mano',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, core',
+    posturaInicial: 'Pies separados para dar base, una mano en el piso bajo el hombro, la otra detrás de la espalda.',
+    pasosEjecucion: [
+      'Baja controladamente sin rotar el torso.',
+      'Empuja de vuelta hasta extensión completa.'
+    ],
+    erroresComunes: [
+      'Rotar caderas u hombros para ayudarse.',
+      'Base de pies demasiado angosta (pierde estabilidad).'
+    ]
+  },
   'fondos en banco': {
     id: 'fondos en banco',
     nombre: 'Fondos en Banco',
@@ -526,6 +629,58 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Bajar demasiado (estrés en el hombro).',
       'Codos abiertos hacia los lados.'
+    ]
+  },
+  // --- Resto del árbol de progresión de fondos ---
+  'fondos asistidos con banda': {
+    id: 'fondos asistidos con banda',
+    nombre: 'Fondos Asistidos con Banda',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'hombros, tríceps',
+    posturaInicial: 'Banda elástica anclada arriba de las paralelas, bajo la rodilla o el pie.',
+    pasosEjecucion: [
+      'Ejecuta el fondo con la misma mecánica que la versión completa.',
+      'Reduce progresivamente la asistencia de la banda con el tiempo.'
+    ],
+    erroresComunes: [
+      'Bajar demasiado y forzar el hombro.',
+      'Depender de la banda por demasiado tiempo sin progresar.'
+    ]
+  },
+  'fondos en anillas': {
+    id: 'fondos en anillas',
+    nombre: 'Fondos en Anillas',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'hombros, tríceps, estabilizadores',
+    posturaInicial: 'Sostenido en anillas con los brazos extendidos, anillas rotadas hacia afuera (turnout).',
+    pasosEjecucion: [
+      'Baja controladamente manteniendo las anillas estables.',
+      'Empuja de vuelta rotando ligeramente las anillas hacia adentro al llegar arriba.'
+    ],
+    erroresComunes: [
+      'Dejar que las anillas se abran o se inestabilicen.',
+      'Bajar demasiado sin control del hombro.'
+    ]
+  },
+  'fondos lastrados': {
+    id: 'fondos lastrados',
+    nombre: 'Fondos Lastrados',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'hombros, tríceps',
+    posturaInicial: 'Peso extra sujeto con cinturón o mancuerna entre los pies.',
+    pasosEjecucion: [
+      'Ejecuta el fondo con la misma mecánica que la versión sin peso.',
+      'Controla también la bajada, no solo la subida.'
+    ],
+    erroresComunes: [
+      'Agregar peso antes de dominar la técnica sin lastre.',
+      'Rango de movimiento incompleto por la carga extra.'
     ]
   },
   'pike push-up': {
@@ -630,6 +785,75 @@ export const CATALOGO_EJERCICIOS = {
       'No completar el rango de movimiento.'
     ]
   },
+  // --- Resto del árbol de progresión de dominadas ---
+  'dominadas lastradas': {
+    id: 'dominadas lastradas',
+    nombre: 'Dominadas Lastradas',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'bíceps',
+    posturaInicial: 'Peso extra sujeto con cinturón o mancuerna entre los pies, agarre pronado en la barra.',
+    pasosEjecucion: [
+      'Ejecuta la dominada con la misma mecánica que la versión sin peso.',
+      'Controla también la bajada, no solo la subida.'
+    ],
+    erroresComunes: [
+      'Agregar peso antes de dominar la técnica sin lastre.',
+      'Kipping para compensar el peso extra.'
+    ]
+  },
+  'dominada de arquero': {
+    id: 'dominada de arquero',
+    nombre: 'Dominada de Arquero',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'bíceps',
+    posturaInicial: 'Agarre ancho en la barra; un brazo hará la mayor parte del trabajo.',
+    pasosEjecucion: [
+      'Tira llevando el cuerpo hacia un lado: ese brazo se flexiona mientras el otro queda casi extendido.',
+      'Baja controladamente y alterna de lado.'
+    ],
+    erroresComunes: [
+      'Usar impulso en vez de fuerza controlada.',
+      'No extender casi por completo el brazo pasivo.'
+    ]
+  },
+  'dominada a una mano asistida': {
+    id: 'dominada a una mano asistida',
+    nombre: 'Dominada a Una Mano Asistida',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'bíceps, antebrazos',
+    posturaInicial: 'Una mano en la barra; la otra sujeta una toalla o correa anclada cerca del agarre principal.',
+    pasosEjecucion: [
+      'Tira principalmente con el brazo de trabajo, usando el asistido solo de apoyo.',
+      'Reduce progresivamente la asistencia con el tiempo.'
+    ],
+    erroresComunes: [
+      'Depender demasiado del brazo asistido.',
+      'Rango de movimiento incompleto.'
+    ]
+  },
+  'dominada a una mano': {
+    id: 'dominada a una mano',
+    nombre: 'Dominada a Una Mano',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'bíceps, antebrazos, core',
+    posturaInicial: 'Una mano en la barra con agarre firme, el otro brazo libre.',
+    pasosEjecucion: [
+      'Tira del cuerpo hacia arriba sin balancearte ni rotar el torso.',
+      'Baja controladamente hasta extensión completa.'
+    ],
+    erroresComunes: [
+      'Balancear el cuerpo (kipping) para generar impulso.',
+      'Rotar el torso hacia el lado del brazo de apoyo.'
+    ]
+  },
   'puente de glúteo': {
     id: 'puente de glúteo',
     nombre: 'Puente de Glúteo (Glute Bridge)',
@@ -662,6 +886,24 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Rotar la cadera hacia el lado sin apoyo.',
       'Rango de movimiento incompleto.'
+    ]
+  },
+  // --- Resto del árbol de progresión de sentadillas ---
+  'sentadilla asistida': {
+    id: 'sentadilla asistida',
+    nombre: 'Sentadilla Asistida',
+    categoria: 'calistenia',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'glúteos, core',
+    posturaInicial: 'De pie sujetando un soporte fijo (marco de puerta, poste) con ambas manos.',
+    pasosEjecucion: [
+      'Flexiona cadera y rodillas bajando en línea recta, usando los brazos solo de apoyo.',
+      'Empuja el piso para subir, reduciendo progresivamente la ayuda de los brazos.'
+    ],
+    erroresComunes: [
+      'Tirar del soporte en vez de usarlo solo de equilibrio.',
+      'Rodillas colapsando hacia adentro.'
     ]
   },
   'sentadilla con peso corporal': {
@@ -697,6 +939,23 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Que la rodilla delantera colapse hacia adentro.',
       'Perder el equilibrio por base de apoyo estrecha.'
+    ]
+  },
+  'pistol squat asistida': {
+    id: 'pistol squat asistida',
+    nombre: 'Pistol Squat Asistida',
+    categoria: 'calistenia',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'core, estabilizadores de tobillo',
+    posturaInicial: 'De pie sobre una pierna, sujetando un soporte o banda elástica anclada al frente.',
+    pasosEjecucion: [
+      'Baja controladamente en sentadilla a una pierna, usando el soporte solo para el equilibrio.',
+      'Reduce progresivamente la asistencia con el tiempo.'
+    ],
+    erroresComunes: [
+      'Apoyar demasiado peso en el soporte.',
+      'Perder el equilibrio por falta de movilidad de tobillo.'
     ]
   },
   'pistol squat': {
@@ -833,6 +1092,94 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Avanzar demasiado rápido perdiendo el control del core.',
       'No mantener el cuerpo alineado durante el ascenso.'
+    ]
+  },
+  // --- Rama "estáticos" del árbol de progresión (handstand libre) ---
+  'handstand (libre)': {
+    id: 'handstand (libre)',
+    nombre: 'Handstand (Libre)',
+    categoria: 'calistenia',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'core, tríceps',
+    posturaInicial: 'En el centro del espacio, sin apoyo de pared, tras dominar el handstand contra pared.',
+    pasosEjecucion: [
+      'Patea o salta a la posición invertida buscando el equilibrio con la punta de los dedos.',
+      'Sostén la posición ajustando el balance con pequeños movimientos de muñeca.'
+    ],
+    erroresComunes: [
+      'Arquear demasiado la espalda baja.',
+      'Mirar hacia adelante en vez de hacia las manos.'
+    ]
+  },
+  // --- Rama "estáticos": línea del front lever ---
+  'front lever tuck': {
+    id: 'front lever tuck',
+    nombre: 'Front Lever Tuck',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'core, bíceps',
+    posturaInicial: 'Colgado de una barra, rodillas llevadas al pecho, cuerpo horizontal.',
+    pasosEjecucion: [
+      'Tira de los hombros hacia abajo y atrás (retracción escapular) antes de levantar el cuerpo.',
+      'Sostén el cuerpo horizontal con las rodillas al pecho.'
+    ],
+    erroresComunes: [
+      'Dejar que los hombros suban hacia las orejas.',
+      'Perder la horizontal dejando caer la cadera.'
+    ]
+  },
+  'front lever avanzado': {
+    id: 'front lever avanzado',
+    nombre: 'Front Lever Avanzado (Tuck Avanzado)',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'core, bíceps',
+    posturaInicial: 'Igual que el front lever tuck, pero con la cadera extendida y las piernas semi-extendidas.',
+    pasosEjecucion: [
+      'Extiende progresivamente la cadera mientras sostienes la horizontal.',
+      'Mantén la retracción escapular activa durante todo el sostén.'
+    ],
+    erroresComunes: [
+      'Extender las piernas antes de tener fuerza de cadera.',
+      'Perder la tensión escapular a mitad del sostén.'
+    ]
+  },
+  'front lever': {
+    id: 'front lever',
+    nombre: 'Front Lever',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'core, bíceps, antebrazos',
+    posturaInicial: 'Colgado de una barra, cuerpo completamente extendido y horizontal, paralelo al piso.',
+    pasosEjecucion: [
+      'Sostén el cuerpo recto y horizontal, piernas juntas y extendidas.',
+      'Mantén la retracción escapular activa durante todo el sostén.'
+    ],
+    erroresComunes: [
+      'Doblar las rodillas o la cadera para compensar falta de fuerza.',
+      'Soltar la tensión de hombros a mitad del sostén.'
+    ]
+  },
+  // --- Rama "estáticos": el muscle-up cruza dominadas + fondos ---
+  'muscle-up': {
+    id: 'muscle-up',
+    nombre: 'Muscle-up',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'pecho, tríceps',
+    posturaInicial: 'Colgado de la barra con agarre falso (muñecas por encima de la barra) o agarre normal.',
+    pasosEjecucion: [
+      'Tira explosivo llevando el pecho hacia la barra, más alto que en una dominada normal.',
+      'En el punto más alto, rota las muñecas y transita empujando hacia arriba como en un fondo.'
+    ],
+    erroresComunes: [
+      'Intentar la transición sin fuerza de dominada explosiva de base.',
+      'Usar demasiado kipping en vez de fuerza controlada.'
     ]
   },
   'burpees': {

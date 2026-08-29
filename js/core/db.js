@@ -1612,7 +1612,19 @@ export const db = {
             repsEnPesoMax,
             repsMax: repsForBodyweight,
             volumenTotal,
-            seriesCount: ej.series.length
+            seriesCount: ej.series.length,
+            // Detalle crudo por serie — lo necesita el árbol de progresiones
+            // de calistenia (progresiones-calistenia.js) para contar "series
+            // limpias" (tipo normal, reps/segundos suficientes, sin RPE de
+            // máximo esfuerzo). tipo/rpe quedan tal cual estén guardados;
+            // una sesión vieja sin `tipo` se interpreta como serie normal
+            // en el consumidor, no acá, para no inventar un valor por
+            // defecto en el dato mismo.
+            seriesDetalle: ej.series.map(serie => ({
+              tipo: serie.tipo || null,
+              reps: (String(serie.reps).match(/\d+/) || [])[0] ? parseInt(String(serie.reps).match(/\d+/)[0]) : 0,
+              rpe: serie.rpe ? parseInt(serie.rpe) : null
+            }))
           });
         }
       }
