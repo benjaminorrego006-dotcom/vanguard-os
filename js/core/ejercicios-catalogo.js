@@ -24,7 +24,14 @@ export const CATALOGO_EJERCICIOS = {
       'Levantar los talones del piso.',
       'Redondear la espalda baja.',
       'Mirar hacia arriba en vez de mantener el cuello neutro.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"ratio","valor":"intermedio","series":null},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "rodilla"
   },
   'sentadilla frontal': {
     id: 'sentadilla frontal',
@@ -43,7 +50,14 @@ export const CATALOGO_EJERCICIOS = {
       'Dejar caer los codos (la barra rueda hacia adelante).',
       'Inclinar demasiado el torso.',
       'Movilidad insuficiente de muñeca/tobillo que rompe la postura.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["sentadilla"],
+    progresionDe: "sentadilla",
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "rodilla"
   },
   'peso muerto': {
     id: 'peso muerto',
@@ -63,7 +77,14 @@ export const CATALOGO_EJERCICIOS = {
       'Redondear la espalda baja.',
       'Alejar la barra del cuerpo (debe rozar las piernas).',
       'Extender la cadera antes que los hombros ("hip rise" prematuro).'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"ratio","valor":"intermedio","series":null},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "cadera"
   },
   'peso muerto rumano': {
     id: 'peso muerto rumano',
@@ -82,7 +103,14 @@ export const CATALOGO_EJERCICIOS = {
       'Doblar demasiado las rodillas (se convierte en sentadilla).',
       'Redondear la espalda.',
       'Alejar la barra del cuerpo.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["peso muerto"],
+    progresionDe: "peso muerto",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "cadera"
   },
   'press de banca': {
     id: 'press de banca',
@@ -101,7 +129,14 @@ export const CATALOGO_EJERCICIOS = {
       'Rebotar la barra en el pecho.',
       'Levantar la cadera del banco.',
       'Codos completamente abiertos a 90° (estrés en el hombro).'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"ratio","valor":"intermedio","series":null},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "empuje-horizontal"
   },
   'press inclinado': {
     id: 'press inclinado',
@@ -118,7 +153,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Inclinar demasiado el banco (se vuelve un press de hombro).',
       'Rebotar en el pecho.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: ["press de banca"],
+    progresionDe: "press de banca",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "empuje-horizontal"
   },
   'press militar': {
     id: 'press militar',
@@ -137,7 +179,14 @@ export const CATALOGO_EJERCICIOS = {
       'Arquear excesivamente la espalda baja.',
       'Usar impulso de piernas (eso sería "push press").',
       'No extender completamente arriba.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"ratio","valor":"intermedio","series":null},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "empuje-vertical"
   },
   'press arnold': {
     id: 'press arnold',
@@ -155,7 +204,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Rotar demasiado rápido perdiendo el control del peso.',
       'No completar el rango de extensión arriba.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["press militar"],
+    progresionDe: "press militar",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "empuje-vertical"
   },
   'remo con barra': {
     id: 'remo con barra',
@@ -174,7 +230,14 @@ export const CATALOGO_EJERCICIOS = {
       'Usar impulso del torso (balanceo).',
       'Redondear la espalda baja.',
       'No completar el rango de movimiento.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["remo en máquina"],
+    progresionDe: "remo en máquina",
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "traccion-horizontal"
   },
   'dominadas': {
     id: 'dominadas',
@@ -193,7 +256,14 @@ export const CATALOGO_EJERCICIOS = {
       'Usar impulso de piernas (kipping no controlado).',
       'No bajar a extensión completa.',
       'Encoger los hombros en vez de usar la espalda.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["jalón al pecho"],
+    progresionDe: "jalón al pecho",
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
   },
   'jalón al pecho': {
     id: 'jalón al pecho',
@@ -211,7 +281,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Balancear el torso para generar impulso.',
       'Tirar solo con los brazos sin activar la espalda.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "traccion-vertical"
   },
   'fondos en paralelas': {
     id: 'fondos en paralelas',
@@ -228,7 +305,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Bajar demasiado (estrés excesivo en el hombro).',
       'Codos completamente abiertos hacia los lados.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["fondos en banco"],
+    progresionDe: "fondos en banco",
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "empuje-horizontal"
   },
   'curl de bíceps': {
     id: 'curl de bíceps',
@@ -245,7 +329,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Balancear el torso para generar impulso.',
       'Mover los codos hacia adelante durante el movimiento.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "traccion-horizontal"
   },
   'curl martillo': {
     id: 'curl martillo',
@@ -262,7 +353,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Balancear el torso para generar impulso.',
       'Mover los codos hacia adelante durante el movimiento.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "traccion-horizontal"
   },
   'extensión de tríceps': {
     id: 'extensión de tríceps',
@@ -279,7 +377,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Mover el codo durante el ejercicio.',
       'Usar impulso del hombro.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "empuje-horizontal"
   },
   'elevaciones laterales': {
     id: 'elevaciones laterales',
@@ -297,7 +402,14 @@ export const CATALOGO_EJERCICIOS = {
       'Usar impulso/balanceo del torso.',
       'Subir más allá de la altura del hombro (estrés articular).',
       'Encoger los trapecios en vez de usar el deltoides lateral.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "empuje-vertical"
   },
   'face pull': {
     id: 'face pull',
@@ -315,7 +427,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Codos bajos (pierde el trabajo de deltoides posterior).',
       'Usar demasiado peso y perder la forma.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "traccion-horizontal"
   },
   'extensión de cuádriceps': {
     id: 'extensión de cuádriceps',
@@ -332,7 +451,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Usar impulso.',
       'Extender con golpe seco al final del recorrido.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "rodilla"
   },
   'curl femoral': {
     id: 'curl femoral',
@@ -349,7 +475,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Soltar el peso de golpe en la fase de extensión.',
       'Usar impulso de cadera.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "cadera"
   },
   'zancadas': {
     id: 'zancadas',
@@ -367,7 +500,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Que la rodilla delantera sobrepase mucho la punta del pie.',
       'Perder el equilibrio por pasos demasiado cortos.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla"
   },
   'hip thrust': {
     id: 'hip thrust',
@@ -384,7 +524,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Hiperextender la espalda baja al final.',
       'No llegar a extensión completa de cadera.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "cadera"
   },
   'remo en máquina': {
     id: 'remo en máquina',
@@ -402,7 +549,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Usar impulso del torso en vez de la espalda.',
       'No completar el rango de movimiento.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "traccion-horizontal"
   },
   'elevaciones de piernas': {
     id: 'elevaciones de piernas',
@@ -419,7 +573,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Usar impulso/balanceo en vez de controlar el movimiento.',
       'Arquear la espalda baja al bajar las piernas (en la versión acostada).'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["abdominales"],
+    progresionDe: "abdominales",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "core"
   },
   'abdominales': {
     id: 'abdominales',
@@ -436,7 +597,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Tirar del cuello con las manos.',
       'Usar impulso en vez de contracción abdominal.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "core"
   },
   'caminata': {
     id: 'caminata',
@@ -453,7 +621,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Encorvar la espalda.',
       'Ritmo demasiado lento como para elevar la frecuencia cardíaca.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"segundos","valor":1200,"series":1},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "locomocion"
   },
   'elevación de talones': {
     id: 'elevación de talones',
@@ -471,7 +646,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Rango de movimiento parcial.',
       'Rebotar en vez de controlar la bajada.'
-    ]
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "rodilla"
   },
 
   // ============================ CALISTENIA ============================
@@ -492,7 +674,14 @@ export const CATALOGO_EJERCICIOS = {
       'Dejar caer la cadera (pierde línea recta).',
       'Codos completamente abiertos a 90°.',
       'Rango de movimiento incompleto.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: ["flexiones con rodillas"],
+    progresionDe: "flexiones con rodillas",
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
   },
   'flexiones diamante': {
     id: 'flexiones diamante',
@@ -509,7 +698,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Abrir los codos hacia los lados.',
       'Rango de movimiento incompleto por la mayor exigencia.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["flexiones declinadas"],
+    progresionDe: "flexiones declinadas",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
   },
   // --- Árbol de progresión de flexiones (progresiones-calistenia.js) ---
   'flexiones inclinadas': {
@@ -629,7 +825,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Bajar demasiado (estrés en el hombro).',
       'Codos abiertos hacia los lados.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "banco",
+    patronMovimiento: "empuje-horizontal"
   },
   // --- Resto del árbol de progresión de fondos ---
   'fondos asistidos con banda': {
@@ -698,7 +901,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Perder la posición de cadera elevada.',
       'No bajar lo suficiente.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-vertical"
   },
   'dead hang': {
     id: 'dead hang',
@@ -715,7 +925,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Relajar completamente los hombros (mala preparación articular).',
       'Balancear el cuerpo en vez de mantenerlo quieto.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: ["remo invertido"],
+    progresionDe: "remo invertido",
+    criterioAvance: {"tipo":"segundos","valor":20,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
   },
   'remo invertido': {
     id: 'remo invertido',
@@ -732,7 +949,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Dejar caer la cadera.',
       'No completar el rango de movimiento.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "traccion-horizontal"
   },
   'negativas de dominada': {
     id: 'negativas de dominada',
@@ -749,7 +973,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Bajar demasiado rápido, perdiendo el control.',
       'No completar el rango hasta la extensión total.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: ["dead hang"],
+    progresionDe: "dead hang",
+    criterioAvance: {"tipo":"reps","valor":5,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
   },
   'dominada asistida con banda': {
     id: 'dominada asistida con banda',
@@ -766,7 +997,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Depender de la banda por demasiado tiempo sin progresar.',
       'Kipping no controlado.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: ["negativas de dominada"],
+    progresionDe: "negativas de dominada",
+    criterioAvance: {"tipo":"reps","valor":6,"series":3},
+    tambienEn: [],
+    equipo: "banda",
+    patronMovimiento: "traccion-vertical"
   },
   'dominada australiana': {
     id: 'dominada australiana',
@@ -783,7 +1021,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Dejar caer la cadera.',
       'No completar el rango de movimiento.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "traccion-horizontal"
   },
   // --- Resto del árbol de progresión de dominadas ---
   'dominadas lastradas': {
@@ -869,7 +1114,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Hiperextender la espalda baja.',
       'No apretar el glúteo arriba.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "cadera"
   },
   'puente de glúteo a una pierna': {
     id: 'puente de glúteo a una pierna',
@@ -886,7 +1138,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Rotar la cadera hacia el lado sin apoyo.',
       'Rango de movimiento incompleto.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["puente de glúteo"],
+    progresionDe: "puente de glúteo",
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "cadera"
   },
   // --- Resto del árbol de progresión de sentadillas ---
   'sentadilla asistida': {
@@ -922,7 +1181,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Rodillas colapsando hacia adentro.',
       'Levantar los talones del piso.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: ["sentadilla asistida"],
+    progresionDe: "sentadilla asistida",
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla"
   },
   'sentadilla búlgara': {
     id: 'sentadilla búlgara',
@@ -939,7 +1205,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Que la rodilla delantera colapse hacia adentro.',
       'Perder el equilibrio por base de apoyo estrecha.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["zancadas"],
+    progresionDe: "zancadas",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla"
   },
   'pistol squat asistida': {
     id: 'pistol squat asistida',
@@ -973,7 +1246,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Perder el equilibrio por falta de movilidad de tobillo.',
       'Saltar etapas de progresión antes de tener la fuerza base.'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["pistol squat asistida"],
+    progresionDe: "pistol squat asistida",
+    criterioAvance: {"tipo":"reps","valor":5,"series":2},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla"
   },
   'plancha': {
     id: 'plancha',
@@ -990,7 +1270,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Cadera muy elevada (pierde el trabajo real de core).',
       'Cadera hundida (estrés en espalda baja).'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: ["hollow body hold"],
+    progresionDe: "hollow body hold",
+    criterioAvance: {"tipo":"segundos","valor":40,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "core"
   },
   'plancha lateral': {
     id: 'plancha lateral',
@@ -1007,7 +1294,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Dejar caer la cadera.',
       'Rotar el torso hacia adelante o atrás.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: ["plancha"],
+    progresionDe: "plancha",
+    criterioAvance: {"tipo":"segundos","valor":30,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "core"
   },
   'l-sit': {
     id: 'l-sit',
@@ -1024,7 +1318,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Flexionar las rodillas para compensar falta de fuerza.',
       'Encoger los hombros en vez de mantenerlos deprimidos.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["plancha"],
+    progresionDe: "plancha",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "core"
   },
   'hollow body hold': {
     id: 'hollow body hold',
@@ -1041,7 +1342,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Despegar la espalda baja del piso.',
       'Elevar demasiado las piernas, perdiendo la tensión de core.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"segundos","valor":20,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "core"
   },
   'wall sit': {
     id: 'wall sit',
@@ -1058,7 +1366,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Rodillas por delante de la punta del pie.',
       'Despegar la espalda de la pared.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"segundos","valor":30,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla"
   },
   'handstand contra pared': {
     id: 'handstand contra pared',
@@ -1075,7 +1390,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Arquear demasiado la espalda baja.',
       'Perder la alineación de hombros sobre las manos.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["pike push-up"],
+    progresionDe: "pike push-up",
+    criterioAvance: {"tipo":"segundos","valor":20,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-vertical"
   },
   'wall walk': {
     id: 'wall walk',
@@ -1092,7 +1414,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Avanzar demasiado rápido perdiendo el control del core.',
       'No mantener el cuerpo alineado durante el ascenso.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":5,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-vertical"
   },
   // --- Rama "estáticos" del árbol de progresión (handstand libre) ---
   'handstand (libre)': {
@@ -1199,7 +1528,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Perder la forma de la espalda al llevar los pies hacia atrás.',
       'No completar el salto final.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "locomocion"
   },
   'escaladores': {
     id: 'escaladores',
@@ -1216,7 +1552,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Elevar la cadera durante el movimiento.',
       'Perder la velocidad/ritmo por fatiga de core.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"segundos","valor":30,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "core"
   },
   'sentadilla con salto': {
     id: 'sentadilla con salto',
@@ -1234,7 +1577,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Aterrizar con las piernas rígidas (mal amortiguado).',
       'Rodillas colapsando hacia adentro al aterrizar.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["sentadilla con peso corporal"],
+    progresionDe: "sentadilla con peso corporal",
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla"
   },
   'zancadas saltadas': {
     id: 'zancadas saltadas',
@@ -1251,7 +1601,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Aterrizar sin amortiguar (rodillas rígidas).',
       'Perder el equilibrio por falta de control en el aire.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["zancadas"],
+    progresionDe: "zancadas",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla"
   },
 
   // ============================ HIIT / CARDIO ============================
@@ -1271,7 +1628,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Aterrizar con las piernas rígidas.',
       'Perder el ritmo constante por fatiga.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"segundos","valor":30,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "locomocion"
   },
   'sprint': {
     id: 'sprint',
@@ -1289,7 +1653,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Saltarse el calentamiento (riesgo de lesión).',
       'Sobrezancada (dar pasos demasiado largos).'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["trote continuo"],
+    progresionDe: "trote continuo",
+    criterioAvance: {"tipo":"segundos","valor":30,"series":4},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "locomocion"
   },
   'trote continuo': {
     id: 'trote continuo',
@@ -1306,7 +1677,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Empezar a un ritmo demasiado alto y no poder sostenerlo.',
       'Postura tensa en hombros y mandíbula.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: ["caminata"],
+    progresionDe: "caminata",
+    criterioAvance: {"tipo":"segundos","valor":1200,"series":1},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "locomocion"
   }
 };
 
