@@ -1333,6 +1333,26 @@ export function getEjercicioMetadata(nombre) {
   return fallback;
 }
 
+// Índice inverso nombre -> id, construido una sola vez al cargar el módulo.
+// A diferencia de getEjercicioMetadata() (fuzzy: hace match por substring
+// para resolver texto libre que el usuario tipeó a mano), esto es SOLO
+// coincidencia exacta — lo usa db.js para vincular una sesión al
+// ejercicioId estable del catálogo (Fase "Etapa 1"). Un falso positivo acá
+// vincularía el historial de dos ejercicios distintos para siempre, así
+// que no vale correr el riesgo del fuzzy match en este camino.
+const NOMBRE_A_ID = new Map(
+  Object.values(CATALOGO_EJERCICIOS).map(e => [e.nombre.toLowerCase().trim(), e.id])
+);
+
+// Devuelve el id de catálogo cuyo `nombre` coincide EXACTO (case-insensitive,
+// trim) con `nombre`, o null si no hay coincidencia — típicamente un
+// ejercicio que el usuario escribió a mano y no está en el catálogo. null
+// es una respuesta válida y esperada, no un error.
+export function getIdPorNombreExacto(nombre) {
+  if (!nombre) return null;
+  return NOMBRE_A_ID.get(nombre.toLowerCase().trim()) || null;
+}
+
 // Orden lógico y etiquetas para agrupar ejercicios por grupo muscular
 // dentro de una rutina/plantilla. 'otro' cubre ejercicios sueltos que el
 // usuario escribe a mano y no matchean el catálogo.

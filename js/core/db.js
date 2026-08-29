@@ -1,4 +1,4 @@
-import { getEjercicioMetadata, GRUPO_MUSCULAR_ORDEN } from './ejercicios-catalogo.js';
+import { getEjercicioMetadata, getEjercicioPorId, getIdPorNombreExacto, GRUPO_MUSCULAR_ORDEN } from './ejercicios-catalogo.js';
 import * as idb from './idb.js';
 
 function toSafeNumber(value) {
@@ -60,6 +60,59 @@ async function idbSetArray(store, arr) {
   try { await idb.putAllReplacing(store, arr); }
   catch (e) { console.error(`[Vanguard OS] Error escribiendo IndexedDB store "${store}"`, e); }
 }
+// Migración perezosa de ejercicioId ("Etapa 1" del plan de refundación de
+// Entrenamiento): las sesiones guardadas antes de este cambio solo tienen
+// `nombre` en cada ejercicio. Cada vez que una función de historial lee el
+// store 'sesiones', pasa por acá primero: se resuelve el ejercicioId que
+// falte contra el catálogo actual y se persiste — nunca un batch al
+// arrancar, eso bloquearía el arranque con historial grande. Si ninguna
+// entrada necesitaba parche, no se escribe nada (no-op barato en cada
+// lectura posterior a la primera). Deliberadamente NO emite logEvent(): es
+// un backfill de esquema, no una acción del usuario — si emitiera evento,
+// racha y heatmap se llenarían de actividad falsa el día que corra.
+async function getSesionesConMigracionPerezosa() {
+  const sesiones = await idbGetArray('sesiones');
+  let cambiaron = false;
+
+  sesiones.forEach(s => {
+    (s.ejercicios || []).forEach(ej => {
+      // undefined = nunca se intentó resolver (sesión vieja). null explícito
+      // = ya se intentó y no matcheó ningún id (ejercicio personalizado) —
+      // eso NO se reintenta en cada lectura, queda resuelto para siempre.
+      if (ej.ejercicioId === undefined) {
+        ej.ejercicioId = getIdPorNombreExacto(ej.nombre);
+        cambiaron = true;
+      }
+    });
+  });
+
+  if (cambiaron) await idbSetArray('sesiones', sesiones);
+  return sesiones;
+}
+
+// Compara una entrada de ejercicio de sesión contra el ejercicio buscado:
+// por ejercicioId si la entrada ya lo tiene (estable ante un futuro
+// renombre del catálogo), si no por nombre actual (sesiones sin migrar, o
+// ejercicios personalizados que nunca van a resolver a un id — ver
+// getIdPorNombreExacto en ejercicios-catalogo.js). `nombreObjetivoLower` ya
+// viene en minúscula/trim, resuelto una sola vez por el caller.
+function matchEjercicio(entry, nombreObjetivoLower, idObjetivo) {
+  if (entry.ejercicioId) return entry.ejercicioId === idObjetivo;
+  return entry.nombre.toLowerCase().trim() === nombreObjetivoLower;
+}
+
+// Resuelve la metadata (grupoMuscular/patron/etc.) de una entrada de
+// ejercicio de sesión: por ejercicioId si está (exacto, vía getEjercicioPorId),
+// si no por nombre (getEjercicioMetadata, que sí hace fuzzy match — el mismo
+// comportamiento que ya tenía esto antes de Etapa 1 para texto libre).
+function resolverMetadataEjercicio(ej) {
+  if (ej.ejercicioId) {
+    const porId = getEjercicioPorId(ej.ejercicioId);
+    if (porId) return porId;
+  }
+  return getEjercicioMetadata(ej.nombre);
+}
+
 async function idbGetSingleton(key, defaultValue) {
   try {
     const row = await idb.getOne('singletons', key);
@@ -896,10 +949,12 @@ export const db = {
     return sesiones.sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
   },
   async getUltimoRegistro(ejercicioNombre) {
-    const sesiones = (await idbGetArray('sesiones')).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+    const nombreObjetivoLower = ejercicioNombre.toLowerCase().trim();
+    const idObjetivo = getIdPorNombreExacto(ejercicioNombre);
+    const sesiones = (await getSesionesConMigracionPerezosa()).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
     for (let s of sesiones) {
       if (s.ejercicios) {
-        const ej = s.ejercicios.find(e => e.nombre.toLowerCase() === ejercicioNombre.toLowerCase());
+        const ej = s.ejercicios.find(e => matchEjercicio(e, nombreObjetivoLower, idObjetivo));
         if (ej && ej.series && ej.series.length > 0) {
           return ej;
         }
@@ -920,7 +975,15 @@ export const db = {
       fecha: data.fecha || now.toISOString(),
       duracionMin: data.duracionMin || 0,
       completado: data.completado || false,
-      ejercicios: data.ejercicios || [], // NUEVO: guardar detalle real
+      // ejercicioId se resuelve acá, no se pide al llamador: es el único
+      // punto donde se arma data.ejercicios, así que es el único lugar que
+      // necesita saber cómo vincular el historial al catálogo (Etapa 1).
+      // `nombre` nunca se quita — las sesiones ya guardadas solo tienen eso.
+      ejercicios: (data.ejercicios || []).map(ej => ({
+        ejercicioId: ej.ejercicioId !== undefined ? ej.ejercicioId : getIdPorNombreExacto(ej.nombre),
+        nombre: ej.nombre,
+        series: ej.series
+      })),
       rpe: data.rpe ?? null, // NUEVO: esfuerzo percibido de toda la sesión (1-10)
       notas: data.notas || '' // NUEVO: notas libres
     };
@@ -1026,11 +1089,12 @@ export const db = {
 
   async sugerirProgresion(ejercicioNombre) {
     const nomClean = ejercicioNombre.toLowerCase().trim();
-    const sesiones = (await idbGetArray('sesiones')).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+    const idObjetivo = getIdPorNombreExacto(ejercicioNombre);
+    const sesiones = (await getSesionesConMigracionPerezosa()).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
 
     for (const s of sesiones) {
       if (!s.ejercicios) continue;
-      const ej = s.ejercicios.find(e => e.nombre.toLowerCase().trim() === nomClean);
+      const ej = s.ejercicios.find(e => matchEjercicio(e, nomClean, idObjetivo));
       if (ej && ej.series && ej.series.length > 0) {
         let isHard = false;
         let pMax = 0;
@@ -1404,7 +1468,7 @@ export const db = {
   },
 
   async getVolumenPorGrupo(rangoDias, categoria = null) {
-    const sesiones = await idbGetArray('sesiones');
+    const sesiones = await getSesionesConMigracionPerezosa();
     const rutinas = categoria ? await idbGetArray('rutinas') : null;
     const catMap = {};
     if (rutinas) rutinas.forEach(r => catMap[r.id] = r.categoria);
@@ -1429,7 +1493,7 @@ export const db = {
       if (sDate >= startDate && sDate <= now) {
         if (s.ejercicios) {
           s.ejercicios.forEach(ej => {
-            const meta = getEjercicioMetadata(ej.nombre);
+            const meta = resolverMetadataEjercicio(ej);
             if (volumen[meta.grupoMuscular] !== undefined) volumen[meta.grupoMuscular] += ej.series.length;
             else volumen.otro += ej.series.length;
 
@@ -1448,7 +1512,7 @@ export const db = {
   // se calculan las 3 métricas seleccionables (series, volumen en kg,
   // repeticiones) más los totales del período.
   async getDesgloseGrupoMuscular(startDate, endDate) {
-    const sesiones = await idbGetArray('sesiones');
+    const sesiones = await getSesionesConMigracionPerezosa();
     const start = new Date(startDate); start.setHours(0, 0, 0, 0);
     const end = new Date(endDate); end.setHours(23, 59, 59, 999);
 
@@ -1462,7 +1526,7 @@ export const db = {
       if (fecha < start || fecha > end) return;
       entrenamientos++;
       (s.ejercicios || []).forEach(ej => {
-        const meta = getEjercicioMetadata(ej.nombre);
+        const meta = resolverMetadataEjercicio(ej);
         const bucket = grupos[meta.grupoMuscular] || grupos.otro;
         (ej.series || []).forEach(serie => {
           const peso = Number(serie.peso) || 0;
@@ -1487,13 +1551,13 @@ export const db = {
   // sesiones, con su grupo muscular resuelto — para el selector de la
   // pestaña Ejercicios de Análisis.
   async getListaEjerciciosRegistrados() {
-    const sesiones = await idbGetArray('sesiones');
+    const sesiones = await getSesionesConMigracionPerezosa();
     const map = new Map();
     sesiones.forEach(s => {
       (s.ejercicios || []).forEach(ej => {
         const key = ej.nombre.toLowerCase().trim();
         if (!map.has(key)) {
-          map.set(key, { nombre: ej.nombre.trim(), grupoMuscular: getEjercicioMetadata(ej.nombre).grupoMuscular });
+          map.set(key, { nombre: ej.nombre.trim(), grupoMuscular: resolverMetadataEjercicio(ej).grupoMuscular });
         }
       });
     });
@@ -1518,16 +1582,29 @@ export const db = {
     return favoritos;
   },
 
+  // El diccionario que devuelve queda igual que antes (clave = nombre en
+  // minúscula/trim, mismo shape) — rutina-session.js y estandares-fuerza.js
+  // lo indexan así y no hay motivo para tocar esa firma. Lo que cambia por
+  // dentro es la AGREGACIÓN: primero se agrupa por identidad (ejercicioId si
+  // existe, si no el nombre) para que el PR de un ejercicio no se fragmente
+  // entre su nombre viejo y uno nuevo si el catálogo llegara a renombrarlo
+  // — sin esto, después de un rename el pesoMax acumulado bajo el nombre
+  // viejo quedaría invisible al buscar por el nombre nuevo. Después se
+  // expone el mismo valor agregado bajo TODAS las variantes de nombre que
+  // ese ejercicio usó alguna vez, así cualquier lookup (nombre actual o uno
+  // viejo que quedó en una sesión sin migrar) ve el mismo PR correcto.
   async getPRs() {
-    const sesiones = await idbGetArray('sesiones');
-    const prs = {};
+    const sesiones = await getSesionesConMigracionPerezosa();
     const favoritos = await idbGetSingleton('prFavoritos', []);
+    const grupos = new Map(); // identidad -> { pesoMax, repsMax, fecha, nombres: Set<nombreOriginalTrim> }
 
     sesiones.forEach(s => {
       if (s.ejercicios) {
         s.ejercicios.forEach(ej => {
-          const nombre = ej.nombre.toLowerCase().trim();
-          if (!prs[nombre]) prs[nombre] = { nombre: ej.nombre.trim(), pesoMax: 0, repsMax: 0, fecha: s.fecha };
+          const identidad = ej.ejercicioId ? `id:${ej.ejercicioId}` : `nombre:${ej.nombre.toLowerCase().trim()}`;
+          if (!grupos.has(identidad)) grupos.set(identidad, { ejercicioId: ej.ejercicioId || null, pesoMax: 0, repsMax: 0, fecha: s.fecha, nombres: new Set() });
+          const g = grupos.get(identidad);
+          g.nombres.add(ej.nombre.trim());
 
           ej.series.forEach(serie => {
             const peso = Number(serie.peso) || 0;
@@ -1535,19 +1612,19 @@ export const db = {
             const match = repsStr.match(/\d+/);
             const reps = match ? parseInt(match[0]) : 0;
 
-            if (peso > prs[nombre].pesoMax) {
-              prs[nombre].pesoMax = peso;
-              prs[nombre].repsMax = reps;
-              prs[nombre].fecha = s.fecha;
-            } else if (peso === prs[nombre].pesoMax && peso > 0) {
-               if (reps > prs[nombre].repsMax) {
-                 prs[nombre].repsMax = reps;
-                 prs[nombre].fecha = s.fecha;
+            if (peso > g.pesoMax) {
+              g.pesoMax = peso;
+              g.repsMax = reps;
+              g.fecha = s.fecha;
+            } else if (peso === g.pesoMax && peso > 0) {
+               if (reps > g.repsMax) {
+                 g.repsMax = reps;
+                 g.fecha = s.fecha;
                }
-            } else if (peso === 0 && prs[nombre].pesoMax === 0) {
-              if (reps > prs[nombre].repsMax) {
-                 prs[nombre].repsMax = reps;
-                 prs[nombre].fecha = s.fecha;
+            } else if (peso === 0 && g.pesoMax === 0) {
+              if (reps > g.repsMax) {
+                 g.repsMax = reps;
+                 g.fecha = s.fecha;
               }
             }
           });
@@ -1555,9 +1632,18 @@ export const db = {
       }
     });
 
-    Object.keys(prs).forEach(nombre => {
-      prs[nombre].grupoMuscular = getEjercicioMetadata(nombre).grupoMuscular;
-      prs[nombre].favorito = favoritos.includes(nombre);
+    const prs = {};
+    grupos.forEach(g => {
+      // Nombre a mostrar: el del catálogo hoy si hay ejercicioId (exacto),
+      // si no cualquiera de las variantes con las que se guardó (personalizado).
+      const catalogo = g.ejercicioId ? getEjercicioPorId(g.ejercicioId) : null;
+      const nombreDisplay = catalogo ? catalogo.nombre : g.nombres.values().next().value;
+      const grupoMuscular = catalogo ? catalogo.grupoMuscular : getEjercicioMetadata(nombreDisplay).grupoMuscular;
+
+      g.nombres.forEach(nombreVariante => {
+        const key = nombreVariante.toLowerCase().trim();
+        prs[key] = { nombre: nombreDisplay, pesoMax: g.pesoMax, repsMax: g.repsMax, fecha: g.fecha, grupoMuscular, favorito: favoritos.includes(key) };
+      });
     });
     return prs;
   },
@@ -1581,12 +1667,13 @@ export const db = {
 
   async getHistorialEjercicio(nombre) {
     const nomClean = nombre.toLowerCase().trim();
-    const sesiones = (await idbGetArray('sesiones')).sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
+    const idObjetivo = getIdPorNombreExacto(nombre);
+    const sesiones = (await getSesionesConMigracionPerezosa()).sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
     const historial = [];
 
     sesiones.forEach(s => {
       if (s.ejercicios) {
-        const ej = s.ejercicios.find(e => e.nombre.toLowerCase().trim() === nomClean);
+        const ej = s.ejercicios.find(e => matchEjercicio(e, nomClean, idObjetivo));
         if (ej && ej.series && ej.series.length > 0) {
           let pesoMax = -9999;
           let repsEnPesoMax = 0;
