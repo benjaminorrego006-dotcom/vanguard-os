@@ -106,7 +106,24 @@ function fronteraDeRama(rama, historialPorNombre) {
     desbloqueadoParaFrontera(id, historialPorNombre) &&
     !esDominado(id, historialPorNombre)
   );
-  if (candidatos.length === 0) return { nodoId: null, nivel: 'avanzado', maxeada: true };
+  if (candidatos.length === 0) {
+    // Sin candidatos no siempre significa "dominaste todo lo que esta rama
+    // tiene para ofrecer" — puede ser que lo que sigue esté BLOQUEADO por un
+    // prerrequisito de OTRA rama (ej. Empuje Vertical: una vez dominado Pike
+    // Push-up, Handstand contra Pared sigue sin poder tocarse porque
+    // requiere Crow Pose, que vive en Core). Declarar "avanzado" ahí
+    // sobreclama: el usuario no dominó la rama, solo agotó lo poco que
+    // podía alcanzar sin entrenar otro patrón primero. Solo es "maxeada" de
+    // verdad cuando NO queda ningún nodo real (con objetivo) sin dominar en
+    // toda la rama, ni siquiera uno bloqueado.
+    const idsConObjetivo = idsRama.filter(id => ARBOL_PROGRESIONES[id].objetivo);
+    const quedaAlgoSinDominar = idsConObjetivo.some(id => !esDominado(id, historialPorNombre));
+    if (!quedaAlgoSinDominar) return { nodoId: null, nivel: 'avanzado', maxeada: true, bloqueo: null };
+
+    const dominado = nodoDominadoMasProfundo(rama, historialPorNombre);
+    const bloqueo = nodoBloqueadoMasCercano(rama, historialPorNombre);
+    return { nodoId: null, nivel: dominado ? dominado.nivel : 'principiante', maxeada: false, bloqueo };
+  }
 
   const conNivel = candidatos.map(id => {
     const entry = getEjercicioPorId(id);
@@ -124,7 +141,31 @@ function fronteraDeRama(rama, historialPorNombre) {
     a.id.localeCompare(b.id)
   );
 
-  return { nodoId: conNivel[0].id, nivel: conNivel[0].nivel, maxeada: false };
+  return { nodoId: conNivel[0].id, nivel: conNivel[0].nivel, maxeada: false, bloqueo: null };
+}
+
+// El nodo bloqueado más cercano (menos profundo) de una rama: el primer
+// "siguiente paso real" que existe en el árbol pero que un prerrequisito de
+// OTRA rama todavía no deja tocar. Identifica también cuál es ese
+// prerrequisito faltante, para poder decirle al usuario adónde ir a
+// destrabarlo en vez de solo declarar la rama "avanzada" sin más.
+function nodoBloqueadoMasCercano(rama, historialPorNombre) {
+  const idsRama = Object.keys(ARBOL_PROGRESIONES).filter(id => ARBOL_PROGRESIONES[id].rama === rama && ARBOL_PROGRESIONES[id].objetivo);
+  const bloqueados = idsRama.filter(id => !desbloqueadoParaFrontera(id, historialPorNombre) && !esDominado(id, historialPorNombre));
+  if (bloqueados.length === 0) return null;
+
+  bloqueados.sort((a, b) => profundidadNodo(a) - profundidadNodo(b) || a.localeCompare(b));
+  const nodo = ARBOL_PROGRESIONES[bloqueados[0]];
+  const faltanteId = nodo.requiere.find(reqId => {
+    const req = ARBOL_PROGRESIONES[reqId];
+    return !req || !req.objetivo || !contarSeriesLimpias(historialPorNombre[req.nombre], req.objetivo);
+  });
+  const faltante = faltanteId ? ARBOL_PROGRESIONES[faltanteId] : null;
+  return {
+    nombre: nodo.nombre,
+    faltanteNombre: faltante ? faltante.nombre : null,
+    faltanteRama: faltante ? faltante.rama : null
+  };
 }
 
 // El nodo dominado más profundo de una rama, o null si no hay ninguno.
@@ -138,7 +179,9 @@ function nodoDominadoMasProfundo(rama, historialPorNombre) {
   const dominados = idsRama.filter(id => esDominado(id, historialPorNombre));
   if (dominados.length === 0) return null;
   dominados.sort((a, b) => profundidadNodo(b) - profundidadNodo(a));
-  return getEjercicioPorId(dominados[0])?.nombre || null;
+  const entry = getEjercicioPorId(dominados[0]);
+  if (!entry) return null;
+  return { nombre: entry.nombre, nivel: normalizarNivel(entry.nivel, entry.progresionDe) };
 }
 
 // Fecha más reciente en la que el usuario entrenó CUALQUIER nodo de una
@@ -184,10 +227,17 @@ export async function calcularNivelPorRama(historialPorNombre) {
     // realmente se eligió para decidir si tiene sentido decir "es tu
     // próximo paso" — normalmente NO es el mismo, porque casi siempre hay
     // más de un candidato válido al mismo nivel dentro de una modalidad.
-    let origen = !frontera ? 'sin-datos' : frontera.maxeada ? 'arbol-maxeada' : 'arbol';
-    let frontierNombre = (frontera && !frontera.maxeada) ? (getEjercicioPorId(frontera.nodoId)?.nombre || null) : null;
+    let origen = !frontera ? 'sin-datos'
+      : frontera.maxeada ? 'arbol-maxeada'
+      : frontera.nodoId === null ? 'arbol-bloqueada'
+      : 'arbol';
+    let frontierNombre = (origen === 'arbol') ? (getEjercicioPorId(frontera.nodoId)?.nombre || null) : null;
     let fuente = origen === 'sin-datos' ? 'sin datos'
       : origen === 'arbol-maxeada' ? 'árbol de progresión (al tope)'
+      : origen === 'arbol-bloqueada'
+        ? (frontera.bloqueo
+          ? `árbol de progresión (siguiente paso bloqueado: ${frontera.bloqueo.nombre}, requiere ${frontera.bloqueo.faltanteNombre} de ${RAMA_LABELS[frontera.bloqueo.faltanteRama]})`
+          : 'árbol de progresión (siguiente paso bloqueado)')
       : `árbol de progresión · próximo paso: ${frontierNombre}`;
 
     // Caso "logro huérfano": la frontera reportada es una raíz (no depende
@@ -201,8 +251,9 @@ export async function calcularNivelPorRama(historialPorNombre) {
     // nada" cuando sí progresaste, solo que por un camino que no siguió.
     let notaDominado = null;
     if (origen === 'arbol' && ARBOL_PROGRESIONES[frontera.nodoId].requiere.length === 0) {
-      notaDominado = nodoDominadoMasProfundo(rama, historialPorNombre);
+      notaDominado = nodoDominadoMasProfundo(rama, historialPorNombre)?.nombre || null;
     }
+    let bloqueo = origen === 'arbol-bloqueada' ? frontera.bloqueo : null;
 
     const liftId = LEVANTAMIENTO_POR_RAMA[rama];
     if (liftId && pesoKg > 0) {
@@ -217,6 +268,7 @@ export async function calcularNivelPorRama(historialPorNombre) {
           origen = 'estandares';
           frontierNombre = null;
           notaDominado = null;
+          bloqueo = null;
           fuente = `Estándares de Fuerza (${nivelInfo.label})`;
         }
       }
@@ -230,7 +282,7 @@ export async function calcularNivelPorRama(historialPorNombre) {
       bajadoPorInactividad = true;
     }
 
-    resultado[rama] = { nivel, origen, frontierNombre, notaDominado, fuente, bajadoPorInactividad, diasSinEntrenar };
+    resultado[rama] = { nivel, origen, frontierNombre, notaDominado, bloqueo, fuente, bajadoPorInactividad, diasSinEntrenar };
   });
 
   return resultado;
@@ -361,6 +413,12 @@ function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido) {
   }
   if (nivelInfo.origen === 'arbol-maxeada') {
     return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — llegaste al techo de lo que cubre el árbol de progresión en este patrón.`;
+  }
+  if (nivelInfo.origen === 'arbol-bloqueada') {
+    const detalle = nivelInfo.bloqueo
+      ? ` El siguiente paso (${nivelInfo.bloqueo.nombre}) todavía requiere ${nivelInfo.bloqueo.faltanteNombre} de ${RAMA_LABELS[nivelInfo.bloqueo.faltanteRama]}.`
+      : '';
+    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — no es que hayas llegado al techo, es que lo que sigue en el árbol está bloqueado por otro patrón.${detalle}`;
   }
   if (nivelInfo.origen === 'estandares') {
     return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} (${nivelInfo.fuente}).`;
