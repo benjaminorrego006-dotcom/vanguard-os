@@ -130,9 +130,16 @@ export async function calcularNivelPorRama(historialPorNombre) {
   RAMA_ORDEN.forEach(rama => {
     const frontera = fronteraDeRama(rama, historialPorNombre);
     let nivel = frontera ? frontera.nivel : 'principiante';
-    let fuente = !frontera ? 'sin datos'
-      : frontera.maxeada ? 'árbol de progresión (al tope)'
-      : `árbol de progresión · próximo paso: ${getEjercicioPorId(frontera.nodoId)?.nombre || ''}`;
+    // origen + frontierNombre quedan SEPARADOS del texto armado (fuente):
+    // motivoPara() necesita comparar frontierNombre contra el ejercicio que
+    // realmente se eligió para decidir si tiene sentido decir "es tu
+    // próximo paso" — normalmente NO es el mismo, porque casi siempre hay
+    // más de un candidato válido al mismo nivel dentro de una modalidad.
+    let origen = !frontera ? 'sin-datos' : frontera.maxeada ? 'arbol-maxeada' : 'arbol';
+    let frontierNombre = (frontera && !frontera.maxeada) ? (getEjercicioPorId(frontera.nodoId)?.nombre || null) : null;
+    let fuente = origen === 'sin-datos' ? 'sin datos'
+      : origen === 'arbol-maxeada' ? 'árbol de progresión (al tope)'
+      : `árbol de progresión · próximo paso: ${frontierNombre}`;
 
     const liftId = LEVANTAMIENTO_POR_RAMA[rama];
     if (liftId && pesoKg > 0) {
@@ -142,7 +149,12 @@ export async function calcularNivelPorRama(historialPorNombre) {
         const ratio = oneRM / pesoKg;
         const nivelInfo = getNivel(liftId, sexo, ratio);
         const nivelRatio = nivelInfo.nivel === 'avanzado' ? 'avanzado' : nivelInfo.nivel === 'intermedio' ? 'intermedio' : 'principiante';
-        if (NIVEL_RANGO[nivelRatio] > NIVEL_RANGO[nivel]) { nivel = nivelRatio; fuente = `Estándares de Fuerza (${nivelInfo.label})`; }
+        if (NIVEL_RANGO[nivelRatio] > NIVEL_RANGO[nivel]) {
+          nivel = nivelRatio;
+          origen = 'estandares';
+          frontierNombre = null;
+          fuente = `Estándares de Fuerza (${nivelInfo.label})`;
+        }
       }
     }
 
@@ -154,7 +166,7 @@ export async function calcularNivelPorRama(historialPorNombre) {
       bajadoPorInactividad = true;
     }
 
-    resultado[rama] = { nivel, fuente, bajadoPorInactividad, diasSinEntrenar };
+    resultado[rama] = { nivel, origen, frontierNombre, fuente, bajadoPorInactividad, diasSinEntrenar };
   });
 
   return resultado;
@@ -259,7 +271,14 @@ function seriesDesdeObjetivo(entry) {
   return Array.from({ length: c.series || 3 }, () => ({ tipo: 'normal', reps, peso: 0 }));
 }
 
-function motivoPara(patron, nivelInfo, relajado, nivelUsado) {
+// nombreElegido: el ejercicio que efectivamente se va a prescribir. Casi
+// siempre hay más de un candidato válido al mismo nivel dentro de una
+// modalidad, así que NO se puede asumir que sea el nodo frontera del árbol
+// (el que calcularNivelPorRama usó para fijar el nivel) — decirle al
+// usuario "próximo paso: X" cuando en realidad le estamos prescribiendo Y
+// es la caja negra que la Etapa 4a pidió evitar. Solo se nombra el nodo
+// frontera cuando de verdad es el mismo ejercicio elegido.
+function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido) {
   const ramaLabel = RAMA_LABELS[patron];
   if (relajado) {
     return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel}, pero no hay opciones a ese nivel con el equipo que declaraste — un paso ${nivelUsado} en su lugar.`;
@@ -267,7 +286,19 @@ function motivoPara(patron, nivelInfo, relajado, nivelUsado) {
   if (nivelInfo.bajadoPorInactividad) {
     return `Hace ${nivelInfo.diasSinEntrenar} días que no entrenás ${ramaLabel} — bajamos la exigencia un escalón para retomar con cuidado.`;
   }
-  return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} (${nivelInfo.fuente}).`;
+  if (nivelInfo.origen === 'arbol' && nivelInfo.frontierNombre === nombreElegido) {
+    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — es tu próximo paso pendiente en el árbol de progresión.`;
+  }
+  if (nivelInfo.origen === 'arbol' && nivelInfo.frontierNombre) {
+    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — este ejercicio está a tu nivel (tu próximo paso pendiente en el árbol es ${nivelInfo.frontierNombre}).`;
+  }
+  if (nivelInfo.origen === 'arbol-maxeada') {
+    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — llegaste al techo de lo que cubre el árbol de progresión en este patrón.`;
+  }
+  if (nivelInfo.origen === 'estandares') {
+    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} (${nivelInfo.fuente}).`;
+  }
+  return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel}.`;
 }
 
 // Recorre `patrones` en ronda (round robin) tomando UN ejercicio nuevo por
@@ -311,7 +342,7 @@ function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, 
       ejercicioId: elegido.id,
       nombre: elegido.nombre,
       series: categoria === 'hiit' ? null : seriesDesdeObjetivo(elegido),
-      motivo: motivoPara(patron, nivelInfo, relajado, nivelUsado)
+      motivo: motivoPara(patron, nivelInfo, relajado, nivelUsado, elegido.nombre)
     });
     vueltasSinExito = 0;
   }
