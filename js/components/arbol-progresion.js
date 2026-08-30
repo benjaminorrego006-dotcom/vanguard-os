@@ -1,6 +1,13 @@
-// Vista de solo lectura del árbol de progresión (Etapa 3: ahora cubre las
-// tres modalidades — gym, calistenia, HIIT — no solo calistenia). Vive
-// dentro de la ruta Entreno, así que hereda el theming MK III de
+// Vista de solo lectura del árbol de progresión. El dato (progresiones.js)
+// es unificado — cubre gym/calistenia/hiit y no sabe de "modalidades", solo
+// de patronMovimiento — pero cada modalidad necesita ver SU propio árbol:
+// mostrar "Dominadas" (gym) como tarjeta suelta dentro de la vista de
+// Calistenia era confuso. El filtro por modalidad vive acá, en la vista,
+// nunca en progresiones.js: el generador de rutinas (Etapa 4) necesita leer
+// el árbol completo sin filtrar para poder cruzar prerrequisitos entre
+// modalidades (ej. el camino a Front Lever pasa por Dominadas de gym).
+//
+// Vive dentro de la ruta Entreno, así que hereda el theming MK III de
 // html.mk3-entreno en components.css sin CSS propio: .card ya sale con
 // chaflán (clip-path, sin border-radius), sin box-shadow y en monoespaciada;
 // var(--accent-teal) ya está redefinida a var(--cy) en ese contexto. No hay
@@ -13,6 +20,16 @@
 // premia — no hay confetti ni mensaje de felicitación en ningún lado acá.
 import { db } from '../core/db.js';
 import { ARBOL_PROGRESIONES, RAMA_ORDEN, RAMA_LABELS, profundidadNodo, estaDesbloqueado, getPrerrequisitos } from '../core/progresiones.js';
+import { getEjercicioPorId } from '../core/ejercicios-catalogo.js';
+
+const MODALIDAD_LABELS = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
+
+// Todas las modalidades a las que pertenece un nodo: su categoria principal
+// más cualquier tambienEn (ej. "Zancadas Saltadas" es calistenia Y hiit).
+function modalidadesDe(id) {
+  const e = getEjercicioPorId(id);
+  return new Set(e ? [e.categoria, ...(e.tambienEn || [])] : []);
+}
 
 // Clustering PURAMENTE de presentación: estos ids son nodos de "habilidad"
 // (front lever, planche, handstand, muscle-up, etc.) que el catálogo
@@ -37,12 +54,20 @@ const formatObjetivo = (objetivo) => {
     : `${objetivo.series} × ${objetivo.reps} reps`;
 };
 
-function renderPrerrequisitos(nodoId, prereqs) {
+// Un prerrequisito puede vivir en otra rama, otra modalidad, o ambas — un
+// nodo de Calistenia bloqueado por "Dominadas" (gym, rama Tracción Vertical)
+// necesita las dos etiquetas para que quede claro DÓNDE ir a trabajar eso,
+// ya que "Dominadas" no tiene tarjeta propia dentro de esta vista filtrada.
+function renderPrerrequisitos(nodoId, prereqs, categoria) {
   const nodo = ARBOL_PROGRESIONES[nodoId];
   const items = prereqs.map(p => {
+    const cruzaModalidad = !modalidadesDe(p.id).has(categoria);
     const cruzaRama = p.rama !== nodo.rama;
-    const etiquetaRama = cruzaRama ? ` <span style="color: var(--text-disabled); font-weight: 500;">(${RAMA_LABELS[p.rama]})</span>` : '';
-    return `<li>${p.nombre}${etiquetaRama} — ${formatObjetivo(p.objetivo)}</li>`;
+    const partes = [];
+    if (cruzaModalidad) partes.push(MODALIDAD_LABELS[getEjercicioPorId(p.id)?.categoria] || '');
+    if (cruzaRama) partes.push(RAMA_LABELS[p.rama]);
+    const etiqueta = partes.length ? ` <span style="color: var(--text-disabled); font-weight: 500;">(${partes.join(' · ')})</span>` : '';
+    return `<li>${p.nombre}${etiqueta} — ${formatObjetivo(p.objetivo)}</li>`;
   }).join('');
   return `
     <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary);">
@@ -52,7 +77,7 @@ function renderPrerrequisitos(nodoId, prereqs) {
   `;
 }
 
-function renderNodo(nodoId, bloqueado) {
+function renderNodo(nodoId, bloqueado, categoria) {
   const nodo = ARBOL_PROGRESIONES[nodoId];
   const esRaiz = nodo.requiere.length === 0;
   const prereqs = getPrerrequisitos(nodoId);
@@ -65,7 +90,7 @@ function renderNodo(nodoId, bloqueado) {
       </div>
       ${esRaiz
         ? `<div style="font-size: 10.5px; color: var(--text-disabled); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">Punto de partida</div>`
-        : bloqueado ? renderPrerrequisitos(nodoId, prereqs) : ''}
+        : bloqueado ? renderPrerrequisitos(nodoId, prereqs, categoria) : ''}
     </div>
   `;
 }
@@ -73,16 +98,18 @@ function renderNodo(nodoId, bloqueado) {
 const porProfundidad = (a, b) =>
   profundidadNodo(a) - profundidadNodo(b) || ARBOL_PROGRESIONES[a].nombre.localeCompare(ARBOL_PROGRESIONES[b].nombre);
 
-function renderRama(rama, historialPorNombre) {
-  const idsRama = Object.keys(ARBOL_PROGRESIONES).filter(id => ARBOL_PROGRESIONES[id].rama === rama);
+function renderRama(rama, historialPorNombre, categoria) {
+  const idsRama = Object.keys(ARBOL_PROGRESIONES)
+    .filter(id => ARBOL_PROGRESIONES[id].rama === rama)
+    .filter(id => modalidadesDe(id).has(categoria));
   const normales = idsRama.filter(id => !NODOS_ESTATICOS.has(id)).sort(porProfundidad);
   const estaticos = idsRama.filter(id => NODOS_ESTATICOS.has(id)).sort(porProfundidad);
   if (normales.length === 0 && estaticos.length === 0) return '';
 
-  const nodosNormalesHtml = normales.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre))).join('');
+  const nodosNormalesHtml = normales.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre), categoria)).join('');
   const nodosEstaticosHtml = estaticos.length === 0 ? '' : `
     <div style="font-size: 10.5px; font-weight: 700; color: var(--text-disabled); text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 8px 0;">Estáticos</div>
-    ${estaticos.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre))).join('')}
+    ${estaticos.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre), categoria)).join('')}
   `;
 
   return `
@@ -94,20 +121,22 @@ function renderRama(rama, historialPorNombre) {
   `;
 }
 
-export async function renderArbolProgresion() {
-  // Un solo barrido por ejercicio del árbol, en paralelo — cada uno es una
-  // lectura independiente de IndexedDB, no hay razón para serializarlas una
-  // por una.
+// categoria: 'gym' | 'calistenia' | 'hiit' — filtra qué nodos tienen tarjeta
+// propia en esta vista. El historial se sigue barriendo sobre TODO el árbol
+// (no solo los nodos visibles): un prerrequisito de otra modalidad no tiene
+// tarjeta acá, pero estaDesbloqueado() igual necesita su historial para
+// decidir si el nodo visible que depende de él está desbloqueado.
+export async function renderArbolProgresion(categoria) {
   const nombres = [...new Set(Object.values(ARBOL_PROGRESIONES).map(n => n.nombre))];
   const historiales = await Promise.all(nombres.map(nombre => db.getHistorialEjercicio(nombre)));
   const historialPorNombre = Object.fromEntries(nombres.map((nombre, i) => [nombre, historiales[i]]));
 
   return `
     <div>
-      <h2 style="font-size: 21px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Árbol de Progresión</h2>
+      <h2 style="font-size: 21px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Árbol de Progresión · ${MODALIDAD_LABELS[categoria] || ''}</h2>
       <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 4px 0; line-height: 1.5;">Qué entrenar después. Un paso se habilita cuando el historial registra series limpias del paso anterior.</p>
       <p style="font-size: 11px; color: var(--text-disabled); margin: 0 0 20px 0; line-height: 1.5; font-style: italic;">Es una referencia de la comunidad, no un veredicto sobre tu cuerpo — progresa al ritmo que te funcione.</p>
-      ${RAMA_ORDEN.map(rama => renderRama(rama, historialPorNombre)).join('')}
+      ${RAMA_ORDEN.map(rama => renderRama(rama, historialPorNombre, categoria)).join('')}
     </div>
   `;
 }

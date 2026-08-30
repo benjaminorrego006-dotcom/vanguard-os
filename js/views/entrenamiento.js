@@ -361,7 +361,7 @@ mountListeners = () => {
       (rutina) => goToSession(rutina),
       (plantilla) => goToPreview(plantilla, cat),
       signal,
-      cat === 'calistenia' ? () => goToArbolProgresion() : undefined,
+      () => goToArbolProgresion(),
       cat === 'gym' ? () => goToEstandaresFuerza() : undefined
     );
   };
@@ -375,7 +375,7 @@ mountListeners = () => {
     subView.style.display = 'block';
 
     try {
-      subContent.innerHTML = await renderArbolProgresion();
+      subContent.innerHTML = await renderArbolProgresion(categoriaActiva);
     } catch (err) {
       console.error('Error renderizando árbol de progresión:', err);
       subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
