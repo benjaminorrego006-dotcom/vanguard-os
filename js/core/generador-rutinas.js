@@ -127,6 +127,20 @@ function fronteraDeRama(rama, historialPorNombre) {
   return { nodoId: conNivel[0].id, nivel: conNivel[0].nivel, maxeada: false };
 }
 
+// El nodo dominado más profundo de una rama, o null si no hay ninguno.
+// Sirve para detectar el caso "dominaste algo real, pero la frontera
+// reportada es una raíz independiente que nunca tocaste" (ej. graduaste
+// Remo Invertido y Remo en Máquina, otra raíz de la misma rama sin
+// relación con esa, queda como "próximo paso" sin más contexto) — ver uso
+// en calcularNivelPorRama().
+function nodoDominadoMasProfundo(rama, historialPorNombre) {
+  const idsRama = Object.keys(ARBOL_PROGRESIONES).filter(id => ARBOL_PROGRESIONES[id].rama === rama);
+  const dominados = idsRama.filter(id => esDominado(id, historialPorNombre));
+  if (dominados.length === 0) return null;
+  dominados.sort((a, b) => profundidadNodo(b) - profundidadNodo(a));
+  return getEjercicioPorId(dominados[0])?.nombre || null;
+}
+
 // Fecha más reciente en la que el usuario entrenó CUALQUIER nodo de una
 // rama, o null si nunca. Usada para bajar la exigencia si hace más de un
 // mes que no se toca ese patrón — regla explícita de la Etapa 4a: "no
@@ -176,6 +190,20 @@ export async function calcularNivelPorRama(historialPorNombre) {
       : origen === 'arbol-maxeada' ? 'árbol de progresión (al tope)'
       : `árbol de progresión · próximo paso: ${frontierNombre}`;
 
+    // Caso "logro huérfano": la frontera reportada es una raíz (no depende
+    // de nada) mientras el usuario ya domina otro nodo real de la MISMA
+    // rama — normalmente porque esa rama tiene más de una raíz
+    // independiente (ej. Tracción Horizontal: Remo Invertido y Remo en
+    // Máquina no se conectan entre sí). El nivel no sube — el catálogo
+    // clasifica ambos como el mismo nivel de entrada, no hay con qué
+    // justificar subirlo — pero el motivo debe reconocer el trabajo real
+    // en vez de ignorarlo silenciosamente, para no sonar a "no progresaste
+    // nada" cuando sí progresaste, solo que por un camino que no siguió.
+    let notaDominado = null;
+    if (origen === 'arbol' && ARBOL_PROGRESIONES[frontera.nodoId].requiere.length === 0) {
+      notaDominado = nodoDominadoMasProfundo(rama, historialPorNombre);
+    }
+
     const liftId = LEVANTAMIENTO_POR_RAMA[rama];
     if (liftId && pesoKg > 0) {
       const pr = prs[getEjercicioPorId(liftId).nombre.toLowerCase().trim()];
@@ -188,6 +216,7 @@ export async function calcularNivelPorRama(historialPorNombre) {
           nivel = nivelRatio;
           origen = 'estandares';
           frontierNombre = null;
+          notaDominado = null;
           fuente = `Estándares de Fuerza (${nivelInfo.label})`;
         }
       }
@@ -201,7 +230,7 @@ export async function calcularNivelPorRama(historialPorNombre) {
       bajadoPorInactividad = true;
     }
 
-    resultado[rama] = { nivel, origen, frontierNombre, fuente, bajadoPorInactividad, diasSinEntrenar };
+    resultado[rama] = { nivel, origen, frontierNombre, notaDominado, fuente, bajadoPorInactividad, diasSinEntrenar };
   });
 
   return resultado;
@@ -321,11 +350,14 @@ function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido) {
   if (nivelInfo.bajadoPorInactividad) {
     return `Hace ${nivelInfo.diasSinEntrenar} días que no entrenás ${ramaLabel} — bajamos la exigencia un escalón para retomar con cuidado.`;
   }
+  const notaDominado = nivelInfo.notaDominado
+    ? ` Ya dominaste ${nivelInfo.notaDominado} — no desbloqueó nada más en este patrón porque son caminos independientes dentro de la misma rama.`
+    : '';
   if (nivelInfo.origen === 'arbol' && nivelInfo.frontierNombre === nombreElegido) {
-    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — es tu próximo paso pendiente en el árbol de progresión.`;
+    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — es tu próximo paso pendiente en el árbol de progresión.${notaDominado}`;
   }
   if (nivelInfo.origen === 'arbol' && nivelInfo.frontierNombre) {
-    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — este ejercicio está a tu nivel (tu próximo paso pendiente en el árbol es ${nivelInfo.frontierNombre}).`;
+    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — este ejercicio está a tu nivel (tu próximo paso pendiente en el árbol es ${nivelInfo.frontierNombre}).${notaDominado}`;
   }
   if (nivelInfo.origen === 'arbol-maxeada') {
     return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — llegaste al techo de lo que cubre el árbol de progresión en este patrón.`;
