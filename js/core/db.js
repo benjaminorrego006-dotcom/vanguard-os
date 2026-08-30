@@ -1040,6 +1040,28 @@ export const db = {
     return profile;
   },
 
+  // --- CONFIG DEL GENERADOR DE RUTINAS (Etapa 4a) ---
+  // Deliberadamente separado de 'profile' (que es para IMC/gasto calórico):
+  // saveProfile() reconstruye el objeto entero desde los campos que conoce,
+  // así que un campo de equipo colgado ahí se perdería en el próximo
+  // guardado del formulario de perfil. Singleton propio, mismo mecanismo.
+  async getGeneradorConfig() {
+    return idbGetSingleton('entrenoGeneradorConfig', null);
+  },
+  async saveGeneradorConfig(data) {
+    const equipoValido = ['barra', 'mancuernas', 'banda', 'anillas', 'cajon', 'kettlebell', 'maquina', 'banco', 'barra-dominadas'];
+    const config = {
+      equipoDisponible: Array.isArray(data.equipoDisponible) ? data.equipoDisponible.filter(e => equipoValido.includes(e)) : [],
+      diasSemana: Math.min(6, Math.max(2, toSafeNumber(data.diasSemana) || 3)),
+      duracionSesionMin: Math.min(120, Math.max(15, toSafeNumber(data.duracionSesionMin) || 45)),
+      actualizadoEn: new Date().toISOString()
+    };
+    await idbSetSingleton('entrenoGeneradorConfig', config);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'entreno', tipo: 'generador_config_actualizada', payload: config });
+    return config;
+  },
+
   // --- ANALYTICS ENTRENAMIENTO (FASE 1) ---
 
   async detectarNecesidadDeload(categoria = null) {

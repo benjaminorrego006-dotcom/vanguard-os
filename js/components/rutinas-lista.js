@@ -32,8 +32,11 @@ export async function renderRutinasLista(categoria) {
   let html = `
     <div style="margin-bottom: 24px;">
       <h2 style="font-size: 26px; font-weight: 800; margin: 0 0 16px 0; color: var(--text-primary); letter-spacing: -0.4px;">${catName}</h2>
-      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: rgba(92, 225, 230, 0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); font-size: 15px; font-weight: 700; cursor: pointer;">
+      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: rgba(92, 225, 230, 0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px;">
         + Nueva rutina
+      </button>
+      <button id="btn-generar-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: var(--accent-teal); border: none; color: #000; font-size: 15px; font-weight: 700; cursor: pointer;">
+        Generar Rutina
       </button>
     </div>
   `;
@@ -388,12 +391,17 @@ export function renderPlantillaPreview(plantilla) {
   return html;
 }
 
-export function initRutinasListaListeners(categoria, onNewRoutine, onStartSession, onPreviewMode, signal, onArbolProgresion, onEstandaresFuerza) {
+export function initRutinasListaListeners(categoria, onNewRoutine, onStartSession, onPreviewMode, signal, onArbolProgresion, onEstandaresFuerza, onGenerarRutina) {
   const btnNueva = document.getElementById('btn-nueva-rutina');
   if (btnNueva) {
     btnNueva.addEventListener('click', () => {
       onNewRoutine();
     }, { signal });
+  }
+
+  const btnGenerar = document.getElementById('btn-generar-rutina');
+  if (btnGenerar && onGenerarRutina) {
+    btnGenerar.addEventListener('click', () => onGenerarRutina(), { signal });
   }
 
   const btnArbol = document.getElementById('btn-ir-arbol-progresion');
@@ -462,6 +470,79 @@ export function initPlantillaPreviewListeners(categoria, plantilla, onSuccess, s
     }
 
     Toast(`Plantilla "${plantilla.nombre}" agregada a tus rutinas.`, "success");
+    if (onSuccess) onSuccess();
+  }, { signal });
+}
+
+// Preview del plan generado (Etapa 4a) — mismo patrón visual que
+// renderPlantillaPreview, pero cada ejercicio muestra su `motivo` (por qué
+// se eligió, no solo qué) y los `avisos` de patrones que no se pudieron
+// cubrir quedan arriba de todo, nunca ocultos. "Usar esta rutina" guarda
+// con el mismo db.crearRutina() que usa una plantilla fija — de ahí en
+// adelante es una rutina común: se edita, se borra, se re-genera después.
+export function renderGeneradorPreview(plan, categoria) {
+  const avisosHtml = plan.avisos.length === 0 ? '' : `
+    <div class="card" style="padding: 14px 16px; margin-bottom: 20px; border-left: 3px solid var(--state-medium);">
+      ${plan.avisos.map(a => `<div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: flex-start; gap: 6px; margin-bottom: 4px;">${warningSvg}<span>${a}</span></div>`).join('')}
+    </div>
+  `;
+
+  const diasHtml = plan.dias.map(dia => {
+    const items = categoria === 'hiit'
+      ? dia.motivos.map(m => `
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 14px; color: var(--text-primary); font-weight: 700;">${m.nombre}</div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${m.motivo}</div>
+          </div>
+        `).join('')
+      : dia.ejercicios.map(ej => `
+          <div style="margin-bottom: 10px;">
+            <div style="font-size: 14px; color: var(--text-primary);">• <b>${ej.nombre}</b> <span style="color: var(--text-secondary);">— ${ej.series.length} series x ${ej.series[0].reps}</span></div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin: 2px 0 0 14px;">${ej.motivo}</div>
+          </div>
+        `).join('');
+
+    return `
+      <div style="background: var(--surface-2); padding: 16px; border-radius: 14px; border: 1px solid var(--surface-border); margin-bottom: 16px;">
+        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 12px 0; color: var(--accent-teal);">${dia.nombre}</h4>
+        ${items || `<div style="font-size: 12px; color: var(--text-secondary);">Sin ejercicios disponibles para este día.</div>`}
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="card" style="padding: 22px; border-radius: 20px;">
+      <div style="margin-bottom: 24px;">
+        <h2 style="font-size: 22px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-primary); letter-spacing: -0.3px;">Tu rutina generada</h2>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin: 0;">Según tu progreso actual en cada patrón de movimiento y el equipo que declaraste. Podés editarla después como cualquier otra rutina.</p>
+      </div>
+      ${avisosHtml}
+      ${diasHtml}
+      <button id="btn-usar-generado" class="btn-primary tappable" style="background: var(--accent-teal); margin-top: 8px;">
+        Usar esta rutina
+      </button>
+    </div>
+  `;
+}
+
+export function initGeneradorPreviewListeners(plan, categoria, onSuccess, signal) {
+  document.getElementById('btn-usar-generado').addEventListener('click', async () => {
+    for (const dia of plan.dias) {
+      const ejercicios = categoria === 'hiit'
+        ? dia.ejercicioIds.map(id => ({ nombre: getEjercicioPorId(id)?.nombre || id, series: [] }))
+        : dia.ejercicios.map(ej => ({ nombre: ej.nombre, series: ej.series }));
+
+      if (ejercicios.length === 0) continue;
+
+      await db.crearRutina({
+        nombre: dia.nombre,
+        categoria: categoria,
+        ejercicios: ejercicios,
+        hiitSettings: dia.hiitSettings || null
+      });
+    }
+
+    Toast('Rutina generada agregada a tus rutinas.', 'success');
     if (onSuccess) onSuccess();
   }, { signal });
 }

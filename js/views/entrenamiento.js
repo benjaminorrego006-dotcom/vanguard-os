@@ -1,5 +1,6 @@
 import { db } from '../core/db.js';
-import { renderRutinasLista, initRutinasListaListeners, renderPlantillaPreview, initPlantillaPreviewListeners } from '../components/rutinas-lista.js';
+import { renderRutinasLista, initRutinasListaListeners, renderPlantillaPreview, initPlantillaPreviewListeners, renderGeneradorPreview, initGeneradorPreviewListeners } from '../components/rutinas-lista.js';
+import { renderGeneradorConfigForm, setupGeneradorConfigForm, openGeneradorConfigForm } from '../components/generador-rutina-form.js';
 import { renderRutinaForm, initRutinaFormListeners } from '../components/rutina-form.js';
 import { renderHiitRutinaForm, initHiitRutinaFormListeners } from '../components/hiit-rutina-form.js';
 import { renderRutinaSession, initRutinaSessionListeners, cleanupSessionTimer } from '../components/rutina-session.js';
@@ -277,6 +278,7 @@ export async function render() {
       </div>
 
       ${renderProfileForm()}
+      ${renderGeneradorConfigForm()}
     </div>
   `;
 }
@@ -311,6 +313,8 @@ mountListeners = () => {
   setupProfileForm(refreshFull);
   const btnOpenProfile = document.getElementById('btn-open-profile');
   if (btnOpenProfile) btnOpenProfile.addEventListener('click', () => openProfileForm());
+
+  setupGeneradorConfigForm((plan, cat) => goToGeneradorPreview(plan, cat));
 
   // Onboarding: si todavía no hay perfil guardado, se abre automáticamente
   // al entrar a Entreno (el usuario igual puede cancelar y completarlo después
@@ -362,7 +366,8 @@ mountListeners = () => {
       (plantilla) => goToPreview(plantilla, cat),
       signal,
       () => goToArbolProgresion(),
-      cat === 'gym' ? () => goToEstandaresFuerza() : undefined
+      cat === 'gym' ? () => goToEstandaresFuerza() : undefined,
+      () => openGeneradorConfigForm(cat)
     );
   };
 
@@ -414,6 +419,27 @@ mountListeners = () => {
       }, signal);
     } catch (err) {
       console.error('Error renderizando preview:', err);
+      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
+    }
+  };
+
+  const goToGeneradorPreview = (plan, cat) => {
+    if (currentViewController) currentViewController.abort();
+    currentViewController = new AbortController();
+    const signal = currentViewController.signal;
+
+    categoriaActiva = cat;
+    viewState = 'generador-preview';
+    mainView.style.display = 'none';
+    subView.style.display = 'block';
+
+    try {
+      subContent.innerHTML = renderGeneradorPreview(plan, cat);
+      initGeneradorPreviewListeners(plan, cat, async () => {
+        await goToRutinas(cat);
+      }, signal);
+    } catch (err) {
+      console.error('Error renderizando rutina generada:', err);
       subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
     }
   };
@@ -474,7 +500,7 @@ mountListeners = () => {
   const btnVolver = document.getElementById('btn-entrenamiento-volver');
   if (btnVolver) {
     btnVolver.addEventListener('click', () => {
-      if (viewState === 'form' || viewState === 'preview' || viewState === 'arbol' || viewState === 'estandares') {
+      if (viewState === 'form' || viewState === 'preview' || viewState === 'arbol' || viewState === 'estandares' || viewState === 'generador-preview') {
         goToRutinas(categoriaActiva);
       } else if (viewState === 'session') {
         cleanupSessionTimer();
