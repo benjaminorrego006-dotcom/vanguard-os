@@ -172,6 +172,54 @@ export const CATALOGO_CALISTENIA = {
     equipo: "ninguno",
     patronMovimiento: "empuje-horizontal"
   },
+  'flexiones con palmada': {
+    id: 'flexiones con palmada',
+    nombre: 'Flexiones con Palmada',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, hombros',
+    posturaInicial: 'Posición de flexión estándar, manos bajo los hombros.',
+    pasosEjecucion: [
+      'Baja el pecho controladamente.',
+      'Empuja explosivamente hasta despegar las manos del piso y da una palmada antes de aterrizar.'
+    ],
+    erroresComunes: [
+      'Aterrizar con los codos trabados en vez de amortiguar con los brazos.',
+      'Perder la alineación del cuerpo al despegar.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["flexiones declinadas"],
+    progresionDe: "flexiones declinadas",
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
+  },
+  'pseudo planche push-up': {
+    id: 'pseudo planche push-up',
+    nombre: 'Pseudo Planche Push-up',
+    categoria: 'calistenia',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'pecho, core',
+    posturaInicial: 'Posición de flexión con las manos rotadas hacia atrás y colocadas a la altura de la cadera, inclinando el torso hacia adelante.',
+    pasosEjecucion: [
+      'Baja el pecho manteniendo los hombros por delante de las manos.',
+      'Empuja de vuelta a extensión completa sin perder la inclinación hacia adelante.'
+    ],
+    erroresComunes: [
+      'Perder la inclinación hacia adelante durante el movimiento (se vuelve una flexión normal).',
+      'Doblar las muñecas en un ángulo incómodo sin acondicionamiento previo.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["flexiones declinadas"],
+    progresionDe: "flexiones declinadas",
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
+  },
   'flexiones a una mano asistidas': {
     id: 'flexiones a una mano asistidas',
     nombre: 'Flexiones a Una Mano Asistidas',

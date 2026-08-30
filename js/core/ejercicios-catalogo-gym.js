@@ -161,6 +161,78 @@ export const CATALOGO_GYM = {
     equipo: "barra",
     patronMovimiento: "empuje-horizontal"
   },
+  'press de banca con mancuernas': {
+    id: 'press de banca con mancuernas',
+    nombre: 'Press de Banca con Mancuernas',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, hombros',
+    posturaInicial: 'Acostado en banco plano, una mancuerna en cada mano a la altura del pecho.',
+    pasosEjecucion: [
+      'Empuja las mancuernas hacia arriba hasta extender los codos, sin juntarlas del todo.',
+      'Baja controladamente hasta sentir el estiramiento del pecho.'
+    ],
+    erroresComunes: [
+      'Dejar caer las mancuernas en la bajada en vez de controlarla.',
+      'Muñecas dobladas hacia atrás en vez de neutras.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "empuje-horizontal"
+  },
+  'aperturas con mancuernas': {
+    id: 'aperturas con mancuernas',
+    nombre: 'Aperturas con Mancuernas',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'hombros',
+    posturaInicial: 'Acostado en banco plano, mancuernas extendidas sobre el pecho con codos con flexión leve.',
+    pasosEjecucion: [
+      'Baja los brazos hacia los lados en arco, manteniendo la flexión leve del codo.',
+      'Junta las mancuernas de vuelta arriba en el mismo arco, sin extender del todo los codos.'
+    ],
+    erroresComunes: [
+      'Doblar y extender el codo como si fuera un press (pierde el estiramiento del pecho).',
+      'Bajar demasiado y forzar el hombro más allá de su rango cómodo.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "empuje-horizontal"
+  },
+  'aperturas en polea': {
+    id: 'aperturas en polea',
+    nombre: 'Aperturas en Polea',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'hombros',
+    posturaInicial: 'De pie entre dos poleas altas, un cable en cada mano, un paso adelante.',
+    pasosEjecucion: [
+      'Junta las manos al frente del pecho en un arco amplio, codos con flexión leve.',
+      'Regresa controladamente a la posición inicial sin perder la tensión del cable.'
+    ],
+    erroresComunes: [
+      'Usar los brazos como palanca en vez de mantener el arco.',
+      'Encorvar los hombros hacia adelante.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "empuje-horizontal"
+  },
   'press militar': {
     id: 'press militar',
     nombre: 'Press Militar (de pie)',
@@ -601,6 +673,150 @@ export const CATALOGO_GYM = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "core"
+  },
+  'crunch en banco declinado': {
+    id: 'crunch en banco declinado',
+    nombre: 'Crunch en Banco Declinado',
+    categoria: 'gym',
+    grupoMuscular: 'core',
+    patron: 'core',
+    musculoSecundario: 'flexores de cadera',
+    posturaInicial: 'Acostado en un banco declinado, pies asegurados arriba, manos detrás de la cabeza o cruzadas en el pecho.',
+    pasosEjecucion: [
+      'Contrae el abdomen elevando el torso hacia las rodillas.',
+      'Baja controladamente sin llegar a apoyar del todo entre repeticiones.'
+    ],
+    erroresComunes: [
+      'Tirar del cuello con las manos.',
+      'Usar los flexores de cadera en vez del abdomen para impulsarse.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["abdominales"],
+    progresionDe: "abdominales",
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "banco",
+    patronMovimiento: "core"
+  },
+  'crunch en polea': {
+    id: 'crunch en polea',
+    nombre: 'Crunch en Polea',
+    categoria: 'gym',
+    grupoMuscular: 'core',
+    patron: 'core',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'De rodillas frente a una polea alta con cuerda, sosteniéndola a los lados de la cabeza.',
+    pasosEjecucion: [
+      'Flexiona la cintura llevando los codos hacia las rodillas, contrayendo el abdomen.',
+      'Regresa controladamente sin perder tensión en el cable.'
+    ],
+    erroresComunes: [
+      'Tirar con los brazos en vez de flexionar la columna con el abdomen.',
+      'Usar demasiado peso y perder el rango de movimiento.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["abdominales"],
+    progresionDe: "abdominales",
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "core"
+  },
+  'pallof press': {
+    id: 'pallof press',
+    nombre: 'Pallof Press',
+    categoria: 'gym',
+    grupoMuscular: 'core',
+    patron: 'core',
+    musculoSecundario: 'oblicuos',
+    posturaInicial: 'De pie, de costado a una polea o banda anclada a la altura del pecho, sosteniendo el agarre con ambas manos frente al esternón.',
+    pasosEjecucion: [
+      'Extiende los brazos al frente resistiendo la rotación del torso hacia la polea.',
+      'Regresa controladamente sin dejar que el torso gire.'
+    ],
+    erroresComunes: [
+      'Dejar que la cadera o el torso roten hacia la resistencia.',
+      'Usar los brazos en vez del core para estabilizar.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "core"
+  },
+  'woodchopper': {
+    id: 'woodchopper',
+    nombre: 'Woodchopper',
+    categoria: 'gym',
+    grupoMuscular: 'core',
+    patron: 'core',
+    musculoSecundario: 'hombros',
+    posturaInicial: 'De pie de costado a una polea alta, sosteniendo el agarre con ambas manos por encima del hombro contrario a la cadera.',
+    pasosEjecucion: [
+      'Tira el cable diagonalmente hacia abajo y hacia la cadera opuesta, rotando el torso.',
+      'Regresa controladamente a la posición inicial.'
+    ],
+    erroresComunes: [
+      'Mover solo los brazos en vez de rotar desde el core.',
+      'Usar demasiado peso y perder el control de la rotación.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "core"
+  },
+  'plancha con peso': {
+    id: 'plancha con peso',
+    nombre: 'Plancha con Peso',
+    categoria: 'gym',
+    grupoMuscular: 'core',
+    patron: 'core',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'Posición de plancha sobre antebrazos, con un disco apoyado sobre la espalda baja.',
+    pasosEjecucion: [
+      'Mantén el cuerpo en línea recta desde los hombros hasta los talones.',
+      'Sostén la posición sin dejar que la cadera caiga ni suba.'
+    ],
+    erroresComunes: [
+      'Dejar caer la cadera.',
+      'Elevar demasiado la cadera para aliviar la carga.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["plancha"],
+    progresionDe: "plancha",
+    criterioAvance: {"tipo":"segundos","valor":30,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "core"
+  },
+  'rueda abdominal': {
+    id: 'rueda abdominal',
+    nombre: 'Rueda Abdominal',
+    categoria: 'gym',
+    grupoMuscular: 'core',
+    patron: 'core',
+    musculoSecundario: 'hombros, dorsales',
+    posturaInicial: 'De rodillas, sosteniendo la rueda con ambas manos frente a los hombros.',
+    pasosEjecucion: [
+      'Rueda hacia adelante extendiendo el cuerpo lo más posible sin que la cadera caiga.',
+      'Vuelve a la posición inicial contrayendo el abdomen, sin usar la espalda baja para tirar.'
+    ],
+    erroresComunes: [
+      'Dejar caer la cadera (arqueo lumbar) en la extensión.',
+      'Extender más allá del rango que se puede controlar con el core.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["plancha"],
+    progresionDe: "plancha",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
     patronMovimiento: "core"
