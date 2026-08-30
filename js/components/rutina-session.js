@@ -2,7 +2,7 @@ import { db } from '../core/db.js';
 import { playBeep } from '../core/audio.js';
 import { renderEjercicioDetalle, initEjercicioDetalleChart } from './ejercicio-detalle.js';
 import { calcularDiscos, renderPlateCalculatorPopover } from './plate-calculator.js';
-import { getProgressionLevel } from '../core/progresiones-calistenia.js';
+import { getProgressionLevel, RAMA_LABELS } from '../core/progresiones.js';
 import { getEjercicioMetadata, CATALOGO_EJERCICIOS, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
 import { ConfirmDialog, Toast } from '../utils/states.js';
 import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
@@ -125,7 +125,7 @@ export async function renderRutinaSession(rutina) {
     }
 
     if (prog) {
-      chips.push(`<span style="background: rgba(92,225,230,0.12); color: var(--accent-teal); border: 1px solid rgba(92,225,230,0.3); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trendUpSvg}${prog.familia} · Nv.${prog.nivelActual}/${prog.nivelTotal}</span>`);
+      chips.push(`<span style="background: rgba(92,225,230,0.12); color: var(--accent-teal); border: 1px solid rgba(92,225,230,0.3); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trendUpSvg}${RAMA_LABELS[prog.familia] || prog.familia} · Nv.${prog.nivelActual}/${prog.nivelTotal}</span>`);
     }
 
     html += `<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">${chips.join('')}</div>`;

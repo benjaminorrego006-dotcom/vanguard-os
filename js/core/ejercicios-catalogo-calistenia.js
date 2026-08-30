@@ -115,7 +115,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Doblar la cadera en vez de mantenerla en línea recta.',
       'Rango de movimiento incompleto.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: ["flexiones inclinadas"],
+    progresionDe: "flexiones inclinadas",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
   },
   'flexiones declinadas': {
     id: 'flexiones declinadas',
@@ -132,7 +139,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Elegir una elevación tan alta que se vuelva un pike push-up.',
       'Dejar caer la cadera.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["flexiones"],
+    progresionDe: "flexiones",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
   },
   'flexiones de arquero': {
     id: 'flexiones de arquero',
@@ -149,7 +163,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Rotar el torso en vez de desplazar el peso lateralmente.',
       'No bajar lo suficiente del lado de trabajo.'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["flexiones declinadas"],
+    progresionDe: "flexiones declinadas",
+    criterioAvance: {"tipo":"reps","valor":6,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
   },
   'flexiones a una mano asistidas': {
     id: 'flexiones a una mano asistidas',
@@ -166,7 +187,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Rotar el torso para compensar.',
       'Apoyar demasiado peso en la mano de asistencia.'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["flexiones de arquero"],
+    progresionDe: "flexiones de arquero",
+    criterioAvance: {"tipo":"reps","valor":5,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
   },
   'flexiones a una mano': {
     id: 'flexiones a una mano',
@@ -183,7 +211,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Rotar caderas u hombros para ayudarse.',
       'Base de pies demasiado angosta (pierde estabilidad).'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["flexiones a una mano asistidas"],
+    progresionDe: "flexiones a una mano asistidas",
+    criterioAvance: {"tipo":"reps","valor":3,"series":2},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
   },
   'fondos en banco': {
     id: 'fondos en banco',
@@ -225,7 +260,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Bajar demasiado y forzar el hombro.',
       'Depender de la banda por demasiado tiempo sin progresar.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: ["fondos en banco"],
+    progresionDe: "fondos en banco",
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: [],
+    equipo: "banda",
+    patronMovimiento: "empuje-horizontal"
   },
   'fondos en anillas': {
     id: 'fondos en anillas',
@@ -242,7 +284,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Dejar que las anillas se abran o se inestabilicen.',
       'Bajar demasiado sin control del hombro.'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["fondos en paralelas"],
+    progresionDe: "fondos en paralelas",
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: [],
+    equipo: "anillas",
+    patronMovimiento: "empuje-horizontal"
   },
   'fondos lastrados': {
     id: 'fondos lastrados',
@@ -259,7 +308,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Agregar peso antes de dominar la técnica sin lastre.',
       'Rango de movimiento incompleto por la carga extra.'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["fondos en paralelas"],
+    progresionDe: "fondos en paralelas",
+    criterioAvance: {"tipo":"reps","valor":5,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "empuje-horizontal"
   },
   'pike push-up': {
     id: 'pike push-up',
@@ -445,7 +501,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Agregar peso antes de dominar la técnica sin lastre.',
       'Kipping para compensar el peso extra.'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["dominadas"],
+    progresionDe: "dominadas",
+    criterioAvance: {"tipo":"reps","valor":5,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
   },
   'dominada de arquero': {
     id: 'dominada de arquero',
@@ -462,7 +525,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Usar impulso en vez de fuerza controlada.',
       'No extender casi por completo el brazo pasivo.'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["dominadas"],
+    progresionDe: "dominadas",
+    criterioAvance: {"tipo":"reps","valor":5,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
   },
   'dominada a una mano asistida': {
     id: 'dominada a una mano asistida',
@@ -479,7 +549,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Depender demasiado del brazo asistido.',
       'Rango de movimiento incompleto.'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["dominada de arquero"],
+    progresionDe: "dominada de arquero",
+    criterioAvance: {"tipo":"reps","valor":3,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
   },
   'dominada a una mano': {
     id: 'dominada a una mano',
@@ -496,7 +573,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Balancear el cuerpo (kipping) para generar impulso.',
       'Rotar el torso hacia el lado del brazo de apoyo.'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["dominada a una mano asistida"],
+    progresionDe: "dominada a una mano asistida",
+    criterioAvance: {"tipo":"reps","valor":1,"series":2},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
   },
   'puente de glúteo': {
     id: 'puente de glúteo',
@@ -562,7 +646,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Tirar del soporte en vez de usarlo solo de equilibrio.',
       'Rodillas colapsando hacia adentro.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla"
   },
   'sentadilla con peso corporal': {
     id: 'sentadilla con peso corporal',
@@ -628,7 +719,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Apoyar demasiado peso en el soporte.',
       'Perder el equilibrio por falta de movilidad de tobillo.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["sentadilla búlgara"],
+    progresionDe: "sentadilla búlgara",
+    criterioAvance: {"tipo":"reps","valor":6,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla"
   },
   'pistol squat': {
     id: 'pistol squat',
@@ -1012,7 +1110,14 @@ export const CATALOGO_CALISTENIA = {
     erroresComunes: [
       'Intentar la transición sin fuerza de dominada explosiva de base.',
       'Usar demasiado kipping en vez de fuerza controlada.'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["dominadas","fondos en paralelas"],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":3,"series":2},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
   },
   // --- Rama "estáticos": prerrequisito de toda la línea de planche. Se
   // recomiendan 2+ meses de acondicionamiento antes de trabajo serio de
