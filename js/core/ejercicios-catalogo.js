@@ -708,6 +708,30 @@ export const CATALOGO_EJERCICIOS = {
     patronMovimiento: "empuje-horizontal"
   },
   // --- Árbol de progresión de flexiones (progresiones-calistenia.js) ---
+  'flexiones en pared': {
+    id: 'flexiones en pared',
+    nombre: 'Flexiones en Pared',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, core',
+    posturaInicial: 'De pie frente a una pared, manos apoyadas a la altura de los hombros, un paso atrás de la pared.',
+    pasosEjecucion: [
+      'Flexiona los codos acercando el pecho a la pared, manteniendo el cuerpo recto.',
+      'Empuja de vuelta hasta extensión completa de codos.'
+    ],
+    erroresComunes: [
+      'Doblar la cadera en vez de mantener el cuerpo en línea recta.',
+      'Quedarse tan cerca de la pared que el rango de movimiento es mínimo.'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
+  },
   'flexiones inclinadas': {
     id: 'flexiones inclinadas',
     nombre: 'Flexiones Inclinadas',
@@ -723,7 +747,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Dejar caer la cadera.',
       'Elegir una superficie tan alta que quite todo el estímulo.'
-    ]
+    ],
+    nivel: "principiante",
+    prerequisitos: ["flexiones en pared"],
+    progresionDe: "flexiones en pared",
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
   },
   'flexiones con rodillas': {
     id: 'flexiones con rodillas',
@@ -934,6 +965,30 @@ export const CATALOGO_EJERCICIOS = {
     equipo: "barra-dominadas",
     patronMovimiento: "traccion-vertical"
   },
+  'dominadas isométricas': {
+    id: 'dominadas isométricas',
+    nombre: 'Dominadas Isométricas',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'bíceps, antebrazos',
+    posturaInicial: 'Arriba de la barra (con salto, salto asistido o un banco), barbilla sobre la barra.',
+    pasosEjecucion: [
+      'Sostén la posición arriba, escápulas retraídas y hacia abajo.',
+      'Mantén el tiempo objetivo sin dejar que el mentón baje de la barra.'
+    ],
+    erroresComunes: [
+      'Dejar que los hombros suban hacia las orejas durante el sostén.',
+      'Soltar el control y caer en vez de bajar de forma controlada al terminar.'
+    ],
+    nivel: "principiante",
+    prerequisitos: ["dead hang"],
+    progresionDe: "dead hang",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
+  },
   'remo invertido': {
     id: 'remo invertido',
     nombre: 'Remo Invertido',
@@ -975,8 +1030,8 @@ export const CATALOGO_EJERCICIOS = {
       'No completar el rango hasta la extensión total.'
     ],
     nivel: "principiante",
-    prerequisitos: ["dead hang"],
-    progresionDe: "dead hang",
+    prerequisitos: ["dominadas isométricas"],
+    progresionDe: "dominadas isométricas",
     criterioAvance: {"tipo":"reps","valor":5,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",

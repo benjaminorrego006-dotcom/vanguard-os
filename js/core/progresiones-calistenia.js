@@ -22,7 +22,8 @@
 // criterio completo.
 export const ARBOL_PROGRESIONES = {
   // --- FLEXIONES (empuje horizontal) ---
-  'flexion-inclinada': { nombre: 'Flexiones Inclinadas', rama: 'flexiones', requiere: [], objetivo: { series: 3, reps: 12 } },
+  'flexion-pared': { nombre: 'Flexiones en Pared', rama: 'flexiones', requiere: [], objetivo: { series: 3, reps: 15 } },
+  'flexion-inclinada': { nombre: 'Flexiones Inclinadas', rama: 'flexiones', requiere: ['flexion-pared'], objetivo: { series: 3, reps: 12 } },
   'flexion-rodillas': { nombre: 'Flexiones con Rodillas', rama: 'flexiones', requiere: ['flexion-inclinada'], objetivo: { series: 3, reps: 10 } },
   'flexion-estricta': { nombre: 'Flexiones (Push-up)', rama: 'flexiones', requiere: ['flexion-rodillas'], objetivo: { series: 3, reps: 12 } },
   'flexion-declinada': { nombre: 'Flexiones Declinadas', rama: 'flexiones', requiere: ['flexion-estricta'], objetivo: { series: 3, reps: 10 } },
@@ -37,7 +38,11 @@ export const ARBOL_PROGRESIONES = {
   // --- DOMINADAS (tracción vertical) ---
   'remo-invertido': { nombre: 'Remo Invertido', rama: 'dominadas', requiere: [], objetivo: { series: 3, reps: 10 } },
   'dead-hang': { nombre: 'Dead Hang', rama: 'dominadas', requiere: ['remo-invertido'], objetivo: { series: 3, segundos: 20 } },
-  'dominada-negativa': { nombre: 'Negativas de Dominada', rama: 'dominadas', requiere: ['dead-hang'], objetivo: { series: 3, reps: 5 } },
+  // Sostener arriba (fuerza de tracción real) es un escalón propio, distinto
+  // del dead hang (cuelgue pasivo, casi sin tracción) — entre ambos y las
+  // negativas.
+  'dominada-isometrica': { nombre: 'Dominadas Isométricas', rama: 'dominadas', requiere: ['dead-hang'], objetivo: { series: 3, segundos: 10 } },
+  'dominada-negativa': { nombre: 'Negativas de Dominada', rama: 'dominadas', requiere: ['dominada-isometrica'], objetivo: { series: 3, reps: 5 } },
   'dominada-asistida': { nombre: 'Dominada Asistida con Banda', rama: 'dominadas', requiere: ['dominada-negativa'], objetivo: { series: 3, reps: 6 } },
   'dominada-estricta': { nombre: 'Dominadas', rama: 'dominadas', requiere: ['dominada-asistida'], objetivo: { series: 3, reps: 8 } },
   // Bifurcación explícita que pidió la Fase 5: lastrada (fuerza pura) y
