@@ -78,26 +78,59 @@ export const ARBOL_PROGRESIONES = {
   'plancha-core': { nombre: 'Plancha (Plank)', rama: 'core', requiere: ['hollow-body'], objetivo: { series: 3, segundos: 40 } },
   'l-sit': { nombre: 'L-Sit', rama: 'core', requiere: ['plancha-core'], objetivo: { series: 3, segundos: 10 } },
 
-  // --- ESTÁTICOS: tres líneas de habilidad independientes bajo la misma
+  // --- ESTÁTICOS: varias líneas de habilidad independientes bajo la misma
   // rama, no una escalera única (handstand no lleva a front lever). Front
-  // lever y muscle-up son los nodos que de verdad exigen el árbol en vez
-  // de listas: sus prerrequisitos viven en OTRAS ramas.
+  // lever, muscle-up, back lever y bandera humana son los nodos que de
+  // verdad exigen el árbol en vez de listas: sus prerrequisitos viven en
+  // OTRAS ramas.
+  //
+  // Cadena real de handstand (Etapa 2c, EJERCICIOS-NIVELES.md): crow pose
+  // -> handstand contra pared -> handstand de cara a la pared -> handstand
+  // libre. Crow pose aporta equilibrio/control de core; pike push-up aporta
+  // la fuerza de empuje — handstand contra pared exige las dos cosas a la
+  // vez, así que tiene dos prerrequisitos en paralelo, no uno solo.
+  'crow-pose': { nombre: 'Crow Pose', rama: 'estaticos', requiere: [], objetivo: { series: 3, segundos: 10 } },
   'pike-pushup': { nombre: 'Pike Push-up', rama: 'estaticos', requiere: [], objetivo: { series: 3, reps: 8 } },
-  'handstand-pared': { nombre: 'Handstand contra Pared', rama: 'estaticos', requiere: ['pike-pushup'], objetivo: { series: 3, segundos: 20 } },
-  'handstand-libre': { nombre: 'Handstand (Libre)', rama: 'estaticos', requiere: ['handstand-pared'], objetivo: { series: 3, segundos: 10 } },
+  'handstand-pared': { nombre: 'Handstand contra Pared', rama: 'estaticos', requiere: ['pike-pushup', 'crow-pose'], objetivo: { series: 3, segundos: 20 } },
+  'handstand-cara-pared': { nombre: 'Handstand de Cara a la Pared', rama: 'estaticos', requiere: ['handstand-pared'], objetivo: { series: 3, segundos: 10 } },
+  'handstand-libre': { nombre: 'Handstand (Libre)', rama: 'estaticos', requiere: ['handstand-cara-pared'], objetivo: { series: 3, segundos: 10 } },
 
   // Requiere fuerza de tracción (dominada-estricta, rama "dominadas") Y
   // control de core (hollow-body, rama "core") a la vez — un AND real
-  // entre dos ramas, no una posición en una lista.
+  // entre dos ramas, no una posición en una lista. 4 pasos (Etapa 2c
+  // agregó el straddle que faltaba entre el tuck avanzado y el completo).
   'front-lever-tuck': { nombre: 'Front Lever Tuck', rama: 'estaticos', requiere: ['dominada-estricta', 'hollow-body'], objetivo: { series: 3, segundos: 10 } },
   'front-lever-avanzado': { nombre: 'Front Lever Avanzado (Tuck Avanzado)', rama: 'estaticos', requiere: ['front-lever-tuck'], objetivo: { series: 3, segundos: 8 } },
-  'front-lever': { nombre: 'Front Lever', rama: 'estaticos', requiere: ['front-lever-avanzado'], objetivo: { series: 2, segundos: 5 } },
+  'front-lever-straddle': { nombre: 'Straddle Front Lever', rama: 'estaticos', requiere: ['front-lever-avanzado'], objetivo: { series: 3, segundos: 10 } },
+  'front-lever': { nombre: 'Front Lever', rama: 'estaticos', requiere: ['front-lever-straddle'], objetivo: { series: 2, segundos: 5 } },
 
   // Requiere dominada-estricta (rama "dominadas") Y fondo-paralelas (rama
   // "fondos") — la tracción para llegar arriba de la barra y el empuje
   // para completar la transición son fuerzas distintas, entrenadas en
   // ramas distintas.
-  'muscle-up': { nombre: 'Muscle-up', rama: 'estaticos', requiere: ['dominada-estricta', 'fondo-paralelas'], objetivo: { series: 2, reps: 3 } }
+  'muscle-up': { nombre: 'Muscle-up', rama: 'estaticos', requiere: ['dominada-estricta', 'fondo-paralelas'], objetivo: { series: 2, reps: 3 } },
+
+  // Back lever y bandera humana: más accesibles que el front lever pero
+  // construidos sobre la misma base de tracción (dominada-estricta).
+  'back-lever': { nombre: 'Back Lever', rama: 'estaticos', requiere: ['dominada-estricta'], objetivo: { series: 3, segundos: 10 } },
+  'bandera-humana': { nombre: 'Bandera Humana', rama: 'estaticos', requiere: ['dominada-estricta'], objetivo: { series: 3, segundos: 10 } },
+
+  // Dragon flag: control de core de cuerpo completo, construido sobre
+  // hollow body.
+  'dragon-flag': { nombre: 'Dragon Flag', rama: 'estaticos', requiere: ['hollow-body'], objetivo: { series: 3, segundos: 10 } },
+
+  // Planche: cinco pasos, con el acondicionamiento de muñeca como
+  // prerrequisito explícito de toda la línea — 2+ meses de preparación
+  // antes de trabajo serio, es la causa más común de lesión temprana. El
+  // tuck avanzado exige más (12-15s) que el resto de estáticos: es donde
+  // más gente se estanca, porque la espalda plana (en vez de redondeada)
+  // aleja el centro de masa de las manos y sube la demanda de hombro.
+  'muñeca-acondicionamiento': { nombre: 'Acondicionamiento de Muñeca', rama: 'estaticos', requiere: [], objetivo: { series: 3, segundos: 10 } },
+  'plancha-lean': { nombre: 'Plancha Lean', rama: 'estaticos', requiere: ['muñeca-acondicionamiento'], objetivo: { series: 3, segundos: 10 } },
+  'plancha-tuck': { nombre: 'Tuck Planche', rama: 'estaticos', requiere: ['plancha-lean'], objetivo: { series: 3, segundos: 10 } },
+  'plancha-tuck-avanzado': { nombre: 'Tuck Avanzado Planche', rama: 'estaticos', requiere: ['plancha-tuck'], objetivo: { series: 3, segundos: 15 } },
+  'plancha-straddle': { nombre: 'Straddle Planche', rama: 'estaticos', requiere: ['plancha-tuck-avanzado'], objetivo: { series: 3, segundos: 10 } },
+  'plancha-completa': { nombre: 'Planche', rama: 'estaticos', requiere: ['plancha-straddle'], objetivo: { series: 2, segundos: 10 } }
 };
 
 // Orden y etiquetas de rama para la vista del árbol (Fase 5d) — las cuatro

@@ -1447,7 +1447,7 @@ export const CATALOGO_EJERCICIOS = {
       'Perder la alineación de hombros sobre las manos.'
     ],
     nivel: "intermedio",
-    prerequisitos: ["pike push-up"],
+    prerequisitos: ["pike push-up", "crow pose"],
     progresionDe: "pike push-up",
     criterioAvance: {"tipo":"segundos","valor":20,"series":3},
     tambienEn: [],
@@ -1478,7 +1478,59 @@ export const CATALOGO_EJERCICIOS = {
     equipo: "ninguno",
     patronMovimiento: "empuje-vertical"
   },
+  // --- Rama "estáticos": Crow Pose es el primer paso de la cadena real de
+  // handstand (crow pose -> handstand contra pared -> handstand de cara a
+  // la pared -> handstand libre), en paralelo a pike push-up que aporta la
+  // fuerza de empuje — handstand contra pared exige ambas cosas a la vez.
+  'crow pose': {
+    id: 'crow pose',
+    nombre: 'Crow Pose',
+    categoria: 'calistenia',
+    grupoMuscular: 'core',
+    patron: 'core',
+    musculoSecundario: 'antebrazos, hombros',
+    posturaInicial: 'En cuclillas, manos en el piso al ancho de hombros, rodillas apoyadas contra la parte externa de los brazos (tríceps).',
+    pasosEjecucion: [
+      'Inclina el peso hacia adelante hasta que los pies se despeguen del piso.',
+      'Mantén la mirada al frente, no hacia abajo, para ayudar al equilibrio.'
+    ],
+    erroresComunes: [
+      'Mirar hacia abajo, lo que desequilibra hacia adelante.',
+      'Separar demasiado las manos, perdiendo la base de apoyo de las rodillas.'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "core"
+  },
   // --- Rama "estáticos" del árbol de progresión (handstand libre) ---
+  'handstand de cara a la pared': {
+    id: 'handstand de cara a la pared',
+    nombre: 'Handstand de Cara a la Pared',
+    categoria: 'calistenia',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'core',
+    posturaInicial: 'De cara a la pared, manos en el piso cerca de la base, subiendo a la posición invertida con el cuerpo hacia la pared.',
+    pasosEjecucion: [
+      'Sube a la posición invertida con los talones tocando la pared apenas como referencia, no como apoyo de peso.',
+      'Mantén el cuerpo lo más recto posible, sin arquear la espalda baja.'
+    ],
+    erroresComunes: [
+      'Apoyar peso real en la pared en vez de usarla solo de referencia.',
+      'Arquear la espalda baja (banana back).'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["handstand contra pared"],
+    progresionDe: "handstand contra pared",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-vertical"
+  },
   'handstand (libre)': {
     id: 'handstand (libre)',
     nombre: 'Handstand (Libre)',
@@ -1494,7 +1546,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Arquear demasiado la espalda baja.',
       'Mirar hacia adelante en vez de hacia las manos.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["handstand de cara a la pared"],
+    progresionDe: "handstand de cara a la pared",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-vertical"
   },
   // --- Rama "estáticos": línea del front lever ---
   'front lever tuck': {
@@ -1512,7 +1571,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Dejar que los hombros suban hacia las orejas.',
       'Perder la horizontal dejando caer la cadera.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["dominadas", "hollow body hold"],
+    progresionDe: null,
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
   },
   'front lever avanzado': {
     id: 'front lever avanzado',
@@ -1529,7 +1595,38 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Extender las piernas antes de tener fuerza de cadera.',
       'Perder la tensión escapular a mitad del sostén.'
-    ]
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["front lever tuck"],
+    progresionDe: "front lever tuck",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
+  },
+  'front lever straddle': {
+    id: 'front lever straddle',
+    nombre: 'Straddle Front Lever',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'core, bíceps',
+    posturaInicial: 'Colgado de una barra, cuerpo horizontal, piernas extendidas y abiertas en V.',
+    pasosEjecucion: [
+      'Sostén el cuerpo horizontal con las piernas abiertas, lo que reduce el torque comparado con piernas juntas.',
+      'Mantén la retracción escapular activa durante todo el sostén.'
+    ],
+    erroresComunes: [
+      'Cerrar las piernas para compensar falta de fuerza.',
+      'Perder la horizontal dejando caer la cadera.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["front lever avanzado"],
+    progresionDe: "front lever avanzado",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
   },
   'front lever': {
     id: 'front lever',
@@ -1546,7 +1643,14 @@ export const CATALOGO_EJERCICIOS = {
     erroresComunes: [
       'Doblar las rodillas o la cadera para compensar falta de fuerza.',
       'Soltar la tensión de hombros a mitad del sostén.'
-    ]
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["front lever straddle"],
+    progresionDe: "front lever straddle",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
   },
   // --- Rama "estáticos": el muscle-up cruza dominadas + fondos ---
   'muscle-up': {
@@ -1565,6 +1669,230 @@ export const CATALOGO_EJERCICIOS = {
       'Intentar la transición sin fuerza de dominada explosiva de base.',
       'Usar demasiado kipping en vez de fuerza controlada.'
     ]
+  },
+  // --- Rama "estáticos": prerrequisito de toda la línea de planche. Se
+  // recomiendan 2+ meses de acondicionamiento antes de trabajo serio de
+  // planche — es la causa más común de lesión temprana de muñeca.
+  'acondicionamiento de muñeca': {
+    id: 'acondicionamiento de muñeca',
+    nombre: 'Acondicionamiento de Muñeca',
+    categoria: 'calistenia',
+    grupoMuscular: 'brazos',
+    patron: 'otro',
+    musculoSecundario: 'antebrazos',
+    posturaInicial: 'Apoyado en el piso con las palmas planas, dedos hacia el cuerpo, o con variantes de flexión/extensión de muñeca con carga ligera.',
+    pasosEjecucion: [
+      'Sostén o mueve el peso del cuerpo (o una carga ligera) en distintos ángulos de muñeca: flexión, extensión, lateral.',
+      'Progresa el tiempo y el ángulo de carga a lo largo de semanas, nunca de una sesión a otra.'
+    ],
+    erroresComunes: [
+      'Saltar directo a trabajo de planche sin este acondicionamiento — es la causa más común de lesión temprana de muñeca.',
+      'Progresar la carga o el ángulo antes de que la muñeca esté completamente sin dolor.'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "core"
+  },
+  'plancha lean': {
+    id: 'plancha lean',
+    nombre: 'Plancha Lean',
+    categoria: 'calistenia',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'core, antebrazos',
+    posturaInicial: 'Posición de flexión con las manos bajo los hombros, cuerpo recto.',
+    pasosEjecucion: [
+      'Inclina el cuerpo hacia adelante desde los tobillos, trasladando peso hacia las manos sin doblar los codos.',
+      'Sostén el ángulo de inclinación el tiempo objetivo.'
+    ],
+    erroresComunes: [
+      'Doblar los codos para compensar — si el codo se dobla no es planche.',
+      'No inclinar lo suficiente para generar carga real en el hombro.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["acondicionamiento de muñeca"],
+    progresionDe: "acondicionamiento de muñeca",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
+  },
+  'tuck planche': {
+    id: 'tuck planche',
+    nombre: 'Tuck Planche',
+    categoria: 'calistenia',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'core, antebrazos',
+    posturaInicial: 'Sentado con las manos junto a la cadera, rodillas al pecho.',
+    pasosEjecucion: [
+      'Empuja el piso elevando la cadera hasta despegar los pies del suelo, rodillas dobladas contra el pecho.',
+      'Mantén los brazos completamente extendidos y la espalda plana.'
+    ],
+    erroresComunes: [
+      'Doblar los codos — si el codo se dobla no es planche.',
+      'Redondear la espalda en vez de mantenerla plana.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["plancha lean"],
+    progresionDe: "plancha lean",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
+  },
+  // La diferencia entre el tuck y el tuck avanzado es la espalda plana en
+  // vez de redondeada, lo que aleja el centro de masa de las manos y sube
+  // la demanda de hombro sustancialmente — es donde más gente se estanca.
+  // Criterio de avance más exigente que el resto de estáticos (12-15s por
+  // 3+ series) antes de pasar a straddle.
+  'tuck avanzado planche': {
+    id: 'tuck avanzado planche',
+    nombre: 'Tuck Avanzado Planche',
+    categoria: 'calistenia',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'core, antebrazos',
+    posturaInicial: 'Igual que el tuck planche, pero con la espalda plana en vez de redondeada y la cadera más extendida.',
+    pasosEjecucion: [
+      'Extiende progresivamente la cadera manteniendo la espalda plana, no redondeada.',
+      'Mantén la protracción escapular activa durante todo el sostén.'
+    ],
+    erroresComunes: [
+      'Mantener la espalda redondeada como en el tuck normal — es el error que más estanca el progreso hacia straddle.',
+      'Protracción escapular insuficiente.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["tuck planche"],
+    progresionDe: "tuck planche",
+    criterioAvance: {"tipo":"segundos","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
+  },
+  'straddle planche': {
+    id: 'straddle planche',
+    nombre: 'Straddle Planche',
+    categoria: 'calistenia',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'core, antebrazos',
+    posturaInicial: 'Cuerpo horizontal sostenido en las manos, piernas extendidas y abiertas en V.',
+    pasosEjecucion: [
+      'Extiende completamente cadera y rodillas manteniendo las piernas abiertas.',
+      'Mantén los brazos bloqueados y la protracción escapular activa.'
+    ],
+    erroresComunes: [
+      'Brazos no completamente bloqueados — si el codo se dobla no es planche.',
+      'Cerrar las piernas para compensar falta de fuerza.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["tuck avanzado planche"],
+    progresionDe: "tuck avanzado planche",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
+  },
+  'planche': {
+    id: 'planche',
+    nombre: 'Planche',
+    categoria: 'calistenia',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'core, antebrazos',
+    posturaInicial: 'Cuerpo horizontal sostenido en las manos, piernas extendidas y juntas.',
+    pasosEjecucion: [
+      'Sostén el cuerpo recto y horizontal, piernas juntas y extendidas.',
+      'Mantén los brazos bloqueados y la protracción escapular activa durante todo el sostén.'
+    ],
+    erroresComunes: [
+      'Brazos no completamente bloqueados — si el codo se dobla no es planche.',
+      'Protracción escapular insuficiente, dejando caer los hombros hacia atrás.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["straddle planche"],
+    progresionDe: "straddle planche",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal"
+  },
+  'back lever': {
+    id: 'back lever',
+    nombre: 'Back Lever',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'core',
+    posturaInicial: 'Colgado de una barra con agarre pronado, cuerpo boca abajo horizontal.',
+    pasosEjecucion: [
+      'Baja el cuerpo desde la posición colgada hasta quedar horizontal, boca abajo.',
+      'Mantén el cuerpo recto de hombros a pies.'
+    ],
+    erroresComunes: [
+      'Doblar la cadera en vez de mantener el cuerpo recto.',
+      'Bajar demasiado rápido sin control.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["dominadas"],
+    progresionDe: "dominadas",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical"
+  },
+  'dragon flag': {
+    id: 'dragon flag',
+    nombre: 'Dragon Flag',
+    categoria: 'calistenia',
+    grupoMuscular: 'core',
+    patron: 'core',
+    musculoSecundario: 'espalda baja',
+    posturaInicial: 'Acostado en un banco, sujeto con las manos detrás de la cabeza, cuerpo recto elevado desde los hombros.',
+    pasosEjecucion: [
+      'Baja el cuerpo lentamente manteniendo la línea recta desde los hombros hasta los pies, sin doblar la cadera.',
+      'Sostén cerca del punto más bajo controlado antes de subir.'
+    ],
+    erroresComunes: [
+      'Doblar la cadera durante el descenso — deja de ser dragon flag.',
+      'Bajar demasiado rápido sin control.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["hollow body hold"],
+    progresionDe: "hollow body hold",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "banco",
+    patronMovimiento: "core"
+  },
+  'bandera humana': {
+    id: 'bandera humana',
+    nombre: 'Bandera Humana',
+    categoria: 'calistenia',
+    grupoMuscular: 'core',
+    patron: 'traccion',
+    musculoSecundario: 'hombros, espalda',
+    posturaInicial: 'Sujeto de una barra o poste vertical con ambas manos, cuerpo horizontal al costado del poste.',
+    pasosEjecucion: [
+      'Sostén el cuerpo completamente horizontal y recto, perpendicular al poste.',
+      'El brazo inferior empuja y el superior tira, ambos en tensión constante.'
+    ],
+    erroresComunes: [
+      'Dejar caer las piernas o la cadera, perdiendo la línea recta.',
+      'Intentarlo sin base sólida de fuerza de tracción y core.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["dominadas"],
+    progresionDe: "dominadas",
+    criterioAvance: {"tipo":"segundos","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "core"
   },
   'burpees': {
     id: 'burpees',
