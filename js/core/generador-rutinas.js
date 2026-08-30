@@ -68,26 +68,61 @@ function desbloqueadoParaFrontera(nodoId, historialPorNombre) {
   });
 }
 
-// El "nodo frontera" de una rama: el más profundo que ya está desbloqueado
-// pero todavía no dominado — lo próximo que le toca al usuario. Si no hay
-// ninguno (dominó todo lo que el árbol conoce en esa rama), la rama queda
-// al tope: 'avanzado' directo, sin depender del campo `nivel` del nodo más
-// profundo (que puede no ser informativo, ej. 'todos'). En empate de
-// profundidad se prefiere el candidato de nivel más bajo — el más
-// conservador y honesto cuando no hay forma de distinguir cuál intentó
-// primero el usuario.
+function tieneIntentos(nodoId, historialPorNombre) {
+  const nodo = ARBOL_PROGRESIONES[nodoId];
+  return !!nodo && (historialPorNombre[nodo.nombre] || []).length > 0;
+}
+
+// El "nodo frontera" de una rama: lo próximo que le toca al usuario. Si no
+// hay ninguno desbloqueado-y-no-dominado (dominó todo lo que el árbol
+// conoce en esa rama), la rama queda al tope: 'avanzado' directo, sin
+// depender del campo `nivel` del nodo más profundo (que puede no ser
+// informativo, ej. 'todos').
+//
+// Entre los candidatos, prioriza el que el usuario YA INTENTÓ (tiene
+// historial real) sobre uno que nunca tocó, aunque este último esté más
+// profundo en la cadena. Sin esto, un prerrequisito cruzado de OTRA rama
+// (ej. "Dead Hang" en Tracción Vertical se desbloquea con "Remo Invertido",
+// que vive en Tracción Horizontal) podía ganarle a un nodo que el usuario
+// sí viene intentando, solo por quedar más profundo en el árbol — el
+// resultado era "tu próximo paso es Dead Hang" para alguien que nunca hizo
+// una sola dominada, mientras el ejercicio que de verdad probó y abandonó
+// (Jalón al Pecho) quedaba invisible. Recién en empate de "intentado"
+// desempata la profundidad, y por último el nivel más bajo (el más
+// conservador cuando tampoco hay forma de distinguir cuál intentó primero).
 function fronteraDeRama(rama, historialPorNombre) {
   const idsRama = Object.keys(ARBOL_PROGRESIONES).filter(id => ARBOL_PROGRESIONES[id].rama === rama);
   if (idsRama.length === 0) return null;
 
-  const candidatos = idsRama.filter(id => desbloqueadoParaFrontera(id, historialPorNombre) && !esDominado(id, historialPorNombre));
+  // Los nodos tipo 'ratio' (objetivo === null) nunca cuentan como frontera:
+  // como esDominado() los descarta siempre (no hay "series limpias" que
+  // contar), un levantamiento que el usuario SÍ entrena cada semana
+  // (ej. Press de Banca) quedaría eternamente "intentado y no dominado" y,
+  // con la prioridad de intentados de arriba, le ganaría para siempre a
+  // cualquier progresión real de la rama. Esos levantamientos ya se miden
+  // aparte, vía Estándares de Fuerza, más abajo en calcularNivelPorRama().
+  const candidatos = idsRama.filter(id =>
+    ARBOL_PROGRESIONES[id].objetivo &&
+    desbloqueadoParaFrontera(id, historialPorNombre) &&
+    !esDominado(id, historialPorNombre)
+  );
   if (candidatos.length === 0) return { nodoId: null, nivel: 'avanzado', maxeada: true };
 
   const conNivel = candidatos.map(id => {
     const entry = getEjercicioPorId(id);
-    return { id, profundidad: profundidadNodo(id), nivel: normalizarNivel(entry.nivel, entry.progresionDe) };
+    return {
+      id,
+      intentado: tieneIntentos(id, historialPorNombre),
+      profundidad: profundidadNodo(id),
+      nivel: normalizarNivel(entry.nivel, entry.progresionDe)
+    };
   });
-  conNivel.sort((a, b) => b.profundidad - a.profundidad || NIVEL_RANGO[a.nivel] - NIVEL_RANGO[b.nivel] || a.id.localeCompare(b.id));
+  conNivel.sort((a, b) =>
+    (b.intentado - a.intentado) ||
+    (b.profundidad - a.profundidad) ||
+    (NIVEL_RANGO[a.nivel] - NIVEL_RANGO[b.nivel]) ||
+    a.id.localeCompare(b.id)
+  );
 
   return { nodoId: conNivel[0].id, nivel: conNivel[0].nivel, maxeada: false };
 }
