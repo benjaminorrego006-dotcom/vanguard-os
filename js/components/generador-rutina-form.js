@@ -5,7 +5,7 @@ import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
 import { generarPlan } from '../core/generador-rutinas.js';
 
-const EQUIPO_OPCIONES = [
+export const EQUIPO_OPCIONES = [
   { value: 'barra', label: 'Barra' },
   { value: 'mancuernas', label: 'Mancuernas' },
   { value: 'banda', label: 'Banda de resistencia' },

@@ -1062,6 +1062,32 @@ export const db = {
     return config;
   },
 
+  // --- NIVEL DE ENTRENAMIENTO DECLARADO (sistema de nivel, PROMPT-NIVEL-
+  // FILTRADO.md) ---
+  // Solo el "punto de partida" autodeclarado (tiempo entrenando). Días y
+  // equipo se comparten con entrenoGeneradorConfig (arriba) en vez de
+  // duplicarse acá — completar este onboarding también precompleta el
+  // generador. Sexo se lee directo de 'profile', no se vuelve a preguntar.
+  // El nivel REAL por patrón de movimiento para el generador sigue
+  // viniendo de calcularNivelPorRama() en generador-rutinas.js (se deriva
+  // del historial real, no de esto) — esto es un concepto distinto: el
+  // nivel que el usuario declara para filtrar/ordenar rutinas, con
+  // sugerencia de subida (paso 4 del prompt, todavía no implementado).
+  async getNivelEntrenamiento() {
+    return idbGetSingleton('nivelEntrenamiento', null);
+  },
+  async saveNivelEntrenamiento(data) {
+    const valido = ['menos-1', '1-3', 'mas-3'];
+    const nivel = {
+      tiempoEntrenando: valido.includes(data.tiempoEntrenando) ? data.tiempoEntrenando : 'menos-1',
+      actualizadoEn: new Date().toISOString()
+    };
+    await idbSetSingleton('nivelEntrenamiento', nivel);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'entreno', tipo: 'nivel_entrenamiento_actualizado', payload: nivel });
+    return nivel;
+  },
+
   // --- ANALYTICS ENTRENAMIENTO (FASE 1) ---
 
   async detectarNecesidadDeload(categoria = null) {

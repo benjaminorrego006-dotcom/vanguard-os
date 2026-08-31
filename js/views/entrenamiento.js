@@ -8,6 +8,7 @@ import { renderHiitTimer, initHiitTimerListeners, cleanupHiitTimer } from '../co
 import { renderProgressRing } from '../utils/progressRing.js';
 import { WEEKLY_GOALS, CATEGORY_COLORS } from '../core/trainingConfig.js';
 import { renderProfileForm, setupProfileForm, openProfileForm } from '../components/profile-form.js';
+import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardingForm } from '../components/nivel-onboarding-form.js';
 import { calcularIMC, calcularTMB } from '../utils/bodyMetrics.js';
 import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
@@ -198,9 +199,14 @@ export async function render() {
             <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">¡A darle con todo!</div>
             ${rachaHtml}
           </div>
-          <button id="btn-open-profile" class="icon-chip tappable" style="width: 44px; height: 44px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal); flex-shrink: 0; border: none; cursor: pointer;">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          </button>
+          <div style="display: flex; gap: 8px; flex-shrink: 0;">
+            <button id="btn-open-nivel" class="icon-chip tappable" title="Perfil de nivel" style="width: 44px; height: 44px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal); flex-shrink: 0; border: none; cursor: pointer;">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </button>
+            <button id="btn-open-profile" class="icon-chip tappable" title="Tu perfil" style="width: 44px; height: 44px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal); flex-shrink: 0; border: none; cursor: pointer;">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </button>
+          </div>
         </div>
 
         <div style="position: relative; margin-bottom: 20px;">
@@ -279,6 +285,7 @@ export async function render() {
 
       ${renderProfileForm()}
       ${renderGeneradorConfigForm()}
+      ${renderNivelOnboardingForm()}
     </div>
   `;
 }
@@ -316,11 +323,21 @@ mountListeners = () => {
 
   setupGeneradorConfigForm((plan, cat) => goToGeneradorPreview(plan, cat));
 
+  setupNivelOnboardingForm(refreshFull);
+  const btnOpenNivel = document.getElementById('btn-open-nivel');
+  if (btnOpenNivel) btnOpenNivel.addEventListener('click', () => openNivelOnboardingForm());
+
   // Onboarding: si todavía no hay perfil guardado, se abre automáticamente
   // al entrar a Entreno (el usuario igual puede cancelar y completarlo después
-  // desde el botón de perfil).
+  // desde el botón de perfil). El de nivel es un segundo gate independiente
+  // — se abre solo si el perfil YA existe, para no apilar dos modales a la
+  // vez en la primera visita; si falta el perfil, el de nivel queda para la
+  // próxima visita (el usuario también puede abrirlo a mano con su ícono).
   db.getProfile().then(profile => {
-    if (!profile) openProfileForm();
+    if (!profile) { openProfileForm(); return; }
+    db.getNivelEntrenamiento().then(nivel => {
+      if (!nivel) openNivelOnboardingForm();
+    });
   });
 
   const goToMain = () => {
