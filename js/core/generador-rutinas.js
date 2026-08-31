@@ -211,12 +211,24 @@ async function barrerHistorialCompleto() {
   return Object.fromEntries(nombres.map((nombre, i) => [nombre, historiales[i]]));
 }
 
+// Piso de nivel por tiempo autodeclarado (PROMPT-NIVEL-FILTRADO.md, paso
+// 3): "el nivel declarado por tiempo no es suficiente" para alguien que YA
+// demuestra más con su historial real, pero SÍ sirve de piso razonable
+// para una rama que el usuario todavía no tocó en la app — alguien que
+// declara 3 años entrenando no debería arrancar viendo Flexiones en Pared
+// como cualquier principiante en un patrón que simplemente no registró
+// todavía. Se aplica solo cuando no hay ningún historial real en esa rama
+// (diasSinEntrenar === null, ver más abajo); en cuanto hay una sola sesión
+// real, el dato real manda y este piso deja de aplicarse.
+const TIEMPO_A_NIVEL_PISO = { 'menos-1': 'principiante', '1-3': 'intermedio', 'mas-3': 'avanzado' };
+
 // Nivel por cada una de las 8 ramas, ya combinado con Estándares de Fuerza
 // donde aplica y ajustado por inactividad prolongada.
 export async function calcularNivelPorRama(historialPorNombre) {
-  const [prs, profile] = await Promise.all([db.getPRs(), db.getProfile()]);
+  const [prs, profile, nivelDeclarado] = await Promise.all([db.getPRs(), db.getProfile(), db.getNivelEntrenamiento()]);
   const pesoKg = Number(profile?.pesoKg) || 0;
   const sexo = profile?.sexo === 'F' ? 'F' : 'M';
+  const nivelPiso = TIEMPO_A_NIVEL_PISO[nivelDeclarado?.tiempoEntrenando] || null;
 
   const resultado = {};
   RAMA_ORDEN.forEach(rama => {
@@ -276,6 +288,16 @@ export async function calcularNivelPorRama(historialPorNombre) {
 
     const ultima = ultimaFechaEnRama(rama, historialPorNombre);
     const diasSinEntrenar = ultima ? Math.round((Date.now() - ultima.getTime()) / 86400000) : null;
+
+    if (diasSinEntrenar === null && nivelPiso && NIVEL_RANGO[nivelPiso] > NIVEL_RANGO[nivel]) {
+      nivel = nivelPiso;
+      origen = 'declarado';
+      frontierNombre = null;
+      notaDominado = null;
+      bloqueo = null;
+      fuente = `nivel declarado (todavía sin historial en este patrón)`;
+    }
+
     let bajadoPorInactividad = false;
     if (diasSinEntrenar != null && diasSinEntrenar > 30 && NIVEL_RANGO[nivel] > 0) {
       nivel = NIVEL_DESDE_RANGO[NIVEL_RANGO[nivel] - 1];
@@ -422,6 +444,9 @@ function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido) {
   }
   if (nivelInfo.origen === 'estandares') {
     return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} (${nivelInfo.fuente}).`;
+  }
+  if (nivelInfo.origen === 'declarado') {
+    return `Todavía no registraste nada en ${ramaLabel} — usamos el nivel que declaraste al empezar. En cuanto entrenes este patrón, tu historial real va a mandar.`;
   }
   return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel}.`;
 }
