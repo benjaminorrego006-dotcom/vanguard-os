@@ -85,6 +85,15 @@ export function setupGeneradorConfigForm(onGenerado) {
     const duracionSesionMin = parseInt(document.getElementById('generador-duracion').value, 10);
     const categoria = modal.dataset.categoria;
 
+    // TODO (onboarding del sistema de nivel, pendiente): si categoria==='gym'
+    // y equipoDisponible.length===0, el catálogo de GYM depende casi por
+    // completo de barra/mancuernas/máquina — el generador solo cubre 2 de
+    // los 8 patrones de movimiento (Rodilla y Core) y el resto queda en
+    // aviso. Cuando se construya el onboarding, interceptar acá y sugerir
+    // Calistenia en su lugar en vez de dejar que el usuario reciba una
+    // rutina de 2 ejercicios sin más contexto. No implementado todavía —
+    // pedido explícito del usuario de anotarlo, no resolverlo ahora.
+
     btnGenerar.disabled = true;
     btnGenerar.textContent = 'Generando…';
     try {
