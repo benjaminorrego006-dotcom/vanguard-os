@@ -205,7 +205,7 @@ function ultimaFechaEnRama(rama, historialPorNombre) {
 // solo las que participan de una cadena de prerrequisitos, así que necesita
 // saber cuándo se entrenó por última vez cualquiera de ellas para la regla
 // de "no repetir lo entrenado hace poco".
-async function barrerHistorialCompleto() {
+export async function barrerHistorialCompleto() {
   const nombres = [...new Set(Object.values(CATALOGO_EJERCICIOS).map(e => e.nombre))];
   const historiales = await Promise.all(nombres.map(nombre => db.getHistorialEjercicio(nombre)));
   return Object.fromEntries(nombres.map((nombre, i) => [nombre, historiales[i]]));
@@ -284,6 +284,21 @@ export async function calcularNivelPorRama(historialPorNombre) {
           fuente = `Estándares de Fuerza (${nivelInfo.label})`;
         }
       }
+    }
+
+    // Override confirmado (paso 4: el usuario aceptó una sugerencia de
+    // avance para ESTA rama) — a diferencia del piso por tiempo declarado
+    // de abajo, esto es evidencia real que la propia app detectó y el
+    // usuario confirmó, así que se aplica siempre, no solo cuando falta
+    // historial.
+    const nivelOverride = nivelDeclarado?.overridesPorRama?.[rama] || null;
+    if (nivelOverride && NIVEL_RANGO[nivelOverride] > NIVEL_RANGO[nivel]) {
+      nivel = nivelOverride;
+      origen = 'confirmado';
+      frontierNombre = null;
+      notaDominado = null;
+      bloqueo = null;
+      fuente = 'nivel confirmado por vos a partir de una sugerencia de avance';
     }
 
     const ultima = ultimaFechaEnRama(rama, historialPorNombre);
@@ -447,6 +462,9 @@ function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido) {
   }
   if (nivelInfo.origen === 'declarado') {
     return `Todavía no registraste nada en ${ramaLabel} — usamos el nivel que declaraste al empezar. En cuanto entrenes este patrón, tu historial real va a mandar.`;
+  }
+  if (nivelInfo.origen === 'confirmado') {
+    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — confirmaste una sugerencia de avance basada en tu progreso real.`;
   }
   return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel}.`;
 }

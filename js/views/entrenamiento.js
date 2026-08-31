@@ -15,6 +15,8 @@ import { renderActivityHeatmap, initActivityHeatmapListeners } from '../componen
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
 import { renderArbolProgresion } from '../components/arbol-progresion.js';
 import { renderEstandaresFuerza, initEstandaresFuerzaListeners } from '../components/estandares-fuerza.js';
+import { detectarSugerenciaPendiente } from '../core/sugerencias-nivel.js';
+import { Toast } from '../utils/states.js';
 
 let categoriaActiva = null;
 let viewState = 'main'; // 'main', 'rutinas', 'form', 'session'
@@ -53,6 +55,48 @@ const renderVolumenSemanalChart = async () => {
     }
   });
 };
+
+const NIVEL_SUGERIDO_LABEL = { intermedio: 'Intermedio', avanzado: 'Avanzado' };
+
+// Banner "sugerencia de avance de nivel" (PROMPT-NIVEL-FILTRADO.md, paso
+// 4/e): se calcula después de insertar el DOM, no durante render(), porque
+// depende de una lectura de IndexedDB (historial + PRs) que no tiene
+// sentido bloquear el primer pintado del dashboard. Nunca sube el nivel
+// sola — solo arma la sugerencia con evidencia concreta; subir o descartar
+// es una acción explícita del usuario.
+async function renderSugerenciaNivelBanner() {
+  const contenedor = document.getElementById('sugerencia-nivel-banner');
+  if (!contenedor) return;
+
+  const sugerencia = await detectarSugerenciaPendiente();
+  if (!sugerencia) { contenedor.innerHTML = ''; return; }
+
+  contenedor.innerHTML = `
+    <div class="card" style="padding: 16px 18px; margin-bottom: 20px; border-radius: 18px; border: 1px solid var(--accent-teal); background: rgba(92, 225, 230, 0.08);">
+      <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <svg width="20" height="20" fill="none" stroke="var(--accent-teal)" stroke-width="2.3" viewBox="0 0 24 24" style="flex-shrink: 0; margin-top: 1px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+        <div style="flex: 1;">
+          <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Tu progreso en ${sugerencia.ramaLabel} ya es ${NIVEL_SUGERIDO_LABEL[sugerencia.nivelSugerido]}</div>
+          <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; font-weight: 500;">${sugerencia.detalle}</div>
+          <div style="display: flex; gap: 10px; margin-top: 12px;">
+            <button id="btn-sugerencia-nivel-confirmar" class="tappable" style="background: var(--accent-teal); color: #000; border: none; padding: 9px 16px; font-weight: 700; font-size: 12.5px; cursor: pointer;">Sí, subir de nivel</button>
+            <button id="btn-sugerencia-nivel-descartar" class="tappable" style="background: transparent; color: var(--text-secondary); border: 1px solid var(--surface-border); padding: 9px 16px; font-weight: 600; font-size: 12.5px; cursor: pointer;">Ahora no</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btn-sugerencia-nivel-confirmar').addEventListener('click', async () => {
+    await db.confirmarSugerenciaNivel(sugerencia.rama, sugerencia.nivelSugerido);
+    Toast(`Subiste a ${NIVEL_SUGERIDO_LABEL[sugerencia.nivelSugerido]} en ${sugerencia.ramaLabel}`, 'success');
+    renderSugerenciaNivelBanner();
+  });
+  document.getElementById('btn-sugerencia-nivel-descartar').addEventListener('click', async () => {
+    await db.descartarSugerenciaNivel(sugerencia.rama, sugerencia.nivelSugerido);
+    renderSugerenciaNivelBanner();
+  });
+}
 
 export let mountListeners;
 
@@ -209,6 +253,8 @@ export async function render() {
           </div>
         </div>
 
+        <div id="sugerencia-nivel-banner"></div>
+
         <div style="position: relative; margin-bottom: 20px;">
           <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           <input type="text" placeholder="Encuentra tu próximo entrenamiento..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 20px 14px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-teal)'; this.style.boxShadow='0 0 0 4px rgba(92,225,230,0.18)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
@@ -302,6 +348,7 @@ mountListeners = () => {
   };
 
   renderVolumenSemanalChart();
+  renderSugerenciaNivelBanner();
   initActivityHeatmapListeners('entreno-heatmap', 'var(--accent-teal)');
 
   // La tarjeta de Análisis vivía acá, duplicando la navbar (Limpieza C ya

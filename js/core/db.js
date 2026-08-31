@@ -1064,27 +1064,62 @@ export const db = {
 
   // --- NIVEL DE ENTRENAMIENTO DECLARADO (sistema de nivel, PROMPT-NIVEL-
   // FILTRADO.md) ---
-  // Solo el "punto de partida" autodeclarado (tiempo entrenando). Días y
+  // tiempoEntrenando: el "punto de partida" autodeclarado (paso 2). Días y
   // equipo se comparten con entrenoGeneradorConfig (arriba) en vez de
-  // duplicarse acá — completar este onboarding también precompleta el
-  // generador. Sexo se lee directo de 'profile', no se vuelve a preguntar.
-  // El nivel REAL por patrón de movimiento para el generador sigue
-  // viniendo de calcularNivelPorRama() en generador-rutinas.js (se deriva
-  // del historial real, no de esto) — esto es un concepto distinto: el
-  // nivel que el usuario declara para filtrar/ordenar rutinas, con
-  // sugerencia de subida (paso 4 del prompt, todavía no implementado).
+  // duplicarse acá. Sexo se lee directo de 'profile', no se vuelve a
+  // preguntar. El nivel REAL por patrón de movimiento para el generador
+  // sigue viniendo de calcularNivelPorRama() en generador-rutinas.js (se
+  // deriva del historial real) — esto es un concepto distinto: el nivel
+  // que el usuario declara o confirma, que calcularNivelPorRama() usa como
+  // PISO cuando no hay historial real todavía.
+  //
+  // overridesPorRama (paso 4): nivel que el usuario CONFIRMÓ subir cuando
+  // la app se lo sugirió, por rama — a diferencia de tiempoEntrenando (un
+  // solo valor global), esto es por patrón de movimiento, y solo sube,
+  // nunca baja (ver sugerencias-nivel.js).
+  // sugerenciasDescartadas: último nivel que el usuario rechazó por rama
+  // ("Ahora no") — no se le vuelve a mostrar ESE mismo nivel, pero sí uno
+  // más alto si su historial sigue mejorando.
   async getNivelEntrenamiento() {
     return idbGetSingleton('nivelEntrenamiento', null);
   },
   async saveNivelEntrenamiento(data) {
     const valido = ['menos-1', '1-3', 'mas-3'];
+    const previo = await idbGetSingleton('nivelEntrenamiento', null);
     const nivel = {
-      tiempoEntrenando: valido.includes(data.tiempoEntrenando) ? data.tiempoEntrenando : 'menos-1',
+      tiempoEntrenando: valido.includes(data.tiempoEntrenando) ? data.tiempoEntrenando : (previo?.tiempoEntrenando || 'menos-1'),
+      overridesPorRama: previo?.overridesPorRama || {},
+      sugerenciasDescartadas: previo?.sugerenciasDescartadas || {},
       actualizadoEn: new Date().toISOString()
     };
     await idbSetSingleton('nivelEntrenamiento', nivel);
     this._triggerUpdate();
     await logEvent({ modulo: 'entreno', tipo: 'nivel_entrenamiento_actualizado', payload: nivel });
+    return nivel;
+  },
+  async confirmarSugerenciaNivel(rama, nivelSugerido) {
+    const previo = await idbGetSingleton('nivelEntrenamiento', { tiempoEntrenando: 'menos-1', overridesPorRama: {}, sugerenciasDescartadas: {} });
+    const nivel = {
+      ...previo,
+      overridesPorRama: { ...previo.overridesPorRama, [rama]: nivelSugerido },
+      actualizadoEn: new Date().toISOString()
+    };
+    delete nivel.sugerenciasDescartadas[rama];
+    await idbSetSingleton('nivelEntrenamiento', nivel);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'entreno', tipo: 'sugerencia_nivel_confirmada', payload: { rama, nivelSugerido } });
+    return nivel;
+  },
+  async descartarSugerenciaNivel(rama, nivelSugerido) {
+    const previo = await idbGetSingleton('nivelEntrenamiento', { tiempoEntrenando: 'menos-1', overridesPorRama: {}, sugerenciasDescartadas: {} });
+    const nivel = {
+      ...previo,
+      sugerenciasDescartadas: { ...previo.sugerenciasDescartadas, [rama]: nivelSugerido },
+      actualizadoEn: new Date().toISOString()
+    };
+    await idbSetSingleton('nivelEntrenamiento', nivel);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'entreno', tipo: 'sugerencia_nivel_descartada', payload: { rama, nivelSugerido } });
     return nivel;
   },
 
