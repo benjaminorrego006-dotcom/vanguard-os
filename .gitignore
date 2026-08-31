@@ -21,3 +21,9 @@ generate_prompt.ps1
 update-finanzas-fast.ps1
 _qa_test.html
 test-modules.html
+
+# Entorno local / herramientas de testing
+node_modules/
+.env
+.mcp.json
+.playwright-mcp/
