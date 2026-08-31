@@ -373,7 +373,7 @@ function elegirSplit(diasSemana) {
 // (ej. Tracción Vertical en calistenia sin ningún historial: Dead Hang
 // requiere Remo Invertido antes, no es un problema de equipo). Son avisos
 // distintos y accionables de forma distinta.
-function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historialPorNombre) {
+function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historialPorNombre, priorizarCompuestos) {
   const nivelesAIntentar = nivelRama === 'avanzado' ? ['avanzado', 'intermedio', 'principiante']
     : nivelRama === 'intermedio' ? ['intermedio', 'principiante']
     : ['principiante'];
@@ -389,7 +389,15 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
     const pool = Object.values(CATALOGO_EJERCICIOS).filter(e =>
       baseFiltro(e) && ((e.prerequisitos || []).length === 0 || estaDesbloqueado(e.id, historialPorNombre))
     );
-    if (pool.length > 0) return { pool, relajado: nivelIntento !== nivelRama, nivelUsado: nivelIntento, razon: null };
+    if (pool.length > 0) {
+      // Sección c) del prompt: con pocos días (2-3) se prioriza compuesto
+      // sobre aislamiento — "prioriza", no "elimina": si en este
+      // patrón/nivel solo hay aislamiento, se usa igual antes que dejar el
+      // patrón sin cubrir.
+      const compuestos = priorizarCompuestos ? pool.filter(e => e.tipoMovimiento === 'compuesto') : [];
+      const poolFinal = compuestos.length > 0 ? compuestos : pool;
+      return { pool: poolFinal, relajado: nivelIntento !== nivelRama, nivelUsado: nivelIntento, razon: null };
+    }
 
     if (sinEquipoNiPrereq.length === 0) sinEquipoNiPrereq = Object.values(CATALOGO_EJERCICIOS).filter(baseFiltro);
   }
@@ -477,7 +485,7 @@ function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido) {
 // cupo — cede el resto de su cupo a otros patrones que todavía tengan
 // opciones, y si TODOS se agotan, la sesión sale con menos ejercicios de
 // los presupuestados en vez de con líneas duplicadas.
-function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso) {
+function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, priorizarCompuestos) {
   const elegidosHoy = [];
   const agotados = new Set();
   let i = 0;
@@ -489,7 +497,7 @@ function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, 
     if (agotados.has(patron)) continue;
 
     const nivelInfo = nivelPorRama[patron];
-    const { pool, relajado, nivelUsado, razon } = candidatosPara(patron, categoria, nivelInfo.nivel, equipoDisponible, historialPorNombre);
+    const { pool, relajado, nivelUsado, razon } = candidatosPara(patron, categoria, nivelInfo.nivel, equipoDisponible, historialPorNombre, priorizarCompuestos);
     if (pool.length === 0) {
       registrarAviso(patron, razon);
       agotados.add(patron);
@@ -541,6 +549,11 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
 
   const splits = categoria === 'hiit' ? elegirSplitHiit(diasSemana) : elegirSplit(diasSemana);
   const nombreCategoria = categoria === 'gym' ? 'GYM' : categoria === 'calistenia' ? 'calistenia' : 'HIIT';
+  // Sección c) del prompt: 2-3 días → casi todo compuesto (Full Body, el
+  // único split que arma elegirSplit() para ese rango). HIIT queda afuera:
+  // es circuito por tiempo, no series/reps de fuerza — el concepto
+  // compuesto/aislamiento no aplica ahí de la misma forma.
+  const priorizarCompuestos = categoria !== 'hiit' && diasSemana <= 3;
 
   const registrarAviso = (patron, razon) => {
     const aviso = razon === 'bloqueado-prerrequisitos'
@@ -550,7 +563,7 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
   };
 
   const dias = splits.map(diaDef => {
-    const elegidos = elegirEjerciciosDelDia(diaDef.patrones, exercisesPerSession, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso);
+    const elegidos = elegirEjerciciosDelDia(diaDef.patrones, exercisesPerSession, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, priorizarCompuestos);
 
     if (categoria === 'hiit') {
       return {
