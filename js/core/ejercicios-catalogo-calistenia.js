@@ -25,7 +25,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'flexiones diamante': {
     id: 'flexiones diamante',
@@ -49,7 +50,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   // --- Árbol de progresión de flexiones (progresiones-calistenia.js) ---
   'flexiones en pared': {
@@ -74,7 +76,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'flexiones inclinadas': {
     id: 'flexiones inclinadas',
@@ -98,7 +101,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'flexiones con rodillas': {
     id: 'flexiones con rodillas',
@@ -122,7 +126,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'flexiones declinadas': {
     id: 'flexiones declinadas',
@@ -146,7 +151,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'flexiones de arquero': {
     id: 'flexiones de arquero',
@@ -170,7 +176,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":6,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'flexiones con palmada': {
     id: 'flexiones con palmada',
@@ -194,7 +201,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'pseudo planche push-up': {
     id: 'pseudo planche push-up',
@@ -218,7 +226,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'flexiones a una mano asistidas': {
     id: 'flexiones a una mano asistidas',
@@ -242,7 +251,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":5,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'flexiones a una mano': {
     id: 'flexiones a una mano',
@@ -266,7 +276,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":3,"series":2},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'fondos en banco': {
     id: 'fondos en banco',
@@ -290,7 +301,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "banco",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   // --- Resto del árbol de progresión de fondos ---
   'fondos asistidos con banda': {
@@ -315,7 +327,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "banda",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'fondos en anillas': {
     id: 'fondos en anillas',
@@ -339,7 +352,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "anillas",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'fondos lastrados': {
     id: 'fondos lastrados',
@@ -363,7 +377,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":5,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'pike push-up': {
     id: 'pike push-up',
@@ -387,7 +402,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-vertical"
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "compuesto"
   },
   'dead hang': {
     id: 'dead hang',
@@ -411,7 +427,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":20,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'dominadas isométricas': {
     id: 'dominadas isométricas',
@@ -435,7 +452,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'remo invertido': {
     id: 'remo invertido',
@@ -459,7 +477,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "traccion-horizontal"
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'negativas de dominada': {
     id: 'negativas de dominada',
@@ -483,7 +502,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":5,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'dominada asistida con banda': {
     id: 'dominada asistida con banda',
@@ -507,7 +527,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":6,"series":3},
     tambienEn: [],
     equipo: "banda",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'dominada australiana': {
     id: 'dominada australiana',
@@ -531,7 +552,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "traccion-horizontal"
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "compuesto"
   },
   // --- Resto del árbol de progresión de dominadas ---
   'dominadas lastradas': {
@@ -556,7 +578,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":5,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'dominada de arquero': {
     id: 'dominada de arquero',
@@ -580,7 +603,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":5,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'dominada a una mano asistida': {
     id: 'dominada a una mano asistida',
@@ -604,7 +628,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":3,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'dominada a una mano': {
     id: 'dominada a una mano',
@@ -628,7 +653,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":1,"series":2},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'puente de glúteo': {
     id: 'puente de glúteo',
@@ -652,7 +678,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "cadera"
+    patronMovimiento: "cadera",
+    tipoMovimiento: "compuesto"
   },
   'puente de glúteo a una pierna': {
     id: 'puente de glúteo a una pierna',
@@ -676,7 +703,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "cadera"
+    patronMovimiento: "cadera",
+    tipoMovimiento: "compuesto"
   },
   // --- Resto del árbol de progresión de sentadillas ---
   'sentadilla asistida': {
@@ -701,7 +729,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'sentadilla con peso corporal': {
     id: 'sentadilla con peso corporal',
@@ -726,7 +755,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'sentadilla búlgara': {
     id: 'sentadilla búlgara',
@@ -750,7 +780,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'pistol squat asistida': {
     id: 'pistol squat asistida',
@@ -774,7 +805,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":6,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'pistol squat': {
     id: 'pistol squat',
@@ -798,7 +830,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":5,"series":2},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'plancha': {
     id: 'plancha',
@@ -822,7 +855,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":40,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
   },
   'plancha lateral': {
     id: 'plancha lateral',
@@ -846,7 +880,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":30,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
   },
   'l-sit': {
     id: 'l-sit',
@@ -870,7 +905,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
   },
   'hollow body hold': {
     id: 'hollow body hold',
@@ -894,7 +930,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":20,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
   },
   'wall sit': {
     id: 'wall sit',
@@ -918,7 +955,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":30,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "aislamiento"
   },
   'handstand contra pared': {
     id: 'handstand contra pared',
@@ -942,7 +980,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":20,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-vertical"
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "compuesto"
   },
   'wall walk': {
     id: 'wall walk',
@@ -966,7 +1005,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":5,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-vertical"
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "compuesto"
   },
   // --- Rama "estáticos": Crow Pose es el primer paso de la cadena real de
   // handstand (crow pose -> handstand contra pared -> handstand de cara a
@@ -994,7 +1034,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "compuesto"
   },
   // --- Rama "estáticos" del árbol de progresión (handstand libre) ---
   'handstand de cara a la pared': {
@@ -1019,7 +1060,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-vertical"
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "compuesto"
   },
   'handstand (libre)': {
     id: 'handstand (libre)',
@@ -1043,7 +1085,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-vertical"
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "compuesto"
   },
   // --- Rama "estáticos": línea del front lever ---
   'front lever tuck': {
@@ -1068,7 +1111,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'front lever avanzado': {
     id: 'front lever avanzado',
@@ -1092,7 +1136,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'front lever straddle': {
     id: 'front lever straddle',
@@ -1116,7 +1161,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'front lever': {
     id: 'front lever',
@@ -1140,7 +1186,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   // --- Rama "estáticos": el muscle-up cruza dominadas + fondos ---
   'muscle-up': {
@@ -1165,7 +1212,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":3,"series":2},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   // --- Rama "estáticos": prerrequisito de toda la línea de planche. Se
   // recomiendan 2+ meses de acondicionamiento antes de trabajo serio de
@@ -1192,7 +1240,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
   },
   'plancha lean': {
     id: 'plancha lean',
@@ -1216,7 +1265,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'tuck planche': {
     id: 'tuck planche',
@@ -1240,7 +1290,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   // La diferencia entre el tuck y el tuck avanzado es la espalda plana en
   // vez de redondeada, lo que aleja el centro de masa de las manos y sube
@@ -1269,7 +1320,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":15,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'straddle planche': {
     id: 'straddle planche',
@@ -1293,7 +1345,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'planche': {
     id: 'planche',
@@ -1317,7 +1370,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'back lever': {
     id: 'back lever',
@@ -1341,7 +1395,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'dragon flag': {
     id: 'dragon flag',
@@ -1365,7 +1420,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "banco",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "compuesto"
   },
   'bandera humana': {
     id: 'bandera humana',
@@ -1389,7 +1445,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "compuesto"
   },
   'burpees': {
     id: 'burpees',
@@ -1415,7 +1472,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: ["hiit"],
     equipo: "ninguno",
-    patronMovimiento: "locomocion"
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
   },
   'escaladores': {
     id: 'escaladores',
@@ -1439,7 +1497,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":30,"series":3},
     tambienEn: ["hiit"],
     equipo: "ninguno",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "compuesto"
   },
   'sentadilla con salto': {
     id: 'sentadilla con salto',
@@ -1464,7 +1523,8 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: ["hiit"],
     equipo: "ninguno",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'zancadas saltadas': {
     id: 'zancadas saltadas',
@@ -1488,6 +1548,7 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: ["hiit"],
     equipo: "ninguno",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
 };

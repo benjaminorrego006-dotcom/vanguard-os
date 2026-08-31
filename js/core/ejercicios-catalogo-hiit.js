@@ -24,7 +24,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"segundos","valor":30,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "locomocion"
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
   },
   // --- Etapa 2d: poblar HIIT/Cardio, hoy con solo 4 ejercicios propios ---
   'rodillas altas': {
@@ -49,7 +50,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"segundos","valor":30,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "locomocion"
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
   },
   'talones al glúteo': {
     id: 'talones al glúteo',
@@ -73,7 +75,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"segundos","valor":30,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "locomocion"
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
   },
   'salto a la comba': {
     id: 'salto a la comba',
@@ -97,7 +100,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"segundos","valor":30,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "locomocion"
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
   },
   'step-ups': {
     id: 'step-ups',
@@ -121,7 +125,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "cajon",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'plancha jacks': {
     id: 'plancha jacks',
@@ -145,7 +150,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "compuesto"
   },
   // Prerrequisito de Burpees: el escalón que falta entre nada y el burpee
   // completo (sin flexión ni salto final).
@@ -172,7 +178,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "locomocion"
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
   },
   'saltos al cajón': {
     id: 'saltos al cajón',
@@ -196,7 +203,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "cajon",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'kettlebell swing': {
     id: 'kettlebell swing',
@@ -220,7 +228,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
     tambienEn: [],
     equipo: "kettlebell",
-    patronMovimiento: "cadera"
+    patronMovimiento: "cadera",
+    tipoMovimiento: "compuesto"
   },
   'thrusters': {
     id: 'thrusters',
@@ -244,7 +253,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "mancuernas",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'battle ropes': {
     id: 'battle ropes',
@@ -268,7 +278,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"segundos","valor":30,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "compuesto"
   },
   'burpee con salto tuck': {
     id: 'burpee con salto tuck',
@@ -292,7 +303,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "locomocion"
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
   },
   'burpee box jump': {
     id: 'burpee box jump',
@@ -316,7 +328,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"reps","valor":6,"series":3},
     tambienEn: [],
     equipo: "cajon",
-    patronMovimiento: "locomocion"
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
   },
   'sprint': {
     id: 'sprint',
@@ -341,7 +354,8 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"segundos","valor":30,"series":4},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "locomocion"
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
   },
   'trote continuo': {
     id: 'trote continuo',
@@ -365,6 +379,7 @@ export const CATALOGO_HIIT = {
     criterioAvance: {"tipo":"segundos","valor":1200,"series":1},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "locomocion"
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
   }
 };

@@ -30,7 +30,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"ratio","valor":"intermedio","series":null},
     tambienEn: [],
     equipo: "barra",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'sentadilla frontal': {
     id: 'sentadilla frontal',
@@ -56,7 +57,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "barra",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'peso muerto': {
     id: 'peso muerto',
@@ -83,7 +85,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"ratio","valor":"intermedio","series":null},
     tambienEn: [],
     equipo: "barra",
-    patronMovimiento: "cadera"
+    patronMovimiento: "cadera",
+    tipoMovimiento: "compuesto"
   },
   'peso muerto rumano': {
     id: 'peso muerto rumano',
@@ -109,7 +112,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "barra",
-    patronMovimiento: "cadera"
+    patronMovimiento: "cadera",
+    tipoMovimiento: "compuesto"
   },
   'press de banca': {
     id: 'press de banca',
@@ -135,7 +139,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"ratio","valor":"intermedio","series":null},
     tambienEn: [],
     equipo: "barra",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'press inclinado': {
     id: 'press inclinado',
@@ -159,7 +164,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "barra",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'press de banca con mancuernas': {
     id: 'press de banca con mancuernas',
@@ -183,7 +189,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "mancuernas",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'aperturas con mancuernas': {
     id: 'aperturas con mancuernas',
@@ -207,7 +214,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "mancuernas",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "aislamiento"
   },
   'aperturas en polea': {
     id: 'aperturas en polea',
@@ -231,7 +239,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "aislamiento"
   },
   'press militar': {
     id: 'press militar',
@@ -257,7 +266,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"ratio","valor":"intermedio","series":null},
     tambienEn: [],
     equipo: "barra",
-    patronMovimiento: "empuje-vertical"
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "compuesto"
   },
   'press arnold': {
     id: 'press arnold',
@@ -282,7 +292,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "mancuernas",
-    patronMovimiento: "empuje-vertical"
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "compuesto"
   },
   'remo con barra': {
     id: 'remo con barra',
@@ -308,7 +319,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "barra",
-    patronMovimiento: "traccion-horizontal"
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'dominadas': {
     id: 'dominadas',
@@ -334,7 +346,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'jalón al pecho': {
     id: 'jalón al pecho',
@@ -359,7 +372,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "traccion-vertical"
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
   },
   'fondos en paralelas': {
     id: 'fondos en paralelas',
@@ -383,7 +397,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'curl de bíceps': {
     id: 'curl de bíceps',
@@ -407,7 +422,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "mancuernas",
-    patronMovimiento: "traccion-horizontal"
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
   },
   'curl martillo': {
     id: 'curl martillo',
@@ -431,7 +447,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "mancuernas",
-    patronMovimiento: "traccion-horizontal"
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
   },
   'extensión de tríceps': {
     id: 'extensión de tríceps',
@@ -455,7 +472,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "empuje-horizontal"
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "aislamiento"
   },
   'elevaciones laterales': {
     id: 'elevaciones laterales',
@@ -480,7 +498,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "mancuernas",
-    patronMovimiento: "empuje-vertical"
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "aislamiento"
   },
   'face pull': {
     id: 'face pull',
@@ -505,7 +524,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "traccion-horizontal"
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
   },
   'extensión de cuádriceps': {
     id: 'extensión de cuádriceps',
@@ -529,7 +549,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "aislamiento"
   },
   'curl femoral': {
     id: 'curl femoral',
@@ -553,7 +574,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "cadera"
+    patronMovimiento: "cadera",
+    tipoMovimiento: "aislamiento"
   },
   'zancadas': {
     id: 'zancadas',
@@ -578,7 +600,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
   },
   'hip thrust': {
     id: 'hip thrust',
@@ -602,7 +625,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "barra",
-    patronMovimiento: "cadera"
+    patronMovimiento: "cadera",
+    tipoMovimiento: "compuesto"
   },
   'remo en máquina': {
     id: 'remo en máquina',
@@ -627,7 +651,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "traccion-horizontal"
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'elevaciones de piernas': {
     id: 'elevaciones de piernas',
@@ -651,7 +676,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
   },
   'abdominales': {
     id: 'abdominales',
@@ -675,7 +701,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
   },
   'crunch en banco declinado': {
     id: 'crunch en banco declinado',
@@ -699,7 +726,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
     tambienEn: [],
     equipo: "banco",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
   },
   'crunch en polea': {
     id: 'crunch en polea',
@@ -723,7 +751,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
   },
   'pallof press': {
     id: 'pallof press',
@@ -747,7 +776,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
   },
   'woodchopper': {
     id: 'woodchopper',
@@ -771,7 +801,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "compuesto"
   },
   'plancha con peso': {
     id: 'plancha con peso',
@@ -795,7 +826,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"segundos","valor":30,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
   },
   'rueda abdominal': {
     id: 'rueda abdominal',
@@ -819,7 +851,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "core"
+    patronMovimiento: "core",
+    tipoMovimiento: "compuesto"
   },
   'caminata': {
     id: 'caminata',
@@ -843,7 +876,8 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"segundos","valor":1200,"series":1},
     tambienEn: [],
     equipo: "ninguno",
-    patronMovimiento: "locomocion"
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
   },
   'elevación de talones': {
     id: 'elevación de talones',
@@ -868,6 +902,7 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
     tambienEn: [],
     equipo: "maquina",
-    patronMovimiento: "rodilla"
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "aislamiento"
   },
 };
