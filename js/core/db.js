@@ -1,5 +1,6 @@
 import { getEjercicioMetadata, getEjercicioPorId, getIdPorNombreExacto, GRUPO_MUSCULAR_ORDEN } from './ejercicios-catalogo.js';
 import * as idb from './idb.js';
+import { mesKeyDe } from '../utils/fecha.js';
 
 function toSafeNumber(value) {
   const n = Number(value);
@@ -2013,8 +2014,7 @@ export const db = {
     const txsAll = await idbGetArray('transacciones');
 
     if (!monthFilter) {
-      const now = new Date();
-      monthFilter = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      monthFilter = mesKeyDe(new Date());
     }
 
     const txs = txsAll.filter(t => t.date && t.date.startsWith(monthFilter));
@@ -2022,7 +2022,7 @@ export const db = {
     // Calculate previous month trend
     const [y, m] = monthFilter.split('-');
     let prevDate = new Date(parseInt(y), parseInt(m) - 2);
-    const prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    const prevMonthStr = mesKeyDe(prevDate);
     const prevTxs = txsAll.filter(t => t.date && t.date.startsWith(prevMonthStr));
 
     let prevExpenses = 0;
