@@ -140,6 +140,17 @@ body {
   }
 }
 
+/* Pantallas grandes (PC de escritorio): 800px fijo deja demasiado espacio
+   vacío a los costados en monitores anchos. Dos escalones más en vez de
+   un solo valor fijo, para que la columna de contenido crezca con el
+   monitor sin llegar a estirar las cards a un ancho incómodo de leer. */
+@media (min-width: 1280px) {
+  #view-root > div { max-width: 960px !important; }
+}
+@media (min-width: 1600px) {
+  #view-root > div { max-width: 1120px !important; }
+}
+
 /* Efecto cristal para la barra inferior en móviles */
 @media (max-width: 767px) {
   #app-nav {

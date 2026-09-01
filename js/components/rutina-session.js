@@ -227,8 +227,11 @@ export async function renderRutinaSession(rutina) {
     </button>
   </div>`;
 
-  // Floating timer
-  html += `<div id="floating-rest-timer" style="display: none; position: fixed; bottom: calc(90px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 2px solid var(--accent-teal); color: var(--text-primary); padding: 12px 24px; border-radius: 30px; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: 0 8px 16px rgba(0,0,0,0.5); z-index: 1000; cursor: pointer; align-items: center; gap: 8px;">
+  // Floating timer. Sticky en vez de fixed: fixed centra contra el
+  // viewport completo (incluye el ancho del sidebar en escritorio), sticky
+  // centra contra su propio contenedor (la columna de contenido ya
+  // centrada), que es lo que se ve visualmente como "la pantalla".
+  html += `<div id="floating-rest-timer" style="display: none; position: sticky; bottom: calc(90px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 2px solid var(--accent-teal); color: var(--text-primary); padding: 12px 24px; border-radius: 30px; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: 0 8px 16px rgba(0,0,0,0.5); z-index: 1000; cursor: pointer; align-items: center; gap: 8px; width: fit-content;">
     ${clockSvg}<span id="rest-timer-text">01:00</span>
   </div>`;
 
