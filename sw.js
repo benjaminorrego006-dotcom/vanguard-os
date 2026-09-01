@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v50';
+const CACHE_NAME = 'vanguard-os-v51';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -31,6 +31,7 @@ const PRECACHE_URLS = [
   './js/utils/currency.js',
   './js/utils/backup.js',
   './js/utils/escape.js',
+  './js/utils/fecha.js',
   './js/utils/bodyMetrics.js',
   './js/utils/charts.js',
   './js/vendor/chart.js',

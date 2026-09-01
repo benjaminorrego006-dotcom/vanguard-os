@@ -16,6 +16,7 @@ import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '..
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { escapeHtml } from '../utils/escape.js';
+import { mesKeyDe } from '../utils/fecha.js';
 
 const editSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const transferSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
@@ -26,10 +27,7 @@ let activeFinTab = 'resumen';
 let donutChartInstance = null;
 let dailyBalanceChartInstance = null;
 let monthCompareChartInstance = null;
-const today = new Date();
-const year = today.getFullYear();
-const month = String(today.getMonth() + 1).padStart(2, '0');
-let currentMonth = `${year}-${month}`;
+let currentMonth = mesKeyDe(new Date());
 
 const ICON_PATHS = {
   'Ingreso': '<polyline points="19 12 12 19 5 12"></polyline><line x1="12" y1="19" x2="12" y2="5"></line>',
@@ -60,6 +58,12 @@ const getSVG = (key, color = 'currentColor') => {
 
 
 
+// Compacta el monto ("USD 50 M") cuando el formato completo se pasa de
+// ancho en la card "Disponible en Mes" — mide el string YA formateado, no
+// el número crudo (un número corto puede formatear largo con símbolo de
+// moneda + separadores).
+const formatDisponible = (amount) => (formatCurrency(amount).length > 13) ? formatCompactCurrency(amount) : formatCurrency(amount);
+
 export let mountListeners;
 
 // Llamado por el router (app.js) antes de desmontar esta vista — evita que
@@ -80,13 +84,13 @@ export async function init() {
     // Animate stats
     const elIncome = document.getElementById('stat-income');
     const elExpense = document.getElementById('stat-expense');
-    if(elIncome) animateNumber(elIncome, prevB.income, b.income, 400, true);
-    if(elExpense) animateNumber(elExpense, prevB.expenses, b.expenses, 400, true);
+    if(elIncome) animateNumber(elIncome, prevB.income, b.income, 400, true, formatCurrency(b.income).length > 13);
+    if(elExpense) animateNumber(elExpense, prevB.expenses, b.expenses, 400, true, formatCurrency(b.expenses).length > 13);
     
     // Update disponible big number (card-disponible)
-    const elDisponible = document.querySelector('#card-disponible div:last-child');
+    const elDisponible = document.getElementById('disponible-mes-value');
     if (elDisponible) {
-      elDisponible.innerText = (formatCurrency(b.remaining).length > 13) ? formatCompactCurrency(b.remaining) : formatCurrency(b.remaining);
+      elDisponible.innerText = formatDisponible(b.remaining);
       elDisponible.style.color = (b.remaining >= 0) ? 'var(--state-success)' : 'var(--state-high)';
     }
 
@@ -372,8 +376,8 @@ export async function init() {
     const elIncome = document.getElementById('stat-income');
     const elExpense = document.getElementById('stat-expense');
 
-    if(elIncome) animateNumber(elIncome, 0, b.income, 800, true);
-    if(elExpense) animateNumber(elExpense, 0, b.expenses, 800, true);
+    if(elIncome) animateNumber(elIncome, 0, b.income, 800, true, formatCurrency(b.income).length > 13);
+    if(elExpense) animateNumber(elExpense, 0, b.expenses, 800, true, formatCurrency(b.expenses).length > 13);
     document.querySelectorAll('.btn-close-modal').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const modal = e.target.closest('.modal-overlay');
@@ -881,8 +885,11 @@ const renderDailyAvailable = (b) => {
 };
 
 // Comparativo simple contra el mes anterior, reutiliza b.trend (ya calculado en db.getBudget).
+// b.trend es null cuando el mes anterior no tuvo gastos registrados (db.js
+// solo calcula el % si prevExpenses > 0) — un porcentaje contra una base 0
+// no dice nada real, así que se muestra un texto neutro en vez de omitirlo.
 const renderMonthTrend = (b) => {
-  if (!b.trend) return '';
+  if (!b.trend) return `<div style="font-size: 12px; font-weight: 600; color: var(--text-disabled); margin-top: 10px;">Sin datos del mes anterior</div>`;
   const { pct, isUp } = b.trend;
   const color = isUp ? 'var(--state-high)' : 'var(--state-low)';
   const texto = isUp ? `Gastaste ${pct}% más que el mes pasado` : `Vas ${pct}% mejor que el mes pasado`;
@@ -1269,12 +1276,7 @@ export async function render() {
     .chip.active { border-color: rgba(255,255,255,0.2); }
   `;
 
-  let fullStr = '';
-  if(formatCurrency(balanceSafe).length > 13) {
-      fullStr = formatCompactCurrency(balanceSafe);
-  } else {
-      fullStr = formatCurrency(balanceSafe);
-  }
+  const fullStr = formatDisponible(balanceSafe);
 
   return `
     <style>${modalCSS}</style>
@@ -1301,27 +1303,27 @@ export async function render() {
 
       <!-- TAB 1: RESUMEN -->
       <div id="tab-content-resumen" class="fin-tab-content" style="display: ${activeFinTab === 'resumen' ? 'block' : 'none'};">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-          <div class="card top-card tappable" id="card-ingresos" style="padding: 18px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-bottom: 12px;">
+          <div class="card top-card tappable" id="card-ingresos" style="padding: 18px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0;">
             <div class="icon-chip" style="width: 30px; height: 30px; background: rgba(34, 197, 94, 0.15); color: var(--state-success);">
               <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"></path></svg>
             </div>
             <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">Ingresos</div>
-            <div id="stat-income" style="font-size: 19px; font-weight: 800; letter-spacing: -0.3px;">${formatCurrency(b.income)}</div>
+            <div id="stat-income" style="font-size: clamp(14px, 4.2vw, 19px); font-weight: 800; letter-spacing: -0.3px; overflow-wrap: anywhere;">${formatDisponible(b.income)}</div>
           </div>
 
-          <div class="card top-card tappable" id="card-gastos" style="padding: 18px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px;">
+          <div class="card top-card tappable" id="card-gastos" style="padding: 18px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0;">
             <div class="icon-chip" style="width: 30px; height: 30px; background: rgba(239, 68, 68, 0.15); color: var(--state-high);">
               <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
             </div>
             <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">Gastos</div>
-            <div id="stat-expense" style="font-size: 19px; font-weight: 800; letter-spacing: -0.3px;">${formatCurrency(b.expenses)}</div>
+            <div id="stat-expense" style="font-size: clamp(14px, 4.2vw, 19px); font-weight: 800; letter-spacing: -0.3px; overflow-wrap: anywhere;">${formatDisponible(b.expenses)}</div>
           </div>
         </div>
 
         <div class="card" id="card-disponible" style="padding: 28px 24px; text-align: center; border-radius: 24px; margin-bottom: 24px; background: linear-gradient(155deg, var(--surface-2) 0%, var(--surface-1) 65%); border: 1px solid var(--surface-border); box-shadow: 0 0 0 1px var(--glass-border) inset, 0 16px 40px -16px ${isHealthy ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)'};">
           <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.6px;">Disponible en Mes</div>
-          <div style="font-size: clamp(22px, 7vw, 38px); font-weight: 800; color: ${isHealthy ? 'var(--state-success)' : 'var(--state-high)'}; line-height: 1.1; letter-spacing: -0.5px; overflow-wrap: anywhere;">
+          <div id="disponible-mes-value" style="font-size: clamp(22px, 7vw, 38px); font-weight: 800; color: ${isHealthy ? 'var(--state-success)' : 'var(--state-high)'}; line-height: 1.1; letter-spacing: -0.5px; overflow-wrap: anywhere;">
             ${fullStr}
           </div>
           <div id="month-trend-container" style="display: flex; justify-content: center;">${renderMonthTrend(b)}</div>
