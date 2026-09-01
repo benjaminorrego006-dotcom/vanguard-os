@@ -143,13 +143,19 @@ export async function renderRutinaSession(rutina) {
     html += `<div style="display: flex; flex-direction: column; gap: 8px;">`;
     
     html += `
-              <div style="display: flex; gap: 4px; align-items: center; margin-bottom: 4px;">
-          <div style="width: 20px;"></div>
-          <div style="flex: 2; font-size: 10px; color: var(--text-secondary); text-align: center;">TIPO</div>
-          <div style="flex: 3; font-size: 10px; color: var(--text-secondary); text-align: center;">REPS</div>
-          <div style="flex: 3; font-size: 10px; color: var(--text-secondary); text-align: center;">PESO</div>
-          <div style="flex: 2; font-size: 10px; color: var(--text-secondary); text-align: center;">RPE</div>
-          <div style="width: 44px;"></div>
+              <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+          <div style="width: 20px; flex-shrink: 0;"></div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+            <div style="display: flex; gap: 4px;">
+              <div style="flex: 0 0 36px; font-size: 9px; color: var(--text-secondary); text-align: center;">TIPO</div>
+              <div style="flex: 1; font-size: 9px; color: var(--text-secondary); text-align: center;">REPS</div>
+            </div>
+            <div style="display: flex; gap: 4px;">
+              <div style="flex: 1; font-size: 9px; color: var(--text-secondary); text-align: center;">PESO</div>
+              <div style="flex: 0 0 36px; font-size: 9px; color: var(--text-secondary); text-align: center;">RPE</div>
+            </div>
+          </div>
+          <div style="width: 44px; flex-shrink: 0;"></div>
         </div>
       `;
       ej.series.forEach((s, sIdx) => {
@@ -162,43 +168,45 @@ export async function renderRutinaSession(rutina) {
       const repsInicial = parseInt(s.reps) || 0;
       const rm1Inicial = (pesoInicial > 0 && repsInicial > 0) ? db.estimar1RM(pesoInicial, repsInicial) : 0;
 
+      const selectStyle = "flex: 0 0 36px; height:44px; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:0; color:var(--text-primary); font-size:12px; text-align: center; text-align-last: center; appearance: none; -webkit-appearance: none;";
+      const stepBtnStyle = "flex-shrink:0; width: 44px; height: 44px; border-radius: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 16px; font-weight: 700; cursor: pointer; padding: 0; display:flex; align-items:center; justify-content:center;";
+      const stepInputStyle = "flex: 1; min-width:0; box-sizing:border-box; height:44px; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:0 2px; color:var(--text-primary); text-align:center; font-size:14px; font-family: var(--font-mono);";
+
       html += `
-                  <div class="serie-row" style="display: flex; gap: 4px; align-items: center; position: relative; margin-bottom: 8px;">
-            <div style="width: 20px; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center;">${sIdx + 1}</div>
-            <div style="flex: 2;">
-              <select class="serie-tipo" style="width:100%; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 0; color:var(--text-primary); font-size:12px; text-align: center; text-align-last: center; appearance: none; -webkit-appearance: none;">
-                <option value="normal" ${isNormal}>N</option>
-                <option value="calentamiento" ${isCalentamiento}>C</option>
-                <option value="fallo" ${isFallo}>F</option>
-                <option value="dropset" ${isDropset}>D</option>
-              </select>
+                  <div class="serie-row" style="display: flex; gap: 6px; align-items: stretch; position: relative; margin-bottom: 8px;">
+            <div style="width: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--text-secondary);">${sIdx + 1}</div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <select class="serie-tipo" style="${selectStyle}">
+                  <option value="normal" ${isNormal}>N</option>
+                  <option value="calentamiento" ${isCalentamiento}>C</option>
+                  <option value="fallo" ${isFallo}>F</option>
+                  <option value="dropset" ${isDropset}>D</option>
+                </select>
+                <button type="button" class="btn-step-reps" data-delta="-1" style="${stepBtnStyle}">−</button>
+                <input type="number" class="serie-reps" value="${s.reps}" style="${stepInputStyle}">
+                <button type="button" class="btn-step-reps" data-delta="1" style="${stepBtnStyle}">+</button>
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <button type="button" class="btn-step-peso" data-delta="-2.5" style="${stepBtnStyle}">−</button>
+                <input type="number" step="0.5" class="serie-peso" value="${s.peso}" style="${stepInputStyle}">
+                <button type="button" class="btn-step-peso" data-delta="2.5" style="${stepBtnStyle}">+</button>
+                <select class="serie-rpe" style="${selectStyle}">
+                  <option value="">-</option>
+                  <option value="5" ${s.rpe == 5 ? 'selected' : ''}>5</option>
+                  <option value="6" ${s.rpe == 6 ? 'selected' : ''}>6</option>
+                  <option value="7" ${s.rpe == 7 ? 'selected' : ''}>7</option>
+                  <option value="8" ${s.rpe == 8 ? 'selected' : ''}>8</option>
+                  <option value="9" ${s.rpe == 9 ? 'selected' : ''}>9</option>
+                  <option value="10" ${s.rpe == 10 ? 'selected' : ''}>10</option>
+                </select>
+              </div>
             </div>
-            <div style="flex: 3; display: flex; align-items: center; gap: 2px;">
-              <button type="button" class="btn-step-reps" data-delta="-1" style="flex-shrink:0; width: 20px; height: 34px; border-radius: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; padding: 0; display:flex; align-items:center; justify-content:center;">−</button>
-              <input type="number" class="serie-reps" value="${s.reps}" style="width:100%; min-width:0; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 2px; color:var(--text-primary); text-align:center; font-size:14px; font-family: var(--font-mono);">
-              <button type="button" class="btn-step-reps" data-delta="1" style="flex-shrink:0; width: 20px; height: 34px; border-radius: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; padding: 0; display:flex; align-items:center; justify-content:center;">+</button>
-            </div>
-            <div style="flex: 3; display: flex; align-items: center; gap: 2px;">
-              <button type="button" class="btn-step-peso" data-delta="-2.5" style="flex-shrink:0; width: 20px; height: 34px; border-radius: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; padding: 0; display:flex; align-items:center; justify-content:center;">−</button>
-              <input type="number" step="0.5" class="serie-peso" value="${s.peso}" style="width:100%; min-width:0; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 2px; color:var(--text-primary); text-align:center; font-size:14px; font-family: var(--font-mono);">
-              <button type="button" class="btn-step-peso" data-delta="2.5" style="flex-shrink:0; width: 20px; height: 34px; border-radius: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; padding: 0; display:flex; align-items:center; justify-content:center;">+</button>
-            </div>
-            <div style="flex: 2;">
-              <select class="serie-rpe" style="width:100%; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 0; color:var(--text-primary); font-size:12px; text-align:center; text-align-last: center; appearance: none; -webkit-appearance: none;">
-                <option value="">-</option>
-                <option value="5" ${s.rpe == 5 ? 'selected' : ''}>5</option>
-                <option value="6" ${s.rpe == 6 ? 'selected' : ''}>6</option>
-                <option value="7" ${s.rpe == 7 ? 'selected' : ''}>7</option>
-                <option value="8" ${s.rpe == 8 ? 'selected' : ''}>8</option>
-                <option value="9" ${s.rpe == 9 ? 'selected' : ''}>9</option>
-                <option value="10" ${s.rpe == 10 ? 'selected' : ''}>10</option>
-              </select>
-            </div>
-            <button class="btn-check-serie" data-checked="${s.checked === true ? 'true' : 'false'}" style="width: 44px; height: 40px; border-radius: 8px; background: ${s.checked ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${s.checked ? 'var(--state-success)' : 'var(--surface-border)'}; color: ${s.checked ? '#000' : 'var(--surface-border)'}; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+            <button class="btn-check-serie" data-checked="${s.checked === true ? 'true' : 'false'}" style="flex-shrink:0; width: 44px; align-self: stretch; border-radius: 8px; background: ${s.checked ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${s.checked ? 'var(--state-success)' : 'var(--text-secondary)'}; color: ${s.checked ? '#000' : 'var(--text-secondary)'}; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
               ✓
             </button>
           </div>
-          <div class="serie-1rm-hint" style="text-align: right; font-size: 10px; color: var(--text-disabled); margin: -5px 0 6px 24px; ${rm1Inicial > 0 ? '' : 'display: none;'}">1RM est. ~${rm1Inicial}kg</div>
+          <div class="serie-1rm-hint" style="text-align: right; font-size: 10px; color: var(--text-disabled); margin: -2px 0 6px 26px; ${rm1Inicial > 0 ? '' : 'display: none;'}">1RM est. ~${rm1Inicial}kg</div>
       `;
     });
     
@@ -495,8 +503,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
       if (isChecked) {
         btn.setAttribute('data-checked', 'false');
         btn.style.background = 'var(--surface-2)';
-        btn.style.color = 'var(--surface-border)';
-        btn.style.borderColor = 'var(--surface-border)';
+        btn.style.color = 'var(--text-secondary)';
+        btn.style.borderColor = 'var(--text-secondary)';
       } else {
         btn.setAttribute('data-checked', 'true');
         btn.style.background = 'var(--state-success)';

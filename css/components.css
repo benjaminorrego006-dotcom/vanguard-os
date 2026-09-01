@@ -192,6 +192,11 @@
   .modal-content::before { display: none; }
 }
 
+/* Sin esto, Chrome/Android dibuja el texto e ícono de type="date" con su
+   esquema claro por defecto (texto negro), invisible sobre nuestro fondo
+   oscuro — parece un campo vacío aunque tenga valor. */
+input[type="date"] { color-scheme: dark; }
+
 .input-group { margin-bottom: 20px; }
 .input-group label { display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
 .input-group input, .input-group select, .input-group textarea {

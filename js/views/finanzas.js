@@ -86,7 +86,7 @@ export async function init() {
     // Update disponible big number (card-disponible)
     const elDisponible = document.querySelector('#card-disponible div:last-child');
     if (elDisponible) {
-      elDisponible.innerText = (b.remaining.toString().length > 13) ? formatCompactCurrency(b.remaining) : formatCurrency(b.remaining);
+      elDisponible.innerText = (formatCurrency(b.remaining).length > 13) ? formatCompactCurrency(b.remaining) : formatCurrency(b.remaining);
       elDisponible.style.color = (b.remaining >= 0) ? 'var(--state-success)' : 'var(--state-high)';
     }
 
@@ -1270,7 +1270,7 @@ export async function render() {
   `;
 
   let fullStr = '';
-  if(balanceSafe.toString().length > 13) {
+  if(formatCurrency(balanceSafe).length > 13) {
       fullStr = formatCompactCurrency(balanceSafe);
   } else {
       fullStr = formatCurrency(balanceSafe);
@@ -1321,7 +1321,7 @@ export async function render() {
 
         <div class="card" id="card-disponible" style="padding: 28px 24px; text-align: center; border-radius: 24px; margin-bottom: 24px; background: linear-gradient(155deg, var(--surface-2) 0%, var(--surface-1) 65%); border: 1px solid var(--surface-border); box-shadow: 0 0 0 1px var(--glass-border) inset, 0 16px 40px -16px ${isHealthy ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)'};">
           <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.6px;">Disponible en Mes</div>
-          <div style="font-size: 38px; font-weight: 800; color: ${isHealthy ? 'var(--state-success)' : 'var(--state-high)'}; line-height: 1.1; letter-spacing: -0.5px;">
+          <div style="font-size: clamp(22px, 7vw, 38px); font-weight: 800; color: ${isHealthy ? 'var(--state-success)' : 'var(--state-high)'}; line-height: 1.1; letter-spacing: -0.5px; overflow-wrap: anywhere;">
             ${fullStr}
           </div>
           <div id="month-trend-container" style="display: flex; justify-content: center;">${renderMonthTrend(b)}</div>
