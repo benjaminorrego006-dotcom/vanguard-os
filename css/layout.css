@@ -1,3 +1,13 @@
+/* Auditoría de overflow (FIX-LAYOUT-FINANZAS.md, Parte 2.1): sin esto,
+   cualquier elemento con width:100% + padding se pasa del ancho del
+   contenedor por el padding (content-box es el default del navegador). */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  max-width: 100%;
+}
+
 body {
   margin: 0;
   background-color: var(--bg-base);
@@ -6,10 +16,15 @@ body {
   overflow: hidden;
 }
 .app-layout {
-  display: flex; flex-direction: column; height: 100vh; width: 100vw;
+  display: flex; flex-direction: column; height: 100vh; width: 100%;
 }
 #view-root {
-  flex: 1; overflow-y: auto; overflow-x: hidden; padding-bottom: 110px;
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  /* 110px cubre navbar(68) + su margen inferior(16) + holgura(26), pero en
+     dispositivos con home indicator (safe-area-inset-bottom grande) el
+     navbar sube más de lo que ese fijo contempla y tapa el final del
+     scroll — de ahí la queja de FIX-LAYOUT-FINANZAS.md. Sumar el inset. */
+  padding-bottom: calc(110px + env(safe-area-inset-bottom));
 }
 /* Bottom Nav flotante estilo iOS (tab bar de vidrio) */
 #app-nav {
