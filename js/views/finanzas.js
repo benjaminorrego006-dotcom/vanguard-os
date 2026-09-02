@@ -1,8 +1,7 @@
-import { Toast, ConfirmDialog, EmptyState, SkeletonCard } from '../utils/states.js';
-import { animateNumber } from '../utils/animate.js';
+import { Toast, ConfirmDialog, SkeletonCard } from '../utils/states.js';
 import { renderDonut } from '../utils/donut.js';
 import { db } from '../core/db.js';
-import { formatCurrency, getCurrency, setCurrency, formatCompactCurrency } from '../utils/currency.js';
+import { toSafeNumber } from '../utils/currency.js';
 import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import { mountSetPinFlow, requestPinVerification } from '../core/lock.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
@@ -30,7 +29,7 @@ let monthCompareChartInstance = null;
 let currentMonth = mesKeyDe(new Date());
 
 const ICON_PATHS = {
-  'Ingreso': '<polyline points="19 12 12 19 5 12"></polyline><line x1="12" y1="19" x2="12" y2="5"></line>',
+  'Ingreso': '<polyline points="5 12 12 5 19 12"></polyline><line x1="12" y1="19" x2="12" y2="5"></line>',
   'Needs': '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>',
   'Wants': '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>',
   'Ahorro': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>',
@@ -58,11 +57,46 @@ const getSVG = (key, color = 'currentColor') => {
 
 
 
-// Compacta el monto ("USD 50 M") cuando el formato completo se pasa de
+// REDISEÑO-FINANZAS: pesos chilenos sin decimales, fijo — no el
+// formateador multi-moneda compartido de utils/currency.js. Alcance
+// deliberadamente limitado a este archivo (ver discusión de la Parte 8
+// del rediseño): el resto de la app sigue soportando otras monedas via
+// getCurrency()/setCurrency(), esto es solo cómo se ve Finanzas.
+let clpFormatter = null;
+let clpCompactFormatter = null;
+const getClpFormatters = () => {
+  if (!clpFormatter) {
+    clpFormatter = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+    clpCompactFormatter = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', notation: 'compact', maximumFractionDigits: 1 });
+  }
+  return { clpFormatter, clpCompactFormatter };
+};
+const formatCurrency = (amount) => getClpFormatters().clpFormatter.format(toSafeNumber(amount));
+const formatCompactCurrency = (amount) => getClpFormatters().clpCompactFormatter.format(toSafeNumber(amount));
+
+// Compacta el monto ("$50 mil") cuando el formato completo se pasa de
 // ancho en la card "Disponible en Mes" — mide el string YA formateado, no
 // el número crudo (un número corto puede formatear largo con símbolo de
 // moneda + separadores).
 const formatDisponible = (amount) => (formatCurrency(amount).length > 13) ? formatCompactCurrency(amount) : formatCurrency(amount);
+
+// Reemplaza animateNumber() de utils/animate.js SOLO para montos: ese
+// utilitario compartido formatea con el formatCurrency() global (multi-
+// moneda), así que la animación pisaba el CLP recién renderizado con lo
+// que sea que tenga el usuario configurado en otra parte de la app. Fuera
+// de eso es exactamente la misma lógica de easing.
+const finAnimateCurrency = (el, from, to, duration = 500) => {
+  const start = performance.now();
+  const step = (timestamp) => {
+    const progress = Math.min((timestamp - start) / duration, 1);
+    const easeProgress = 1 - Math.pow(1 - progress, 3);
+    const current = from + (to - from) * easeProgress;
+    el.innerText = formatDisponible(current);
+    if (progress < 1) requestAnimationFrame(step);
+    else el.innerText = formatDisponible(to);
+  };
+  requestAnimationFrame(step);
+};
 
 export let mountListeners;
 
@@ -84,8 +118,8 @@ export async function init() {
     // Animate stats
     const elIncome = document.getElementById('stat-income');
     const elExpense = document.getElementById('stat-expense');
-    if(elIncome) animateNumber(elIncome, prevB.income, b.income, 400, true, formatCurrency(b.income).length > 13);
-    if(elExpense) animateNumber(elExpense, prevB.expenses, b.expenses, 400, true, formatCurrency(b.expenses).length > 13);
+    if(elIncome) finAnimateCurrency(elIncome, prevB.income, b.income, 400);
+    if(elExpense) finAnimateCurrency(elExpense, prevB.expenses, b.expenses, 400);
     
     // Update disponible big number (card-disponible)
     const elDisponible = document.getElementById('disponible-mes-value');
@@ -134,17 +168,20 @@ export async function init() {
     // Update transactions
     const txContainer = document.getElementById('recent-tx-list');
     if(txContainer) {
-      txContainer.innerHTML = b.breakdown.length === 0 ? EmptyState("No hay movimientos", "Toca el botón + para registrar uno") : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.envelopes)).join('');
+      txContainer.innerHTML = b.breakdown.length === 0 ? finEmptyState('Sin datos', 'Todavía no hay movimientos', 'Toca el botón Ingreso o Gasto para registrar el primero.') : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.envelopes)).join('');
     }
-    
-    // Update Presupuesto Tab Legend (Replaces old envelopes-container)
+
+    // Update Presupuesto Tab Legend (budget cards de la regla 50/30/20)
     const legendContainer = document.getElementById('presupuesto-legend-container');
-    if (legendContainer) {
-      legendContainer.innerHTML = await renderPresupuestoLegend(b);
-      // Re-attach listeners for dynamically rendered buttons inside legend
+    if (legendContainer) legendContainer.innerHTML = renderPresupuestoLegend(b);
+
+    // Update Cuentas Tab (sobres como account-cards)
+    const envelopesContainer = document.getElementById('envelopes-list-container');
+    if (envelopesContainer) {
+      envelopesContainer.innerHTML = await renderEnvelopesHTML(b);
       attachEnvListeners();
     }
-    
+
     const aomCard = document.getElementById('card-ageofmoney');
     if (aomCard) {
       aomCard.outerHTML = renderAgeOfMoneyHTML(b);
@@ -188,7 +225,7 @@ export async function init() {
     if (dateTo) filtered = filtered.filter(t => t.date && t.date.slice(0, 10) <= dateTo);
 
     if (filtered.length === 0) {
-      container.innerHTML = EmptyState("No hay movimientos", "No se encontraron resultados con este filtro");
+      container.innerHTML = finEmptyState('Sin resultados', 'No hay movimientos', 'No se encontraron resultados con este filtro.');
       return;
     }
 
@@ -376,8 +413,8 @@ export async function init() {
     const elIncome = document.getElementById('stat-income');
     const elExpense = document.getElementById('stat-expense');
 
-    if(elIncome) animateNumber(elIncome, 0, b.income, 800, true, formatCurrency(b.income).length > 13);
-    if(elExpense) animateNumber(elExpense, 0, b.expenses, 800, true, formatCurrency(b.expenses).length > 13);
+    if(elIncome) finAnimateCurrency(elIncome, 0, b.income, 800);
+    if(elExpense) finAnimateCurrency(elExpense, 0, b.expenses, 800);
     document.querySelectorAll('.btn-close-modal').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const modal = e.target.closest('.modal-overlay');
@@ -608,61 +645,108 @@ const renderAgeOfMoneyHTML = (b) => {
 
 
 const renderRecurringHTML = (b) => {
-  let html = `
-    <div class="flex-between" style="margin-bottom: 16px;">
-      <div>
-        <h2 style="font-size: 16px; font-weight: 700; margin: 0; margin-bottom: 2px;">Suscripciones Automáticas</h2>
-      </div>
-    </div>
-  `;
+  const addBtnHtml = `<button id="btn-add-recurring" class="tappable" style="margin-top: 12px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; cursor: pointer; font-weight: 600; width: 100%;">+ Nuevo pago</button>`;
+
   if (!b.recurring || b.recurring.length === 0) {
-    html += `
-       ${EmptyState("Sin pagos fijos", "Automatiza tus suscripciones")}
-       <button id="btn-add-recurring" style="margin-top: 8px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nuevo pago</button>
+    return finEmptyState('Sin coincidencias', 'Sin pagos fijos todavía', 'Automatiza tus suscripciones y arriendos para que se descuenten solos.') + addBtnHtml;
+  }
+
+  const total = b.recurring.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const rows = b.recurring.map(req => {
+    const env = b.envelopes.find(e => e.id === req.envelopeId);
+    const envName = env ? escapeHtml(env.name) : 'Desconocido';
+    return `
+      <div class="fin-row recurring-row" data-id="${req.id}">
+        <div style="width: 32px; height: 32px; flex-shrink: 0; background: var(--surface-2); display: flex; align-items: center; justify-content: center; color: var(--text-primary);">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        </div>
+        <div class="fin-who">
+          <div class="fin-name">${escapeHtml(req.label)}</div>
+          <div class="fin-meta">Día ${req.dayOfMonth} &bull; ${envName}</div>
+        </div>
+        <div class="fin-amt">${formatCurrency(req.amount)}</div>
+        <button class="delete-recurring" data-id="${req.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; flex-shrink: 0;">${delSvg}</button>
+      </div>
     `;
-  } else {
-    html += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
-    html += b.recurring.map(req => {
-      const env = b.envelopes.find(e => e.id === req.envelopeId);
-      const envName = env ? escapeHtml(env.name) : 'Desconocido';
-      return `
-        <div class="card recurring-row" data-id="${req.id}" style="padding: 16px; border-radius: 16px;">
-          <div class="flex-between">
-            <div style="display: flex; gap: 12px; align-items: center;">
-              <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text-primary);">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-              </div>
-              <div>
-                <div style="font-size: 14px; font-weight: 700;">${escapeHtml(req.label)}</div>
-                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Día ${req.dayOfMonth} &bull; ${envName}</div>
-              </div>
-            </div>
-            <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
-              <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${formatCurrency(req.amount)}</div>
-              <button class="delete-recurring" data-id="${req.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer;">${delSvg}</button>
-            </div>
+  }).join('');
+
+  return `
+    <div class="card fin-stat" style="margin-bottom: 14px;">
+      <p class="fin-eyebrow">Total estimado por mes</p>
+      <p class="fin-stat-value">${formatCurrency(total)}</p>
+    </div>
+    <div class="card fin-row-list" style="padding: 0; overflow: hidden;">${rows}</div>
+    ${addBtnHtml}
+  `;
+};
+
+// Sobres como "cuentas" (Parte 1/Cuentas del rediseño): antes vivían
+// anidados dentro de cada categoría en Presupuesto (renderPresupuestoLegend);
+// acá es una lista plana de account-cards, sin agrupar por Needs/Wants —
+// esa categoría igual se ve como eyebrow tag arriba del nombre.
+const CAT_LABELS = { Needs: 'Necesidades', Wants: 'Deseos' };
+const renderEnvelopesHTML = async (b) => {
+  const addBtnHtml = `<button class="btn-add-envelope tappable" style="margin-top: 12px; width: 100%; padding: 12px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer;">+ Nuevo sobre</button>`;
+
+  if (!b.envelopes || b.envelopes.length === 0) {
+    return finEmptyState('Sin cuentas', 'Todavía no creaste ningún sobre', 'Un sobre es donde separás plata para una categoría de gasto — luz, comida, salidas.') + addBtnHtml;
+  }
+
+  // getHistoricalSummaryByEnvelope es async (lee IndexedDB): se
+  // precalculan todos los sparklines ANTES de armar el HTML.
+  const histByEnvId = new Map(await Promise.all(
+    b.envelopes.map(async (env) => [env.id, await db.getHistoricalSummaryByEnvelope(env.id, 3)])
+  ));
+
+  const cards = b.envelopes.map(env => {
+    const pct = env.assignedAmount > 0 ? Math.min(100, Math.round((env.spent / env.assignedAmount) * 100)) : (env.spent > 0 ? 100 : 0);
+    const meterCls = pct >= 100 ? 'danger' : pct >= 80 ? 'warn' : '';
+    const catColor = getCatColor(env.category);
+
+    const hist = histByEnvId.get(env.id) || [];
+    const maxH = Math.max(...hist, 1);
+    const sparklineHtml = hist.length ? `<div style="display:flex; align-items:flex-end; gap:2px; height:12px;" title="Últimos 3 meses">${
+      hist.map(v => {
+        const hPct = Math.max(10, Math.round((v / maxH) * 100));
+        const sparkColor = v > env.assignedAmount ? 'var(--state-high)' : 'var(--accent-blue)';
+        return `<div style="width:3px; height:${hPct}%; background:${sparkColor}; border-radius:1px; opacity:0.7;"></div>`;
+      }).join('')
+    }</div>` : '';
+
+    return `
+      <div class="card fin-account-card env-row tappable" data-id="${env.id}">
+        <div class="flex-between">
+          <p class="fin-eyebrow" style="color: ${catColor};">${CAT_LABELS[env.category] || env.category}</p>
+          <div style="display: flex; gap: 10px;">
+            <button class="transfer-env" data-id="${env.id}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Transferir">${transferSvg}</button>
+            <button class="edit-env" data-id="${env.id}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Editar">${editSvg}</button>
+            <button class="delete-env" data-id="${env.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer;" title="Eliminar">${delSvg}</button>
           </div>
         </div>
-      `;
-    }).join('');
-    html += `<button id="btn-add-recurring" style="margin-top: 12px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nuevo pago</button>`;
-    html += `</div>`;
-  }
-  return html;
+        <div class="flex-between" style="margin-top: 2px; align-items: flex-end;">
+          <div style="font-weight: 600; font-size: 14px;">${escapeHtml(env.name)}</div>
+          ${sparklineHtml}
+        </div>
+        <div class="fin-bal" style="color: ${env.balance >= 0 ? 'var(--text-primary)' : 'var(--state-high)'};">${formatCurrency(env.balance)}</div>
+        <div class="fin-meter"><i class="${meterCls}" style="width:${pct}%"></i></div>
+        <div class="fin-bc-figures">${formatCurrency(env.spent)} de ${formatCurrency(env.assignedAmount)}</div>
+      </div>
+    `;
+  }).join('');
+
+  return `<div class="fin-grid2">${cards}</div>${addBtnHtml}`;
 };
 
 const renderGoalsHTML = (b) => {
   let html = `
-    <div class="flex-between" style="margin-bottom: 16px;">
-      <div>
-        <h2 style="font-size: 16px; font-weight: 700; margin: 0; margin-bottom: 2px;">Metas de Ahorro</h2>
-        ${b.savedThisMonth > 0 ? `<div style="font-size: 12px; font-weight: 600; color: var(--accent-purple);">Ahorrado este mes: ${formatCurrency(b.savedThisMonth)}</div>` : ''}
-      </div>
+    <div class="flex-between" style="margin-bottom: 12px;">
+      <p class="fin-eyebrow">Metas de ahorro</p>
+      ${b.savedThisMonth > 0 ? `<span class="fin-eyebrow" style="color: var(--accent-purple);">Ahorrado este mes: ${formatCurrency(b.savedThisMonth)}</span>` : ''}
     </div>
   `;
   if (b.goals.length === 0) {
     html += `
-       ${EmptyState("Sin metas de ahorro", "Crea una para apartar dinero mes a mes")}
+       ${finEmptyState('Sin metas', 'Sin metas de ahorro todavía', 'Crea una para apartar dinero mes a mes hacia algo puntual.')}
        <button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--accent-purple); border: 1px dashed var(--accent-purple); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
     `;
   } else {
@@ -673,6 +757,17 @@ const renderGoalsHTML = (b) => {
   }
   return html;
 };
+
+// Empty state propio de Finanzas (eyebrow + título + descripción), en vez
+// del EmptyState() genérico de utils/states.js — ese es compartido por
+// toda la app y el rediseño pidió tocar solo la vista de Finanzas.
+const finEmptyState = (eyebrow, title, desc) => `
+  <div class="fin-empty">
+    <p class="fin-eyebrow">${eyebrow}</p>
+    <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary);">${title}</h3>
+    <p class="fin-desc">${desc}</p>
+  </div>
+`;
 
 // Badge de alerta reutilizado en Presupuesto y como indicador en Resumen:
 // ámbar si la categoría superó el 80% de lo asignado, rojo si superó el 100%.
@@ -763,24 +858,18 @@ export const txHtml = (tx, envelopes) => {
   }
 
   return `
-    <div class="tx-row flex-between tappable edit-tx" data-id="${tx.id}" style="padding: 12px 16px; background: var(--bg-base); border-radius: 12px; margin-bottom: 8px;">
-      <div style="display: flex; gap: 12px; align-items: center;">
-        <div style="width: 36px; height: 36px; border-radius: 10px; background: ${catColor}20; display: flex; align-items: center; justify-content: center; color: ${catColor};">
-          ${iconSvg}
-        </div>
-        <div>
-          <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); text-transform: capitalize;">${escapeHtml(displayLabel)}</div>
-          <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${subText}</div>
-        </div>
+    <div class="fin-row tappable edit-tx" data-id="${tx.id}" style="cursor: pointer;">
+      <div style="width: 32px; height: 32px; flex-shrink: 0; background: ${catColor}20; display: flex; align-items: center; justify-content: center; color: ${catColor};">
+        ${iconSvg}
       </div>
-      <div style="display: flex; gap: 12px; align-items: center;">
-        <div style="font-size: 15px; font-weight: 700; color: ${amountColor};">
-          ${amountPrefix}${formatCurrency(tx.amount)}
-        </div>
-        <button class="delete-tx tappable" data-id="${tx.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; padding: 4px;">
-           ${delSvg}
-        </button>
+      <div class="fin-who">
+        <div class="fin-name" style="text-transform: capitalize;">${escapeHtml(displayLabel)}</div>
+        <div class="fin-meta">${subText}</div>
       </div>
+      <div class="fin-amt" style="color: ${amountColor};">${amountPrefix}${formatCurrency(tx.amount)}</div>
+      <button class="delete-tx tappable" data-id="${tx.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; padding: 4px; flex-shrink: 0;">
+         ${delSvg}
+      </button>
     </div>
   `;
 };
@@ -1012,103 +1101,44 @@ const renderResumenCharts = async (b) => {
   }
 };
 
-const renderPresupuestoLegend = async (b) => {
+// Los 3 "budget cards" macro de la regla 50/30/20 (Necesidades/Deseos/
+// Ahorros). Antes esta función también anidaba la lista de sobres de cada
+// categoría — eso ahora vive en renderEnvelopesHTML (tab Cuentas), para no
+// mostrar la misma plata dos veces enmarcada de formas distintas.
+const renderPresupuestoLegend = (b) => {
   const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
   const totalWants = b.allocations.find(a => a.category === 'Wants')?.amount || 0;
   const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
   const rule = b.rule || { needs: 0.5, wants: 0.3, savings: 0.2 };
-
-  // getHistoricalSummaryByEnvelope ahora es async (lee IndexedDB): se
-  // precalculan todos los sparklines de sobres ANTES de armar el HTML,
-  // porque los .forEach() de más abajo no pueden esperar promesas.
-  const histByEnvId = new Map(await Promise.all(
-    b.envelopes.map(async (env) => [env.id, await db.getHistoricalSummaryByEnvelope(env.id, 3)])
-  ));
   const ruleDisplay = { needs: Math.round(rule.needs * 100), wants: Math.round(rule.wants * 100), savings: Math.round(rule.savings * 100) };
-  const getPct = (val) => b.budgeted > 0 ? Math.round((val / b.budgeted) * 100) : 0;
-  
+
   return ['Necesidades', 'Deseos', 'Ahorros'].map(catKey => {
     const isNeeds = catKey === 'Necesidades';
     const isWants = catKey === 'Deseos';
-    const isSavings = catKey === 'Ahorros';
     const totalAmt = isNeeds ? totalNeeds : (isWants ? totalWants : totalSavings);
-    const getPctVal = isNeeds ? getPct(totalNeeds) : (isWants ? getPct(totalWants) : getPct(totalSavings));
     const rulePct = isNeeds ? ruleDisplay.needs : (isWants ? ruleDisplay.wants : ruleDisplay.savings);
-    const color = isNeeds ? 'var(--am2)' : (isWants ? 'var(--accent-blue)' : 'var(--accent-purple)');
 
     // Barra de progreso "gastado vs disponible" de la categoría, coloreada
     // por nivel de uso respecto de lo que le corresponde según la regla 50/30/20.
     const disponibleCat = b.budgeted * (isNeeds ? rule.needs : (isWants ? rule.wants : rule.savings));
     const usoCatPct = disponibleCat > 0 ? Math.round((totalAmt / disponibleCat) * 100) : (totalAmt > 0 ? 100 : 0);
     const usoCatPctClamped = Math.min(100, usoCatPct);
-    const usoBarColor = usoCatPct >= 100 ? 'var(--state-high)' : usoCatPct >= 80 ? 'var(--state-medium)' : 'var(--state-low)';
+    const meterCls = usoCatPct >= 100 ? 'danger' : usoCatPct >= 80 ? 'warn' : '';
+    const note = usoCatPct >= 100
+      ? `<p style="margin-top:8px; font-size:11px; color:var(--state-high);">Superaste el presupuesto de este mes.</p>`
+      : (usoCatPct >= 80 ? `<p style="margin-top:8px; font-size:11px; color:var(--state-medium);">Estás cerca del límite.</p>` : '');
 
-    let html = `<div class="legend-item tappable" data-cat="${catKey}" style="display: flex; flex-direction: column; gap: 8px; background: var(--surface-2); padding: 12px; border-radius: 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${color};"></span>${catKey}
-            ${alertBadgeHtml(usoCatPct)}
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 14px; font-weight: 700;">${formatCurrency(totalAmt)}</div>
-            <div style="font-size: 10px; font-weight: 500; color: var(--text-disabled);">${getPctVal}% / ${rulePct}%</div>
-          </div>
+    return `
+      <div class="card legend-item tappable" data-cat="${catKey}">
+        <div class="fin-bc-head">
+          <h3 style="font-size: 13.5px; margin: 0;">${catKey}</h3>
+          <span class="fin-eyebrow">${rulePct}% de la regla</span>
         </div>
-        <div style="width: 100%; height: 6px; background: var(--bg-base); border-radius: 3px; overflow: hidden;">
-          <div style="height: 100%; width: ${usoCatPctClamped}%; background: ${usoBarColor}; border-radius: 3px; transition: width 0.4s ease;"></div>
-        </div>
-        <div style="font-size: 10px; color: var(--text-disabled); text-align: right;">Disponible: ${formatCurrency(Math.max(0, disponibleCat - totalAmt))} de ${formatCurrency(disponibleCat)}</div>`;
-
-    if (!isSavings) {
-      const catEnvs = b.envelopes.filter(e => e.category === (isNeeds ? 'Needs' : 'Wants'));
-      if (catEnvs.length > 0) {
-        html += `<div style="margin-top: 8px; border-top: 1px solid var(--surface-border); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">`;
-        catEnvs.forEach(env => {
-          const pct = env.assignedAmount > 0 ? Math.min(100, Math.round((env.spent / env.assignedAmount) * 100)) : (env.spent > 0 ? 100 : 0);
-          const barColor = pct >= 100 ? 'var(--state-high)' : pct >= 80 ? 'var(--state-medium)' : color;
-          // SVG inline for envelopes since getSVG might not be available globally if it's not exported
-          const iconSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg>`;
-          
-          // Sparkline 3 months (P2.4)
-          const hist = histByEnvId.get(env.id) || [];
-          const maxH = Math.max(...hist, 1);
-          let sparklineHtml = `<div style="display:flex; align-items:flex-end; gap:2px; height:12px; margin-left: 6px;" title="Últimos 3 meses">`;
-          hist.forEach(v => {
-            const hPct = Math.max(10, Math.round((v / maxH) * 100));
-            const sparkColor = v > env.assignedAmount ? 'var(--state-high)' : 'var(--accent-blue)';
-            sparklineHtml += `<div style="width:3px; height:${hPct}%; background:${sparkColor}; border-radius:1px; opacity:0.7;"></div>`;
-          });
-          sparklineHtml += `</div>`;
-
-          html += `<div class="env-row tappable" data-id="${env.id}" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-base); padding: 8px; border-radius: 8px; flex-wrap: wrap;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 24px; height: 24px; border-radius: 6px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
-                  ${iconSvg}
-                </div>
-                <div>
-                  <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center;">${escapeHtml(env.name)} ${sparklineHtml}</div>
-                  <div style="font-size: 10px; color: var(--text-disabled);">Asignado: ${formatCurrency(env.assignedAmount)}</div>
-                </div>
-              </div>
-              <div style="text-align: right; width: 60px;">
-                <div style="font-size: 12px; font-weight: 700; color: ${env.spent > 0 ? 'var(--text-primary)' : 'var(--text-disabled)'};">${env.spent > 0 ? formatCurrency(env.spent) : 'Sin gastos'}</div>
-                <div style="width: 100%; height: 4px; background: var(--surface-2); border-radius: 2px; margin-top: 4px; overflow: hidden;">
-                  <div style="height: 100%; width: ${env.spent > 0 ? pct : 0}%; background: ${env.spent > 0 ? barColor : 'var(--surface-border)'};"></div>
-                </div>
-              </div>
-              <div style="flex-basis: 100%; display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--surface-border);">
-                <button class="transfer-env" data-id="${env.id}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Transferir">${transferSvg}</button>
-                <button class="edit-env" data-id="${env.id}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Editar">${editSvg}</button>
-                <button class="delete-env" data-id="${env.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer;" title="Eliminar">${delSvg}</button>
-              </div>
-            </div>`;
-        });
-        html += `</div>`;
-      }
-      html += `<button class="btn-add-envelope" data-cat="${isNeeds ? 'Needs' : 'Wants'}" style="margin-top: 8px; width: 100%; padding: 8px; background: transparent; border: 1px dashed var(--surface-border); border-radius: 8px; color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer;">+ Añadir sobre en ${catKey}</button>`;
-    }
-    html += `</div>`;
-    return html;
+        <p class="fin-bc-figures">${formatCurrency(totalAmt)} de ${formatCurrency(disponibleCat)}</p>
+        <div class="fin-meter"><i class="${meterCls}" style="width:${usoCatPctClamped}%"></i></div>
+        ${note}
+      </div>
+    `;
   }).join('');
 };
 
@@ -1121,7 +1151,6 @@ export async function render() {
     return `${monthLabel} de ${year}`;
   };
   
-  const cur = getCurrency();
   const balanceSafe = b.remaining;
   
   const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
@@ -1147,7 +1176,8 @@ export async function render() {
     { percent: getPct(totalSavings), color: 'var(--accent-purple)' }
   ];
   const donutSvg = renderDonut(segments, b.budgeted, b.budgeted === 0);
-  const presupuestoLegendHtml = await renderPresupuestoLegend(b);
+  const presupuestoLegendHtml = renderPresupuestoLegend(b);
+  const envelopesHtml = await renderEnvelopesHTML(b);
 
   // getHistoricalSummary ahora es async (lee IndexedDB): se precalcula acá
   // el bloque de "Tendencia de gastos" en vez de armarlo en una IIFE
@@ -1283,7 +1313,7 @@ export async function render() {
     <div style="max-width: 480px; margin: 0 auto; width: 100%; box-sizing: border-box; padding: 0 20px; font-family: 'Inter', sans-serif; padding-bottom: 120px;">
 
       <!-- Header -->
-      <div style="position: sticky; top: 0; z-index: 100; padding: 20px 4px 16px 4px; background: linear-gradient(180deg, var(--bg-base) 70%, rgba(15,17,21,0)); margin: 0 -4px 12px -4px;">
+      <div style="position: sticky; top: 0; z-index: 100; padding: 20px 4px 16px 4px; background: var(--bg-base); margin: 0 -4px 12px -4px;">
         <div class="flex-between">
           <h1 style="font-size: 30px; font-weight: 800; margin: 0; letter-spacing: -0.5px; color: var(--text-primary);">Finanzas</h1>
           <div style="background: var(--surface-2); border: 1px solid var(--surface-border); padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
@@ -1295,38 +1325,30 @@ export async function render() {
 
       <!-- TABS BAR -->
       <div class="segmented-control" style="margin-bottom: 20px; overflow-x: auto; flex-wrap: nowrap;">
-        <button class="fin-tab ${activeFinTab === 'resumen' ? 'active' : ''}" data-tab="resumen" style="flex: 0 0 auto; padding: 10px 14px; background: ${activeFinTab === 'resumen' ? 'var(--surface-1)' : 'transparent'}; color: ${activeFinTab === 'resumen' ? 'var(--text-primary)' : 'var(--text-secondary)'};">Resumen</button>
-        <button class="fin-tab ${activeFinTab === 'presupuesto' ? 'active' : ''}" data-tab="presupuesto" style="flex: 0 0 auto; padding: 10px 14px; background: ${activeFinTab === 'presupuesto' ? 'var(--surface-1)' : 'transparent'}; color: ${activeFinTab === 'presupuesto' ? 'var(--text-primary)' : 'var(--text-secondary)'};">Presupuesto</button>
-        <button class="fin-tab ${activeFinTab === 'movimientos' ? 'active' : ''}" data-tab="movimientos" style="flex: 0 0 auto; padding: 10px 14px; background: ${activeFinTab === 'movimientos' ? 'var(--surface-1)' : 'transparent'}; color: ${activeFinTab === 'movimientos' ? 'var(--text-primary)' : 'var(--text-secondary)'};">Movimientos</button>
-        <button class="fin-tab ${activeFinTab === 'metas' ? 'active' : ''}" data-tab="metas" style="flex: 0 0 auto; padding: 10px 14px; background: ${activeFinTab === 'metas' ? 'var(--surface-1)' : 'transparent'}; color: ${activeFinTab === 'metas' ? 'var(--text-primary)' : 'var(--text-secondary)'};">Metas</button>
+        ${['resumen', 'movimientos', 'presupuesto', 'recurrentes', 'cuentas'].map(t => {
+          const labels = { resumen: 'Resumen', movimientos: 'Movimientos', presupuesto: 'Presupuesto', recurrentes: 'Recurrentes', cuentas: 'Cuentas' };
+          const isActive = activeFinTab === t;
+          return `<button class="fin-tab ${isActive ? 'active' : ''}" data-tab="${t}" style="flex: 0 0 auto; padding: 10px 14px; background: ${isActive ? 'var(--surface-1)' : 'transparent'}; color: ${isActive ? 'var(--text-primary)' : 'var(--text-secondary)'};">${labels[t]}</button>`;
+        }).join('')}
       </div>
 
       <!-- TAB 1: RESUMEN -->
       <div id="tab-content-resumen" class="fin-tab-content" style="display: ${activeFinTab === 'resumen' ? 'block' : 'none'};">
-        <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-bottom: 12px;">
-          <div class="card top-card tappable" id="card-ingresos" style="padding: 18px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0;">
-            <div class="icon-chip" style="width: 30px; height: 30px; background: rgba(34, 197, 94, 0.15); color: var(--state-success);">
-              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"></path></svg>
-            </div>
-            <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">Ingresos</div>
-            <div id="stat-income" style="font-size: clamp(14px, 4.2vw, 19px); font-weight: 800; letter-spacing: -0.3px; overflow-wrap: anywhere;">${formatDisponible(b.income)}</div>
+        <p class="fin-eyebrow" style="margin-bottom: 4px;">Resumen del mes</p>
+        <div class="fin-grid3" style="margin-bottom: 24px;">
+          <div class="card fin-stat" id="card-disponible" style="min-width: 0;">
+            <p class="fin-eyebrow">Balance</p>
+            <div id="disponible-mes-value" class="fin-stat-value" style="color: ${isHealthy ? 'var(--state-success)' : 'var(--state-high)'}; overflow-wrap: anywhere;">${fullStr}</div>
+            <div id="month-trend-container">${renderMonthTrend(b)}</div>
           </div>
-
-          <div class="card top-card tappable" id="card-gastos" style="padding: 18px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0;">
-            <div class="icon-chip" style="width: 30px; height: 30px; background: rgba(239, 68, 68, 0.15); color: var(--state-high);">
-              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
-            </div>
-            <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">Gastos</div>
-            <div id="stat-expense" style="font-size: clamp(14px, 4.2vw, 19px); font-weight: 800; letter-spacing: -0.3px; overflow-wrap: anywhere;">${formatDisponible(b.expenses)}</div>
+          <div class="card fin-stat tappable" id="card-gastos" style="min-width: 0;">
+            <p class="fin-eyebrow">Gastos del mes</p>
+            <div id="stat-expense" class="fin-stat-value" style="color: var(--state-high); overflow-wrap: anywhere;">${formatDisponible(b.expenses)}</div>
           </div>
-        </div>
-
-        <div class="card" id="card-disponible" style="padding: 28px 24px; text-align: center; border-radius: 24px; margin-bottom: 24px; background: linear-gradient(155deg, var(--surface-2) 0%, var(--surface-1) 65%); border: 1px solid var(--surface-border); box-shadow: 0 0 0 1px var(--glass-border) inset, 0 16px 40px -16px ${isHealthy ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)'};">
-          <div style="font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.6px;">Disponible en Mes</div>
-          <div id="disponible-mes-value" style="font-size: clamp(22px, 7vw, 38px); font-weight: 800; color: ${isHealthy ? 'var(--state-success)' : 'var(--state-high)'}; line-height: 1.1; letter-spacing: -0.5px; overflow-wrap: anywhere;">
-            ${fullStr}
+          <div class="card fin-stat tappable" id="card-ingresos" style="min-width: 0;">
+            <p class="fin-eyebrow">Ingresos del mes</p>
+            <div id="stat-income" class="fin-stat-value" style="color: var(--state-success); overflow-wrap: anywhere;">${formatDisponible(b.income)}</div>
           </div>
-          <div id="month-trend-container" style="display: flex; justify-content: center;">${renderMonthTrend(b)}</div>
         </div>
 
         <!-- BOTONES FAB MOVIDOS AQUÍ -->
@@ -1391,44 +1413,20 @@ export async function render() {
 
         ${trendHtml}
 
-        <div class="card" style="padding: 20px; margin-bottom: 24px;">
-          <div class="flex-between" style="margin-bottom: 16px;">
-            <h2 style="font-size: 16px; font-weight: 700; margin: 0;">Movimientos Recientes</h2>
-            <span class="btn-go-movimientos" id="btn-ver-todos" style="font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">Ver todos</span>
+        <div class="card" style="padding: 0; margin-bottom: 24px; overflow: hidden;">
+          <div class="flex-between" style="padding: 14px 20px; border-bottom: 1px solid var(--line);">
+            <h3 style="font-size: 13px; margin: 0;">Movimientos recientes</h3>
+            <span class="btn-go-movimientos fin-eyebrow" id="btn-ver-todos" style="cursor: pointer; color: var(--accent-purple);">Ver todos</span>
           </div>
-          <div id="recent-tx-list" style="display: flex; flex-direction: column; gap: 8px;">
-            ${b.breakdown.length === 0 ? EmptyState("No hay movimientos", "Toca el botón Ingreso o Gasto") : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.envelopes)).join('')}
+          <div id="recent-tx-list" class="fin-row-list">
+            ${b.breakdown.length === 0 ? finEmptyState('Sin datos', 'Todavía no hay movimientos', 'Toca el botón Ingreso o Gasto para registrar el primero.') : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.envelopes)).join('')}
           </div>
         </div>
       </div>
 
-      <!-- TAB 2: PRESUPUESTO -->
-      <div id="tab-content-presupuesto" class="fin-tab-content" style="display: ${activeFinTab === 'presupuesto' ? 'block' : 'none'};">
-        <div class="card" style="padding: 24px; margin-bottom: 24px;">
-          <div class="flex-between" style="margin-bottom: 24px;">
-            <h2 style="font-size: 16px; font-weight: 700; margin: 0;">Tu Regla 50/30/20</h2>
-            <button id="btn-open-settings" style="background: transparent; border: none; color: var(--accent-purple); font-size: 13px; font-weight: 600; cursor: pointer;">Editar regla</button>
-          </div>
-          <div style="position: relative; width: 180px; height: 180px; margin: 0 auto 32px auto;">
-            <div id="chart-donut-presupuesto" style="width: 180px; height: 180px; margin: 0 auto; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">${donutSvg}</div>
-            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-              <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px;">Gastado</div>
-              <div style="font-size: 20px; font-weight: 800; color: var(--text-primary); line-height: 1;">${formatCurrency(b.expenses + b.savedThisMonth)}</div>
-            </div>
-          </div>
-
-          <div id="presupuesto-legend-container" style="display: flex; flex-direction: column; gap: 16px;">
-            ${presupuestoLegendHtml}
-          </div>
-        </div>
-
-        <div class="card" id="recurring-container" style="padding: 20px; margin-bottom: 24px;">
-          ${renderRecurringHTML(b)}
-        </div>
-      </div>
-
-      <!-- TAB 3: MOVIMIENTOS -->
+      <!-- TAB 2: MOVIMIENTOS -->
       <div id="tab-content-movimientos" class="fin-tab-content" style="display: ${activeFinTab === 'movimientos' ? 'block' : 'none'};">
+        <p class="fin-eyebrow" style="margin-bottom: 12px;">Todos los registros</p>
         <div class="segmented-control" style="margin-bottom: 16px;">
           <button class="history-tab" data-filter="All" style="background: var(--surface-1); color: var(--text-primary);">Todos</button>
           <button class="history-tab" data-filter="Ingreso" style="background: transparent; color: var(--text-secondary);">Ingresos</button>
@@ -1441,19 +1439,56 @@ export async function render() {
           <input type="date" id="history-date-to" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; border-radius: 12px; font-size: 13px; box-sizing: border-box; outline: none; font-family: inherit;">
           <button id="btn-clear-date-filter" style="background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">Limpiar</button>
         </div>
-        <div id="history-list-content" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
-          <!-- Inyectado por renderHistoryList -->
+        <div class="card" style="padding: 0; margin-bottom: 24px; overflow: hidden;">
+          <div id="history-list-content" class="fin-row-list">
+            <!-- Inyectado por renderHistoryList -->
+          </div>
         </div>
         ${renderAgeOfMoneyHTML(b)}
       </div>
 
-      <!-- TAB 4: METAS -->
-      <div id="tab-content-metas" class="fin-tab-content" style="display: ${activeFinTab === 'metas' ? 'block' : 'none'};">
-        <div class="card" id="goals-container" style="padding: 20px; margin-bottom: 24px;">
+      <!-- TAB 3: PRESUPUESTO -->
+      <div id="tab-content-presupuesto" class="fin-tab-content" style="display: ${activeFinTab === 'presupuesto' ? 'block' : 'none'};">
+        <div class="flex-between" style="margin-bottom: 12px;">
+          <p class="fin-eyebrow">Límites mensuales</p>
+          <button id="btn-open-settings" style="background: transparent; border: none; color: var(--accent-purple); font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em;">Editar regla</button>
+        </div>
+        <div class="card" style="padding: 24px; margin-bottom: 24px; text-align: center;">
+          <div style="position: relative; width: 180px; height: 180px; margin: 0 auto 32px auto;">
+            <div id="chart-donut-presupuesto" style="width: 180px; height: 180px; margin: 0 auto; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">${donutSvg}</div>
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px;">Gastado</div>
+              <div style="font-size: 20px; font-weight: 800; color: var(--text-primary); line-height: 1;">${formatCurrency(b.expenses + b.savedThisMonth)}</div>
+            </div>
+          </div>
+          <div id="presupuesto-legend-container" class="fin-grid2" style="text-align: left;">
+            ${presupuestoLegendHtml}
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: RECURRENTES -->
+      <div id="tab-content-recurrentes" class="fin-tab-content" style="display: ${activeFinTab === 'recurrentes' ? 'block' : 'none'};">
+        <p class="fin-eyebrow" style="margin-bottom: 4px;">Descuento automático</p>
+        <p style="color: var(--text-secondary); font-size: 12.5px; max-width: 520px; margin: 0 0 18px 0;">Configura un pago fijo una vez y se descuenta solo de su sobre cada mes — arriendos, suscripciones, cuentas de servicios.</p>
+        ${renderRecurringForm()}
+        <div id="recurring-container">
+          ${renderRecurringHTML(b)}
+        </div>
+      </div>
+
+      <!-- TAB 5: CUENTAS -->
+      <div id="tab-content-cuentas" class="fin-tab-content" style="display: ${activeFinTab === 'cuentas' ? 'block' : 'none'};">
+        <p class="fin-eyebrow" style="margin-bottom: 12px;">Sobres y metas</p>
+        ${renderEnvelopeForm()}
+        <div id="envelopes-list-container">
+          ${envelopesHtml}
+        </div>
+        <div id="goals-container" style="margin-top: 24px;">
           ${renderGoalsHTML(b)}
         </div>
       </div>
-      
+
     </div>
 
     <!-- Settings Edit Modal -->
@@ -1500,8 +1535,6 @@ export async function render() {
     ${renderIngresoForm()}
       ${renderGastoForm()}
       ${renderAhorroForm()}
-      ${renderEnvelopeForm()}
       ${renderTransferForm()}
-      ${renderRecurringForm()}
     `;
   }

@@ -1,5 +1,10 @@
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
-import { formatCurrency } from '../utils/currency.js';
+import { toSafeNumber } from '../utils/currency.js';
+
+// REDISEÑO-FINANZAS: este componente solo lo usa finanzas.js (ver Parte 8
+// del rediseño) — CLP fijo en vez del formatCurrency() multi-moneda
+// compartido, mismo criterio que el resto del módulo.
+const formatCurrency = (amount) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(toSafeNumber(amount));
 import { Toast } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 

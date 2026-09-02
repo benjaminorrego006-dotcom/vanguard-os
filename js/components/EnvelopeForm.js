@@ -1,50 +1,53 @@
 import { Toast } from '../utils/states.js';
 
+// REDISEÑO-FINANZAS: panel inline (no modal a pantalla completa) — igual
+// que el resto del módulo, se muestra/oculta con display:block/none dentro
+// del flujo normal de la tab Cuentas. `envelope-modal` conserva su id
+// aunque ya no sea un overlay: finanzas.js sigue llamando a
+// `document.getElementById('envelope-modal').openForm(...)` para abrirlo.
 export function renderEnvelopeForm() {
   return `
-    <div id="envelope-modal" class="modal-overlay">
-      <div class="modal-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); max-height: 90vh;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-          <h2 id="modal-envelope-title" style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Nuevo Sobre</h2>
-          <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">&times;</button>
-        </div>
-        
-        <form id="envelope-form">
-          <input type="hidden" id="envelope-id">
-          
-          <div class="input-group">
-            <label>Nombre del Sobre</label>
-            <input type="text" id="envelope-name" placeholder="Ej. Supermercado, Netflix..." required>
-          </div>
-          
-          <div class="input-group">
-            <label>Categoría 50/30/20</label>
-            <select id="envelope-category" required>
-              <option value="Needs">Necesidad (50%)</option>
-              <option value="Wants">Deseo (30%)</option>
-            </select>
-          </div>
-
-          <div class="input-group">
-            <label>Monto Asignado (opcional)</label>
-            <input type="number" id="envelope-amount" placeholder="0" min="0" step="1">
-          </div>
-
-          <div class="input-group">
-            <label>Icono</label>
-            <select id="envelope-icon">
-              <option value="home">Hogar / Supermercado</option>
-              <option value="car">Transporte / Auto</option>
-              <option value="laptop">Tecnología / Suscripciones</option>
-              <option value="shield">Protección / Salud</option>
-              <option value="plane">Salidas / Viajes</option>
-              <option value="education">Educación</option>
-            </select>
-          </div>
-          
-          <button type="submit" class="btn-primary" style="background: var(--text-primary); color: var(--bg-base);">Guardar Sobre</button>
-        </form>
+    <div id="envelope-modal" class="card" style="display: none; padding: 20px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <p class="fin-eyebrow" id="modal-envelope-title" style="margin: 0;">Nuevo sobre</p>
+        <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; line-height: 1;">&times;</button>
       </div>
+
+      <form id="envelope-form">
+        <input type="hidden" id="envelope-id">
+
+        <div class="input-group">
+          <label>Nombre del Sobre</label>
+          <input type="text" id="envelope-name" placeholder="Ej. Supermercado, Netflix..." required>
+        </div>
+
+        <div class="input-group">
+          <label>Categoría 50/30/20</label>
+          <select id="envelope-category" required>
+            <option value="Needs">Necesidad (50%)</option>
+            <option value="Wants">Deseo (30%)</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label>Monto Asignado (opcional)</label>
+          <input type="number" id="envelope-amount" placeholder="0" min="0" step="1">
+        </div>
+
+        <div class="input-group">
+          <label>Icono</label>
+          <select id="envelope-icon">
+            <option value="home">Hogar / Supermercado</option>
+            <option value="car">Transporte / Auto</option>
+            <option value="laptop">Tecnología / Suscripciones</option>
+            <option value="shield">Protección / Salud</option>
+            <option value="plane">Salidas / Viajes</option>
+            <option value="education">Educación</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-primary" style="background: var(--text-primary); color: var(--bg-base);">Guardar Sobre</button>
+      </form>
     </div>
   `;
 }
@@ -87,14 +90,12 @@ export function initEnvelopeForm(db, refreshCallback) {
       }
       
       modal.style.display = 'none';
-      modal.classList.remove('open');
       Toast("Sobre guardado", "success");
     }
   });
 
   modal.querySelector('.btn-close-modal').addEventListener('click', () => {
     modal.style.display = 'none';
-    modal.classList.remove('open');
   });
 
   modal.openForm = (env = null) => {
@@ -114,7 +115,7 @@ export function initEnvelopeForm(db, refreshCallback) {
       document.getElementById('modal-envelope-title').innerText = 'Nuevo Sobre';
     }
     
-    modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('open'), 10);
+    modal.style.display = 'block';
+    modal.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 }

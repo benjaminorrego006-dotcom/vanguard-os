@@ -1,44 +1,51 @@
 import { Toast, ConfirmDialog } from '../utils/states.js';
-import { formatCurrency } from '../utils/currency.js';
+import { toSafeNumber } from '../utils/currency.js';
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
 import { escapeHtml } from '../utils/escape.js';
 
+// REDISEÑO-FINANZAS: este componente solo lo usa finanzas.js (ver Parte 8
+// del rediseño) — CLP fijo en vez del formatCurrency() multi-moneda
+// compartido, mismo criterio que el resto del módulo.
+const formatCurrency = (amount) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(toSafeNumber(amount));
+
+// REDISEÑO-FINANZAS: panel inline dentro de la tab Recurrentes (no modal a
+// pantalla completa) — mismo criterio que EnvelopeForm.js. `recurring-modal`
+// conserva su id: finanzas.js sigue llamando a
+// `document.getElementById('recurring-modal').openForm()` para abrirlo.
 export function renderRecurringForm() {
   return `
-    <div id="recurring-modal" class="modal-overlay">
-      <div class="modal-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); max-height: 90vh;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-          <h2 id="modal-recurring-title" style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Suscripción Fija</h2>
-          <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">&times;</button>
-        </div>
-        
-        <form id="recurring-form">
-          <div style="text-align: center; font-size: 40px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary); min-height: 48px;" id="recurring-numpad-display">
-            $0
-          </div>
-          <div style="text-align: center; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 16px; min-height: 16px;">Monto del cargo automático</div>
-
-          <input type="text" id="recurring-label" placeholder="Descripción (ej. Netflix, Spotify)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 15px; box-sizing: border-box; margin-bottom: 16px; outline: none;" required>
-          
-          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-            <div style="flex: 1;">
-              <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Día del mes</label>
-              <select id="recurring-day" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; border-radius: 12px; font-size: 14px; outline: none; appearance: none;" required>
-                ${Array.from({length: 28}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('')}
-              </select>
-            </div>
-            <div style="flex: 2;">
-              <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Descontar de</label>
-              <select id="recurring-envelope" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; border-radius: 12px; font-size: 14px; outline: none; appearance: none;" required>
-              </select>
-            </div>
-          </div>
-
-          ${renderNumericKeypad()}
-
-          <button id="btn-submit-recurring" type="submit" class="tappable" style="width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; border: none; background: var(--text-primary); color: var(--bg-base); opacity: 0.5; pointer-events: none;">Guardar Gasto Fijo</button>
-        </form>
+    <div id="recurring-modal" class="card" style="display: none; padding: 20px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <p class="fin-eyebrow" id="modal-recurring-title" style="margin: 0;">Suscripción fija</p>
+        <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; line-height: 1;">&times;</button>
       </div>
+
+      <form id="recurring-form">
+        <div style="text-align: center; font-size: 40px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary); min-height: 48px;" id="recurring-numpad-display">
+          $0
+        </div>
+        <div style="text-align: center; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 16px; min-height: 16px;">Monto del cargo automático</div>
+
+        <input type="text" id="recurring-label" placeholder="Descripción (ej. Netflix, Spotify)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; font-size: 15px; box-sizing: border-box; margin-bottom: 16px; outline: none;" required>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+          <div style="flex: 1;">
+            <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Día del mes</label>
+            <select id="recurring-day" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 14px; outline: none; appearance: none;" required>
+              ${Array.from({length: 28}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('')}
+            </select>
+          </div>
+          <div style="flex: 2;">
+            <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Descontar de</label>
+            <select id="recurring-envelope" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 14px; outline: none; appearance: none;" required>
+            </select>
+          </div>
+        </div>
+
+        ${renderNumericKeypad()}
+
+        <button id="btn-submit-recurring" type="submit" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--text-primary); color: var(--bg-base); opacity: 0.5; pointer-events: none;">Guardar Gasto Fijo</button>
+      </form>
     </div>
   `;
 }
@@ -107,16 +114,14 @@ export function initRecurringForm(db, getBudgetFn, refreshCallback) {
         await db.createRecurring({ label, amount, envelopeId, dayOfMonth });
         btnSubmit.innerHTML = originalText;
         modal.style.display = 'none';
-        modal.classList.remove('open');
         Toast("Gasto fijo configurado", "success");
-        
+
       }, 500);
     }
   });
 
   modal.querySelector('.btn-close-modal').addEventListener('click', () => {
     modal.style.display = 'none';
-    modal.classList.remove('open');
   });
 
   modal.openForm = () => {
@@ -129,7 +134,7 @@ export function initRecurringForm(db, getBudgetFn, refreshCallback) {
     if (b.envelopes.length > 0) selectEnv.value = b.envelopes[0].id;
     
     updateUI();
-    modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('open'), 10);
+    modal.style.display = 'block';
+    modal.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 }
