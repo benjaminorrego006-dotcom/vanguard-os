@@ -207,7 +207,10 @@ class Router {
     // la dispare.
     document.documentElement.classList.toggle('mk3-entreno', viewId === 'entrenamiento' || viewId === 'analisis');
     document.documentElement.classList.toggle('mk3-finanzas', viewId === 'finanzas');
-    document.documentElement.classList.toggle('mk3-tareas', viewId === 'tareas');
+    // Hábitos comparte el scope MK III de Tareas (mismo acento violeta,
+    // mismo dominio): no hace falta un html.mk3-habitos aparte que
+    // duplicaría el mismo bloque de chaflán/tipografía en components.css.
+    document.documentElement.classList.toggle('mk3-tareas', viewId === 'tareas' || viewId === 'habitos');
     document.documentElement.classList.toggle('mk3-dashboard', viewId === 'dashboard');
 
     try {

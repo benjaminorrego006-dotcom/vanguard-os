@@ -12,7 +12,11 @@
 // esos agregados como campos aparte.
 
 const DB_NAME = 'vanguard_os';
-const DB_VERSION = 2;
+// v3: se agrega el store 'habitos' (módulo Hábitos, complementa a Tareas
+// sin reemplazarlo). Solo se agrega una entrada a STORE_DEFS — no hay
+// nada que migrar ni borrar, así que onupgradeneeded no necesita un caso
+// especial más allá de crear el store nuevo (ya lo hace el loop de abajo).
+const DB_VERSION = 3;
 
 // keyPath por store. `events` además indexa por ts/modulo+ts/entidadId/tipo
 // para poder consultar por rango cronológico o por entidad sin leer todo el
@@ -36,6 +40,7 @@ const STORE_DEFS = {
   recurrentes: { keyPath: 'id' },
   tareas: { keyPath: 'id' },
   tareas_recurrentes: { keyPath: 'id' },
+  habitos: { keyPath: 'id' },
   // Singletons de app (perfil, ajustes, favoritos de PR): una sola fila por
   // `key`, con el valor completo en `value`. Evita inventar un keyPath
   // artificial para datos que siempre fueron un único objeto/array.

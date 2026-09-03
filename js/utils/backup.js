@@ -5,7 +5,7 @@ import * as idb from '../core/idb.js';
 // Stores de entidad + el log de eventos, tal como quedaron definidos en
 // idb.js. Los singletons (perfil, ajustes, favoritos de PR) se exportan
 // aparte porque viven en un único store compartido ('singletons').
-const ENTITY_STORES = ['sesiones', 'rutinas', 'goals', 'transacciones', 'envelopes', 'recurrentes', 'tareas'];
+const ENTITY_STORES = ['sesiones', 'rutinas', 'goals', 'transacciones', 'envelopes', 'recurrentes', 'tareas', 'habitos'];
 
 // Claves de localStorage que ya NO son la fuente de verdad (quedaron como
 // copia congelada de antes de migrar a IndexedDB) — no se incluyen en un

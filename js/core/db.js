@@ -218,6 +218,20 @@ function diasUnicosDesdeEventos(eventos) {
   return Array.from(uniqueDays).sort((a, b) => b - a);
 }
 
+// Misma forma que diasUnicosDesdeEventos, pero a partir de fechas
+// 'YYYY-MM-DD' (Hábitos) en vez de eventos con `ts` — usa mediodía local
+// antes de truncar a medianoche para no correr el día si el runtime
+// interpretara la fecha en UTC.
+function diasUnicosDesdeFechas(fechas) {
+  const uniqueDays = new Set();
+  fechas.forEach(f => {
+    const d = new Date(f + 'T12:00:00');
+    d.setHours(0, 0, 0, 0);
+    uniqueDays.add(d.getTime());
+  });
+  return Array.from(uniqueDays).sort((a, b) => b - a);
+}
+
 // --- Log de eventos central --------------------------------------------
 // Cada mutación de cualquier módulo (entreno/finanzas/tareas) agrega acá
 // una fila inmutable: nunca se edita ni se borra un evento existente. Sirve
@@ -1267,15 +1281,16 @@ export const db = {
   },
 
   // Racha global: cuenta un día como "activo" si hubo cualquier evento en
-  // Tareas (tarea_completada), Entreno (sesion_registrada) o Finanzas
-  // (movimiento_registrado). Distinta de getRachaGeneral(), que es
-  // específica de Entreno y se sigue usando ahí — esta es para la tarjeta
-  // de racha del Dashboard. Se deriva enteramente del log de eventos: no
-  // hay un campo "racha" guardado en ningún lado.
+  // Tareas (tarea_completada), Hábitos (habito_marcado), Entreno
+  // (sesion_registrada) o Finanzas (movimiento_registrado). Distinta de
+  // getRachaGeneral(), que es específica de Entreno y se sigue usando
+  // ahí — esta es para la tarjeta de racha del Dashboard. Se deriva
+  // enteramente del log de eventos: no hay un campo "racha" guardado en
+  // ningún lado.
   async getRachaGlobal() {
     const eventos = await idb.getAll('events');
     const relevantes = eventos.filter(e =>
-      e.tipo === 'sesion_registrada' || e.tipo === 'movimiento_registrado' || e.tipo === 'tarea_completada'
+      e.tipo === 'sesion_registrada' || e.tipo === 'movimiento_registrado' || e.tipo === 'tarea_completada' || e.tipo === 'habito_marcado'
     );
 
     const activityByDay = new Map(); // dayTime -> cantidad de eventos
@@ -1990,6 +2005,91 @@ export const db = {
         await logEvent({ modulo: 'tareas', tipo: 'tarea_completada', entidadId: id, payload: tasks[idx] });
       }
     }
+  },
+
+  // --- Hábitos -------------------------------------------------------
+  // Complementa a Tareas (kanban, cosas únicas): un hábito es algo diario,
+  // sin fecha límite ni estado, solo una racha. Cada hábito guarda sus
+  // propias marcas en `marcas` ({'YYYY-MM-DD': true}), igual que
+  // `subtasks` vive adentro de una tarea — no un store aparte por día. Es
+  // la fuente de verdad para la racha de este módulo (se lee directo del
+  // store), y además cada marcado/desmarcado deja un evento en el log
+  // central para que getRachaGlobal (y por lo tanto la racha del
+  // Dashboard) cuente los días con hábitos cumplidos igual que ya cuenta
+  // sesiones, movimientos y tareas.
+  async getHabitos() {
+    return sortByCreatedAt(await idbGetArray('habitos'));
+  },
+
+  async crearHabito(nombre) {
+    const habitos = await idbGetArray('habitos');
+    const nuevo = { id: generateId(), nombre: String(nombre).trim(), createdAt: new Date().toISOString(), marcas: {} };
+    habitos.push(nuevo);
+    await idbSetArray('habitos', habitos); this._triggerUpdate();
+    await logEvent({ modulo: 'habitos', tipo: 'habito_creado', entidadId: nuevo.id, payload: { nombre: nuevo.nombre } });
+    return nuevo;
+  },
+
+  // Renombra preservando id/createdAt/marcas — a diferencia de borrar y
+  // recrear, que perdería el historial y reiniciaría la racha. Sin
+  // logEvent propio: no es un cambio de estado que deba contar para racha.
+  async renombrarHabito(id, nombre) {
+    const habitos = await idbGetArray('habitos');
+    const idx = habitos.findIndex(h => h.id === id);
+    if (idx === -1) return null;
+    habitos[idx] = { ...habitos[idx], nombre: String(nombre).trim() };
+    await idbSetArray('habitos', habitos); this._triggerUpdate();
+    return habitos[idx];
+  },
+
+  async eliminarHabito(id) {
+    let habitos = await idbGetArray('habitos');
+    const habito = habitos.find(h => h.id === id);
+    habitos = habitos.filter(h => h.id !== id);
+    await idbSetArray('habitos', habitos); this._triggerUpdate();
+    await logEvent({ modulo: 'habitos', tipo: 'habito_eliminado', entidadId: id, payload: habito || {} });
+  },
+
+  // Marca/desmarca el día `fecha` ('YYYY-MM-DD') para el hábito `id`.
+  async toggleMarcaHabito(id, fecha) {
+    const habitos = await idbGetArray('habitos');
+    const idx = habitos.findIndex(h => h.id === id);
+    if (idx === -1) return null;
+    const marcas = { ...(habitos[idx].marcas || {}) };
+    const marcado = !marcas[fecha];
+    if (marcado) marcas[fecha] = true; else delete marcas[fecha];
+    habitos[idx] = { ...habitos[idx], marcas };
+    await idbSetArray('habitos', habitos); this._triggerUpdate();
+    await logEvent({ modulo: 'habitos', tipo: marcado ? 'habito_marcado' : 'habito_desmarcado', entidadId: id, payload: { fecha } });
+    return habitos[idx];
+  },
+
+  // Racha (días consecutivos marcados) de un hábito puntual. Reutiliza
+  // calcularRachaDesdeDias (mismo algoritmo que getRachaHiit/
+  // getRachaGeneral) en vez de duplicarlo — solo convierte las fechas
+  // string a timestamps de día únicos y ordenados descendente, que es lo
+  // que ese helper espera.
+  async getRachaHabito(id) {
+    const habitos = await idbGetArray('habitos');
+    const habito = habitos.find(h => h.id === id);
+    if (!habito) return { actual: 0, mejor: 0 };
+    return calcularRachaDesdeDias(diasUnicosDesdeFechas(Object.keys(habito.marcas || {})));
+  },
+
+  // Racha "día perfecto": cuenta un día como cumplido solo si TODOS los
+  // hábitos activos quedaron marcados ese día. Con cero hábitos, no hay
+  // racha que mostrar (evita el caso raro de "racha infinita" con 0/0).
+  async getRachaHabitosGlobal() {
+    const habitos = await idbGetArray('habitos');
+    if (!habitos.length) return { actual: 0, mejor: 0 };
+    const conteoPorDia = {};
+    habitos.forEach(h => {
+      Object.keys(h.marcas || {}).forEach(fecha => {
+        conteoPorDia[fecha] = (conteoPorDia[fecha] || 0) + 1;
+      });
+    });
+    const diasPerfectos = Object.keys(conteoPorDia).filter(f => conteoPorDia[f] === habitos.length);
+    return calcularRachaDesdeDias(diasUnicosDesdeFechas(diasPerfectos));
   },
 
   // Transacciones dentro de un rango de fechas arbitrario (a diferencia de
