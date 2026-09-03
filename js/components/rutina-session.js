@@ -56,7 +56,7 @@ function renderSerieRowHtml(s, sIdx) {
   const rm1Inicial = (pesoInicial > 0 && repsInicial > 0) ? db.estimar1RM(pesoInicial, repsInicial) : 0;
 
   const fieldStyle = "flex: 1; min-width:0; box-sizing:border-box; height:44px; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-primary); text-align:center; font-size:15px; font-family: var(--font-mono); padding: 0 4px;";
-  const rpeStyle = "flex: 0 0 42px; height:44px; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-primary); font-size:13px; text-align:center; text-align-last:center; appearance:none; -webkit-appearance:none; padding: 0;";
+  const rpeStyle = "flex: 0 0 48px; height:44px; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-primary); font-size:13px; text-align:center; text-align-last:center; appearance:none; -webkit-appearance:none; padding: 0;";
 
   const row = `
     <div class="serie-row" style="display: flex; align-items: center; gap: 6px; position: relative; margin-bottom: 6px;">
@@ -78,7 +78,7 @@ function renderSerieRowHtml(s, sIdx) {
         <option value="9" ${s.rpe == 9 ? 'selected' : ''}>9</option>
         <option value="10" ${s.rpe == 10 ? 'selected' : ''}>10</option>
       </select>
-      <button class="btn-check-serie" data-checked="${s.checked === true ? 'true' : 'false'}" style="flex-shrink:0; width: 42px; height: 44px; background: ${s.checked ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${s.checked ? 'var(--state-success)' : 'var(--text-secondary)'}; color: ${s.checked ? '#000' : 'var(--text-secondary)'}; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">✓</button>
+      <button class="btn-check-serie" data-checked="${s.checked === true ? 'true' : 'false'}" style="flex-shrink:0; width: 44px; height: 44px; background: ${s.checked ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${s.checked ? 'var(--state-success)' : 'var(--text-secondary)'}; color: ${s.checked ? '#000' : 'var(--text-secondary)'}; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">✓</button>
     </div>
     <div class="serie-1rm-hint" style="text-align: right; font-size: 10px; color: var(--text-disabled); margin: -2px 0 6px 38px; ${rm1Inicial > 0 ? '' : 'display: none;'}">1RM est. ~${rm1Inicial}kg</div>
   `;
@@ -187,16 +187,16 @@ export async function renderRutinaSession(rutina) {
       chips.push(`<span style="background: rgba(92,225,230,0.12); color: var(--accent-teal); border: 1px solid rgba(92,225,230,0.3); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trendUpSvg}${RAMA_LABELS[prog.familia] || prog.familia} · Nv.${prog.nivelActual}/${prog.nivelTotal}</span>`);
     }
 
-    html += `<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">${chips.join('')}</div>`;
+    html += `<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;">${chips.join('')}</div>`;
 
     if (sug) {
       const sugText = sug.peso > 0 ? sug.peso + 'kg' : sug.reps + ' reps';
       const sugIcon = sug.accion === 'aumentar' ? arrowUpSvg : arrowDownSvg;
-      html += `<button class="btn-sugerencia" data-ejnombre="${escapeHtml(ej.nombre)}" data-peso="${sug.peso}" data-reps="${sug.reps}" style="width: 100%; background: rgba(92,225,230,0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 9px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px;">${sugIcon}Sugerido: ${sugText} · toca para aplicar</button>`;
+      html += `<button class="btn-sugerencia" data-ejnombre="${escapeHtml(ej.nombre)}" data-peso="${sug.peso}" data-reps="${sug.reps}" style="width: 100%; background: rgba(92,225,230,0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 9px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 6px;">${sugIcon}Sugerido: ${sugText} · toca para aplicar</button>`;
     }
 
     if (estancado) {
-      html += `<div style="display: flex; align-items: center; font-size: 11px; color: var(--state-medium); margin-bottom: 8px;">${warningSvgSm}Sin mejora en tus últimas 3 sesiones — prueba variar reps, descanso o el ejercicio.</div>`;
+      html += `<div style="display: flex; align-items: center; font-size: 11px; color: var(--state-medium); margin-bottom: 6px;">${warningSvgSm}Sin mejora en tus últimas 3 sesiones — prueba variar reps, descanso o el ejercicio.</div>`;
     }
 
     html += `<div class="series-list" data-ejnombre="${escapeHtml(ej.nombre)}" style="display: flex; flex-direction: column;">`;
@@ -206,8 +206,8 @@ export async function renderRutinaSession(rutina) {
           <div style="width: 32px; flex-shrink: 0;"></div>
           <div style="flex: 1; font-size: 9px; color: var(--text-secondary); text-align: center;">REPS</div>
           <div style="flex: 1.25; font-size: 9px; color: var(--text-secondary); text-align: center;">PESO</div>
-          <div style="flex: 0 0 42px; font-size: 9px; color: var(--text-secondary); text-align: center;">RPE</div>
-          <div style="width: 42px; flex-shrink: 0;"></div>
+          <div style="flex: 0 0 48px; font-size: 9px; color: var(--text-secondary); text-align: center;">RPE</div>
+          <div style="width: 44px; flex-shrink: 0;"></div>
         </div>
       `;
       ej.series.forEach((s, sIdx) => { html += renderSerieRowHtml(s, sIdx); });
