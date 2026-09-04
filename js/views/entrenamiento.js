@@ -14,6 +14,7 @@ import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '..
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
 import { formatFechaCorta, formatMes } from '../utils/fecha.js';
+import { escapeHtml } from '../utils/escape.js';
 import { renderArbolProgresion } from '../components/arbol-progresion.js';
 import { renderEstandaresFuerza, initEstandaresFuerzaListeners } from '../components/estandares-fuerza.js';
 import { detectarSugerenciaPendiente } from '../core/sugerencias-nivel.js';
@@ -120,7 +121,7 @@ const sesionCardHtml = (s) => {
   const badgeClass = s.completado ? 'badge--low' : 'badge--medium';
   return `
     <div class="card" style="min-width: 170px; padding: 16px; border-radius: 16px;">
-      <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary);">${s.nombreRutina}</div>
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary);">${escapeHtml(s.nombreRutina)}</div>
       <div style="font-size: 11px; color: var(--text-secondary); font-weight: 600; margin-bottom: 10px;">${timeStr}</div>
       <div class="flex-between">
         <span class="badge ${badgeClass}">${s.completado ? 'Completado' : 'Parcial'}</span>

@@ -655,7 +655,7 @@ async function renderTareasHistorial() {
 
   const rowsHtml = completadas.map(t => `
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--surface-border);">
-      <span style="font-size: 13.5px; color: var(--text-primary); font-weight: 600;">${t.title}</span>
+      <span style="font-size: 13.5px; color: var(--text-primary); font-weight: 600;">${escapeHtml(t.title)}</span>
       <span style="font-size: 11.5px; color: var(--text-secondary); flex-shrink: 0; margin-left: 12px;">${formatFechaLarga(new Date(t.completedAt))}</span>
     </div>
   `).join('');

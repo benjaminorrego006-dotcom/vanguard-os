@@ -2,6 +2,7 @@ import { db } from '../core/db.js';
 import { renderHabitoForm, setupHabitoForm, openHabitoForm } from '../components/habito-form.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { diaKeyDe } from '../utils/fecha.js';
+import { escapeHtml } from '../utils/escape.js';
 
 const DOW_SHORT = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
@@ -52,7 +53,7 @@ export async function render() {
       <div class="card" style="padding: 16px 16px 12px 20px; position: relative; overflow: hidden; margin-bottom: 12px;">
         <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent-purple);"></div>
         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px;">
-          <h4 class="tappable btn-edit-habito" data-id="${habito.id}" style="font-size: 16px; font-weight: 800; margin: 0; color: var(--text-primary); flex: 1; cursor: pointer; line-height: 1.3; letter-spacing: -0.2px;">${habito.nombre}</h4>
+          <h4 class="tappable btn-edit-habito" data-id="${habito.id}" style="font-size: 16px; font-weight: 800; margin: 0; color: var(--text-primary); flex: 1; cursor: pointer; line-height: 1.3; letter-spacing: -0.2px;">${escapeHtml(habito.nombre)}</h4>
           <button class="btn-delete-habito tappable" data-id="${habito.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; flex-shrink: 0; padding: 2px;">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>

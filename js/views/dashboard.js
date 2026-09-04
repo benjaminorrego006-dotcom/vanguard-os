@@ -3,6 +3,7 @@ import { formatCurrency } from '../utils/currency.js';
 import { WEEKLY_GOALS } from '../core/trainingConfig.js';
 import { Toast } from '../utils/states.js';
 import { parseQuickGasto } from './finanzas.js';
+import { escapeHtml } from '../utils/escape.js';
 
 // Insignias sobrias: sin niveles, sin copy de videojuego. Bloqueada = ícono
 // de candado atenuado en gris; desbloqueada = ícono propio con el color de
@@ -149,7 +150,7 @@ export async function render() {
         </div>
         <div style="flex: 1;">
           <div style="font-size: 12px; font-weight: 700; color: var(--state-high); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Alerta de flujo de caja (7 días)</div>
-          ${alertasCaja.map(a => `<div style="font-size: 12px; color: var(--text-primary); margin-top:4px; line-height: 1.4;">El pago <b>${a.name}</b> (${formatCurrency(a.amount)}) excederá el saldo del sobre <b>${a.envelopeName}</b>. Faltan ${formatCurrency(a.shortfall)}.</div>`).join('')}
+          ${alertasCaja.map(a => `<div style="font-size: 12px; color: var(--text-primary); margin-top:4px; line-height: 1.4;">El pago <b>${escapeHtml(a.name)}</b> (${formatCurrency(a.amount)}) excederá el saldo del sobre <b>${escapeHtml(a.envelopeName)}</b>. Faltan ${formatCurrency(a.shortfall)}.</div>`).join('')}
         </div>
       </div>
     `;
