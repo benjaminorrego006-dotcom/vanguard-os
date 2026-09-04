@@ -8,3 +8,14 @@ export const mesKeyDe = (d) => {
   const f = d instanceof Date ? d : new Date(d);
   return `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`;
 };
+
+// Clave de día en hora LOCAL ("2026-09-03"), no UTC. Mismo motivo que
+// mesKeyDe: toISOString() convierte a UTC primero, así que una fecha
+// calculada en local (ej. el próximo vencimiento de una tarea recurrente)
+// puede caer en el día siguiente para un usuario al oeste de UTC (o el
+// anterior, al este) si se le hace toISOString().slice(0,10) en vez de
+// esto.
+export const diaKeyDe = (d) => {
+  const f = d instanceof Date ? d : new Date(d);
+  return `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`;
+};

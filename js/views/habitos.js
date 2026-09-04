@@ -1,13 +1,9 @@
 import { db } from '../core/db.js';
 import { renderHabitoForm, setupHabitoForm, openHabitoForm } from '../components/habito-form.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
+import { diaKeyDe } from '../utils/fecha.js';
 
 const DOW_SHORT = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
-
-function isoLocal(d) {
-  const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
-  return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-}
 
 // Últimos 7 días (hoy incluido, al final) — franja compacta por hábito,
 // en vez de una grilla del mes entero: encaja mejor en la tarjeta angosta
@@ -29,14 +25,14 @@ export async function render() {
   const rachaGlobal = await db.getRachaHabitosGlobal();
 
   const dias7 = ultimos7Dias();
-  const hoyIso = isoLocal(new Date());
+  const hoyIso = diaKeyDe(new Date());
 
   const renderCard = (habito) => {
     const marcas = habito.marcas || {};
-    const totalMarcasSemana = dias7.filter(d => marcas[isoLocal(d)]).length;
+    const totalMarcasSemana = dias7.filter(d => marcas[diaKeyDe(d)]).length;
 
     const stripHtml = dias7.map(d => {
-      const iso = isoLocal(d);
+      const iso = diaKeyDe(d);
       const marcado = !!marcas[iso];
       const esHoy = iso === hoyIso;
       return `

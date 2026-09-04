@@ -1,6 +1,7 @@
 import { Toast, ConfirmDialog } from './states.js';
 import { db } from '../core/db.js';
 import * as idb from '../core/idb.js';
+import { diaKeyDe } from './fecha.js';
 
 // Stores de entidad + el log de eventos, tal como quedaron definidos en
 // idb.js. Los singletons (perfil, ajustes, favoritos de PR) se exportan
@@ -42,7 +43,7 @@ export async function exportAllData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `vanguard-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `vanguard-backup-${diaKeyDe(new Date())}.json`;
   a.click();
   URL.revokeObjectURL(url);
   Toast("Respaldo exportado con éxito", "success");

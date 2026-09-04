@@ -1,6 +1,6 @@
 import { getEjercicioMetadata, getEjercicioPorId, getIdPorNombreExacto, GRUPO_MUSCULAR_ORDEN } from './ejercicios-catalogo.js';
 import * as idb from './idb.js';
-import { mesKeyDe } from '../utils/fecha.js';
+import { mesKeyDe, diaKeyDe } from '../utils/fecha.js';
 
 function toSafeNumber(value) {
   const n = Number(value);
@@ -1323,7 +1323,7 @@ export const db = {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      last7.push({ date: d.toISOString().slice(0, 10), count: activityByDay.get(d.getTime()) || 0 });
+      last7.push({ date: diaKeyDe(d), count: activityByDay.get(d.getTime()) || 0 });
     }
 
     return { actual, last7 };
@@ -1906,7 +1906,7 @@ export const db = {
           title: item.title,
           description: item.description || '',
           priority: item.priority || 'medium',
-          dueDate: next.toISOString().slice(0, 10),
+          dueDate: diaKeyDe(next),
           project: item.project || '',
           status: 'todo',
           subtasks: [],
