@@ -1,6 +1,7 @@
 import { db } from '../core/db.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
+import { formatFechaHora } from '../utils/fecha.js';
 
 const STATE_CHIPS = [
   { value: 'todo', label: 'Por Hacer' },
@@ -16,8 +17,7 @@ const EVENT_LABELS = {
 };
 
 function formatBitacoraFecha(ts) {
-  const d = new Date(ts);
-  return `${d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} · ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+  return formatFechaHora(new Date(ts));
 }
 
 // Vencida o vence hoy -> rojo (--rd); cualquier otro caso (sin fecha o

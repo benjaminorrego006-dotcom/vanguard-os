@@ -15,7 +15,7 @@ import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '..
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { escapeHtml } from '../utils/escape.js';
-import { mesKeyDe } from '../utils/fecha.js';
+import { mesKeyDe, formatFechaCorta, formatMes } from '../utils/fecha.js';
 
 const editSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const transferSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
@@ -593,7 +593,7 @@ export async function init() {
           const cat = e.currentTarget.getAttribute('data-cat');
           let filterType = 'All';
           if (cat === 'Necesidades' || cat === 'Deseos') filterType = 'Gasto';
-          if (cat === 'Ahorros') filterType = 'Ahorro';
+          if (cat === 'Ahorro') filterType = 'Ahorro';
           renderHistoryList(filterType);
           document.querySelector('.fin-tab[data-tab="movimientos"]').click();
         });
@@ -821,7 +821,7 @@ export const txHtml = (tx, envelopes) => {
   let iconSvg = getSVG(tx.category, catColor);
   let fallbackLabel = tx.type === 'Ingreso' ? 'Ingreso' : (tx.category === 'Savings' ? 'Ahorro' : (tx.category === 'Needs' ? 'Necesidades' : 'Deseos'));
   let displayLabel = tx.label || fallbackLabel;
-  let subText = `${tx.date.substring(0,10)} &bull; ${tx.category === 'Needs' ? 'Necesidades' : tx.category === 'Wants' ? 'Deseos' : tx.category === 'Savings' ? 'Ahorros' : 'Ingreso'}`;
+  let subText = `${formatFechaCorta(new Date(tx.date))} &bull; ${tx.category === 'Needs' ? 'Necesidades' : tx.category === 'Wants' ? 'Deseos' : tx.category === 'Savings' ? 'Ahorro' : 'Ingreso'}`;
 
   let amountPrefix = tx.type === 'Ingreso' ? '+' : '-';
   let amountColor = tx.type === 'Ingreso' ? 'var(--state-success)' : 'var(--text-primary)';
@@ -831,13 +831,13 @@ export const txHtml = (tx, envelopes) => {
     if (env) {
       if (tx.type === 'Gasto') {
         iconSvg = getSVG(env.icon, catColor);
-        subText = `${tx.date.substring(0,10)} &bull; ${escapeHtml(env.name)}`;
+        subText = `${formatFechaCorta(new Date(tx.date))} &bull; ${escapeHtml(env.name)}`;
       } else if (tx.type === 'Assignment') {
         catColor = 'var(--accent-blue)';
         iconSvg = transferSvg;
         amountColor = tx.isSubtraction ? 'var(--text-primary)' : 'var(--state-success)';
         amountPrefix = tx.isSubtraction ? '-' : '+';
-        subText = `${tx.date.substring(0,10)} &bull; ${tx.isSubtraction ? 'Retirado de' : 'Asignado a'} ${escapeHtml(env.name)}`;
+        subText = `${formatFechaCorta(new Date(tx.date))} &bull; ${tx.isSubtraction ? 'Retirado de' : 'Asignado a'} ${escapeHtml(env.name)}`;
       }
     }
   } else if (tx.type === 'Transfer' && envelopes) {
@@ -845,7 +845,7 @@ export const txHtml = (tx, envelopes) => {
     iconSvg = transferSvg;
     const fromEnv = escapeHtml(envelopes.find(e => e.id === tx.fromEnvelopeId)?.name || 'Desconocido');
     const toEnv = escapeHtml(envelopes.find(e => e.id === tx.toEnvelopeId)?.name || 'Desconocido');
-    subText = `${tx.date.substring(0,10)} &bull; ${fromEnv} &rarr; ${toEnv}`;
+    subText = `${formatFechaCorta(new Date(tx.date))} &bull; ${fromEnv} &rarr; ${toEnv}`;
     amountPrefix = '';
     amountColor = 'var(--text-secondary)';
   }
@@ -878,7 +878,7 @@ const renderResumenLegend = (b) => {
   const items = [
     { label: 'Necesidades', amount: totalNeeds, color: 'var(--am2)', share: rule.needs },
     { label: 'Deseos', amount: totalWants, color: 'var(--accent-blue)', share: rule.wants },
-    { label: 'Ahorros', amount: totalSavings, color: 'var(--accent-purple)', share: rule.savings }
+    { label: 'Ahorro', amount: totalSavings, color: 'var(--accent-purple)', share: rule.savings }
   ];
   return items.map(item => {
     const disponibleCat = b.budgeted * item.share;
@@ -902,7 +902,7 @@ const renderResumenLegend = (b) => {
 const buildFinanzasHeatmapHtml = () => {
   const [heatYear, heatMonthNum] = currentMonth.split('-').map(Number);
   const heatMonth = heatMonthNum - 1;
-  const nombreMesActual = new Date(heatYear, heatMonth, 1).toLocaleDateString('es-ES', { month: 'long' });
+  const nombreMesActual = formatMes(new Date(heatYear, heatMonth, 1));
   const TX_TYPE_LABELS = { Gasto: 'Gasto', Ingreso: 'Ingreso', Ahorro: 'Ahorro', Transfer: 'Transferencia' };
   const countByDay = {};
   const detailByDay = {};
@@ -1024,7 +1024,7 @@ const renderResumenCharts = async (b) => {
     donutChartInstance = new Chart(donutCanvas, {
       type: 'doughnut',
       data: {
-        labels: ['Necesidades', 'Deseos', 'Ahorros'],
+        labels: ['Necesidades', 'Deseos', 'Ahorro'],
         datasets: [{
           data: [totalNeeds, totalWants, totalSavings],
           backgroundColor: [palette.high, palette.blue, palette.purple],
@@ -1105,7 +1105,7 @@ const renderPresupuestoLegend = (b) => {
   const rule = b.rule || { needs: 0.5, wants: 0.3, savings: 0.2 };
   const ruleDisplay = { needs: Math.round(rule.needs * 100), wants: Math.round(rule.wants * 100), savings: Math.round(rule.savings * 100) };
 
-  return ['Necesidades', 'Deseos', 'Ahorros'].map(catKey => {
+  return ['Necesidades', 'Deseos', 'Ahorro'].map(catKey => {
     const isNeeds = catKey === 'Necesidades';
     const isWants = catKey === 'Deseos';
     const totalAmt = isNeeds ? totalNeeds : (isWants ? totalWants : totalSavings);
@@ -1139,7 +1139,7 @@ export async function render() {
   await init();
 
   const formatMonth = (str) => {
-    const monthLabel = new Date(str + '-01T00:00:00').toLocaleDateString('es-ES', { month: 'long' }).toLowerCase();
+    const monthLabel = formatMes(new Date(str + '-01T00:00:00'));
     const year = new Date(str + '-01T00:00:00').getFullYear();
     return `${monthLabel} de ${year}`;
   };
@@ -1239,7 +1239,7 @@ export async function render() {
   })();
 
   const [heatYear, heatMonthNum] = currentMonth.split('-').map(Number);
-  const nombreMesActual = new Date(heatYear, heatMonthNum - 1, 1).toLocaleDateString('es-ES', { month: 'long' });
+  const nombreMesActual = formatMes(new Date(heatYear, heatMonthNum - 1, 1));
   const heatmapHtml = buildFinanzasHeatmapHtml();
 
   let projColor = 'var(--state-success)';
@@ -1424,7 +1424,7 @@ export async function render() {
           <button class="history-tab" data-filter="All" style="background: var(--surface-1); color: var(--text-primary);">Todos</button>
           <button class="history-tab" data-filter="Ingreso" style="background: transparent; color: var(--text-secondary);">Ingresos</button>
           <button class="history-tab" data-filter="Gasto" style="background: transparent; color: var(--text-secondary);">Gastos</button>
-          <button class="history-tab" data-filter="Ahorro" style="background: transparent; color: var(--text-secondary);">Ahorros</button>
+          <button class="history-tab" data-filter="Ahorro" style="background: transparent; color: var(--text-secondary);">Ahorro</button>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
           <input type="date" id="history-date-from" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; border-radius: 12px; font-size: 13px; box-sizing: border-box; outline: none; font-family: inherit;">
@@ -1503,7 +1503,7 @@ export async function render() {
             <input type="number" id="rule-wants" required autocomplete="off" min="0" max="100">
           </div>
           <div class="input-group">
-            <label>Ahorros (%)</label>
+            <label>Ahorro (%)</label>
             <input type="number" id="rule-savings" required autocomplete="off" min="0" max="100">
           </div>
           <button type="submit" class="btn-primary" style="background: var(--accent-purple);">Guardar Regla</button>

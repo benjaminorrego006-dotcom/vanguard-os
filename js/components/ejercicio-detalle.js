@@ -2,6 +2,7 @@
 import { db } from '../core/db.js';
 import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
 import { escapeHtml } from '../utils/escape.js';
+import { formatFechaCorta, formatFechaLarga } from '../utils/fecha.js';
 
 const chartInstances = new Map(); // canvasId -> Chart instance (para destruir al re-togglear)
 
@@ -65,7 +66,7 @@ export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
       <div style="display: flex; flex-direction: column; gap: 6px;">
         ${prEvents.map(ev => `
           <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
-            <span style="color: var(--text-secondary);">${new Date(ev.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+            <span style="color: var(--text-secondary);">${formatFechaLarga(new Date(ev.fecha))}</span>
             <span style="color: var(--accent-teal); font-weight: 700;">🏆 ${ev.texto}</span>
           </div>
         `).join('')}
@@ -113,7 +114,7 @@ export async function initEjercicioDetalleChart(chartCanvasId, historial) {
   const esPesoCorporal = historial.every(d => d.pesoMax === 0);
   const pesoData = historial.map(d => esPesoCorporal ? d.repsMax : d.pesoMax);
   const rm1Data = historial.map(d => (d.pesoMax > 0) ? db.estimar1RM(d.pesoMax, d.repsEnPesoMax || 1) : 0);
-  const labels = historial.map(d => new Date(d.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }));
+  const labels = historial.map(d => formatFechaCorta(new Date(d.fecha)));
 
   let modo = 'peso';
   let unidad = esPesoCorporal ? ' reps' : ' kg';

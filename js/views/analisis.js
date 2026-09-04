@@ -9,6 +9,7 @@ import { renderMiniChart } from '../components/mini-chart.js';
 import { txHtml } from './finanzas.js';
 import { formatCurrency } from '../utils/currency.js';
 import { escapeHtml } from '../utils/escape.js';
+import { formatFechaCorta, formatFechaLarga, formatMes } from '../utils/fecha.js';
 
 // Análisis es un hub centralizado para los 3 módulos (Entreno/Finanzas/
 // Tareas) — un solo punto de entrada, siempre montado dentro del scope
@@ -297,7 +298,7 @@ async function initEjercicioChart() {
     if (ejercicioModo === '1rm') return d.pesoMax > 0 ? db.estimar1RM(d.pesoMax, d.repsEnPesoMax || 1) : 0;
     return esPesoCorporal ? d.repsMax : d.pesoMax;
   });
-  const labels = lastEjercicioHistorial.map(d => new Date(d.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }));
+  const labels = lastEjercicioHistorial.map(d => formatFechaCorta(new Date(d.fecha)));
   const unidad = ejercicioModo === 'volumen' ? '' : (esPesoCorporal && ejercicioModo !== '1rm' ? ' reps' : ' kg');
 
   if (ejercicioChartInstance) ejercicioChartInstance.destroy();
@@ -360,7 +361,7 @@ const renderPRCard = (pr) => {
     <div class="card" style="padding: 14px 16px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
       <div style="min-width: 0;">
         <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(pr.nombre)}</div>
-        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${new Date(pr.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${formatFechaLarga(new Date(pr.fecha))}</div>
       </div>
       <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
         <div style="font-size: 14px; font-weight: 800; color: var(--accent-teal); white-space: nowrap;">${valorTxt}</div>
@@ -519,7 +520,8 @@ async function renderFinanzasHitos() {
 
   const mesLabel = (mesStr) => {
     const [y, m] = mesStr.split('-');
-    return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    const mesDate = new Date(Number(y), Number(m) - 1, 1);
+    return `${formatMes(mesDate)} ${mesDate.getFullYear()}`;
   };
 
   const mesesHtml = mesesSinExceder.length === 0
@@ -654,7 +656,7 @@ async function renderTareasHistorial() {
   const rowsHtml = completadas.map(t => `
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--surface-border);">
       <span style="font-size: 13.5px; color: var(--text-primary); font-weight: 600;">${t.title}</span>
-      <span style="font-size: 11.5px; color: var(--text-secondary); flex-shrink: 0; margin-left: 12px;">${new Date(t.completedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+      <span style="font-size: 11.5px; color: var(--text-secondary); flex-shrink: 0; margin-left: 12px;">${formatFechaLarga(new Date(t.completedAt))}</span>
     </div>
   `).join('');
 

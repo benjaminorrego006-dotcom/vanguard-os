@@ -13,6 +13,7 @@ import { calcularIMC, calcularTMB } from '../utils/bodyMetrics.js';
 import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
+import { formatFechaCorta, formatMes } from '../utils/fecha.js';
 import { renderArbolProgresion } from '../components/arbol-progresion.js';
 import { renderEstandaresFuerza, initEstandaresFuerzaListeners } from '../components/estandares-fuerza.js';
 import { detectarSugerenciaPendiente } from '../core/sugerencias-nivel.js';
@@ -115,7 +116,7 @@ export function cleanup() {
 }
 
 const sesionCardHtml = (s) => {
-  const timeStr = new Date(s.fecha).toLocaleDateString();
+  const timeStr = formatFechaCorta(new Date(s.fecha));
   const badgeClass = s.completado ? 'badge--low' : 'badge--medium';
   return `
     <div class="card" style="min-width: 170px; padding: 16px; border-radius: 16px;">
@@ -175,7 +176,7 @@ export async function render() {
   const now_ = new Date();
   const heatYear = now_.getFullYear();
   const heatMonth = now_.getMonth();
-  const nombreMesActual = now_.toLocaleDateString('es-ES', { month: 'long' });
+  const nombreMesActual = formatMes(now_);
   const { countByDay, detailByDay } = await db.getActividadEntrenoPorDia(heatYear, heatMonth);
   const heatmapHtml = renderActivityHeatmap({
     id: 'entreno-heatmap',

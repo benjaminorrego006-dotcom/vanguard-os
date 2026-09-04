@@ -4,6 +4,7 @@ import { getEjercicioPorId, agruparPorGrupoMuscular } from '../core/ejercicios-c
 import { renderMiniChart } from './mini-chart.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
+import { formatDiaSemana } from '../utils/fecha.js';
 
 // Escala de dificultad para ordenar "Plantillas sugeridas" de menor a mayor.
 // 'Todos los niveles' se trata como accesible para principiantes (rango 1).
@@ -236,7 +237,7 @@ export async function renderRutinasLista(categoria) {
         return sDate.getTime() === d.getTime();
       });
 
-      const dayName = d.toLocaleDateString('es-ES', { weekday: 'narrow' });
+      const dayName = formatDiaSemana(d);
       const color = hasSession ? 'var(--accent-teal)' : 'var(--surface-2)';
       const border = hasSession ? 'none' : '1px solid var(--surface-border)';
 

@@ -5,6 +5,7 @@ import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js'
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { renderRecurringTaskForm, initRecurringTaskForm, attachRecurringTaskDeleteListeners, describeRecurringTaskFreq } from '../components/recurring-task-form.js';
 import { escapeHtml } from '../utils/escape.js';
+import { formatFechaCorta, formatMes } from '../utils/fecha.js';
 
 let tasksDonutInstance = null;
 
@@ -60,7 +61,7 @@ const renderTasksDonut = async (tasks) => {
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T12:00:00'); // avoid timezone shifts
-  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  return formatFechaCorta(d);
 }
 
 // Vencida/vence-hoy -> rojo (--rd), cualquier otra fecha futura -> texto
@@ -253,7 +254,7 @@ export async function render() {
   const now_ = new Date();
   const heatYear = now_.getFullYear();
   const heatMonth = now_.getMonth();
-  const nombreMesActual = now_.toLocaleDateString('es-ES', { month: 'long' });
+  const nombreMesActual = formatMes(now_);
   const { countByDay, detailByDay } = await db.getActividadTareasPorDia(heatYear, heatMonth);
   const heatmapHtml = renderActivityHeatmap({
     id: 'tareas-heatmap',
