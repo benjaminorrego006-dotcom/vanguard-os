@@ -1,5 +1,8 @@
 import { db } from './db.js';
-import { mountLockScreen, startInactivityWatch } from './lock.js';
+import { mountLockScreen, startInactivityWatch, isLocked } from './lock.js';
+import { initModalHistory, forgetOpenModals } from './history.js';
+
+const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'analisis'];
 
 // El servidor local a veces omite el header Content-Type cuando recibe
 // varias peticiones en paralelo (medido: 0/52 fallos pidiendo los archivos
@@ -123,12 +126,23 @@ class Router {
   }
 
   async init() {
-    this.navItems.forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        const view = item.getAttribute('data-view');
-        this.navigate(view);
-      });
+    // Botón atrás para los modales .modal-overlay (ver history.js) — un
+    // solo observer genérico, no hace falta enganchar nada por nav-item.
+    initModalHistory();
+
+    // Los <a href="#tareas"> del nav ya cambian el hash solos (no hay
+    // preventDefault acá): este listener es el ÚNICO lugar que monta una
+    // vista a partir del hash, así que cubre por igual un click de nav,
+    // el botón atrás/adelante del navegador, y compartir/recargar un link
+    // directo a una vista.
+    window.addEventListener('hashchange', () => {
+      // Mientras el PIN sigue sin desbloquear no hay que montar nada de
+      // fondo detrás del lock screen — si alguien edita el hash a mano
+      // en la barra de direcciones estando bloqueado, se ignora.
+      if (isLocked()) return;
+      const viewId = this.resolveViewFromHash();
+      if (viewId === this.currentView) return; // ya está montada (navigate() directo ya la puso, o ya estábamos ahí)
+      this.navigate(viewId);
     });
 
     // Start robust splash screen logic
@@ -136,7 +150,9 @@ class Router {
 
     const bootDashboard = () => {
       startInactivityWatch();
-      this.navigate('dashboard').then(() => {
+      // Respeta el hash con el que se abrió/recargó la app (ej. un link
+      // directo a #finanzas) en vez de ir siempre a Inicio.
+      this.navigate(this.resolveViewFromHash()).then(() => {
         // Layer 1: Hide automatically when ready
         this.hideSplash();
       }).catch(err => {
@@ -147,12 +163,18 @@ class Router {
     };
 
     // Si el PIN está activado, la app queda bloqueada detrás del splash
-    // hasta que se ingresa correctamente — recién ahí se monta el Dashboard.
+    // hasta que se ingresa correctamente — recién ahí se monta la vista
+    // del hash inicial (el hash no cambia mientras está bloqueada).
     if (db.isPinEnabled()) {
       mountLockScreen(bootDashboard);
     } else {
       bootDashboard();
     }
+  }
+
+  resolveViewFromHash() {
+    const raw = (location.hash || '').replace(/^#/, '');
+    return VALID_VIEWS.includes(raw) ? raw : 'dashboard';
   }
   
   setupSplashScreen() {
@@ -193,6 +215,16 @@ class Router {
   }
 
   async navigate(viewId) {
+    // Si el hash no coincide (navegación programática — ej. un tap en el
+    // resumen de Finanzas del Dashboard — o el arranque con un hash
+    // inválido/vacío), lo actualizamos para que la URL, compartir un link
+    // y el botón atrás queden en sync. No delegamos el montaje al
+    // 'hashchange' que esto dispara — currentView ya queda en viewId más
+    // abajo, ANTES de que ese hashchange (asíncrono) pueda relanzar una
+    // segunda vez la misma navegación (ver el guard en el listener de
+    // init()), así que no hay doble montaje.
+    if (location.hash.slice(1) !== viewId) location.hash = viewId;
+
     this.currentView = viewId;
 
     this.navItems.forEach(item => {
@@ -224,6 +256,11 @@ class Router {
       if (this.currentModule && typeof this.currentModule.cleanup === 'function') {
         try { this.currentModule.cleanup(); } catch (e) { console.error('Error limpiando la vista anterior:', e); }
       }
+
+      // Si la vista saliente tenía un modal abierto, su nodo va a
+      // desaparecer con el innerHTML de abajo sin pasar por su botón de
+      // cierre — hay que soltar su entrada de historial (ver history.js).
+      forgetOpenModals();
 
       // OJO: no usar import.meta.url aquí — cuando app.js se carga desde un
       // Blob URL (ver loadModuleGraph), import.meta.url es ese blob: URL y
