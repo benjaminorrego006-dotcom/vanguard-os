@@ -4,10 +4,29 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Vanguard OS</title>
+
+  <script>
+    // beforeinstallprompt solo se dispara una vez y puede llegar en
+    // cualquier momento después de que Chrome evalúa los criterios de
+    // instalación — hay que engancharlo acá arriba, antes de que cargue el
+    // resto de la app (ver js/views/dashboard.js, que lee
+    // window.__vgInstall.deferredPrompt para mostrar el banner de Inicio),
+    // o se pierde el evento sin que nadie lo haya escuchado.
+    window.__vgInstall = { deferredPrompt: null };
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.__vgInstall.deferredPrompt = e;
+      window.dispatchEvent(new CustomEvent('vg-install-available'));
+    });
+    window.addEventListener('appinstalled', () => {
+      window.__vgInstall.deferredPrompt = null;
+    });
+  </script>
   
   <!-- Icon & PWA -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
-  <meta name="theme-color" content="#121212">
+  <!-- debe coincidir con --bg de variables.css -->
+  <meta name="theme-color" content="#05070A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   

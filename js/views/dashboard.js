@@ -5,6 +5,42 @@ import { Toast } from '../utils/states.js';
 import { parseQuickGasto } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
 
+// El evento beforeinstallprompt lo captura index.html apenas carga la
+// página (antes de que este módulo exista) y lo guarda en
+// window.__vgInstall.deferredPrompt — acá solo lo leemos. Si el usuario ya
+// lo descartó, no insistimos por 30 días (timestamp en localStorage: es
+// solo una preferencia de UI, no dato de la app, así que no hace falta que
+// viva en IndexedDB como el resto de la data).
+const INSTALL_DISMISS_KEY = 'vg-install-dismissed-at';
+const INSTALL_DISMISS_DIAS = 30;
+
+function debeMostrarBannerInstalar() {
+  if (!window.__vgInstall || !window.__vgInstall.deferredPrompt) return false;
+  if (window.matchMedia('(display-mode: standalone)').matches) return false;
+  try {
+    const dismissedAt = localStorage.getItem(INSTALL_DISMISS_KEY);
+    if (dismissedAt) {
+      const diasDesde = (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
+      if (diasDesde < INSTALL_DISMISS_DIAS) return false;
+    }
+  } catch (e) { /* localStorage puede fallar en modo privado — no bloquear el banner por eso */ }
+  return true;
+}
+
+// beforeinstallprompt puede llegar recién unos segundos después de que
+// Inicio ya está montada — si el usuario sigue ahí cuando eso pasa,
+// re-renderizamos para que el banner aparezca sin que tenga que navegar.
+// Este listener se registra una sola vez: dashboard.js es un módulo
+// singleton (el mismo Blob URL cacheado se reusa en cada navegación a
+// Inicio — ver loadModuleGraph en app.js), así que el top-level de este
+// archivo corre una sola vez por sesión y no hace falta sacarlo en un
+// cleanup.
+window.addEventListener('vg-install-available', () => {
+  if (window.appRouter && window.appRouter.currentView === 'dashboard') {
+    window.appRouter.navigate('dashboard');
+  }
+});
+
 // Insignias sobrias: sin niveles, sin copy de videojuego. Bloqueada = ícono
 // de candado atenuado en gris; desbloqueada = ícono propio con el color de
 // acento del módulo al que pertenece (Vanguard MK III). racha_7 no
@@ -156,6 +192,22 @@ export async function render() {
     `;
   }
 
+  const installBannerHtml = debeMostrarBannerInstalar() ? `
+    <div id="install-banner" class="card" style="padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+      <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(92, 225, 230, 0.15); color: var(--cy); flex-shrink: 0;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Instalar Vanguard en tu teléfono</div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Acceso directo desde tu pantalla de inicio.</div>
+      </div>
+      <button id="btn-install-app" class="tappable" style="background: var(--cy); color: #000; border: none; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; white-space: nowrap;">Instalar</button>
+      <button id="btn-dismiss-install" class="tappable" style="background: transparent; border: none; color: var(--text-disabled); cursor: pointer; padding: 4px; flex-shrink: 0;" aria-label="Cerrar">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+  ` : '';
+
   const pct = budget.budgeted > 0 ? Math.round((usado / budget.budgeted) * 100) : 0;
   const pctBar = Math.min(pct, 100);
 
@@ -178,6 +230,7 @@ export async function render() {
         <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 4px;">${rachaSubtitle}</div>
       </div>
 
+      ${installBannerHtml}
       ${alertasHtml}
 
       <!-- Reactor: tres anillos (Entreno/Finanzas/Tareas) + racha global -->
@@ -246,6 +299,34 @@ export function mountListeners() {
     if (window.appRouter) window.appRouter.navigate(view);
   };
   const refresh = () => { if (window.appRouter) window.appRouter.navigate('dashboard'); };
+
+  const btnInstallApp = document.getElementById('btn-install-app');
+  const btnDismissInstall = document.getElementById('btn-dismiss-install');
+  if (btnInstallApp) {
+    btnInstallApp.addEventListener('click', async () => {
+      const evt = window.__vgInstall && window.__vgInstall.deferredPrompt;
+      if (!evt) return;
+      evt.prompt();
+      const choice = await evt.userChoice;
+      window.__vgInstall.deferredPrompt = null;
+      if (choice.outcome === 'accepted') {
+        Toast('Vanguard instalada', 'success');
+      } else {
+        // Rechazó el prompt nativo del navegador — cuenta como descarte
+        // igual que el botón de cerrar, para no insistir de nuevo enseguida.
+        try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) { /* modo privado */ }
+      }
+      const banner = document.getElementById('install-banner');
+      if (banner) banner.remove();
+    });
+  }
+  if (btnDismissInstall) {
+    btnDismissInstall.addEventListener('click', () => {
+      try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) { /* modo privado */ }
+      const banner = document.getElementById('install-banner');
+      if (banner) banner.remove();
+    });
+  }
 
   const qaGasto = document.getElementById('qa-gasto');
   const qaEntreno = document.getElementById('qa-entreno');

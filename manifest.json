@@ -1,18 +1,17 @@
 {
+  "id": "/vanguard-os/",
   "name": "Vanguard OS",
   "short_name": "Vanguard",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
+  "lang": "es-CL",
   "background_color": "#0f1115",
-  "theme_color": "#0f1115",
+  "theme_color": "#05070A",
+  "_comment_theme_color": "debe coincidir con --bg de variables.css",
   "description": "Sistema operativo personal PWA offline-first",
   "icons": [
-    {
-      "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
     {
       "src": "./assets/icons/icon-192.png",
       "sizes": "192x192",
