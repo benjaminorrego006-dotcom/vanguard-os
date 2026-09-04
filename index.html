@@ -21,14 +21,21 @@
 
   <!-- Splash Screen -->
   <div id="splash-screen" style="position: fixed; inset: 0; background: var(--bg-base); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s ease-out; opacity: 1;">
-    <div style="font-size: 48px; font-weight: 800; letter-spacing: 2px; color: var(--text-primary);">VANGUARD</div>
-    <div style="width: 120px; height: 4px; background: var(--surface-2); border-radius: 2px; margin-top: 24px; overflow: hidden;">
-      <div style="height: 100%; background: var(--accent-primary); width: 0%; animation: loadSplash 0.8s ease-out forwards;"></div>
+    <div id="splash-brand" style="font-size: 48px; font-weight: 800; letter-spacing: 2px; color: var(--text-primary);">VANGUARD</div>
+    <div id="splash-progress-track" style="width: 120px; height: 4px; background: var(--surface-2); border-radius: 2px; margin-top: 24px; overflow: hidden;">
+      <div id="splash-progress-bar" style="height: 100%; background: var(--accent-primary); width: 0%; transition: width 0.2s ease-out;"></div>
     </div>
     <!-- Manual Entrar Button -->
     <button id="splash-enter-btn" class="tappable" style="display:none; margin-top: 40px; background: var(--accent-primary); color: #000; border: none; padding: 12px 32px; border-radius: 24px; font-weight: 700; font-size: 16px; cursor: pointer; animation: fadeIn 0.2s ease-out;">
       Entrar
     </button>
+    <!-- Error state: shown only if loadModuleGraph falla completamente (ver bootstrap() más abajo) -->
+    <div id="splash-error" style="display:none; text-align:center; margin-top: 24px; max-width: 280px; padding: 0 16px;">
+      <p style="color: var(--text-secondary); font-size: 14px; margin: 0 0 16px 0; line-height: 1.4;">No se pudo cargar la aplicación. Revisá tu conexión e intentá de nuevo.</p>
+      <button id="splash-retry-btn" class="tappable" style="background: var(--accent-primary); color: #000; border: none; padding: 12px 32px; border-radius: 24px; font-weight: 700; font-size: 16px; cursor: pointer;">
+        Reintentar
+      </button>
+    </div>
   </div>
 
   <div class="app-layout">
@@ -82,7 +89,6 @@
   </div>
 
   <style>
-    @keyframes loadSplash { to { width: 100%; } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
   <link rel="manifest" href="manifest.json">
@@ -96,15 +102,35 @@
       }
     </script>
   <script type="module">
+    // Progreso real del splash (ver #splash-progress-bar arriba). Esta carga
+    // (el grafo de js/core/app.js) es la primera etapa del arranque; la
+    // ocupamos del 0% al 30% de la barra. La segunda etapa (el grafo de la
+    // vista inicial, que es la parte más pesada) la maneja Router en
+    // js/core/app.js y ocupa del 30% al 100% — ver window.__vgSplashProgress.
+    window.__vgSplashProgress = function (fraction) {
+      const bar = document.getElementById('splash-progress-bar');
+      if (bar) bar.style.width = `${Math.max(0, Math.min(100, fraction * 100))}%`;
+    };
+
     // El servidor local a veces omite el header Content-Type cuando recibe
     // varias peticiones en paralelo, y no manda headers de caché, así que
     // ni siquiera "precalentar" evita que el navegador vuelva a pedir todo
     // en paralelo al resolver los imports de un módulo. Un
     // <script type="module"> estático además no se puede reintentar.
-    // Solución: bajar cada archivo del grafo UNO A LA VEZ (con reintento
-    // por archivo) y armar el módulo como Blob URL, reescribiendo sus
-    // imports relativos para que apunten a los Blob URL ya resueltos de
-    // sus dependencias — así no queda ninguna petición de red concurrente.
+    // Solución: bajar los archivos del grafo con un pool de descargas en
+    // paralelo acotado (ver CONCURRENCY en loadModuleGraph), cada una con
+    // reintento propio y validación de Content-Type, y armar el módulo como
+    // Blob URL reescribiendo sus imports relativos para que apunten a los
+    // Blob URL ya resueltos de sus dependencias — así el import() final no
+    // dispara ninguna petición de red nueva. GitHub Pages sí manda
+    // Content-Type correcto bajo concurrencia; esto era un problema del
+    // servidor local de desarrollo.
+    //
+    // OJO: esta función (fetchTextWithRetry + loadModuleGraph) está
+    // DUPLICADA en js/core/app.js — este bootstrap no puede importar nada
+    // (es justamente lo que carga el primer módulo), así que no hay forma
+    // de compartir el código. Cualquier cambio acá hay que replicarlo
+    // también allá, o quedan desincronizadas.
     async function fetchTextWithRetry(url, attempts = 5) {
       let lastErr;
       for (let i = 0; i < attempts; i++) {
@@ -122,29 +148,61 @@
       throw lastErr;
     }
 
-    async function loadModuleGraph(entryUrl) {
+    // Cuántas descargas del grafo corren en paralelo. GitHub Pages manda
+    // Content-Type correcto aun bajo concurrencia (a diferencia del server
+    // local que motivó bajar todo secuencial en su momento — ver el comment
+    // de arriba). fetchTextWithRetry sigue validando Content-Type y
+    // reintentando por archivo, así que si algún host devuelve basura bajo
+    // carga, un par de archivos reintentan solos sin tumbar el resto.
+    const CONCURRENCY = 6;
+
+    async function loadModuleGraph(entryUrl, onProgress) {
       const importLineRe = /^import\s+(?:[^;\n]*?\sfrom\s+)?['"](\.[^'"]+)['"]/gm;
       const texts = new Map();
       const deps = new Map();
-
-      const toVisit = [entryUrl];
       const seen = new Set([entryUrl]);
-      while (toVisit.length) {
-        const url = toVisit.shift();
-        if (texts.has(url)) continue;
-        const text = await fetchTextWithRetry(url);
-        texts.set(url, text);
+      const queue = [entryUrl];
+      let total = 1;
+      let done = 0;
 
-        const fileDeps = [];
-        let m;
-        importLineRe.lastIndex = 0;
-        while ((m = importLineRe.exec(text))) {
-          const abs = new URL(m[1], url).href;
-          fileDeps.push({ specifier: m[1], absUrl: abs });
-          if (!seen.has(abs)) { seen.add(abs); toVisit.push(abs); }
-        }
-        deps.set(url, fileDeps);
-      }
+      // Pool de descargas en paralelo (acotado a CONCURRENCY) que va
+      // descubriendo el grafo a medida que cada archivo se resuelve — no
+      // sabemos el total de archivos de antemano, así que "total" crece a
+      // medida que aparecen nuevos imports. launch() se re-llama cada vez
+      // que una descarga termina, para mantener el pool lleno; el orden
+      // topológico de más abajo no depende del orden en que llegan.
+      await new Promise((resolve, reject) => {
+        let active = 0;
+        let failed = false;
+        const launch = () => {
+          if (failed) return;
+          while (active < CONCURRENCY && queue.length > 0) {
+            const url = queue.shift();
+            active++;
+            fetchTextWithRetry(url).then(text => {
+              texts.set(url, text);
+              done++;
+              if (onProgress) onProgress(done, total);
+
+              const fileDeps = [];
+              let m;
+              importLineRe.lastIndex = 0;
+              while ((m = importLineRe.exec(text))) {
+                const abs = new URL(m[1], url).href;
+                fileDeps.push({ specifier: m[1], absUrl: abs });
+                if (!seen.has(abs)) { seen.add(abs); total++; queue.push(abs); }
+              }
+              deps.set(url, fileDeps);
+
+              active--;
+              if (failed) return;
+              if (queue.length === 0 && active === 0) resolve();
+              else launch();
+            }).catch(err => { failed = true; reject(err); });
+          }
+        };
+        launch();
+      });
 
       const order = [];
       const visited = new Set();
@@ -173,11 +231,24 @@
     async function bootstrap() {
       const appUrl = new URL('./js/core/app.js', location.href).href;
       try {
-        const blobUrl = await loadModuleGraph(appUrl);
+        const blobUrl = await loadModuleGraph(appUrl, (done, total) => {
+          window.__vgSplashProgress(0.3 * (done / total));
+        });
         await import(blobUrl);
       } catch (err) {
-        console.error('No se pudo iniciar la app, recargando...', err);
-        location.reload();
+        // No recargamos a ciegas: si el fallo es persistente (sin red,
+        // GitHub Pages caído, etc.) un location.reload() automático entra
+        // en loop infinito recargando una y otra vez sin avisar a nadie.
+        // Mostramos el error y dejamos el reintento en manos del usuario.
+        console.error('No se pudo iniciar la app:', err);
+        const track = document.getElementById('splash-progress-track');
+        const enterBtn = document.getElementById('splash-enter-btn');
+        const errorBox = document.getElementById('splash-error');
+        const retryBtn = document.getElementById('splash-retry-btn');
+        if (track) track.style.display = 'none';
+        if (enterBtn) enterBtn.style.display = 'none';
+        if (errorBox) errorBox.style.display = 'block';
+        if (retryBtn) retryBtn.addEventListener('click', () => location.reload());
       }
     }
     bootstrap();

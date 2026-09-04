@@ -10,12 +10,21 @@ const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanza
 // navegador automáticamente al resolver los imports estáticos de un
 // módulo). Como el servidor no manda headers de caché, ni siquiera
 // "precalentar" el caché HTTP evita que el import real vuelva a pedir
-// todo en paralelo. La única forma de eliminar la concurrencia es
-// construir el grafo de módulos nosotros mismos: bajamos cada archivo
-// UNO A LA VEZ (con reintento por archivo) y lo empaquetamos como
-// Blob URL, reescribiendo sus imports relativos para que apunten a los
-// Blob URL ya resueltos de sus dependencias. Así el import() final no
-// dispara ninguna petición de red nueva.
+// todo en paralelo. La única forma de controlar la concurrencia es
+// construir el grafo de módulos nosotros mismos: bajamos los archivos con
+// un pool de descargas en paralelo acotado (con reintento y validación de
+// Content-Type por archivo — ver CONCURRENCY más abajo) y los empaquetamos
+// como Blob URL, reescribiendo sus imports relativos para que apunten a
+// los Blob URL ya resueltos de sus dependencias. Así el import() final no
+// dispara ninguna petición de red nueva. GitHub Pages sí manda
+// Content-Type correcto bajo concurrencia; esto era un problema puntual
+// del servidor local de desarrollo.
+//
+// OJO: esta función (fetchTextWithRetry + loadModuleGraph) está DUPLICADA
+// en el <script type="module"> inline de index.html — ese bootstrap no
+// puede importar nada (es justamente lo que carga este archivo), así que
+// no hay forma de compartir el código. Cualquier cambio acá hay que
+// replicarlo también allá, o quedan desincronizadas.
 const blobUrlCache = new Map(); // url absoluta -> blob url ya construido
 
 async function fetchTextWithRetry(url, attempts = 5) {
@@ -35,7 +44,16 @@ async function fetchTextWithRetry(url, attempts = 5) {
   throw lastErr;
 }
 
-async function loadModuleGraph(entryUrl) {
+// Cuántas descargas del grafo corren en paralelo. GitHub Pages manda
+// Content-Type correcto aun bajo concurrencia (a diferencia del server
+// local que motivó bajar todo secuencial en su momento — ver el comment de
+// arriba). fetchTextWithRetry sigue validando Content-Type y reintentando
+// por archivo, así que si algún host devuelve basura bajo carga, un par de
+// archivos reintentan solos sin tumbar el resto. Si en el server local
+// vuelven a aparecer fallos de Content-Type con N=6, bajar a N=3.
+const CONCURRENCY = 6;
+
+async function loadModuleGraph(entryUrl, onProgress) {
   if (blobUrlCache.has(entryUrl)) return blobUrlCache.get(entryUrl);
 
   // Acepta tanto `import { x } from './y.js'` como imports de solo efecto
@@ -44,29 +62,54 @@ async function loadModuleGraph(entryUrl) {
   const texts = new Map();   // url -> código fuente original
   const deps = new Map();    // url -> [{specifier, absUrl}]
 
-  // 1. Bajar todo el grafo secuencialmente (nunca dos fetch en paralelo).
-  const toVisit = [entryUrl];
+  // 1. Bajar el grafo con un pool de descargas en paralelo (acotado a
+  // CONCURRENCY) que lo va descubriendo a medida que cada archivo se
+  // resuelve — no sabemos el total de archivos de antemano, así que
+  // "total" crece a medida que aparecen nuevos imports. launch() se
+  // re-llama cada vez que una descarga termina para mantener el pool
+  // lleno; el orden topológico del paso 2 no depende del orden de llegada.
+  const queue = [entryUrl];
   const seen = new Set([entryUrl]);
-  while (toVisit.length) {
-    const url = toVisit.shift();
-    if (blobUrlCache.has(url) || texts.has(url)) continue;
+  let total = 1;
+  let done = 0;
+  await new Promise((resolve, reject) => {
+    let active = 0;
+    let failed = false;
+    const launch = () => {
+      if (failed) return;
+      while (active < CONCURRENCY && queue.length > 0) {
+        const url = queue.shift();
+        if (blobUrlCache.has(url) || texts.has(url)) continue;
+        active++;
+        fetchTextWithRetry(url).then(text => {
+          texts.set(url, text);
+          done++;
+          if (onProgress) onProgress(done, total);
 
-    const text = await fetchTextWithRetry(url);
-    texts.set(url, text);
+          const fileDeps = [];
+          let m;
+          importLineRe.lastIndex = 0;
+          while ((m = importLineRe.exec(text))) {
+            const abs = new URL(m[1], url).href;
+            fileDeps.push({ specifier: m[1], absUrl: abs });
+            if (!seen.has(abs) && !blobUrlCache.has(abs)) {
+              seen.add(abs);
+              total++;
+              queue.push(abs);
+            }
+          }
+          deps.set(url, fileDeps);
 
-    const fileDeps = [];
-    let m;
-    importLineRe.lastIndex = 0;
-    while ((m = importLineRe.exec(text))) {
-      const abs = new URL(m[1], url).href;
-      fileDeps.push({ specifier: m[1], absUrl: abs });
-      if (!seen.has(abs) && !blobUrlCache.has(abs)) {
-        seen.add(abs);
-        toVisit.push(abs);
+          active--;
+          if (failed) return;
+          if (queue.length === 0 && active === 0) resolve();
+          else launch();
+        }).catch(err => { failed = true; reject(err); });
       }
-    }
-    deps.set(url, fileDeps);
-  }
+      if (active === 0 && queue.length === 0) resolve();
+    };
+    launch();
+  });
 
   // 2. Orden topológico (post-order): las dependencias primero.
   const order = [];
@@ -152,7 +195,15 @@ class Router {
       startInactivityWatch();
       // Respeta el hash con el que se abrió/recargó la app (ej. un link
       // directo a #finanzas) en vez de ir siempre a Inicio.
-      this.navigate(this.resolveViewFromHash()).then(() => {
+      //
+      // El bootstrap de index.html ya ocupó el 0%-30% de la barra del
+      // splash bajando el grafo de app.js — este es el tramo pesado (la
+      // vista inicial y sus componentes), así que sigue de 30% a 100%.
+      // window.__vgSplashProgress lo define index.html (misma barra, ver
+      // #splash-progress-bar); puede no existir si el splash ya se ocultó.
+      this.navigate(this.resolveViewFromHash(), (done, total) => {
+        if (window.__vgSplashProgress) window.__vgSplashProgress(0.3 + 0.7 * (done / total));
+      }).then(() => {
         // Layer 1: Hide automatically when ready
         this.hideSplash();
       }).catch(err => {
@@ -178,23 +229,30 @@ class Router {
   }
   
   setupSplashScreen() {
-    // Layer 2: Safety timeout (Max 3 seconds)
+    // Layer 2: Safety timeout (Max 12 seconds). Antes eran 3s, pero eso
+    // alcanzaba a tapar apenas una fracción del grafo de la vista inicial
+    // (~1.1MB) en una conexión lenta: el splash se cerraba solo y dejaba
+    // la pantalla vacía con la barra de nav mientras la vista todavía
+    // seguía cargando en el fondo. 12s da margen real antes de asumir que
+    // algo se colgó.
     setTimeout(() => {
       const splash = document.getElementById('splash-screen');
       if (splash && !splash.classList.contains('splash-hidden')) {
         console.warn('Splash timeout: el contenido tardó demasiado en cargar, forzando cierre.');
         this.hideSplash();
       }
-    }, 3000);
+    }, 12000);
 
-    // Layer 3: Manual "Entrar" button backup after 1.5s
+    // Layer 3: Manual "Entrar" button backup after 4s. Antes aparecía a
+    // 1.5s, pero a esa altura normalmente todavía no hay nada montado
+    // detrás del splash — apretarlo dejaba la pantalla vacía igual.
     setTimeout(() => {
       const btn = document.getElementById('splash-enter-btn');
       if (btn) {
         btn.style.display = 'block';
         btn.addEventListener('click', () => this.hideSplash());
       }
-    }, 1500);
+    }, 4000);
   }
 
   hideSplash() {
@@ -214,7 +272,7 @@ class Router {
     }, 300);
   }
 
-  async navigate(viewId) {
+  async navigate(viewId, onProgress) {
     // Si el hash no coincide (navegación programática — ej. un tap en el
     // resumen de Finanzas del Dashboard — o el arranque con un hash
     // inválido/vacío), lo actualizamos para que la URL, compartir un link
@@ -266,7 +324,7 @@ class Router {
       // Blob URL (ver loadModuleGraph), import.meta.url es ese blob: URL y
       // resolver rutas relativas contra él no funciona de forma fiable.
       const viewUrl = new URL(`js/views/${viewId}.js`, location.href).href;
-      const blobUrl = await loadModuleGraph(viewUrl);
+      const blobUrl = await loadModuleGraph(viewUrl, onProgress);
       const module = await import(blobUrl);
       this.currentModule = module;
       this.root.innerHTML = await module.render();
