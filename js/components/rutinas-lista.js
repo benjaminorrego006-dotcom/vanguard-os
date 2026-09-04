@@ -429,7 +429,16 @@ export function initRutinasListaListeners(categoria, onNewRoutine, onStartSessio
   document.querySelectorAll('.btn-eliminar-rutina').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const id = e.currentTarget.getAttribute('data-id');
-      const confirmed = await ConfirmDialog("¿Eliminar rutina?", "Esta acción no se puede deshacer.");
+      const rutinas = await db.getRutinas();
+      const rutina = rutinas.find(r => r.id === id);
+      const totalSeries = rutina ? (rutina.ejercicios || []).reduce((sum, ej) => sum + ((ej.series || []).length), 0) : 0;
+      const confirmed = await ConfirmDialog(
+        `Eliminar rutina${rutina ? ' ' + rutina.nombre : ''}`,
+        totalSeries > 0
+          ? `Se perderá la configuración de sus ${totalSeries} series. No se puede deshacer.`
+          : 'No se puede deshacer.',
+        { verb: 'Eliminar' }
+      );
       if (confirmed) {
         await db.eliminarRutina(id);
         Toast("Rutina eliminada", "success");

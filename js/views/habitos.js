@@ -150,7 +150,16 @@ export function mountListeners() {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const id = e.currentTarget.getAttribute('data-id');
-      const confirmed = await ConfirmDialog('¿Eliminar hábito?', 'Se borra junto con todo su historial de marcas. Esta acción no se puede deshacer.');
+      const habitos = await db.getHabitos();
+      const habito = habitos.find(h => h.id === id);
+      const diasRegistrados = habito ? Object.keys(habito.marcas || {}).length : 0;
+      const confirmed = await ConfirmDialog(
+        `Eliminar hábito${habito ? ' ' + habito.nombre : ''}`,
+        diasRegistrados > 0
+          ? `Se perderá el registro de ${diasRegistrados} día${diasRegistrados === 1 ? '' : 's'} marcado${diasRegistrados === 1 ? '' : 's'}. No se puede deshacer.`
+          : 'No se puede deshacer.',
+        { verb: 'Eliminar' }
+      );
       if (confirmed) {
         await db.eliminarHabito(id);
         Toast('Hábito eliminado', 'success');

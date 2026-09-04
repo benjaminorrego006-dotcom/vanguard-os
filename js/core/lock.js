@@ -1,6 +1,7 @@
 import { db } from './db.js';
 import { renderNumericKeypad, initNumericKeypad } from '../components/NumericKeypad.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
+import { exportAllData } from '../utils/backup.js';
 
 const INACTIVITY_LIMIT_MS = 5 * 60 * 1000;
 const PIN_LENGTH = 4;
@@ -95,11 +96,21 @@ function mountPinPrompt({ title, subtitle, onSubmit, onSuccess, errorMessage = '
 
   if (showForgot) {
     overlay.querySelector('#btn-forgot-pin').addEventListener('click', async () => {
+      // El diálogo más explícito de toda la app a propósito: esto borra
+      // ABSOLUTAMENTE todo (no solo el PIN). Cuenta en números reales lo
+      // que se pierde y exporta un respaldo automáticamente antes de
+      // continuar — no es opcional, para que el botón "Eliminar" nunca
+      // deje a alguien sin ninguna copia de sus datos.
+      const [sesiones, tareas, habitos, txs] = await Promise.all([
+        db.getSesiones(), db.getTasks(), db.getHabitos(), db.getTransaccionesEnRango(null, null)
+      ]);
       const confirmed = await ConfirmDialog(
-        'Olvidaste tu PIN',
-        'No hay forma de recuperar el PIN: la única opción es borrar todos los datos de este dispositivo y restaurarlos desde tu último respaldo exportado. ¿Continuar?'
+        'Borrar todos los datos del dispositivo',
+        `No hay forma de recuperar un PIN olvidado: la única salida es borrar todo. Vas a perder ${sesiones.length} sesiones de entreno, ${txs.length} movimientos de Finanzas, ${tareas.length} tareas y ${habitos.length} hábitos. Antes de borrar se exporta un respaldo automáticamente. No se puede deshacer.`,
+        { verb: 'Exportar respaldo y borrar todo' }
       );
       if (!confirmed) return;
+      await exportAllData();
       await db.wipeAllLocalData();
       location.reload();
     });

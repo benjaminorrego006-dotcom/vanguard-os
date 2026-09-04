@@ -2,6 +2,7 @@ import { db } from './db.js';
 import { mountLockScreen, startInactivityWatch, isLocked } from './lock.js';
 import { initModalHistory, forgetOpenModals } from './history.js';
 import { mountOnboardingInicial } from '../components/onboarding-inicial.js';
+import { escapeHtml } from '../utils/escape.js';
 
 const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'analisis'];
 
@@ -385,8 +386,33 @@ class Router {
       void this.root.offsetWidth;
       this.root.style.animation = 'fadeSlideIn var(--transition-view)';
     } catch (err) {
+      // El detalle técnico sigue yendo a consola siempre — lo de abajo es
+      // la versión para el usuario: qué pasó en simple, cómo seguir, y el
+      // detalle crudo colapsado detrás de "Ver detalle" para quien lo
+      // necesite (soporte, o el propio desarrollo).
       console.error('Error al cargar la vista:', err);
-      this.root.innerHTML = `<div style="padding: 20px; color: red;">Error: ${err.message}</div>`;
+      const detalle = escapeHtml(String((err && (err.stack || err.message)) || err));
+      this.root.innerHTML = `
+        <div style="padding: 48px 24px 24px; text-align: center;">
+          <div class="icon-chip" style="width: 56px; height: 56px; background: rgba(239, 68, 68, 0.12); color: var(--state-high); margin: 0 auto 20px auto;">
+            <svg aria-hidden="true" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          </div>
+          <h2 style="font-size: 18px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-primary);">Esta pantalla no cargó bien</h2>
+          <p style="font-size: 13px; color: var(--text-secondary); margin: 0 auto 24px auto; line-height: 1.5; max-width: 320px;">Puede ser un problema pasajero de conexión o un dato que la vista no supo interpretar. Reintenta — si sigue pasando, vuelve a Inicio.</p>
+          <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px;">
+            <button id="btn-view-error-retry" class="tappable" style="background: var(--accent-primary); color: #000; border: none; padding: 12px 24px; font-weight: 700; font-size: 13px; cursor: pointer;">Reintentar</button>
+            <button id="btn-view-error-home" class="tappable" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 12px 24px; font-weight: 700; font-size: 13px; cursor: pointer;">Volver a Inicio</button>
+          </div>
+          <details style="text-align: left; max-width: 400px; margin: 0 auto;">
+            <summary style="cursor: pointer; font-size: 12px; color: var(--text-disabled); font-weight: 600;">Ver detalle</summary>
+            <pre style="white-space: pre-wrap; word-break: break-word; font-size: 11px; color: var(--text-disabled); background: var(--surface-2); padding: 12px; margin-top: 8px; overflow-x: auto;">${detalle}</pre>
+          </details>
+        </div>
+      `;
+      const btnRetry = document.getElementById('btn-view-error-retry');
+      const btnHome = document.getElementById('btn-view-error-home');
+      if (btnRetry) btnRetry.addEventListener('click', () => this.navigate(viewId));
+      if (btnHome) btnHome.addEventListener('click', () => this.navigate('dashboard'));
     }
   }
 }

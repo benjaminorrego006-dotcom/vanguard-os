@@ -105,7 +105,16 @@ export function Toast(message, type = 'info', duration = 2500) {
 // (objeto {title,message,onConfirm} en states.js, (msg, callback) en backup.js,
 // y await ConfirmDialog(title, msg) en finanzas.js). Se estandariza a esta última,
 // que es el patrón dominante, y se ajusta backup.js para que coincida.
-export function ConfirmDialog(title = 'Confirmar', message = '') {
+//
+// Patrón obligatorio para diálogos destructivos (ver migración en habitos.js,
+// finanzas.js, analisis.js, task-form.js, rutinas-lista.js, lock.js): el
+// título nombra el objeto ("Eliminar hábito", no "Confirmar"), el cuerpo
+// nombra la consecuencia con datos reales cuando se puede calcular, y el
+// botón de acción lleva el verbo en vez de un genérico "Confirmar". `verb`
+// y `danger` son opcionales y con default que reproduce el comportamiento
+// de antes (botón rojo, texto "Confirmar"), así que los call sites que
+// todavía no se migraron siguen funcionando igual.
+export function ConfirmDialog(title = 'Confirmar', message = '', { verb = 'Confirmar', danger = true } = {}) {
   return new Promise((resolve) => {
     const modal = document.getElementById('global-confirm-modal');
     if (!modal) {
@@ -125,6 +134,13 @@ export function ConfirmDialog(title = 'Confirmar', message = '') {
     const newCancel = btnCancel.cloneNode(true);
     btnOk.parentNode.replaceChild(newOk, btnOk);
     btnCancel.parentNode.replaceChild(newCancel, btnCancel);
+
+    // El verbo YA es el texto visible del botón, así que no hace falta
+    // aria-label aparte (ver Tarea 2 del prompt de accesibilidad). Rojo
+    // solo si la acción es realmente destructiva — el resto usa el acento
+    // de marca, no el rojo de alerta.
+    newOk.textContent = verb;
+    newOk.style.background = danger ? 'var(--state-high)' : 'var(--accent-primary)';
 
     const closeModal = (result) => {
       content.style.opacity = '0';

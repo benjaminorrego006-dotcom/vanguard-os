@@ -1,6 +1,6 @@
 import { db } from '../core/db.js';
 import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar } from '../utils/charts.js';
-import { renderGoalCard } from '../components/goal-card.js';
+import { renderGoalCard, formatGoalValue } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { EmptyState, ConfirmDialog } from '../utils/states.js';
 import { GRUPO_MUSCULAR_ORDEN, GRUPO_MUSCULAR_LABELS, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
@@ -834,7 +834,14 @@ mountListeners = () => {
     document.querySelectorAll('.delete-goal').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.getAttribute('data-id');
-        const confirmed = await ConfirmDialog('¿Eliminar meta?', 'Esta acción no se puede deshacer.');
+        const goal = (await db.getGoals('entreno')).find(g => g.id === id);
+        const confirmed = await ConfirmDialog(
+          `Eliminar meta${goal ? ' ' + goal.name : ''}`,
+          goal && goal.currentAmount > 0
+            ? `Se pierde el seguimiento de tu avance (${formatGoalValue(goal, goal.currentAmount)}). No se puede deshacer.`
+            : 'No se puede deshacer.',
+          { verb: 'Eliminar' }
+        );
         if (confirmed) { await db.deleteGoal(id); refresh(); }
       });
     });
@@ -888,7 +895,13 @@ mountListeners = () => {
         const id = e.currentTarget.getAttribute('data-id');
         const goal = (await db.getGoals('finanzas')).find(g => g.id === id);
         if (goal) {
-          const confirmed = await ConfirmDialog('¿Eliminar meta?', 'Se eliminará la meta pero los ahorros quedarán en tu historial.');
+          const confirmed = await ConfirmDialog(
+            `Eliminar meta ${goal.name}`,
+            goal.currentAmount > 0
+              ? `El seguimiento de esta meta desaparece. Los ${formatCurrency(goal.currentAmount)} que llevas ahorrados quedan en tu historial de movimientos. No se puede deshacer.`
+              : 'No se puede deshacer.',
+            { verb: 'Eliminar' }
+          );
           if (confirmed) { await db.deleteGoal(id); refresh(); }
         }
       });

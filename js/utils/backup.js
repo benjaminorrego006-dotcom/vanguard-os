@@ -114,7 +114,8 @@ export function importAllData(file) {
 
         const confirmed = await ConfirmDialog(
           "Restaurar respaldo",
-          "Esto reemplazará todos tus datos actuales por los del respaldo. ¿Continuar?"
+          "Esto reemplazará todos tus datos actuales por los del respaldo. No se puede deshacer.",
+          { verb: 'Restaurar' }
         );
 
         if (!confirmed) {

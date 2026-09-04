@@ -761,7 +761,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
       });
       
       if (ejerciciosLog.length === 0) {
-        const confirmed = await ConfirmDialog('¿Terminar sesión vacía?', 'No has completado ninguna serie.');
+        const confirmed = await ConfirmDialog('Terminar sesión vacía', 'No has completado ninguna serie — no se va a registrar nada.', { verb: 'Terminar', danger: false });
         if (!confirmed) {
           return;
         }

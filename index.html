@@ -21,6 +21,22 @@
     window.addEventListener('appinstalled', () => {
       window.__vgInstall.deferredPrompt = null;
     });
+
+    // Red de seguridad global: sin esto, cualquier excepción o promesa
+    // rechazada que reviente FUERA de un try/catch (ej. un listener de
+    // click que nadie envolvió) deja la app muda — no pasa nada visible,
+    // pero tampoco queda rastro en ningún lado. Acá solo se deja
+    // constancia en consola (para poder depurar de verdad); no se arma una
+    // UI genérica para "cualquier error posible" — eso es un terreno
+    // movedizo (puede dispararse muchas veces, por cosas no fatales). El
+    // caso puntual que sí tiene su propia pantalla de error es el de
+    // montar una vista (ver Router.navigate en js/core/app.js).
+    window.addEventListener('error', (e) => {
+      console.error('[Vanguard OS] Error no capturado:', e.error || e.message);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('[Vanguard OS] Promesa rechazada sin manejar:', e.reason);
+    });
   </script>
   
   <!-- Icon & PWA -->

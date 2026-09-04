@@ -256,7 +256,15 @@ export function setupTaskForm(onSaveCallback) {
   btnDelete.addEventListener('click', async () => {
     const id = document.getElementById('task-id').value;
     if (!id) return;
-    const confirmed = await ConfirmDialog('¿Eliminar tarea?', 'Esta acción no se puede deshacer.');
+    const title = document.getElementById('task-title').value.trim();
+    const subtaskCount = document.getElementById('subtasks-container').children.length;
+    const confirmed = await ConfirmDialog(
+      `Eliminar tarea${title ? ' ' + title : ''}`,
+      subtaskCount > 0
+        ? `Se perderán sus ${subtaskCount} subtarea${subtaskCount === 1 ? '' : 's'}. No se puede deshacer.`
+        : 'No se puede deshacer.',
+      { verb: 'Eliminar' }
+    );
     if (confirmed) {
       await db.deleteTask(id);
       Toast('Tarea eliminada', 'success');

@@ -233,7 +233,16 @@ export async function init() {
     document.querySelectorAll('.delete-env').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.getAttribute('data-id');
-        const confirmed = await ConfirmDialog("¿Eliminar sobre?", "Las transacciones asociadas ya no estarán vinculadas a este sobre.");
+        const env = b.envelopes.find(x => x.id === id);
+        const todasTxs = await db.getTransaccionesEnRango(null, null);
+        const movimientosVinculados = todasTxs.filter(t => t.envelopeId === id || t.fromEnvelopeId === id || t.toEnvelopeId === id).length;
+        const confirmed = await ConfirmDialog(
+          `Eliminar sobre${env ? ' ' + env.name : ''}`,
+          movimientosVinculados > 0
+            ? `${movimientosVinculados} movimiento${movimientosVinculados === 1 ? '' : 's'} ya no ${movimientosVinculados === 1 ? 'tendrá' : 'tendrán'} un sobre asociado. No se puede deshacer.`
+            : 'No se puede deshacer.',
+          { verb: 'Eliminar' }
+        );
         if (confirmed) {
           await db.deleteEnvelope(id);
           refresh();
@@ -275,7 +284,7 @@ export async function init() {
       btn.addEventListener('click', async (e) => {
          e.stopPropagation();
          const id = e.currentTarget.getAttribute('data-id');
-         const confirmed = await ConfirmDialog("¿Eliminar movimiento?", "Esta acción no se puede deshacer.");
+         const confirmed = await ConfirmDialog("Eliminar movimiento", "No se puede deshacer.", { verb: 'Eliminar' });
          if(confirmed) {
            await db.deleteTransaction(id);
            refresh();
@@ -321,7 +330,12 @@ export async function init() {
     document.querySelectorAll('.delete-recurring').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.getAttribute('data-id');
-        const confirmed = await ConfirmDialog("¿Eliminar pago fijo?", "Ya no se descontará dinero automáticamente de tu sobre.");
+        const req = (b.recurring || []).find(r => r.id === id);
+        const confirmed = await ConfirmDialog(
+          `Eliminar pago fijo${req ? ' ' + req.label : ''}`,
+          'Ya no se descontará dinero automáticamente de tu sobre.',
+          { verb: 'Eliminar' }
+        );
         if (confirmed) {
            await db.deleteRecurring(id);
            refresh();
@@ -347,7 +361,13 @@ export async function init() {
         const id = e.currentTarget.getAttribute('data-id');
         const goal = b.goals.find(g => g.id === id);
         if (goal) {
-          const confirmed = await ConfirmDialog("¿Eliminar meta?", "Se eliminará la meta pero los ahorros quedarán en tu historial.");
+          const confirmed = await ConfirmDialog(
+            `Eliminar meta ${goal.name}`,
+            goal.currentAmount > 0
+              ? `El seguimiento de esta meta desaparece. Los ${formatCurrency(goal.currentAmount)} que llevas ahorrados quedan en tu historial de movimientos. No se puede deshacer.`
+              : 'No se puede deshacer.',
+            { verb: 'Eliminar' }
+          );
           if (confirmed) {
              await db.deleteGoal(id);
              refresh();

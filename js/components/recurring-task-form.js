@@ -116,7 +116,7 @@ export function attachRecurringTaskDeleteListeners(db, refreshCallback) {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const id = btn.getAttribute('data-id');
-      const confirmed = await ConfirmDialog('¿Eliminar tarea recurrente?', 'Las tareas ya generadas quedan intactas, pero no se crearán más.');
+      const confirmed = await ConfirmDialog('Eliminar tarea recurrente', 'Las tareas ya generadas quedan intactas, pero no se crearán más.', { verb: 'Eliminar' });
       if (confirmed) {
         await db.deleteRecurringTask(id);
         Toast('Recurrente eliminada', 'success');
