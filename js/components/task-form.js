@@ -188,7 +188,7 @@ export function setupTaskForm(onSaveCallback) {
     div.style.gap = '8px';
     div.innerHTML = `
       <input type="checkbox" class="subtask-check" style="width: 20px; height: 20px;">
-      <input type="text" class="subtask-title" placeholder="Subtarea..." style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 14px;">
+      <input type="text" class="subtask-title" placeholder="Subtarea..." style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 16px;">
       <button class="tappable btn-remove-sub" type="button" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
     `;
     div.querySelector('.btn-remove-sub').addEventListener('click', () => div.remove());
@@ -296,7 +296,7 @@ export function openTaskForm(task = null) {
         div.style.gap = '8px';
         div.innerHTML = `
           <input type="checkbox" class="subtask-check" style="width: 20px; height: 20px;" ${sub.done ? 'checked' : ''}>
-          <input type="text" class="subtask-title" value="${escapeHtml(sub.title)}" style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 14px;">
+          <input type="text" class="subtask-title" value="${escapeHtml(sub.title)}" style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 16px;">
           <button class="tappable btn-remove-sub" type="button" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
         `;
         div.querySelector('.btn-remove-sub').addEventListener('click', () => div.remove());

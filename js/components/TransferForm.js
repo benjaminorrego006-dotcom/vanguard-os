@@ -19,10 +19,10 @@ export function renderTransferForm() {
         <div id="transfer-context-display" style="text-align: center; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 16px; min-height: 16px;">Mueve dinero entre tus sobres</div>
 
         <div style="display: flex; gap: 8px; margin-bottom: 24px; align-items: center;">
-           <select id="transfer-from-select" style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; border-radius: 12px; font-size: 14px; outline: none; appearance: none;">
+           <select id="transfer-from-select" style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; border-radius: 12px; font-size: 16px; outline: none; appearance: none;">
            </select>
            <svg width="24" height="24" fill="none" stroke="var(--text-secondary)" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-           <select id="transfer-to-select" style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; border-radius: 12px; font-size: 14px; outline: none; appearance: none;">
+           <select id="transfer-to-select" style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; border-radius: 12px; font-size: 16px; outline: none; appearance: none;">
            </select>
         </div>
 

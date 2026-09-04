@@ -42,14 +42,14 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
   const createSerieRowHTML = () => {
     return `
       <div class="serie-row" style="display: flex; gap: 8px; align-items: center;">
-        <select class="serie-tipo" style="flex: 1; min-width:0; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 13px;">
+        <select class="serie-tipo" style="flex: 1; min-width:0; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 16px;">
           <option value="normal">Normal</option>
           <option value="calentamiento">Calentamiento</option>
           <option value="fallo">Fallo</option>
           <option value="dropset">Drop Set</option>
         </select>
-        <input type="text" class="serie-reps" placeholder="Reps" style="width: 60px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 13px; box-sizing: border-box;">
-        <input type="number" class="serie-peso" placeholder="Peso" style="width: 70px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 13px; box-sizing: border-box;">
+        <input type="text" class="serie-reps" placeholder="Reps" style="width: 60px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">
+        <input type="number" class="serie-peso" placeholder="Peso" style="width: 70px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">
         <button class="btn-remove-serie" style="background: transparent; border: none; color: var(--text-disabled); cursor: pointer; font-size: 18px; flex-shrink: 0;">&times;</button>
       </div>
     `;

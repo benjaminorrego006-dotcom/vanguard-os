@@ -1364,7 +1364,7 @@ export async function render() {
         <div style="margin-bottom: 24px;">
           <div style="position: relative;">
             <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
-            <input type="text" id="quick-gasto-input" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px rgba(239,68,68,0.15)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+            <input type="text" id="quick-gasto-input" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px rgba(239,68,68,0.15)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
           </div>
           <div id="quick-gasto-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
         </div>
@@ -1427,9 +1427,9 @@ export async function render() {
           <button class="history-tab" data-filter="Ahorro" style="background: transparent; color: var(--text-secondary);">Ahorro</button>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
-          <input type="date" id="history-date-from" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; border-radius: 12px; font-size: 13px; box-sizing: border-box; outline: none; font-family: inherit;">
+          <input type="date" id="history-date-from" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; border-radius: 12px; font-size: 16px; box-sizing: border-box; outline: none; font-family: inherit;">
           <span style="color: var(--text-disabled); font-size: 12px;">a</span>
-          <input type="date" id="history-date-to" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; border-radius: 12px; font-size: 13px; box-sizing: border-box; outline: none; font-family: inherit;">
+          <input type="date" id="history-date-to" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; border-radius: 12px; font-size: 16px; box-sizing: border-box; outline: none; font-family: inherit;">
           <button id="btn-clear-date-filter" style="background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">Limpiar</button>
         </div>
         <div class="card" style="padding: 0; margin-bottom: 24px; overflow: hidden;">

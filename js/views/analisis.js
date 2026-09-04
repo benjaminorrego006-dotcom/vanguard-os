@@ -164,7 +164,7 @@ async function renderDesglose() {
 
   return `
     <div>
-      <select id="analisis-desglose-metrica" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 13px; font-weight: 600; margin-bottom: 12px;">
+      <select id="analisis-desglose-metrica" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 12px;">
         <option value="series" ${desgloseMetrica === 'series' ? 'selected' : ''}>Series por grupo muscular</option>
         <option value="volumen" ${desgloseMetrica === 'volumen' ? 'selected' : ''}>Volumen por grupo muscular</option>
         <option value="reps" ${desgloseMetrica === 'reps' ? 'selected' : ''}>Repeticiones totales</option>
@@ -262,12 +262,12 @@ async function renderEjercicios() {
 
   return `
     <div>
-      <select id="analisis-ejercicio-grupo" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 13px; font-weight: 600; margin-bottom: 10px;">
+      <select id="analisis-ejercicio-grupo" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 10px;">
         <option value="todos">Todos los grupos</option>
         ${gruposPresentes.map(g => `<option value="${g}" ${ejercicioGrupoFiltro === g ? 'selected' : ''}>${GRUPO_MUSCULAR_LABELS[g] || g}</option>`).join('')}
       </select>
 
-      <select id="analisis-ejercicio-select" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 13px; font-weight: 600; margin-bottom: 14px;">
+      <select id="analisis-ejercicio-select" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 14px;">
         ${listaFiltrada.map(e => `<option value="${escapeHtml(e.nombre)}" ${e.nombre === ejercicioSeleccionado ? 'selected' : ''}>${escapeHtml(e.nombre)}</option>`).join('')}
       </select>
 

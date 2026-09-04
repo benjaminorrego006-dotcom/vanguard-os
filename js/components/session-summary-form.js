@@ -20,7 +20,7 @@ export function renderSessionSummaryForm() {
 
         <div class="input-group">
           <label>Notas (opcional)</label>
-          <textarea id="session-summary-notas" rows="3" placeholder="¿Cómo te sentiste? ¿Algo a mejorar la próxima vez?" style="width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 14px 16px; border-radius: 14px; font-size: 14px; box-sizing: border-box; outline: none; font-family: inherit; resize: vertical;"></textarea>
+          <textarea id="session-summary-notas" rows="3" placeholder="¿Cómo te sentiste? ¿Algo a mejorar la próxima vez?" style="width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 14px 16px; border-radius: 14px; font-size: 16px; box-sizing: border-box; outline: none; font-family: inherit; resize: vertical;"></textarea>
         </div>
 
         <div style="display: flex; gap: 12px; margin-top: 24px;">

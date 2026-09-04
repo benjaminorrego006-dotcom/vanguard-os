@@ -21,18 +21,18 @@ export function renderRecurringForm() {
         </div>
         <div style="text-align: center; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 16px; min-height: 16px;">Monto del cargo automático</div>
 
-        <input type="text" id="recurring-label" placeholder="Descripción (ej. Netflix, Spotify)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; font-size: 15px; box-sizing: border-box; margin-bottom: 16px; outline: none;" required>
+        <input type="text" id="recurring-label" placeholder="Descripción (ej. Netflix, Spotify)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; font-size: 16px; box-sizing: border-box; margin-bottom: 16px; outline: none;" required>
 
         <div style="display: flex; gap: 8px; margin-bottom: 16px;">
           <div style="flex: 1;">
             <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Día del mes</label>
-            <select id="recurring-day" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 14px; outline: none; appearance: none;" required>
+            <select id="recurring-day" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 16px; outline: none; appearance: none;" required>
               ${Array.from({length: 28}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('')}
             </select>
           </div>
           <div style="flex: 2;">
             <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Descontar de</label>
-            <select id="recurring-envelope" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 14px; outline: none; appearance: none;" required>
+            <select id="recurring-envelope" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 16px; outline: none; appearance: none;" required>
             </select>
           </div>
         </div>

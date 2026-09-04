@@ -32,10 +32,10 @@ export function renderGastoForm() {
         </div>
 
         <!-- Description -->
-        <input type="text" id="gasto-label" placeholder="Descripción (opcional, ej. Supermercado)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 15px; box-sizing: border-box; margin-bottom: 12px; outline: none;">
+        <input type="text" id="gasto-label" placeholder="Descripción (opcional, ej. Supermercado)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 16px; box-sizing: border-box; margin-bottom: 12px; outline: none;">
 
         <!-- Fecha (default hoy) -->
-        <input type="date" id="gasto-fecha" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 15px; box-sizing: border-box; margin-bottom: 16px; outline: none; font-family: inherit;">
+        <input type="date" id="gasto-fecha" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 16px; box-sizing: border-box; margin-bottom: 16px; outline: none; font-family: inherit;">
 
         <!-- Recent Amounts Shortcut -->
         <div id="gasto-recent-amounts-container" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 24px; min-height: 32px; white-space: nowrap; padding-bottom: 4px;"></div>

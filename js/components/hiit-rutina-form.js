@@ -148,7 +148,7 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
     div.style.display = 'flex';
     div.style.gap = '8px';
     div.innerHTML = `
-      <input type="text" class="hiit-rf-ej-nombre" placeholder="Ej. Burpees" style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; border-radius: 8px; font-size: 14px;">
+      <input type="text" class="hiit-rf-ej-nombre" placeholder="Ej. Burpees" style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; border-radius: 8px; font-size: 16px;">
       <button class="tappable btn-remove-hiit-ej" type="button" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
     `;
     div.querySelector('.btn-remove-hiit-ej').addEventListener('click', () => div.remove(), { signal });

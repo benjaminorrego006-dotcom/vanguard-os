@@ -27,7 +27,7 @@ export function renderAhorroForm() {
         </div>
 
         <!-- Description -->
-        <input type="text" id="ahorro-label" placeholder="Descripción (opcional)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 15px; box-sizing: border-box; margin-bottom: 24px; outline: none;">
+        <input type="text" id="ahorro-label" placeholder="Descripción (opcional)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 16px; box-sizing: border-box; margin-bottom: 24px; outline: none;">
 
         ${renderNumericKeypad()}
 
