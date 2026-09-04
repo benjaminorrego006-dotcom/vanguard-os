@@ -1,6 +1,7 @@
 import { db } from './db.js';
 import { mountLockScreen, startInactivityWatch, isLocked } from './lock.js';
 import { initModalHistory, forgetOpenModals } from './history.js';
+import { mountOnboardingInicial } from '../components/onboarding-inicial.js';
 
 const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'analisis'];
 
@@ -203,9 +204,17 @@ class Router {
       // #splash-progress-bar); puede no existir si el splash ya se ocultó.
       this.navigate(this.resolveViewFromHash(), (done, total) => {
         if (window.__vgSplashProgress) window.__vgSplashProgress(0.3 + 0.7 * (done / total));
-      }).then(() => {
+      }).then(async () => {
         // Layer 1: Hide automatically when ready
         this.hideSplash();
+        // Primer arranque: onboarding de bienvenida por encima de lo que
+        // haya quedado montado (normalmente Inicio). El flag vive en
+        // IndexedDB (ver db.js), así que sobrevive a que se borre solo el
+        // localStorage — a diferencia de un flag ahí, que reaparecería
+        // justo cuando el usuario ya perdió todos sus datos.
+        if (!(await db.isOnboardingInicialCompletado())) {
+          mountOnboardingInicial();
+        }
       }).catch(err => {
         console.error("Dashboard failed to mount initially", err);
         // Even on failure, try to hide it so user sees the error

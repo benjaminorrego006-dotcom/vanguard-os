@@ -507,6 +507,20 @@ export const db = {
     await logEvent({ modulo: 'entreno', tipo: 'configuracion_actualizada', payload: { restTimerSecs: settings.restTimerSecs } });
   },
 
+  // --- Onboarding inicial (ver components/onboarding-inicial.js) ---
+  // Vive en IndexedDB, no en localStorage: localStorage se borra junto con
+  // los datos del sitio, así que si viviera ahí el onboarding reaparecería
+  // justo cuando el usuario ya perdió todos sus datos — la peor combinación
+  // posible.
+  async isOnboardingInicialCompletado() {
+    return await idbGetSingleton('onboardingInicialCompletado', false);
+  },
+  async marcarOnboardingInicialCompletado() {
+    await idbSetSingleton('onboardingInicialCompletado', true);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'sistema', tipo: 'onboarding_inicial_completado', payload: {} });
+  },
+
   // --- PIN de acceso (100% local, ver nota sobre "vglock_" en sha256Hex) ---
   // OJO: a propósito NO son async (salvo las que ya lo eran por el hash) —
   // isPinEnabled() se usa de forma síncrona para decidir en el primer
