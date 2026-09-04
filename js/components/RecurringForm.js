@@ -1,12 +1,7 @@
 import { Toast, ConfirmDialog } from '../utils/states.js';
-import { toSafeNumber } from '../utils/currency.js';
+import { formatCurrency } from '../utils/currency.js';
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
 import { escapeHtml } from '../utils/escape.js';
-
-// REDISEÑO-FINANZAS: este componente solo lo usa finanzas.js (ver Parte 8
-// del rediseño) — CLP fijo en vez del formatCurrency() multi-moneda
-// compartido, mismo criterio que el resto del módulo.
-const formatCurrency = (amount) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(toSafeNumber(amount));
 
 // REDISEÑO-FINANZAS: panel inline dentro de la tab Recurrentes (no modal a
 // pantalla completa) — mismo criterio que EnvelopeForm.js. `recurring-modal`

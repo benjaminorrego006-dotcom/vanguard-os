@@ -3,7 +3,7 @@ let standardFormatter = null;
 let compactFormatter = null;
 
 export function getCurrency() {
-  return localStorage.getItem('vg_currency') || 'USD';
+  return localStorage.getItem('vg_currency') || 'CLP';
 }
 
 export function setCurrency(code) {
@@ -22,23 +22,26 @@ function getFormatters() {
     return { standardFormatter, compactFormatter };
   }
   
-  const locale = navigator.language || 'es-MX';
+  // Locale fijo en 'es-CL': navigator.language puede ser en-US aunque la
+  // moneda configurada sea CLP, lo que rompe el separador de miles/decimales.
+  const locale = 'es-CL';
   const noDecimals = ['CLP', 'COP', 'PYG', 'CLF'].includes(currency);
-  
+
   standardFormatter = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
     minimumFractionDigits: noDecimals ? 0 : 2,
     maximumFractionDigits: noDecimals ? 0 : 2
   });
-  
+
   compactFormatter = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
     notation: 'compact',
-    compactDisplay: 'short'
+    compactDisplay: 'short',
+    maximumFractionDigits: 1
   });
-  
+
   cachedCurrency = currency;
   return { standardFormatter, compactFormatter };
 }

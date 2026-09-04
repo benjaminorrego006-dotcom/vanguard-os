@@ -1,7 +1,7 @@
 import { Toast, ConfirmDialog, SkeletonCard } from '../utils/states.js';
 import { renderDonut } from '../utils/donut.js';
 import { db } from '../core/db.js';
-import { toSafeNumber } from '../utils/currency.js';
+import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import { mountSetPinFlow, requestPinVerification } from '../core/lock.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
@@ -57,34 +57,16 @@ const getSVG = (key, color = 'currentColor') => {
 
 
 
-// REDISEÑO-FINANZAS: pesos chilenos sin decimales, fijo — no el
-// formateador multi-moneda compartido de utils/currency.js. Alcance
-// deliberadamente limitado a este archivo (ver discusión de la Parte 8
-// del rediseño): el resto de la app sigue soportando otras monedas via
-// getCurrency()/setCurrency(), esto es solo cómo se ve Finanzas.
-let clpFormatter = null;
-let clpCompactFormatter = null;
-const getClpFormatters = () => {
-  if (!clpFormatter) {
-    clpFormatter = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
-    clpCompactFormatter = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', notation: 'compact', maximumFractionDigits: 1 });
-  }
-  return { clpFormatter, clpCompactFormatter };
-};
-const formatCurrency = (amount) => getClpFormatters().clpFormatter.format(toSafeNumber(amount));
-const formatCompactCurrency = (amount) => getClpFormatters().clpCompactFormatter.format(toSafeNumber(amount));
-
 // Compacta el monto ("$50 mil") cuando el formato completo se pasa de
 // ancho en la card "Disponible en Mes" — mide el string YA formateado, no
 // el número crudo (un número corto puede formatear largo con símbolo de
 // moneda + separadores).
 const formatDisponible = (amount) => (formatCurrency(amount).length > 13) ? formatCompactCurrency(amount) : formatCurrency(amount);
 
-// Reemplaza animateNumber() de utils/animate.js SOLO para montos: ese
-// utilitario compartido formatea con el formatCurrency() global (multi-
-// moneda), así que la animación pisaba el CLP recién renderizado con lo
-// que sea que tenga el usuario configurado en otra parte de la app. Fuera
-// de eso es exactamente la misma lógica de easing.
+// A diferencia de animateNumber() de utils/animate.js (que formatea con
+// formatCurrency o formatCompactCurrency según un flag fijo), esta card
+// necesita decidir el formato en cada frame según el ancho del string ya
+// formateado (formatDisponible), así que no puede reusar ese utilitario.
 const finAnimateCurrency = (el, from, to, duration = 500) => {
   const start = performance.now();
   const step = (timestamp) => {

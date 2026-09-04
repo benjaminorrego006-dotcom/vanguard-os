@@ -2,15 +2,8 @@
 // Tarjeta de meta reutilizable: funciona para metas de dinero (Finanzas) y
 // metas de Entreno (sesiones, km, personalizado). Misma barra de progreso
 // y fecha límite en los dos casos, solo cambia cómo se formatea el número.
-import { toSafeNumber } from '../utils/currency.js';
+import { formatCurrency } from '../utils/currency.js';
 import { escapeHtml } from '../utils/escape.js';
-
-// REDISEÑO-FINANZAS: solo afecta la rama dominio==='finanzas' de
-// formatGoalValue() más abajo — las metas de Entreno (sesiones, km) nunca
-// llaman a esto, así que fijar CLP acá no las toca. CLP fijo en vez del
-// formatCurrency() multi-moneda compartido, mismo criterio que el resto
-// del módulo de Finanzas.
-const formatCurrency = (amount) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(toSafeNumber(amount));
 
 export const GOAL_ICONS = ['shield', 'plane', 'car', 'home', 'laptop', 'education', 'run', 'target'];
 export const GOAL_ICON_LABELS = {
