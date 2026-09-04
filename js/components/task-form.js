@@ -35,7 +35,7 @@ function renderPriorityPicker() {
       ${[1, 2, 3].map(i => {
         const h = 8 + i * 5;
         const p = i === 1 ? 'low' : i === 2 ? 'medium' : 'high';
-        return `<button type="button" class="btn-priority-bar tappable" data-priority="${p}" title="Prioridad ${p}" style="width:16px; height:${h}px; padding:0; background:var(--surface-2); border:1px solid var(--surface-border); cursor:pointer;"></button>`;
+        return `<button type="button" class="btn-priority-bar tappable" data-priority="${p}" title="Prioridad ${p}" aria-label="Prioridad ${p}" style="width:16px; height:${h}px; padding:0; background:var(--surface-2); border:1px solid var(--surface-border); cursor:pointer;"></button>`;
       }).join('')}
     </div>
   `;
@@ -189,7 +189,7 @@ export function setupTaskForm(onSaveCallback) {
     div.innerHTML = `
       <input type="checkbox" class="subtask-check" style="width: 20px; height: 20px;">
       <input type="text" class="subtask-title" placeholder="Subtarea..." style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 16px;">
-      <button class="tappable btn-remove-sub" type="button" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
+      <button class="tappable btn-remove-sub" type="button" aria-label="Eliminar subtarea" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
     `;
     div.querySelector('.btn-remove-sub').addEventListener('click', () => div.remove());
     container.appendChild(div);
@@ -297,7 +297,7 @@ export function openTaskForm(task = null) {
         div.innerHTML = `
           <input type="checkbox" class="subtask-check" style="width: 20px; height: 20px;" ${sub.done ? 'checked' : ''}>
           <input type="text" class="subtask-title" value="${escapeHtml(sub.title)}" style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 16px;">
-          <button class="tappable btn-remove-sub" type="button" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
+          <button class="tappable btn-remove-sub" type="button" aria-label="Eliminar subtarea" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
         `;
         div.querySelector('.btn-remove-sub').addEventListener('click', () => div.remove());
         container.appendChild(div);

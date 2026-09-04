@@ -5,6 +5,7 @@ import { diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 
 const DOW_SHORT = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+const DOW_LARGO = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 // Últimos 7 días (hoy incluido, al final) — franja compacta por hábito,
 // en vez de una grilla del mes entero: encaja mejor en la tarjeta angosta
@@ -36,11 +37,14 @@ export async function render() {
       const iso = diaKeyDe(d);
       const marcado = !!marcas[iso];
       const esHoy = iso === hoyIso;
+      const diaLabel = `${DOW_LARGO[d.getDay()]} ${d.getDate()}`;
+      const accion = marcado ? 'Desmarcar' : 'Marcar';
       return `
         <button class="day-toggle tappable" data-id="${habito.id}" data-fecha="${iso}"
+          aria-label="${accion} ${escapeHtml(habito.nombre)} el ${diaLabel}" aria-pressed="${marcado}"
           style="width: 30px; height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: transparent; border: none; cursor: pointer; padding: 0;">
-          <span style="font-size: 9px; font-weight: 700; color: var(--text-disabled); letter-spacing: 0.4px;">${DOW_SHORT[d.getDay()]}</span>
-          <span style="width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${esHoy ? 'var(--accent-purple)' : 'transparent'}; background: ${marcado ? 'var(--accent-purple)' : 'var(--surface-2)'};">
+          <span aria-hidden="true" style="font-size: 9px; font-weight: 700; color: var(--text-disabled); letter-spacing: 0.4px;">${DOW_SHORT[d.getDay()]}</span>
+          <span aria-hidden="true" style="width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${esHoy ? 'var(--accent-purple)' : 'transparent'}; background: ${marcado ? 'var(--accent-purple)' : 'var(--surface-2)'};">
             ${marcado ? '<svg width="11" height="11" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
           </span>
         </button>
@@ -54,8 +58,8 @@ export async function render() {
         <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent-purple);"></div>
         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px;">
           <h4 class="tappable btn-edit-habito" data-id="${habito.id}" style="font-size: 16px; font-weight: 800; margin: 0; color: var(--text-primary); flex: 1; cursor: pointer; line-height: 1.3; letter-spacing: -0.2px;">${escapeHtml(habito.nombre)}</h4>
-          <button class="btn-delete-habito tappable" data-id="${habito.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; flex-shrink: 0; padding: 2px;">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <button class="btn-delete-habito tappable" data-id="${habito.id}" aria-label="Eliminar hábito ${escapeHtml(habito.nombre)}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; flex-shrink: 0; padding: 2px;">
+            <svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
         <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-bottom: 10px;">

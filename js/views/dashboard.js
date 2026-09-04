@@ -137,11 +137,11 @@ function renderReactor({ cyPct, amPct, viPct, rachaGlobal }) {
 
   return `
     <div style="position: relative; width: ${size}px; height: ${size}px; margin: 0 auto;">
-      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform: rotate(-90deg);">
+      <svg role="img" aria-label="Racha de ${rachaGlobal.actual} día${rachaGlobal.actual === 1 ? '' : 's'}" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform: rotate(-90deg);">
         ${ringsHtml}
         <polygon points="${hexPoints}" fill="none" stroke="var(--t3)" stroke-width="1.5"></polygon>
       </svg>
-      <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none;">
+      <div aria-hidden="true" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none;">
         <div style="font-size: 36px; font-weight: 800; color: var(--t1); line-height: 1; font-variant-numeric: tabular-nums;">${rachaGlobal.actual}</div>
         <div style="font-size: 10px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: 2.5px; margin-top: 5px;">Racha</div>
       </div>

@@ -140,6 +140,46 @@ async function loadModuleGraph(entryUrl, onProgress) {
   return blobUrlCache.get(entryUrl);
 }
 
+// Accesibilidad genérica de modales. Observer SEPARADO del de history.js
+// (que maneja el botón atrás) a propósito, para no mezclar dos
+// responsabilidades distintas en el mismo archivo — ambos escuchan el
+// mismo cambio de clase "open" en cualquier .modal-overlay, sin pisarse:
+// - role="dialog"/aria-modal="true": sin esto un lector de pantalla no
+//   anuncia el modal como tal ni atrapa el foco dentro de él.
+// - aria-label="Cerrar" en los botones .btn-close-modal (la mayoría son
+//   solo un "×" sin texto real) — cubre los ~10 formularios que ya usan
+//   esa clase, sin tener que tocar cada uno.
+// - Devolver el foco a quien abrió el modal cuando se cierra: sin esto, al
+//   cerrar el foco vuelve al <body> y alguien navegando por teclado pierde
+//   su lugar en la página.
+const modalOpeners = new Map(); // id del modal -> elemento a re-enfocar al cerrarse
+function initModalAccessibility() {
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      const el = m.target;
+      if (!(el instanceof Element) || !el.id || !el.classList.contains('modal-overlay')) continue;
+
+      if (!el.hasAttribute('role')) el.setAttribute('role', 'dialog');
+      if (!el.hasAttribute('aria-modal')) el.setAttribute('aria-modal', 'true');
+      el.querySelectorAll('.btn-close-modal').forEach(btn => {
+        if (!btn.hasAttribute('aria-label')) btn.setAttribute('aria-label', 'Cerrar');
+      });
+
+      const isOpen = el.classList.contains('open');
+      if (isOpen && !modalOpeners.has(el.id)) {
+        modalOpeners.set(el.id, document.activeElement);
+      } else if (!isOpen && modalOpeners.has(el.id)) {
+        const opener = modalOpeners.get(el.id);
+        modalOpeners.delete(el.id);
+        if (opener && typeof opener.focus === 'function' && document.body.contains(opener)) {
+          opener.focus();
+        }
+      }
+    }
+  });
+  observer.observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
+}
+
 class Router {
   constructor() {
     this.root = document.getElementById('view-root');
@@ -173,6 +213,7 @@ class Router {
     // Botón atrás para los modales .modal-overlay (ver history.js) — un
     // solo observer genérico, no hace falta enganchar nada por nav-item.
     initModalHistory();
+    initModalAccessibility();
 
     // Los <a href="#tareas"> del nav ya cambian el hash solos (no hay
     // preventDefault acá): este listener es el ÚNICO lugar que monta una
@@ -295,7 +336,10 @@ class Router {
     this.currentView = viewId;
 
     this.navItems.forEach(item => {
-      item.classList.toggle('active', item.getAttribute('data-view') === viewId);
+      const isActive = item.getAttribute('data-view') === viewId;
+      item.classList.toggle('active', isActive);
+      if (isActive) item.setAttribute('aria-current', 'page');
+      else item.removeAttribute('aria-current');
     });
 
     // Vanguard MK III (paleta/tipografía/geometría nuevas): rollout

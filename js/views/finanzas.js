@@ -17,9 +17,9 @@ import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '
 import { escapeHtml } from '../utils/escape.js';
 import { mesKeyDe, formatFechaCorta, formatMes } from '../utils/fecha.js';
 
-const editSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
-const transferSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
-const delSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+const editSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
+const transferSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
+const delSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
 const backspaceSvg = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>`;
 let b = null;
 let activeFinTab = 'resumen';
@@ -647,7 +647,7 @@ const renderRecurringHTML = (b) => {
           <div class="fin-meta">Día ${req.dayOfMonth} &bull; ${envName}</div>
         </div>
         <div class="fin-amt">${formatCurrency(req.amount)}</div>
-        <button class="delete-recurring" data-id="${req.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; flex-shrink: 0;">${delSvg}</button>
+        <button class="delete-recurring" data-id="${req.id}" aria-label="Eliminar pago fijo ${escapeHtml(req.label)}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; flex-shrink: 0;">${delSvg}</button>
       </div>
     `;
   }).join('');
@@ -700,9 +700,9 @@ const renderEnvelopesHTML = async (b) => {
         <div class="flex-between">
           <p class="fin-eyebrow" style="color: ${catColor};">${CAT_LABELS[env.category] || env.category}</p>
           <div style="display: flex; gap: 10px;">
-            <button class="transfer-env" data-id="${env.id}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Transferir">${transferSvg}</button>
-            <button class="edit-env" data-id="${env.id}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Editar">${editSvg}</button>
-            <button class="delete-env" data-id="${env.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer;" title="Eliminar">${delSvg}</button>
+            <button class="transfer-env" data-id="${env.id}" aria-label="Transferir desde ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Transferir">${transferSvg}</button>
+            <button class="edit-env" data-id="${env.id}" aria-label="Editar sobre ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Editar">${editSvg}</button>
+            <button class="delete-env" data-id="${env.id}" aria-label="Eliminar sobre ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer;" title="Eliminar">${delSvg}</button>
           </div>
         </div>
         <div class="flex-between" style="margin-top: 2px; align-items: flex-end;">
@@ -860,7 +860,7 @@ export const txHtml = (tx, envelopes) => {
         <div class="fin-meta">${subText}</div>
       </div>
       <div class="fin-amt" style="color: ${amountColor};">${amountPrefix}${formatCurrency(tx.amount)}</div>
-      <button class="delete-tx tappable" data-id="${tx.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; padding: 4px; flex-shrink: 0;">
+      <button class="delete-tx tappable" data-id="${tx.id}" aria-label="Eliminar movimiento ${escapeHtml(displayLabel)}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; padding: 4px; flex-shrink: 0;">
          ${delSvg}
       </button>
     </div>

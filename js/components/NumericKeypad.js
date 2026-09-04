@@ -1,4 +1,4 @@
-const backspaceSvg = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>`;
+const backspaceSvg = `<svg aria-hidden="true" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>`;
 
 export function renderNumericKeypad() {
   return `
@@ -14,7 +14,7 @@ export function renderNumericKeypad() {
        <button type="button" class="numpad-btn tappable" data-val="9">9</button>
        <button type="button" class="numpad-btn tappable" data-val="00">00</button>
        <button type="button" class="numpad-btn tappable" data-val="0">0</button>
-       <button type="button" class="numpad-btn tappable" data-val="del" style="color: var(--text-secondary);">${backspaceSvg}</button>
+       <button type="button" class="numpad-btn tappable" data-val="del" aria-label="Borrar" style="color: var(--text-secondary);">${backspaceSvg}</button>
     </div>
   `;
 }
