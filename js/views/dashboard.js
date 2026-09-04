@@ -4,6 +4,7 @@ import { WEEKLY_GOALS } from '../core/trainingConfig.js';
 import { Toast } from '../utils/states.js';
 import { parseQuickGasto } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
+import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 
 // El evento beforeinstallprompt lo captura index.html apenas carga la
 // página (antes de que este módulo exista) y lo guarda en
@@ -40,6 +41,31 @@ window.addEventListener('vg-install-available', () => {
     window.appRouter.navigate('dashboard');
   }
 });
+
+// Todo IndexedDB, sin backend: si Chrome libera espacio, el usuario borra
+// datos de navegación o cambia de teléfono, se pierde todo. exportAllData()
+// hoy vivía escondida en Ajustes de Finanzas — este aviso la trae a Inicio,
+// que es lo primero que se ve, en vez de depender de que alguien entre por
+// su cuenta a esa pantalla. Se puede posponer 7 días (no cerrar para
+// siempre): mismo motivo que el snooze de instalación, timestamp en
+// localStorage porque es una preferencia de UI, no dato de la app.
+const BACKUP_SNOOZE_KEY = 'vg-backup-snoozed-at';
+const BACKUP_SNOOZE_DIAS = 7;
+const BACKUP_AVISO_DIAS = 14;
+const BACKUP_ALERTA_ROJA_DIAS = 30;
+
+function backupNecesitaAviso(diasDesdeBackup) {
+  return diasDesdeBackup === null || diasDesdeBackup > BACKUP_AVISO_DIAS;
+}
+
+function avisoBackupPospuesto() {
+  try {
+    const snoozedAt = localStorage.getItem(BACKUP_SNOOZE_KEY);
+    if (!snoozedAt) return false;
+    const diasDesde = (Date.now() - Number(snoozedAt)) / (1000 * 60 * 60 * 24);
+    return diasDesde < BACKUP_SNOOZE_DIAS;
+  } catch (e) { return false; /* modo privado — mostrar el aviso igual */ }
+}
 
 // Insignias sobrias: sin niveles, sin copy de videojuego. Bloqueada = ícono
 // de candado atenuado en gris; desbloqueada = ícono propio con el color de
@@ -192,6 +218,34 @@ export async function render() {
     `;
   }
 
+  const diasDesdeBackup = await getDiasDesdeUltimoBackup();
+  const backupReminderHtml = (backupNecesitaAviso(diasDesdeBackup) && !avisoBackupPospuesto()) ? (() => {
+    const esAlertaRoja = diasDesdeBackup !== null && diasDesdeBackup > BACKUP_ALERTA_ROJA_DIAS;
+    const color = esAlertaRoja ? 'var(--state-high)' : 'var(--state-medium)';
+    const mensaje = diasDesdeBackup === null
+      ? 'Nunca has exportado un respaldo'
+      : esAlertaRoja
+        ? `Hace más de ${BACKUP_ALERTA_ROJA_DIAS} días que no exportas un respaldo`
+        : `Hace ${diasDesdeBackup} días que no exportas un respaldo`;
+    return `
+      <div id="backup-reminder" class="card" style="padding: 14px 16px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+          <div class="icon-chip" style="width: 36px; height: 36px; background: ${color}22; color: ${color}; flex-shrink: 0;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 13px; font-weight: 700; color: ${color};">${mensaje}</div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Tus datos viven solo en este teléfono. Sin respaldo, se pierden si borras la app o cambias de equipo.</div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="btn-backup-export-inicio" class="tappable" style="flex: 1; background: ${color}; color: #000; border: none; padding: 10px; font-size: 12px; font-weight: 700; cursor: pointer;">Exportar respaldo</button>
+          <button id="btn-backup-snooze" class="tappable" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 14px; font-size: 12px; font-weight: 600; cursor: pointer;" aria-label="Recordarme en 7 días">Después</button>
+        </div>
+      </div>
+    `;
+  })() : '';
+
   const installBannerHtml = debeMostrarBannerInstalar() ? `
     <div id="install-banner" class="card" style="padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
       <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(92, 225, 230, 0.15); color: var(--cy); flex-shrink: 0;">
@@ -230,8 +284,9 @@ export async function render() {
         <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 4px;">${rachaSubtitle}</div>
       </div>
 
-      ${installBannerHtml}
       ${alertasHtml}
+      ${backupReminderHtml}
+      ${installBannerHtml}
 
       <!-- Reactor: tres anillos (Entreno/Finanzas/Tareas) + racha global -->
       <div class="card" style="padding: 24px 18px; margin-bottom: 20px;">
@@ -299,6 +354,22 @@ export function mountListeners() {
     if (window.appRouter) window.appRouter.navigate(view);
   };
   const refresh = () => { if (window.appRouter) window.appRouter.navigate('dashboard'); };
+
+  const btnBackupExport = document.getElementById('btn-backup-export-inicio');
+  const btnBackupSnooze = document.getElementById('btn-backup-snooze');
+  if (btnBackupExport) {
+    btnBackupExport.addEventListener('click', async () => {
+      await exportAllData();
+      refresh(); // diasDesdeUltimoBackup ya quedó en 0 — el aviso se saca solo al re-renderizar
+    });
+  }
+  if (btnBackupSnooze) {
+    btnBackupSnooze.addEventListener('click', () => {
+      try { localStorage.setItem(BACKUP_SNOOZE_KEY, String(Date.now())); } catch (e) { /* modo privado */ }
+      const card = document.getElementById('backup-reminder');
+      if (card) card.remove();
+    });
+  }
 
   const btnInstallApp = document.getElementById('btn-install-app');
   const btnDismissInstall = document.getElementById('btn-dismiss-install');
