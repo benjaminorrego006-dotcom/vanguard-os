@@ -1,5 +1,18 @@
 import { Toast } from '../utils/states.js';
 
+// Máscara de miles: un <input type="number"> trata el punto como separador
+// DECIMAL, así que "120.000" se guardaba como 120. envelope-amount es
+// type="text" y formatea solo dígitos con puntos de miles mientras se
+// escribe (mismo criterio que goal-form.js para los montos de meta).
+const digitsToMiles = (raw) => {
+  const digits = (raw || '').toString().replace(/\D/g, '');
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+const milesToInt = (str) => {
+  const digits = (str || '').toString().replace(/\D/g, '');
+  return digits ? parseInt(digits, 10) : 0;
+};
+
 // REDISEÑO-FINANZAS: panel inline (no modal a pantalla completa) — igual
 // que el resto del módulo, se muestra/oculta con display:block/none dentro
 // del flujo normal de la tab Cuentas. `envelope-modal` conserva su id
@@ -31,7 +44,7 @@ export function renderEnvelopeForm() {
 
         <div class="input-group">
           <label>Monto Asignado (opcional)</label>
-          <input type="number" id="envelope-amount" placeholder="0" min="0" step="1">
+          <input type="text" inputmode="numeric" id="envelope-amount" placeholder="0">
         </div>
 
         <div class="input-group">
@@ -57,14 +70,19 @@ export function initEnvelopeForm(db, refreshCallback) {
   if (!modal) return;
   
   const form = document.getElementById('envelope-form');
-  
+  const amountInput = document.getElementById('envelope-amount');
+
+  amountInput.addEventListener('input', () => {
+    amountInput.value = digitsToMiles(amountInput.value);
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('envelope-id').value;
     const name = document.getElementById('envelope-name').value.trim();
     const category = document.getElementById('envelope-category').value;
     const icon = document.getElementById('envelope-icon').value;
-    const assignedAmount = parseFloat(document.getElementById('envelope-amount').value) || 0;
+    const assignedAmount = milesToInt(amountInput.value);
     
     // Validar monto contra límite de la categoría 50/30/20
     const budget = await db.getBudget();
@@ -103,7 +121,7 @@ export function initEnvelopeForm(db, refreshCallback) {
       document.getElementById('envelope-id').value = env.id;
       document.getElementById('envelope-name').value = env.name;
       document.getElementById('envelope-category').value = env.category;
-      document.getElementById('envelope-amount').value = env.assignedAmount || 0;
+      amountInput.value = digitsToMiles(env.assignedAmount || 0);
       document.getElementById('envelope-icon').value = env.icon;
       document.getElementById('modal-envelope-title').innerText = 'Editar Sobre';
     } else {

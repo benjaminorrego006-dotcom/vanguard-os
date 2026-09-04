@@ -12,6 +12,20 @@ const TIPOS_ENTRENO = [
   { value: 'personalizado', label: 'Personalizado', unidadDefault: '' }
 ];
 
+// Máscara de miles para los montos en pesos (dominio 'finanzas'): un
+// <input type="number"> trata el punto como separador DECIMAL, así que
+// "500.000" se guardaba como 500. Estos inputs son type="text" y formatean
+// solo dígitos con puntos de miles mientras se escribe; las metas de
+// dominio 'entreno' (sesiones/km) no son plata y no pasan por acá.
+const digitsToMiles = (raw) => {
+  const digits = (raw || '').toString().replace(/\D/g, '');
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+const milesToInt = (str) => {
+  const digits = (str || '').toString().replace(/\D/g, '');
+  return digits ? parseInt(digits, 10) : 0;
+};
+
 export function renderGoalForm() {
   return `
     <div id="goal-modal" class="modal-overlay">
@@ -38,7 +52,7 @@ export function renderGoalForm() {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div class="input-group">
               <label id="goal-target-label">Monto objetivo</label>
-              <input type="number" id="goal-target" placeholder="0" min="1" step="any" required autocomplete="off">
+              <input type="text" inputmode="numeric" id="goal-target" placeholder="0" required autocomplete="off">
             </div>
             <div class="input-group" id="goal-unidad-container" style="display: none;">
               <label>Unidad</label>
@@ -48,7 +62,7 @@ export function renderGoalForm() {
 
           <div class="input-group" id="goal-initial-container">
             <label id="goal-initial-label">Monto inicial (opcional)</label>
-            <input type="number" id="goal-initial" placeholder="0" min="0" step="any" autocomplete="off" value="0">
+            <input type="text" inputmode="numeric" id="goal-initial" placeholder="0" autocomplete="off" value="0">
           </div>
           <div class="input-group">
             <label>Fecha límite (opcional)</label>
@@ -71,7 +85,7 @@ export function renderGoalForm() {
         <h2 id="goal-contribute-title" style="margin-top: 0; font-size: 18px; font-weight: 700;">Agregar progreso</h2>
         <div class="input-group">
           <label id="goal-contribute-label">Cantidad</label>
-          <input type="number" id="goal-contribute-amount" placeholder="0" min="0" step="any" autocomplete="off">
+          <input type="text" inputmode="numeric" id="goal-contribute-amount" placeholder="0" autocomplete="off">
         </div>
         <div style="display: flex; gap: 12px; margin-top: 20px;">
           <button id="btn-cancel-goal-contribute" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Cancelar</button>
@@ -98,6 +112,8 @@ export function initGoalForm(refreshCallback) {
   modal.querySelector('.btn-close-modal').addEventListener('click', () => closeModal('goal-modal'));
 
   const tipoSelect = document.getElementById('goal-tipo');
+  const targetInput = document.getElementById('goal-target');
+  const initialInput = document.getElementById('goal-initial');
   const applyTipoUI = () => {
     const dominio = document.getElementById('goal-dominio').value;
     const esEntreno = dominio === 'entreno';
@@ -107,6 +123,10 @@ export function initGoalForm(refreshCallback) {
     document.getElementById('goal-initial-label').textContent = esEntreno ? 'Progreso inicial (opcional)' : 'Monto inicial (opcional)';
     const esSesiones = esEntreno && tipoSelect.value === 'sesiones';
     document.getElementById('goal-initial-container').style.display = esSesiones ? 'none' : 'block';
+    // Entreno admite decimales (ej. "5.5" km) y no se enmascara con puntos
+    // de miles — solo dinero pasa por digitsToMiles().
+    targetInput.setAttribute('inputmode', esEntreno ? 'decimal' : 'numeric');
+    initialInput.setAttribute('inputmode', esEntreno ? 'decimal' : 'numeric');
   };
   if (tipoSelect) {
     tipoSelect.addEventListener('change', () => {
@@ -116,15 +136,25 @@ export function initGoalForm(refreshCallback) {
     });
   }
 
+  const isMoneyMode = () => document.getElementById('goal-dominio').value !== 'entreno';
+  const attachMoneyMask = (input) => {
+    input.addEventListener('input', () => {
+      if (!isMoneyMode()) return;
+      input.value = digitsToMiles(input.value);
+    });
+  };
+  attachMoneyMask(targetInput);
+  attachMoneyMask(initialInput);
+
   document.getElementById('goal-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('goal-id').value;
     const dominio = document.getElementById('goal-dominio').value;
     const esEntreno = dominio === 'entreno';
     const name = document.getElementById('goal-name').value.trim();
-    const targetAmount = parseFloat(document.getElementById('goal-target').value) || 0;
+    const targetAmount = esEntreno ? (parseFloat(document.getElementById('goal-target').value) || 0) : milesToInt(document.getElementById('goal-target').value);
     const icon = document.getElementById('goal-icon').value;
-    const initialAmount = parseFloat(document.getElementById('goal-initial').value) || 0;
+    const initialAmount = esEntreno ? (parseFloat(document.getElementById('goal-initial').value) || 0) : milesToInt(document.getElementById('goal-initial').value);
     const deadline = document.getElementById('goal-deadline').value || null;
     const tipo = esEntreno ? document.getElementById('goal-tipo').value : 'dinero';
     const unidad = esEntreno ? document.getElementById('goal-unidad').value.trim() : '';
@@ -157,11 +187,18 @@ export function initGoalForm(refreshCallback) {
 
   // --- Modal de abonar progreso manual ---
   const contributeModal = document.getElementById('goal-contribute-modal');
+  const contributeInput = document.getElementById('goal-contribute-amount');
   let contributeGoalId = null;
+  let contributeDominio = 'finanzas';
+
+  contributeInput.addEventListener('input', () => {
+    if (contributeDominio === 'entreno') return;
+    contributeInput.value = digitsToMiles(contributeInput.value);
+  });
 
   document.getElementById('btn-cancel-goal-contribute').addEventListener('click', () => closeModal('goal-contribute-modal'));
   document.getElementById('btn-save-goal-contribute').addEventListener('click', async () => {
-    const amount = parseFloat(document.getElementById('goal-contribute-amount').value);
+    const amount = contributeDominio === 'entreno' ? (parseFloat(contributeInput.value) || 0) : milesToInt(contributeInput.value);
     if (!amount || amount <= 0 || !contributeGoalId) return;
     await db.contributeToGoal(contributeGoalId, amount);
     closeModal('goal-contribute-modal');
@@ -175,9 +212,11 @@ export function initGoalForm(refreshCallback) {
 
   window.__openGoalContribute = (goal) => {
     contributeGoalId = goal.id;
+    contributeDominio = goal.dominio || 'finanzas';
+    contributeInput.setAttribute('inputmode', contributeDominio === 'entreno' ? 'decimal' : 'numeric');
     document.getElementById('goal-contribute-title').textContent = goal.name;
     document.getElementById('goal-contribute-label').textContent = goal.unidad ? `Cantidad (${goal.unidad})` : 'Cantidad';
-    document.getElementById('goal-contribute-amount').value = '';
+    contributeInput.value = '';
     const contribBtn = document.getElementById('btn-save-goal-contribute');
     if (contribBtn) contribBtn.style.background = accentFor(goal.dominio);
     openModal('goal-contribute-modal');
@@ -190,7 +229,9 @@ export function initGoalForm(refreshCallback) {
       document.getElementById('goal-id').value = goal.id;
       document.getElementById('goal-dominio').value = dominio;
       document.getElementById('goal-name').value = goal.name || '';
-      document.getElementById('goal-target').value = goal.targetAmount || 0;
+      document.getElementById('goal-target').value = dominio === 'entreno'
+        ? (goal.targetAmount || 0)
+        : digitsToMiles(goal.targetAmount || 0);
       document.getElementById('goal-icon').value = goal.icon || 'shield';
       document.getElementById('goal-deadline').value = goal.deadline || '';
       if (tipoSelect) tipoSelect.value = goal.tipo || 'personalizado';
