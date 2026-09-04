@@ -787,10 +787,21 @@ const QUICK_GASTO_STOPWORDS = new Set(['en', 'de', 'del', 'el', 'la', 'los', 'la
 // monto, y el resto del texto se busca como palabra clave contra el nombre
 // de los sobres existentes (coincidencia de substring, sin distinguir
 // mayúsculas). Devuelve null si no hay un monto válido.
+// Formato CL: el punto es separador de miles (12.500 = doce mil quinientos)
+// y la coma es SIEMPRE el separador decimal (12,5 = doce coma cinco).
+// La regex prueba primero el patrón de miles (punto + grupos de 3 dígitos),
+// porque las alternativas se evalúan de izquierda a derecha y una regex más
+// laxa cortaría "12.500" en "12".
+const QUICK_GASTO_AMOUNT_RE = /\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?|\d+/;
+const THOUSANDS_FORMAT_RE = /^\d{1,3}(?:\.\d{3})+/;
+
 export const parseQuickGasto = (text, envelopes) => {
-  const match = text.match(/\d+(?:[.,]\d+)?/);
+  const match = text.match(QUICK_GASTO_AMOUNT_RE);
   if (!match) return null;
-  const amount = parseFloat(match[0].replace(',', '.'));
+  let normalized = match[0];
+  if (THOUSANDS_FORMAT_RE.test(normalized)) normalized = normalized.replace(/\./g, '');
+  normalized = normalized.replace(',', '.');
+  const amount = parseFloat(normalized);
   if (!amount || amount <= 0) return null;
 
   const rawLabel = (text.slice(0, match.index) + text.slice(match.index + match[0].length)).trim();
