@@ -137,7 +137,7 @@ export function mountSetPinFlow(onDone, onCancel) {
   const askFirst = () => {
     mountPinPrompt({
       title: 'Crea tu PIN',
-      subtitle: 'Elegí 4 dígitos',
+      subtitle: 'Elige 4 dígitos',
       allowCancel: true,
       showForgot: false,
       onCancel,
@@ -153,7 +153,7 @@ export function mountSetPinFlow(onDone, onCancel) {
       allowCancel: true,
       showForgot: false,
       onCancel,
-      errorMessage: 'Los PIN no coinciden, intentá de nuevo',
+      errorMessage: 'Los PIN no coinciden, inténtalo de nuevo',
       onSubmit: (secondPin) => secondPin === firstPin,
       onSuccess: async () => {
         await db.setPin(firstPin);

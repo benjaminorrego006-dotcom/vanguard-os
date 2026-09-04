@@ -515,7 +515,7 @@ export function renderGeneradorPreview(plan, categoria) {
     <div class="card" style="padding: 22px; border-radius: 20px;">
       <div style="margin-bottom: 24px;">
         <h2 style="font-size: 22px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-primary); letter-spacing: -0.3px;">Tu rutina generada</h2>
-        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin: 0;">Según tu progreso actual en cada patrón de movimiento y el equipo que declaraste. Podés editarla después como cualquier otra rutina.</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin: 0;">Según tu progreso actual en cada patrón de movimiento y el equipo que declaraste. Puedes editarla después como cualquier otra rutina.</p>
       </div>
       ${avisosHtml}
       ${diasHtml}

@@ -139,7 +139,7 @@ const recientesEmptyHtml = () => `
       </svg>
     </div>
     <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--text-primary);">Tu primera sesión te espera</h3>
-    <p style="margin: 6px 0 0 0; font-size: 12px; color: var(--text-secondary); line-height: 1.5;">Elegí una categoría arriba y registrá tu entrenamiento de hoy — así arranca tu racha.</p>
+    <p style="margin: 6px 0 0 0; font-size: 12px; color: var(--text-secondary); line-height: 1.5;">Elige una categoría arriba y registra tu entrenamiento de hoy — así arranca tu racha.</p>
   </div>
 `;
 
@@ -223,7 +223,7 @@ export async function render() {
 
   const metasResumenHtml = metasEntreno.length === 0
     ? `<div class="card tappable" id="btn-ir-metas-analisis" style="padding: 20px; border-radius: 18px; text-align: center; cursor: pointer;">
-         <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Todavía no tenés metas de entrenamiento.</div>
+         <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Todavía no tienes metas de entrenamiento.</div>
          <div style="background: transparent; color: var(--accent-teal); border: 1px dashed var(--accent-teal); padding: 12px; border-radius: 8px; font-weight: 600;">+ Nueva meta</div>
        </div>`
     : `<div class="card tappable" id="btn-ir-metas-analisis" style="padding: 18px 20px; border-radius: 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; cursor: pointer;">

@@ -15,8 +15,8 @@ import { EQUIPO_OPCIONES } from './generador-rutina-form.js';
 
 const TIEMPO_OPCIONES = [
   { value: 'menos-1', label: 'Menos de 1 año', ayuda: 'Recién empezando o volviendo después de una pausa larga.' },
-  { value: '1-3', label: '1 a 3 años', ayuda: 'Ya conocés los movimientos básicos y entrenás con cierta regularidad.' },
-  { value: 'mas-3', label: 'Más de 3 años', ayuda: 'Entrenás hace tiempo, con experiencia real en progresión de cargas.' }
+  { value: '1-3', label: '1 a 3 años', ayuda: 'Ya conoces los movimientos básicos y entrenas con cierta regularidad.' },
+  { value: 'mas-3', label: 'Más de 3 años', ayuda: 'Entrenas hace tiempo, con experiencia real en progresión de cargas.' }
 ];
 
 const TOTAL_PASOS = 3;
@@ -53,7 +53,7 @@ export function renderNivelOnboardingForm() {
         <div id="nivel-onboarding-dots">${renderDots()}</div>
 
         <div id="nivel-onboarding-paso-1" class="nivel-onboarding-paso">
-          <h2 style="margin-top: 0; font-size: 19px; font-weight: 700;">¿Cuánto tiempo llevás entrenando?</h2>
+          <h2 style="margin-top: 0; font-size: 19px; font-weight: 700;">¿Cuánto tiempo llevas entrenando?</h2>
           <p style="color: var(--text-secondary); font-size: 13px; margin: -6px 0 20px 0;">Es tu punto de partida, no la última palabra — si tu historial muestra que ya estás más avanzado, la app te lo va a sugerir después.</p>
           <div style="display: flex; flex-direction: column; gap: 10px;">
             ${TIEMPO_OPCIONES.map(o => `
@@ -66,7 +66,7 @@ export function renderNivelOnboardingForm() {
         </div>
 
         <div id="nivel-onboarding-paso-2" class="nivel-onboarding-paso" style="display: none;">
-          <h2 style="margin-top: 0; font-size: 19px; font-weight: 700;">¿Cuántos días por semana podés entrenar?</h2>
+          <h2 style="margin-top: 0; font-size: 19px; font-weight: 700;">¿Cuántos días por semana puedes entrenar?</h2>
           <p style="color: var(--text-secondary); font-size: 13px; margin: -6px 0 20px 0;">Define si tus rutinas priorizan ejercicios compuestos (pocos días) o suman aislamiento (más días).</p>
           <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
             ${[2, 3, 4, 5, 6].map(n => `
@@ -77,8 +77,8 @@ export function renderNivelOnboardingForm() {
         </div>
 
         <div id="nivel-onboarding-paso-3" class="nivel-onboarding-paso" style="display: none;">
-          <h2 style="margin-top: 0; font-size: 19px; font-weight: 700;">¿Qué equipo tenés disponible?</h2>
-          <p style="color: var(--text-secondary); font-size: 13px; margin: -6px 0 16px 0;">Filtra los ejercicios que la app te va a proponer. Podés dejarlo vacío si solo entrenás con peso corporal.</p>
+          <h2 style="margin-top: 0; font-size: 19px; font-weight: 700;">¿Qué equipo tienes disponible?</h2>
+          <p style="color: var(--text-secondary); font-size: 13px; margin: -6px 0 16px 0;">Filtra los ejercicios que la app te va a proponer. Puedes dejarlo vacío si solo entrenas con peso corporal.</p>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px;">
             ${EQUIPO_OPCIONES.map(o => `
               <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer;">
@@ -142,7 +142,7 @@ export function setupNivelOnboardingForm(onFinalizado) {
       if (onFinalizado) onFinalizado();
     } catch (err) {
       console.error('Error guardando el perfil de nivel:', err);
-      Toast('No se pudo guardar — intentá de nuevo.', 'error');
+      Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
     } finally {
       btn.disabled = false;
     }

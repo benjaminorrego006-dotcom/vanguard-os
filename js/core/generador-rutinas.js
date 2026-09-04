@@ -298,7 +298,7 @@ export async function calcularNivelPorRama(historialPorNombre) {
       frontierNombre = null;
       notaDominado = null;
       bloqueo = null;
-      fuente = 'nivel confirmado por vos a partir de una sugerencia de avance';
+      fuente = 'nivel confirmado por ti a partir de una sugerencia de avance';
     }
 
     const ultima = ultimaFechaEnRama(rama, historialPorNombre);
@@ -445,7 +445,7 @@ function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido) {
     return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel}, pero no hay opciones a ese nivel con el equipo que declaraste — un paso ${nivelUsado} en su lugar.`;
   }
   if (nivelInfo.bajadoPorInactividad) {
-    return `Hace ${nivelInfo.diasSinEntrenar} días que no entrenás ${ramaLabel} — bajamos la exigencia un escalón para retomar con cuidado.`;
+    return `Hace ${nivelInfo.diasSinEntrenar} días que no entrenas ${ramaLabel} — bajamos la exigencia un escalón para retomar con cuidado.`;
   }
   const notaDominado = nivelInfo.notaDominado
     ? ` Ya dominaste ${nivelInfo.notaDominado} — no desbloqueó nada más en este patrón porque son caminos independientes dentro de la misma rama.`
@@ -557,7 +557,7 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
 
   const registrarAviso = (patron, razon) => {
     const aviso = razon === 'bloqueado-prerrequisitos'
-      ? `${RAMA_LABELS[patron]} no se pudo incluir todavía: lo que tenemos de ${nombreCategoria} en este patrón requiere progresar antes en otro (mirá el Árbol de Progresión para ver qué falta).`
+      ? `${RAMA_LABELS[patron]} no se pudo incluir todavía: lo que tenemos de ${nombreCategoria} en este patrón requiere progresar antes en otro (mira el Árbol de Progresión para ver qué falta).`
       : `${RAMA_LABELS[patron]} no se pudo incluir: no hay ejercicios de ${nombreCategoria} con el equipo que declaraste para ese patrón.`;
     if (!avisos.includes(aviso)) avisos.push(aviso);
   };

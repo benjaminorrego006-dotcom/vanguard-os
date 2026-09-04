@@ -438,7 +438,7 @@ export async function init() {
 
         const parsed = parseQuickGasto(text, b.envelopes);
         if (!parsed) {
-          quickGastoHint.textContent = 'No encontré un monto — probá algo como "50 en supermercado"';
+          quickGastoHint.textContent = 'No encontré un monto — prueba algo como "50 en supermercado"';
           return;
         }
 
@@ -457,8 +457,8 @@ export async function init() {
           quickGastoHint.textContent = '';
         } else {
           quickGastoHint.textContent = parsed.matches.length > 1
-            ? 'Encontré más de un sobre posible — confirmá cuál es'
-            : 'No encontré una categoría clara — confirmá cuál es';
+            ? 'Encontré más de un sobre posible — confirma cuál es'
+            : 'No encontré una categoría clara — confirma cuál es';
           document.getElementById('gasto-modal').openForm({ amount: parsed.amount, label: parsed.label });
           quickGastoInput.value = '';
         }
@@ -671,7 +671,7 @@ const renderEnvelopesHTML = async (b) => {
   const addBtnHtml = `<button class="btn-add-envelope tappable" style="margin-top: 12px; width: 100%; padding: 12px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer;">+ Nuevo sobre</button>`;
 
   if (!b.envelopes || b.envelopes.length === 0) {
-    return finEmptyState('Sin cuentas', 'Todavía no creaste ningún sobre', 'Un sobre es donde separás plata para una categoría de gasto — luz, comida, salidas.') + addBtnHtml;
+    return finEmptyState('Sin cuentas', 'Todavía no creaste ningún sobre', 'Un sobre es donde separas plata para una categoría de gasto — luz, comida, salidas.') + addBtnHtml;
   }
 
   // getHistoricalSummaryByEnvelope es async (lee IndexedDB): se

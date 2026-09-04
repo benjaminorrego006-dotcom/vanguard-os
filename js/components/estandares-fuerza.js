@@ -74,7 +74,7 @@ export async function renderEstandaresFuerza() {
 
   const bannerPesoHtml = !tienePeso ? `
     <div class="card" style="padding: 16px; margin-bottom: 20px; border-left: 3px solid var(--state-medium); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-      <div style="font-size: 12px; color: var(--text-secondary); flex: 1; min-width: 180px;">Completá tu peso corporal para ver tu nivel y qué te falta.</div>
+      <div style="font-size: 12px; color: var(--text-secondary); flex: 1; min-width: 180px;">Completa tu peso corporal para ver tu nivel y qué te falta.</div>
       <button id="btn-completar-perfil-estandares" class="btn-primary tappable" style="background: var(--accent-teal); color: #000; padding: 8px 16px; font-size: 12px; width: auto;">Completar perfil</button>
     </div>
   ` : '';

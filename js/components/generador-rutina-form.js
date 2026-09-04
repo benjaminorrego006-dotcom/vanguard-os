@@ -24,7 +24,7 @@ export function renderGeneradorConfigForm() {
     <div id="generador-config-modal" class="modal-overlay">
       <div class="modal-content" style="max-width: 480px; max-height: 90vh; overflow-y: auto;">
         <h2 style="margin-top: 0; font-size: 20px; font-weight: 700;">Generar Rutina</h2>
-        <p style="color: var(--text-secondary); font-size: 13px; margin: -8px 0 20px 0;">Con qué contás para entrenar — el generador arma la rutina según tu nivel real en cada patrón de movimiento, sin proponer nada que no puedas hacer.</p>
+        <p style="color: var(--text-secondary); font-size: 13px; margin: -8px 0 20px 0;">Con qué cuentas para entrenar — el generador arma la rutina según tu nivel real en cada patrón de movimiento, sin proponer nada que no puedas hacer.</p>
 
         <div class="input-group">
           <label>Equipo disponible</label>

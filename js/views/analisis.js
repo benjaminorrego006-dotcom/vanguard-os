@@ -158,7 +158,7 @@ async function renderDesglose() {
     </div>`).join('');
 
   const donutSection = entries.length === 0
-    ? EmptyState('Sin datos en este período', 'Registrá una sesión para ver tu distribución por grupo muscular.')
+    ? EmptyState('Sin datos en este período', 'Registra una sesión para ver tu distribución por grupo muscular.')
     : `<div style="height: 200px;"><canvas id="chart-analisis-donut"></canvas></div>
        <div style="margin-top: 14px;">${leyendaHtml}</div>`;
 
@@ -239,7 +239,7 @@ async function renderEjercicios() {
   const lista = await db.getListaEjerciciosRegistrados();
 
   if (lista.length === 0) {
-    return `<div>${EmptyState('Sin ejercicios registrados', 'Registrá una sesión para poder ver el progreso de tus ejercicios acá.')}</div>`;
+    return `<div>${EmptyState('Sin ejercicios registrados', 'Registra una sesión para poder ver el progreso de tus ejercicios acá.')}</div>`;
   }
 
   const gruposPresentes = [...new Set(lista.map(e => e.grupoMuscular))];
@@ -377,7 +377,7 @@ async function renderRecords() {
   const prsArray = Object.values(prsObj).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 
   if (prsArray.length === 0) {
-    return `<div>${EmptyState('Sin récords todavía', 'Registrá sesiones con peso o repeticiones y tus PRs van a aparecer acá automáticamente.')}</div>`;
+    return `<div>${EmptyState('Sin récords todavía', 'Registra sesiones con peso o repeticiones y tus PRs van a aparecer acá automáticamente.')}</div>`;
   }
 
   const gruposPresentes = [...new Set(prsArray.map(p => p.grupoMuscular))];
@@ -430,7 +430,7 @@ async function renderFinanzasDesglose() {
   lastFinanzasDonutEntries = entries;
 
   const donutSection = entries.length === 0
-    ? EmptyState('Sin movimientos este mes', 'Registrá un ingreso o gasto para ver la distribución.')
+    ? EmptyState('Sin movimientos este mes', 'Registra un ingreso o gasto para ver la distribución.')
     : `<div style="height: 200px;"><canvas id="chart-analisis-fin-donut"></canvas></div><div style="margin-top: 14px;">${renderDonutLegend(entries)}</div>`;
 
   const trendHtml = budget.trend
@@ -478,7 +478,7 @@ async function renderFinanzasMovimientos() {
   const [txs, envelopes] = await Promise.all([db.getTransaccionesEnRango(start, end), db.getEnvelopes()]);
 
   const listHtml = txs.length === 0
-    ? EmptyState('Sin movimientos en este período', 'Probá un rango más amplio.')
+    ? EmptyState('Sin movimientos en este período', 'Prueba un rango más amplio.')
     : txs.map(tx => txHtml(tx, envelopes)).join('');
 
   return `
@@ -486,7 +486,7 @@ async function renderFinanzasMovimientos() {
       <div style="display: flex; gap: 6px; margin-bottom: 16px;">
         ${RANGOS.map(r => `<button type="button" class="btn-fin-mov-rango" data-rango="${r.v}" style="flex: 1; padding: 8px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid ${finMovRango === r.v ? 'var(--am)' : 'var(--surface-border)'}; background: ${finMovRango === r.v ? 'var(--am)' : 'transparent'}; color: ${finMovRango === r.v ? 'var(--bg-base)' : 'var(--text-secondary)'};">${r.l}</button>`).join('')}
       </div>
-      <div style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 12px;">${txs.length} movimiento${txs.length === 1 ? '' : 's'} — vista de solo lectura, editá desde Finanzas &gt; Movimientos.</div>
+      <div style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 12px;">${txs.length} movimiento${txs.length === 1 ? '' : 's'} — vista de solo lectura, edita desde Finanzas &gt; Movimientos.</div>
       <style>#analisis-fin-mov-list .delete-tx { display: none; }</style>
       <div id="analisis-fin-mov-list">${listHtml}</div>
     </div>
@@ -544,7 +544,7 @@ async function renderFinanzasHitos() {
     color: 'var(--am)',
     unidad: '',
     label: 'Ahorro guardado por mes (últimos 6 meses)',
-    emptyText: 'Registrá algunos meses de ahorro para ver la tendencia.'
+    emptyText: 'Registra algunos meses de ahorro para ver la tendencia.'
   });
 
   return `
@@ -589,7 +589,7 @@ async function renderTareasDesglose() {
   lastTareasDonutEntries = entries;
 
   const donutSection = entries.length === 0
-    ? EmptyState('Sin tareas todavía', 'Creá tu primera tarea para ver el desglose.')
+    ? EmptyState('Sin tareas todavía', 'Crea tu primera tarea para ver el desglose.')
     : `<div style="height: 200px;"><canvas id="chart-analisis-tar-donut"></canvas></div><div style="margin-top: 14px;">${renderDonutLegend(entries)}</div>`;
 
   const tasa = await db.getTasaCumplimientoTareas();
@@ -622,7 +622,7 @@ async function renderTareasTendencia() {
     color: 'var(--vi)',
     unidad: '',
     label: 'Tareas completadas por semana (últimas 10 semanas)',
-    emptyText: 'Completá un par de tareas más para ver tu tendencia.'
+    emptyText: 'Completa un par de tareas más para ver tu tendencia.'
   });
   return `<div class="card" style="padding: 18px; border-radius: 18px;">${chartHtml}</div>`;
 }
