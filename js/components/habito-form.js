@@ -3,7 +3,8 @@ import { Toast } from '../utils/states.js';
 
 // Modal de alta/edición de hábito — mismo patrón que task-form.js, pero
 // más simple: un hábito solo tiene nombre (las marcas se tocan desde la
-// franja semanal de cada tarjeta en habitos.js, no desde este formulario).
+// fila de la lista o la franja semanal del detalle en habitos.js, no
+// desde este formulario).
 export function renderHabitoForm() {
   return `
     <div id="habito-modal" class="modal-overlay">
