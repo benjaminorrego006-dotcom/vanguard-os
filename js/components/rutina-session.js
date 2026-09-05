@@ -55,8 +55,8 @@ function renderSerieRowHtml(s, sIdx) {
   const repsInicial = parseInt(s.reps) || 0;
   const rm1Inicial = (pesoInicial > 0 && repsInicial > 0) ? db.estimar1RM(pesoInicial, repsInicial) : 0;
 
-  const fieldStyle = "flex: 1; min-width:0; box-sizing:border-box; height:44px; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-primary); text-align:center; font-size:15px; font-family: var(--font-mono); padding: 0 4px;";
-  const rpeStyle = "flex: 0 0 48px; height:44px; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-primary); font-size:13px; text-align:center; text-align-last:center; appearance:none; -webkit-appearance:none; padding: 0;";
+  const fieldStyle = "flex: 1; min-width:0; box-sizing:border-box; height:44px; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-primary); text-align:center; font-size:15px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; padding: 0 4px;";
+  const rpeStyle = "flex: 0 0 48px; height:44px; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-primary); font-size:13px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align:center; text-align-last:center; appearance:none; -webkit-appearance:none; padding: 0;";
 
   const row = `
     <div class="serie-row" style="display: flex; align-items: center; gap: 6px; position: relative; margin-bottom: 6px;">
@@ -80,7 +80,7 @@ function renderSerieRowHtml(s, sIdx) {
       </select>
       <button class="btn-check-serie" data-checked="${s.checked === true ? 'true' : 'false'}" style="flex-shrink:0; width: 44px; height: 44px; background: ${s.checked ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${s.checked ? 'var(--state-success)' : 'var(--text-secondary)'}; color: ${s.checked ? '#000' : 'var(--text-secondary)'}; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">✓</button>
     </div>
-    <div class="serie-1rm-hint" style="text-align: right; font-size: 10px; color: var(--text-disabled); margin: -2px 0 6px 38px; ${rm1Inicial > 0 ? '' : 'display: none;'}">1RM est. ~${rm1Inicial}kg</div>
+    <div class="serie-1rm-hint num" style="text-align: right; font-size: 10px; color: var(--text-disabled); margin: -2px 0 6px 38px; ${rm1Inicial > 0 ? '' : 'display: none;'}">1RM est. ~${rm1Inicial}kg</div>
   `;
   return row;
 }
@@ -115,7 +115,7 @@ export async function renderRutinaSession(rutina) {
       </div>
       <div class="flex-between" style="margin-bottom: 20px;">
         <div></div>
-        <button id="btn-rest-timer-config" type="button" style="background: transparent; border: none; color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 0; display: flex; align-items: center; gap: 4px;">${clockSvg}Descanso: <span id="rest-timer-config-value">${currentRestTimerSecs}</span>s</button>
+        <button id="btn-rest-timer-config" type="button" style="background: transparent; border: none; color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 0; display: flex; align-items: center; gap: 4px;">${clockSvg}Descanso: <span id="rest-timer-config-value" class="num">${currentRestTimerSecs}</span>s</button>
       </div>
   `;
 
@@ -236,7 +236,7 @@ export async function renderRutinaSession(rutina) {
   // centra contra su propio contenedor (la columna de contenido ya
   // centrada), que es lo que se ve visualmente como "la pantalla".
   html += `<div id="floating-rest-timer" style="display: none; position: sticky; bottom: calc(90px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 2px solid var(--accent-teal); color: var(--text-primary); padding: 12px 24px; border-radius: 30px; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: 0 8px 16px rgba(0,0,0,0.5); z-index: 1000; cursor: pointer; align-items: center; gap: 8px; width: fit-content;">
-    ${clockSvg}<span id="rest-timer-text">01:00</span>
+    ${clockSvg}<span id="rest-timer-text" class="num">01:00</span>
   </div>`;
 
   html += renderSessionSummaryForm();
@@ -258,7 +258,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Tiempo de descanso</div>
         <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
           <button type="button" class="btn-rest-minus" style="width: 36px; height: 36px; border-radius: 50%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer;">−</button>
-          <span class="rest-config-display" style="font-size: 20px; font-weight: 800; color: var(--accent-teal); font-variant-numeric: tabular-nums; min-width: 48px; text-align: center;">${currentRestTimerSecs}s</span>
+          <span class="rest-config-display num" style="font-size: 20px; font-weight: 800; color: var(--accent-teal); min-width: 48px; text-align: center;">${currentRestTimerSecs}s</span>
           <button type="button" class="btn-rest-plus" style="width: 36px; height: 36px; border-radius: 50%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer;">+</button>
         </div>
       `;

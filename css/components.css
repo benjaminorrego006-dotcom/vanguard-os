@@ -289,8 +289,18 @@ html.mk3-entreno *,
 html.mk3-finanzas *,
 html.mk3-tareas *,
 html.mk3-dashboard * {
-  font-family: var(--font-mono-mk3) !important;
   box-shadow: none !important;
+}
+
+/* Dos familias, no una: la mono en TODO cansaba la lectura y borraba la
+   jerarquía entre un dato y su descripción. La base (heredada de body,
+   ver layout.css) es sans (--font-body); .num/.dato marca explícitamente
+   lo que es un dato numérico — cifras, montos, fechas, contadores, series,
+   repeticiones, porcentajes — que sí va en mono con anchura tabular para
+   que los dígitos no salten al actualizarse en vivo. */
+.num, .dato {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Geometría — chaflán en vez de radio, en dos tamaños según el elemento.
@@ -355,17 +365,17 @@ html.mk3-dashboard [style*="text-transform: uppercase"] {
   .fin-grid2 { grid-template-columns: 1fr; }
 }
 
-.fin-stat-value { font-size: 26px; font-weight: 700; margin-top: 6px; font-family: var(--font-mono); }
+.fin-stat-value { font-size: 26px; font-weight: 700; margin-top: 6px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 .fin-row-list .fin-row { display: flex; align-items: center; gap: 12px; padding: 13px 20px; border-top: 1px solid var(--line); }
 .fin-row-list .fin-row:first-child { border-top: none; }
 .fin-row .fin-who { flex: 1; min-width: 0; }
 .fin-row .fin-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fin-row .fin-meta { color: var(--text-secondary); font-size: 11.5px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fin-row .fin-amt { font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.fin-row .fin-amt { font-weight: 600; white-space: nowrap; flex-shrink: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 .fin-bc-head { display: flex; align-items: center; justify-content: space-between; }
-.fin-bc-figures { margin-top: 4px; color: var(--text-secondary); font-size: 12px; }
+.fin-bc-figures { margin-top: 4px; color: var(--text-secondary); font-size: 12px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .fin-meter { height: 6px; background: var(--bg-base); border: 1px solid var(--line); overflow: hidden; margin-top: 10px; }
 .fin-meter i { display: block; height: 100%; background: var(--accent-purple); }
 .fin-meter i.warn { background: var(--state-medium); }
@@ -375,7 +385,7 @@ html.mk3-dashboard [style*="text-transform: uppercase"] {
 .fin-empty .fin-eyebrow { margin-bottom: 10px; }
 .fin-empty p.fin-desc { color: var(--text-secondary); max-width: 380px; margin: 10px auto 0; font-size: 12.5px; }
 
-.fin-bal { font-size: 20px; font-weight: 700; margin-top: 8px; font-family: var(--font-mono); }
+.fin-bal { font-size: 20px; font-weight: 700; margin-top: 8px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 /* Accesibilidad de movimiento — global, no depende de qué sección esté
    activa: no hay razón para esperar el rollout completo del sistema para

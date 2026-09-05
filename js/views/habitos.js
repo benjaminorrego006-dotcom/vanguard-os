@@ -64,9 +64,9 @@ export async function render() {
         </div>
         <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-bottom: 10px;">
           ${racha.actual > 0
-            ? `🔥 ${racha.actual} ${racha.actual === 1 ? 'día seguido' : 'días seguidos'}`
+            ? `🔥 <span class="num">${racha.actual}</span> ${racha.actual === 1 ? 'día seguido' : 'días seguidos'}`
             : 'Sin racha — márcalo hoy'}
-          <span style="color: var(--text-disabled); font-weight: 500;"> · ${totalMarcasSemana}/7 esta semana</span>
+          <span class="num" style="color: var(--text-disabled); font-weight: 500;"> · ${totalMarcasSemana}/7 esta semana</span>
         </div>
         <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--surface-border); padding-top: 10px; margin: 0 -4px;">
           ${stripHtml}
@@ -97,8 +97,8 @@ export async function render() {
         <div class="card" style="margin-right: 20px; margin-bottom: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
           <div style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 50%; background: rgba(139, 124, 246, 0.12); display: flex; align-items: center; justify-content: center; font-size: 24px;">🔥</div>
           <div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${rachaGlobal.actual} ${rachaGlobal.actual === 1 ? 'día perfecto seguido' : 'días perfectos seguidos'}</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Mejor racha: ${rachaGlobal.mejor} ${rachaGlobal.mejor === 1 ? 'día' : 'días'} · todos los hábitos cumplidos ese día</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);"><span class="num">${rachaGlobal.actual}</span> ${rachaGlobal.actual === 1 ? 'día perfecto seguido' : 'días perfectos seguidos'}</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Mejor racha: <span class="num">${rachaGlobal.mejor}</span> ${rachaGlobal.mejor === 1 ? 'día' : 'días'} · todos los hábitos cumplidos ese día</div>
           </div>
         </div>
       ` : ''}

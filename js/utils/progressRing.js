@@ -16,7 +16,7 @@ export function renderProgressRing({ percent = 0, color = 'var(--accent-teal)', 
       <circle cx="${half}" cy="${half}" r="${radius}" fill="none" stroke="${color}" stroke-width="${strokeWidth}"
         stroke-dasharray="${circumference}" stroke-dashoffset="${strokeDashoffset}" stroke-linecap="round"
         style="transition: stroke-dashoffset 0.6s ease;" />
-      ${centerText ? `<text x="${half}" y="${half}" transform="rotate(90 ${half} ${half})" text-anchor="middle" dominant-baseline="central" fill="var(--text-primary)" font-size="${fontSize}" font-weight="700" font-family="var(--font-body)">${centerText}</text>` : ''}
+      ${centerText ? `<text x="${half}" y="${half}" transform="rotate(90 ${half} ${half})" text-anchor="middle" dominant-baseline="central" fill="var(--text-primary)" font-size="${fontSize}" font-weight="700" font-family="var(--font-mono)" style="font-variant-numeric: tabular-nums;">${centerText}</text>` : ''}
     </svg>
   `;
 }

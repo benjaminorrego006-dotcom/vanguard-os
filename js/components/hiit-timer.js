@@ -34,12 +34,12 @@ export function renderHiitTimer(rutina) {
         <div id="hiit-streak-container" style="display: flex; gap: 12px; margin-bottom: 24px; background: rgba(92, 225, 230, 0.06); padding: 14px; border-radius: 16px; border: 1px solid rgba(92, 225, 230, 0.25);">
           <div style="flex: 1; text-align: center;">
             <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Racha Actual</div>
-            <div id="hiit-racha-actual" style="font-size: 20px; font-weight: 800; color: var(--accent-teal);">0${fireSvg}</div>
+            <div id="hiit-racha-actual" class="num" style="font-size: 20px; font-weight: 800; color: var(--accent-teal);">0${fireSvg}</div>
           </div>
           <div style="width: 1px; background: var(--surface-border);"></div>
           <div style="flex: 1; text-align: center;">
             <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Mejor Histórica</div>
-            <div id="hiit-racha-mejor" style="font-size: 20px; font-weight: 800; color: var(--text-primary);">0${trophySvg}</div>
+            <div id="hiit-racha-mejor" class="num" style="font-size: 20px; font-weight: 800; color: var(--text-primary);">0${trophySvg}</div>
           </div>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
@@ -68,11 +68,11 @@ export function renderHiitTimer(rutina) {
       <div id="hiit-active-view" style="display: none; flex-direction: column; flex: 1; align-items: center; justify-content: center; text-align: center;">
         <div id="hiit-phase-label" style="font-size: 24px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px;">PREPÁRATE</div>
         
-        <div id="hiit-time-display" style="font-size: 96px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; margin-bottom: 24px; color: var(--text-primary);">
+        <div id="hiit-time-display" class="num" style="font-size: 96px; font-weight: 900; line-height: 1; margin-bottom: 24px; color: var(--text-primary);">
           00:00
         </div>
         
-        <div id="hiit-round-label" style="font-size: 18px; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Ronda 1 / 8</div>
+        <div id="hiit-round-label" class="num" style="font-size: 18px; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Ronda 1 / 8</div>
         <div id="hiit-next-exercise" style="font-size: 16px; color: var(--accent-teal); font-weight: 700; margin-bottom: 8px; display: none;"></div>
         <div id="hiit-amrap-record" style="font-size: 14px; color: var(--accent-teal); font-weight: 700; margin-bottom: 24px; display: none;"></div>
         

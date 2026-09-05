@@ -65,7 +65,7 @@ function syncStateChipStyles(status) {
 async function renderBitacora(taskId) {
   const eventos = await db.getBitacoraEntidad(taskId);
   if (eventos.length === 0) {
-    return `<div style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1.5px;">Sin actividad registrada</div>`;
+    return `<div style="font-size:12px; color:var(--text-secondary);">Sin actividad registrada</div>`;
   }
   const ordenados = [...eventos].sort((a, b) => b.ts - a.ts);
   return `
@@ -313,7 +313,7 @@ export function openTaskForm(task = null) {
     }
 
     bitacoraSection.style.display = 'block';
-    document.getElementById('task-bitacora').innerHTML = `<div style="font-size:11px; color:var(--t4); text-transform:uppercase; letter-spacing:1.5px;">Cargando…</div>`;
+    document.getElementById('task-bitacora').innerHTML = `<div style="font-size:12px; color:var(--t4);">Cargando…</div>`;
     btnDelete.style.display = 'block';
     refreshBitacoraSection(task.id);
   } else {

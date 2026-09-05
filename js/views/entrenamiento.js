@@ -159,7 +159,7 @@ export async function render() {
   // en MK III queda reservado para alertas reales (ver auditoría de Fase 6).
   const rachaHtml = racha.actual > 0
     ? `<div style="display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; background: rgba(92, 225, 230, 0.12); border: 1px solid rgba(92, 225, 230, 0.3); color: var(--accent-teal); font-size: 12px; font-weight: 700; padding: 3px 10px 3px 8px; border-radius: 999px;">
-        🔥 ${racha.actual} día${racha.actual === 1 ? '' : 's'} seguidos
+        🔥 <span class="num">${racha.actual}</span> día${racha.actual === 1 ? '' : 's'} seguidos
       </div>`
     : '';
 
@@ -199,14 +199,14 @@ export async function render() {
         <div style="flex: 1;">
           <div style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">IMC</div>
           <div style="display: flex; align-items: baseline; gap: 8px;">
-            <span style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${imc.valor}</span>
+            <span class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${imc.valor}</span>
             <span style="font-size: 11.5px; font-weight: 700; color: ${imc.color};">${imc.categoria}</span>
           </div>
         </div>
         <div style="width: 1px; align-self: stretch; background: var(--surface-border);"></div>
         <div style="flex: 1;">
           <div style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Gasto calórico</div>
-          <div style="font-size: 12.5px; color: var(--text-primary); font-weight: 700;">${tmb.tmbBase} <span style="color: var(--text-secondary); font-weight: 500;">kcal base (TMB)</span></div>
+          <div style="font-size: 12.5px; color: var(--text-primary); font-weight: 700;"><span class="num">${tmb.tmbBase}</span> <span style="color: var(--text-secondary); font-weight: 500;">kcal base (TMB)</span></div>
           <div style="font-size: 12.5px; color: var(--accent-teal); font-weight: 700; margin-top: 2px;">${tmb.gastoDiario} <span style="color: var(--text-secondary); font-weight: 500;">kcal/día estimado</span></div>
         </div>
       </div>

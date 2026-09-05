@@ -633,7 +633,7 @@ const renderAgeOfMoneyHTML = (b) => {
         </div>
         <div>
           <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Edad del Dinero</div>
-          <div style="font-size: 20px; font-weight: 800; color: var(--text-primary);">${b.ageOfMoney} <span style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">días</span></div>
+          <div style="font-size: 20px; font-weight: 800; color: var(--text-primary);"><span class="num">${b.ageOfMoney}</span> <span style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">días</span></div>
         </div>
       </div>
       <div style="text-align: right; max-width: 120px;">
@@ -909,7 +909,7 @@ const renderResumenLegend = (b) => {
         <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${item.color}; flex-shrink: 0;"></span>${item.label}
         ${alertBadgeHtml(usoCatPct, true)}
       </div>
-      <div style="font-size: 12px; font-weight: 700; color: ${item.amount > 0 ? 'var(--text-primary)' : 'var(--text-disabled)'};">${item.amount > 0 ? formatCurrency(item.amount) : 'Sin movimientos'}</div>
+      <div class="${item.amount > 0 ? 'num' : ''}" style="font-size: 12px; font-weight: 700; color: ${item.amount > 0 ? 'var(--text-primary)' : 'var(--text-disabled)'};">${item.amount > 0 ? formatCurrency(item.amount) : 'Sin movimientos'}</div>
     </div>
   `;
   }).join('');
@@ -979,7 +979,7 @@ const renderDailyAvailable = (b) => {
       </div>
       <div>
         <div style="font-size: 11px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Disponible por día</div>
-        <div style="font-size: 17px; font-weight: 800; color: var(--text-primary);">Puedes gastar ${formatCurrency(saldoDiario)} hoy</div>
+        <div style="font-size: 17px; font-weight: 800; color: var(--text-primary);">Puedes gastar <span class="num">${formatCurrency(saldoDiario)}</span> hoy</div>
         <div style="font-size: 11px; color: var(--text-disabled); margin-top: 2px;">${formatCurrency(Math.max(0, b.remaining))} restantes &bull; ${diasRestantes} día${diasRestantes === 1 ? '' : 's'} del mes</div>
       </div>
     </div>
@@ -1145,7 +1145,7 @@ const renderPresupuestoLegend = (b) => {
       <div class="card legend-item tappable" data-cat="${catKey}">
         <div class="fin-bc-head">
           <h3 style="font-size: 13.5px; margin: 0;">${catKey}</h3>
-          <span class="fin-eyebrow">${rulePct}% de la regla</span>
+          <span class="fin-eyebrow"><span class="num">${rulePct}%</span> de la regla</span>
         </div>
         <p class="fin-bc-figures">${formatCurrency(totalAmt)} de ${formatCurrency(disponibleCat)}</p>
         <div class="fin-meter"><i class="${meterCls}" style="width:${usoCatPctClamped}%"></i></div>

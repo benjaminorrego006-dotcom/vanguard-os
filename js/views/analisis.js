@@ -124,7 +124,7 @@ function filtrarPorRango(historial, rango) {
 
 const resumenCardHtml = (label, value) => `
   <div class="card" style="padding: 16px; border-radius: 16px; text-align: center;">
-    <div style="font-size: 20px; font-weight: 800; color: var(--text-primary);">${value}</div>
+    <div class="num" style="font-size: 20px; font-weight: 800; color: var(--text-primary);">${value}</div>
     <div style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px;">${label}</div>
   </div>`;
 
@@ -364,7 +364,7 @@ const renderPRCard = (pr) => {
         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${formatFechaLarga(new Date(pr.fecha))}</div>
       </div>
       <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
-        <div style="font-size: 14px; font-weight: 800; color: var(--accent-teal); white-space: nowrap;">${valorTxt}</div>
+        <div class="num" style="font-size: 14px; font-weight: 800; color: var(--accent-teal); white-space: nowrap;">${valorTxt}</div>
         <button class="btn-fav-pr" data-nombre="${escapeHtml(pr.nombre)}" aria-label="${pr.favorito ? 'Quitar de favoritos' : 'Marcar como favorito'} ${escapeHtml(pr.nombre)}" aria-pressed="${!!pr.favorito}" style="background: transparent; border: none; cursor: pointer; padding: 2px; color: ${pr.favorito ? '#FBBF24' : 'var(--text-disabled)'};">
           <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="${pr.favorito ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
         </button>
@@ -632,11 +632,11 @@ async function renderTareasRacha() {
   return `
     <div class="card" style="padding: 28px 24px; border-radius: 18px; text-align: center;">
       <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 10px;">Racha actual</div>
-      <div style="font-size: 48px; font-weight: 800; color: var(--vi);">${racha.actual}</div>
+      <div class="num" style="font-size: 48px; font-weight: 800; color: var(--vi);">${racha.actual}</div>
       <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">día${racha.actual === 1 ? '' : 's'} seguido${racha.actual === 1 ? '' : 's'} con al menos una tarea completada</div>
       <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--surface-border);">
         <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 6px;">Mejor histórica</div>
-        <div style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${racha.mejor} día${racha.mejor === 1 ? '' : 's'}</div>
+        <div class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${racha.mejor} día${racha.mejor === 1 ? '' : 's'}</div>
       </div>
     </div>
   `;

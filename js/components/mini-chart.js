@@ -37,7 +37,7 @@ export function renderMiniChart(data, opts = {}) {
     const pct = Math.round(((actual - anterior) / anterior) * 100);
     const sign = pct >= 0 ? '+' : '';
     const deltaColor = pct >= 0 ? 'var(--state-success)' : 'var(--text-secondary)';
-    deltaHtml = `<span style="color:${deltaColor}; font-size: 12px; font-weight: 700; margin-left: 8px;">${sign}${pct}%</span>`;
+    deltaHtml = `<span class="num" style="color:${deltaColor}; font-size: 12px; font-weight: 700; margin-left: 8px;">${sign}${pct}%</span>`;
   }
 
   const min = Math.min(...valores);

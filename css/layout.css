@@ -12,7 +12,7 @@ body {
   margin: 0;
   background-color: var(--bg-base);
   color: var(--text-primary);
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: var(--font-body);
   overflow: hidden;
 }
 .app-layout {

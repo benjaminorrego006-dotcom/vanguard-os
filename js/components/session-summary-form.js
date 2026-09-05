@@ -4,7 +4,7 @@
 
 export function renderSessionSummaryForm() {
   const chips = Array.from({ length: 10 }, (_, i) => i + 1)
-    .map(n => `<button type="button" class="rpe-chip tappable" data-rpe="${n}" style="flex: 1; min-width: 30px; padding: 10px 0; border-radius: 10px; border: 1px solid var(--surface-border); background: var(--bg-base); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer;">${n}</button>`)
+    .map(n => `<button type="button" class="rpe-chip num tappable" data-rpe="${n}" style="flex: 1; min-width: 30px; padding: 10px 0; border-radius: 10px; border: 1px solid var(--surface-border); background: var(--bg-base); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer;">${n}</button>`)
     .join('');
 
   return `

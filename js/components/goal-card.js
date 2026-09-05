@@ -71,7 +71,7 @@ export function renderGoalCard(goal) {
           <div style="font-size: 14px; font-weight: 700;">${escapeHtml(goal.name)}</div>
         </div>
         <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
-          <div style="font-size: 12px; color: var(--text-secondary);">${formatGoalValue(goal, goal.currentAmount)} / ${formatGoalValue(goal, goal.targetAmount)}</div>
+          <div class="num" style="font-size: 12px; color: var(--text-secondary);">${formatGoalValue(goal, goal.currentAmount)} / ${formatGoalValue(goal, goal.targetAmount)}</div>
           <button class="edit-goal" data-id="${goal.id}" aria-label="Editar meta ${escapeHtml(goal.name)}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;"><svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>
           <button class="delete-goal" data-id="${goal.id}" aria-label="Eliminar meta ${escapeHtml(goal.name)}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer;"><svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
         </div>

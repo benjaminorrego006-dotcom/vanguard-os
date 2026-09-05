@@ -27,9 +27,9 @@ const STATE_LABELS = {
 };
 
 const EMPTY_MSG = {
-  'todo': 'SIN TAREAS PENDIENTES',
-  'in-progress': 'SIN TAREAS EN CURSO',
-  'done': 'SIN TAREAS COMPLETADAS'
+  'todo': 'Sin tareas pendientes',
+  'in-progress': 'Sin tareas en curso',
+  'done': 'Sin tareas completadas'
 };
 
 const renderTasksDonut = async (tasks) => {
@@ -193,7 +193,7 @@ function renderRecurringTasksSection(recurringTasks) {
 }
 
 function renderEmptyBoard(msg) {
-  return `<div style="border:1.5px dashed var(--surface-border); padding:32px 16px; text-align:center; color:var(--text-secondary); font-size:11px; text-transform:uppercase; letter-spacing:1.5px; font-weight:700;">${msg}</div>`;
+  return `<div style="border:1.5px dashed var(--surface-border); padding:32px 16px; text-align:center; color:var(--text-secondary); font-size:12px; font-weight:600;">${msg}</div>`;
 }
 
 function renderStateSelector(cols) {
@@ -227,7 +227,7 @@ function renderBoardContent(cols) {
       </div>
       <div>
         <h3 style="text-transform:uppercase; font-size:11px; letter-spacing:2px; color:var(--t5); font-weight:700; margin:0 0 10px 0;">Cola · Por Hacer</h3>
-        ${cola.length > 0 ? cola.map(renderColaTask).join('') : renderEmptyBoard('SIN TAREAS EN COLA')}
+        ${cola.length > 0 ? cola.map(renderColaTask).join('') : renderEmptyBoard('Sin tareas en cola')}
       </div>
     `;
   }

@@ -142,7 +142,7 @@ function renderReactor({ cyPct, amPct, viPct, rachaGlobal }) {
         <polygon points="${hexPoints}" fill="none" stroke="var(--t3)" stroke-width="1.5"></polygon>
       </svg>
       <div aria-hidden="true" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none;">
-        <div style="font-size: 36px; font-weight: 800; color: var(--t1); line-height: 1; font-variant-numeric: tabular-nums;">${rachaGlobal.actual}</div>
+        <div class="num" style="font-size: 36px; font-weight: 800; color: var(--t1); line-height: 1;">${rachaGlobal.actual}</div>
         <div style="font-size: 10px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: 2.5px; margin-top: 5px;">Racha</div>
       </div>
     </div>
@@ -157,7 +157,7 @@ function renderHeroicRow({ id, color, label, value }) {
     <div id="${id}" class="card tappable" style="display: flex; align-items: center; gap: 14px; padding: 15px 16px; margin-bottom: 10px; border-left: 3px solid ${color}; cursor: pointer;">
       <div style="flex: 1; min-width: 0;">
         <div style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px;">${label}</div>
-        <div style="font-size: 19px; font-weight: 800; color: var(--text-primary); line-height: 1.15; font-variant-numeric: tabular-nums;">${value}</div>
+        <div class="num" style="font-size: 19px; font-weight: 800; color: var(--text-primary); line-height: 1.15;">${value}</div>
       </div>
       <svg width="16" height="16" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
     </div>
@@ -342,7 +342,7 @@ export async function render() {
           <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
           <input type="text" id="quick-capture-input" placeholder="Anota algo — tarea o gasto (ej. &quot;50 en super&quot;)..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box;" autocomplete="off">
         </div>
-        <div id="quick-capture-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px; text-transform: uppercase; letter-spacing: 1px;"></div>
+        <div id="quick-capture-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
       </div>
 
     </div>
