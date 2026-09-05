@@ -104,14 +104,37 @@ function profundidadMaximaRama(rama) {
   return Math.max(...ids.map(id => profundidadNodo(id)));
 }
 
+// Normaliza para comparar nombres de ejercicio de forma tolerante a
+// mayúsculas, espacios extra/dobles y tildes, SIN pasar a substring: un
+// includes() acá es justo lo que hacía que la versión anterior (por
+// substring) matcheara pasos equivocados — ver comentario de
+// construirArbol() más arriba. Esto solo perdona variaciones de tipeo del
+// mismo nombre, nunca dos nombres distintos.
+function normalizarNombre(nombre) {
+  return nombre
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+}
+
 // Firma y forma de retorno sin cambios respecto a versiones anteriores
 // (familia, nivelActual, nivelTotal, nombrePaso) — rutina-session.js sigue
-// funcionando sin tocarlo.
-export function getProgressionLevel(ejercicioNombre) {
-  const nombreClean = ejercicioNombre.toLowerCase().trim();
-  const id = Object.keys(ARBOL_PROGRESIONES).find(
-    nodoId => ARBOL_PROGRESIONES[nodoId].nombre.toLowerCase().trim() === nombreClean
-  );
+// funcionando sin tocarlo. `ejercicioId` es un segundo parámetro opcional:
+// si el llamador ya conoce el id de catálogo (ARBOL_PROGRESIONES usa esos
+// mismos ids como key — ver construirArbol()), se resuelve por key directa
+// en vez de por nombre, más robusto que cualquier comparación de texto. El
+// único llamador actual no lo pasa, así que este camino queda listo para
+// cuando haga falta sin cambiar nada hoy.
+export function getProgressionLevel(ejercicioNombre, ejercicioId = null) {
+  let id = ejercicioId && ARBOL_PROGRESIONES[ejercicioId] ? ejercicioId : null;
+  if (!id) {
+    const nombreNorm = normalizarNombre(ejercicioNombre);
+    id = Object.keys(ARBOL_PROGRESIONES).find(
+      nodoId => normalizarNombre(ARBOL_PROGRESIONES[nodoId].nombre) === nombreNorm
+    );
+  }
   if (!id) return null;
   const nodo = ARBOL_PROGRESIONES[id];
   return {
