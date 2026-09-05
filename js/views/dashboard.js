@@ -344,6 +344,7 @@ export async function render() {
           <input type="text" id="quick-capture-input" placeholder="Anota algo — tarea o gasto (ej. &quot;50 en super&quot;)..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box;" autocomplete="off">
         </div>
         <div id="quick-capture-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
+        <div id="quick-capture-sobre-opciones" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
       </div>
 
     </div>
@@ -418,11 +419,50 @@ export function mountListeners() {
   // libre" de Entreno que la app no tiene forma estructurada de guardar.
   const quickInput = document.getElementById('quick-capture-input');
   const quickHint = document.getElementById('quick-capture-hint');
+  const quickOpciones = document.getElementById('quick-capture-sobre-opciones');
+
+  const limpiarCapturaRapida = () => {
+    quickInput.value = '';
+    quickHint.textContent = '';
+    if (quickOpciones) quickOpciones.innerHTML = '';
+  };
+
+  const registrarGasto = async (parsed, env) => {
+    await db.addTransaction({
+      type: 'Gasto',
+      category: env ? env.category : 'Needs',
+      label: parsed.label || 'Gasto',
+      amount: parsed.amount,
+      envelopeId: env ? env.id : null,
+      goalId: null
+    });
+    Toast(`Gasto de ${formatCurrency(parsed.amount)} registrado`, 'success');
+    limpiarCapturaRapida();
+    refresh();
+  };
+
+  // Cuando el texto matchea más de un sobre (ej. "Auto" y "Autopista" con
+  // "15000 en auto"), no elegimos por el usuario — se muestran los sobres
+  // encontrados como opciones y que confirme cuál es, mismo criterio que ya
+  // usa Finanzas (ahí abre el formulario completo para desambiguar; acá, al
+  // no vivir ese modal en Inicio, se resuelve inline).
+  const mostrarSelectorDeSobre = (parsed) => {
+    if (!quickOpciones) return;
+    quickHint.textContent = 'Encontré más de un sobre posible — elegí cuál es:';
+    quickOpciones.innerHTML = parsed.matches.map((env, i) => `
+      <button type="button" class="tappable qa-sobre-opcion" data-idx="${i}" style="background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer;">${escapeHtml(env.name)}</button>
+    `).join('');
+    quickOpciones.querySelectorAll('.qa-sobre-opcion').forEach(btn => {
+      btn.addEventListener('click', () => registrarGasto(parsed, parsed.matches[Number(btn.dataset.idx)]));
+    });
+  };
+
   if (quickInput) {
     quickInput.addEventListener('keydown', async (e) => {
       if (e.key !== 'Enter') return;
       const text = quickInput.value.trim();
       if (!text) return;
+      if (quickOpciones) quickOpciones.innerHTML = '';
 
       // El monto tiene que ir AL PRINCIPIO ("50 en super", el ejemplo del
       // placeholder) — un dígito en cualquier parte del texto (ej. "Comprar
@@ -435,22 +475,17 @@ export function mountListeners() {
           quickHint.textContent = 'No encontré un monto válido';
           return;
         }
-        const env = parsed.matches[0] || null;
-        await db.addTransaction({
-          type: 'Gasto',
-          category: env ? env.category : 'Needs',
-          label: parsed.label || 'Gasto',
-          amount: parsed.amount,
-          envelopeId: env ? env.id : null,
-          goalId: null
-        });
-        Toast(`Gasto de ${formatCurrency(parsed.amount)} registrado`, 'success');
+        if (parsed.matches.length > 1) {
+          mostrarSelectorDeSobre(parsed);
+          return;
+        }
+        await registrarGasto(parsed, parsed.matches[0] || null);
+        return;
       } else {
         await db.saveTask({ title: text, status: 'todo', priority: 'medium' });
         Toast('Tarea creada', 'success');
       }
-      quickInput.value = '';
-      quickHint.textContent = '';
+      limpiarCapturaRapida();
       refresh();
     });
   }
