@@ -25,22 +25,22 @@ export function renderProfileForm() {
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="input-group">
-            <label>Peso (kg)</label>
+            <label for="profile-peso">Peso (kg)</label>
             <input type="number" inputmode="decimal" id="profile-peso" placeholder="70" min="1" step="0.1" required>
           </div>
           <div class="input-group">
-            <label>Estatura (cm)</label>
+            <label for="profile-estatura">Estatura (cm)</label>
             <input type="number" inputmode="numeric" id="profile-estatura" placeholder="170" min="1" required>
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="input-group">
-            <label>Edad</label>
+            <label for="profile-edad">Edad</label>
             <input type="number" inputmode="numeric" enterkeyhint="done" id="profile-edad" placeholder="25" min="1" required>
           </div>
           <div class="input-group">
-            <label>Sexo</label>
+            <label for="profile-sexo">Sexo</label>
             <select id="profile-sexo">
               <option value="M">Masculino</option>
               <option value="F">Femenino</option>
@@ -49,14 +49,14 @@ export function renderProfileForm() {
         </div>
 
         <div class="input-group">
-          <label>Nivel de actividad</label>
+          <label for="profile-actividad">Nivel de actividad</label>
           <select id="profile-actividad">
             ${NIVELES_ACTIVIDAD.map(n => `<option value="${n.value}">${n.label}</option>`).join('')}
           </select>
         </div>
 
         <div class="input-group">
-          <label>Meta</label>
+          <label for="profile-meta">Meta</label>
           <select id="profile-meta">
             ${METAS.map(m => `<option value="${m.value}">${m.label}</option>`).join('')}
           </select>

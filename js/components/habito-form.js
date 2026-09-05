@@ -12,7 +12,7 @@ export function renderHabitoForm() {
         <input type="hidden" id="habito-id">
 
         <div class="input-group">
-          <label>Nombre del hábito</label>
+          <label for="habito-nombre">Nombre del hábito</label>
           <input type="text" id="habito-nombre" placeholder="Ej. Entrenar 45 min" maxlength="60">
         </div>
 

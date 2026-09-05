@@ -109,42 +109,42 @@ export function renderTaskForm() {
         </div>
 
         <div class="input-group">
-          <label>Título</label>
+          <label for="task-title">Título</label>
           <input type="text" id="task-title" placeholder="Ej. Finalizar estrategia de marketing" required>
         </div>
 
         <!-- Metadatos: fecha límite + prioridad -->
         <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:20px;">
           <div class="input-group" style="margin-bottom:0; flex:1;">
-            <label>Fecha límite</label>
+            <label for="task-due-date">Fecha límite</label>
             <input type="date" id="task-due-date">
           </div>
           <div style="padding-bottom:14px;">
-            <label style="display:block; color:var(--text-secondary); font-size:13px; font-weight:600; margin-bottom:8px; text-transform:uppercase;">Prioridad</label>
+            <div style="display:block; color:var(--text-secondary); font-size:13px; font-weight:600; margin-bottom:8px; text-transform:uppercase;">Prioridad</div>
             ${renderPriorityPicker()}
             <input type="hidden" id="task-priority" value="medium">
           </div>
         </div>
 
         <div class="input-group">
-          <label>Notas</label>
+          <label for="task-desc">Notas</label>
           <textarea id="task-desc" placeholder="Detalles, contexto, links..." rows="3" style="color: var(--text-secondary);"></textarea>
         </div>
 
         <div class="input-group">
-          <label>Proyecto / Etiqueta</label>
+          <label for="task-project">Proyecto / Etiqueta</label>
           <input type="text" id="task-project" placeholder="Ej. Product Launch">
         </div>
 
         <div class="input-group">
-          <label>Subtareas</label>
+          <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Subtareas</div>
           <div id="subtasks-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
           <button id="btn-add-subtask" type="button" style="background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 8px; cursor: pointer; width: 100%; font-size: 13px;">+ Agregar subtarea</button>
         </div>
 
         <!-- Bitácora: derivada del log de eventos, solo si la tarea existe -->
         <div id="bitacora-section" style="display:none; margin-top:8px; margin-bottom:8px;">
-          <label style="display:block; color:var(--text-secondary); font-size:13px; font-weight:600; margin-bottom:12px; text-transform:uppercase;">Bitácora</label>
+          <div style="display:block; color:var(--text-secondary); font-size:13px; font-weight:600; margin-bottom:12px; text-transform:uppercase;">Bitácora</div>
           <div id="task-bitacora"></div>
         </div>
 

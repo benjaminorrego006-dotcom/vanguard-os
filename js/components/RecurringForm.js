@@ -25,13 +25,13 @@ export function renderRecurringForm() {
 
         <div style="display: flex; gap: 8px; margin-bottom: 16px;">
           <div style="flex: 1;">
-            <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Día del mes</label>
+            <label for="recurring-day" style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Día del mes</label>
             <select id="recurring-day" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 16px; outline: none; appearance: none;" required>
               ${Array.from({length: 28}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('')}
             </select>
           </div>
           <div style="flex: 2;">
-            <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Descontar de</label>
+            <label for="recurring-envelope" style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Descontar de</label>
             <select id="recurring-envelope" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 16px; outline: none; appearance: none;" required>
             </select>
           </div>

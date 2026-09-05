@@ -20,12 +20,12 @@ export function renderHiitRutinaForm() {
       <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 20px 0; color: var(--text-primary); letter-spacing: -0.3px;">Crear Rutina HIIT</h2>
 
       <div class="input-group">
-        <label>Nombre de la rutina</label>
+        <label for="hiit-rf-nombre">Nombre de la rutina</label>
         <input type="text" id="hiit-rf-nombre" placeholder="Ej. Tabata Explosivo" autocomplete="off">
       </div>
 
       <div style="margin-bottom: 16px;">
-        <label style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Modo</label>
+        <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Modo</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
           <button type="button" class="hiit-rf-mode-btn" data-mode="free" style="padding: 13px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--accent-teal); font-weight: 700; cursor: pointer;">Libre</button>
           <button type="button" class="hiit-rf-mode-btn" data-mode="tabata" style="padding: 13px; border-radius: 12px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">Tabata</button>
@@ -39,7 +39,7 @@ export function renderHiitRutinaForm() {
       </div>
 
       <div class="input-group">
-        <label>Ejercicios del circuito (opcional)</label>
+        <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Ejercicios del circuito (opcional)</div>
         <div style="font-size: 11px; color: var(--text-secondary); margin: -4px 0 10px 0; line-height: 1.4;">Se usan para mostrar "Siguiente: ..." durante los descansos. Dejalo vacío si es solo un temporizador.</div>
         <div id="hiit-rf-ejercicios-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
         <button id="btn-hiit-rf-add-ejercicio" type="button" style="background: transparent; color: var(--text-secondary); border: 1px dashed var(--surface-border); padding: 8px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 13px;">+ Agregar ejercicio</button>
@@ -93,16 +93,16 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
       settingsEl.innerHTML = `
         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
           <div style="flex: 1;">
-            <label style="font-size: 11px; color: var(--text-secondary);">Trabajo (seg)</label>
+            <label for="hiit-rf-s-work" style="font-size: 11px; color: var(--text-secondary);">Trabajo (seg)</label>
             <input type="number" inputmode="numeric" id="hiit-rf-s-work" value="${formState.workSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
           <div style="flex: 1;">
-            <label style="font-size: 11px; color: var(--text-secondary);">Descanso (seg)</label>
+            <label for="hiit-rf-s-rest" style="font-size: 11px; color: var(--text-secondary);">Descanso (seg)</label>
             <input type="number" inputmode="numeric" id="hiit-rf-s-rest" value="${formState.restSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
         </div>
         <div>
-          <label style="font-size: 11px; color: var(--text-secondary);">Rondas Totales</label>
+          <label for="hiit-rf-s-rounds" style="font-size: 11px; color: var(--text-secondary);">Rondas Totales</label>
           <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-rounds" value="${formState.totalRounds}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
         </div>
       `;
@@ -112,11 +112,11 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
       settingsEl.innerHTML = `
         <div style="display: flex; gap: 8px;">
           <div style="flex: 1;">
-            <label style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
+            <label for="hiit-rf-s-emom-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
             <input type="number" inputmode="numeric" id="hiit-rf-s-emom-mins" value="${formState.emomTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
           <div style="flex: 1;">
-            <label style="font-size: 11px; color: var(--text-secondary);">Intervalo (seg)</label>
+            <label for="hiit-rf-s-emom-sec" style="font-size: 11px; color: var(--text-secondary);">Intervalo (seg)</label>
             <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-emom-sec" value="${formState.emomIntervalSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
         </div>
@@ -124,7 +124,7 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
     } else if (formState.mode === 'amrap') {
       settingsEl.innerHTML = `
         <div>
-          <label style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
+          <label for="hiit-rf-s-amrap-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
           <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-amrap-mins" value="${formState.amrapTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
         </div>
       `;

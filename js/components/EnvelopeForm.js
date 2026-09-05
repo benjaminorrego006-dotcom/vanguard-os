@@ -30,12 +30,12 @@ export function renderEnvelopeForm() {
         <input type="hidden" id="envelope-id">
 
         <div class="input-group">
-          <label>Nombre del Sobre</label>
+          <label for="envelope-name">Nombre del Sobre</label>
           <input type="text" id="envelope-name" placeholder="Ej. Supermercado, Netflix..." required>
         </div>
 
         <div class="input-group">
-          <label>Categoría 50/30/20</label>
+          <label for="envelope-category">Categoría 50/30/20</label>
           <select id="envelope-category" required>
             <option value="Needs">Necesidad (50%)</option>
             <option value="Wants">Deseo (30%)</option>
@@ -43,12 +43,12 @@ export function renderEnvelopeForm() {
         </div>
 
         <div class="input-group">
-          <label>Monto Asignado (opcional)</label>
+          <label for="envelope-amount">Monto Asignado (opcional)</label>
           <input type="text" inputmode="numeric" id="envelope-amount" placeholder="0">
         </div>
 
         <div class="input-group">
-          <label>Icono</label>
+          <label for="envelope-icon">Icono</label>
           <select id="envelope-icon">
             <option value="home">Hogar / Supermercado</option>
             <option value="car">Transporte / Auto</option>

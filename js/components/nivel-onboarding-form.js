@@ -81,8 +81,8 @@ export function renderNivelOnboardingForm() {
           <p style="color: var(--text-secondary); font-size: 13px; margin: -6px 0 16px 0;">Filtra los ejercicios que la app te va a proponer. Puedes dejarlo vacío si solo entrenas con peso corporal.</p>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px;">
             ${EQUIPO_OPCIONES.map(o => `
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer;">
-                <input type="checkbox" class="nivel-onboarding-equipo-check" value="${o.value}">
+              <label for="nivel-onboarding-equipo-${o.value}" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer;">
+                <input type="checkbox" id="nivel-onboarding-equipo-${o.value}" class="nivel-onboarding-equipo-check" value="${o.value}">
                 ${o.label}
               </label>
             `).join('')}

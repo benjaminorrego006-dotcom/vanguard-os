@@ -27,11 +27,11 @@ export function renderGeneradorConfigForm() {
         <p style="color: var(--text-secondary); font-size: 13px; margin: -8px 0 20px 0;">Con qué cuentas para entrenar — el generador arma la rutina según tu nivel real en cada patrón de movimiento, sin proponer nada que no puedas hacer.</p>
 
         <div class="input-group">
-          <label>Equipo disponible</label>
+          <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Equipo disponible</div>
           <div id="generador-equipo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
             ${EQUIPO_OPCIONES.map(o => `
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer;">
-                <input type="checkbox" class="generador-equipo-check" value="${o.value}">
+              <label for="generador-equipo-${o.value}" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer;">
+                <input type="checkbox" id="generador-equipo-${o.value}" class="generador-equipo-check" value="${o.value}">
                 ${o.label}
               </label>
             `).join('')}
@@ -41,13 +41,13 @@ export function renderGeneradorConfigForm() {
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="input-group">
-            <label>Días por semana</label>
+            <label for="generador-dias-semana">Días por semana</label>
             <select id="generador-dias-semana">
               ${[2, 3, 4, 5, 6].map(n => `<option value="${n}">${n} días</option>`).join('')}
             </select>
           </div>
           <div class="input-group">
-            <label>Duración por sesión</label>
+            <label for="generador-duracion">Duración por sesión</label>
             <select id="generador-duracion">
               ${DURACIONES.map(n => `<option value="${n}">${n} min</option>`).join('')}
             </select>

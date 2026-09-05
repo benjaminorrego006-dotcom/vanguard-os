@@ -14,12 +14,12 @@ export function renderSessionSummaryForm() {
         <p style="color: var(--text-secondary); font-size: 13px; margin: -8px 0 20px 0;">Esto es opcional, pero ayuda a que futuras sugerencias sean más precisas.</p>
 
         <div class="input-group">
-          <label>Esfuerzo percibido (RPE)</label>
+          <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Esfuerzo percibido (RPE)</div>
           <div id="rpe-chip-container" style="display: flex; gap: 6px; flex-wrap: wrap;">${chips}</div>
         </div>
 
         <div class="input-group">
-          <label>Notas (opcional)</label>
+          <label for="session-summary-notas">Notas (opcional)</label>
           <textarea id="session-summary-notas" rows="3" placeholder="¿Cómo te sentiste? ¿Algo a mejorar la próxima vez?" style="width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 14px 16px; border-radius: 14px; font-size: 16px; box-sizing: border-box; outline: none; font-family: inherit; resize: vertical;"></textarea>
         </div>
 

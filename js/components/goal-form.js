@@ -38,12 +38,12 @@ export function renderGoalForm() {
           <input type="hidden" id="goal-id">
           <input type="hidden" id="goal-dominio" value="finanzas">
           <div class="input-group">
-            <label>Nombre de la meta</label>
+            <label for="goal-name">Nombre de la meta</label>
             <input type="text" id="goal-name" placeholder="Ej. Fondo de emergencia" required autocomplete="off">
           </div>
 
           <div class="input-group" id="goal-tipo-container" style="display: none;">
-            <label>Tipo de meta</label>
+            <label for="goal-tipo">Tipo de meta</label>
             <select id="goal-tipo">
               ${TIPOS_ENTRENO.map(t => `<option value="${t.value}">${t.label}</option>`).join('')}
             </select>
@@ -51,25 +51,25 @@ export function renderGoalForm() {
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div class="input-group">
-              <label id="goal-target-label">Monto objetivo</label>
+              <label id="goal-target-label" for="goal-target">Monto objetivo</label>
               <input type="text" inputmode="numeric" id="goal-target" placeholder="0" required autocomplete="off">
             </div>
             <div class="input-group" id="goal-unidad-container" style="display: none;">
-              <label>Unidad</label>
+              <label for="goal-unidad">Unidad</label>
               <input type="text" id="goal-unidad" placeholder="ej. km, sesiones" autocomplete="off">
             </div>
           </div>
 
           <div class="input-group" id="goal-initial-container">
-            <label id="goal-initial-label">Monto inicial (opcional)</label>
+            <label id="goal-initial-label" for="goal-initial">Monto inicial (opcional)</label>
             <input type="text" inputmode="numeric" id="goal-initial" placeholder="0" autocomplete="off" value="0">
           </div>
           <div class="input-group">
-            <label>Fecha límite (opcional)</label>
+            <label for="goal-deadline">Fecha límite (opcional)</label>
             <input type="date" id="goal-deadline" autocomplete="off">
           </div>
           <div class="input-group">
-            <label>Ícono</label>
+            <label for="goal-icon">Ícono</label>
             <select id="goal-icon">
               ${GOAL_ICONS.map(icon => `<option value="${icon}">${GOAL_ICON_LABELS[icon]}</option>`).join('')}
             </select>
@@ -84,7 +84,7 @@ export function renderGoalForm() {
       <div class="modal-content" style="max-width: 400px;">
         <h2 id="goal-contribute-title" style="margin-top: 0; font-size: 18px; font-weight: 700;">Agregar progreso</h2>
         <div class="input-group">
-          <label id="goal-contribute-label">Cantidad</label>
+          <label id="goal-contribute-label" for="goal-contribute-amount">Cantidad</label>
           <input type="text" inputmode="numeric" id="goal-contribute-amount" placeholder="0" autocomplete="off">
         </div>
         <div style="display: flex; gap: 12px; margin-top: 20px;">

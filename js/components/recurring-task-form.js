@@ -18,11 +18,11 @@ export function renderRecurringTaskForm() {
         </div>
         <form id="task-recurring-form">
           <div class="input-group">
-            <label>Título</label>
+            <label for="tr-title">Título</label>
             <input type="text" id="tr-title" placeholder="Ej. Pagar arriendo" required>
           </div>
           <div class="input-group">
-            <label>Frecuencia</label>
+            <label for="tr-frequency">Frecuencia</label>
             <select id="tr-frequency">
               <option value="daily">Diaria</option>
               <option value="weekly">Semanal</option>
@@ -30,19 +30,19 @@ export function renderRecurringTaskForm() {
             </select>
           </div>
           <div class="input-group" id="tr-weekly-field" style="display:none;">
-            <label>Día de la semana</label>
+            <label for="tr-weekday">Día de la semana</label>
             <select id="tr-weekday">
               ${WEEKDAYS.map((d, i) => `<option value="${i}">${d}</option>`).join('')}
             </select>
           </div>
           <div class="input-group" id="tr-monthly-field">
-            <label>Día del mes</label>
+            <label for="tr-day">Día del mes</label>
             <select id="tr-day">
               ${Array.from({ length: 28 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('')}
             </select>
           </div>
           <div class="input-group">
-            <label>Prioridad</label>
+            <label for="tr-priority">Prioridad</label>
             <select id="tr-priority">
               <option value="low">Baja</option>
               <option value="medium" selected>Media</option>

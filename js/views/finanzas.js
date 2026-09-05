@@ -1515,15 +1515,15 @@ export async function render() {
         <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">Los porcentajes deben sumar exactamente 100.</p>
         <form id="settings-form">
           <div class="input-group">
-            <label>Necesidades (%)</label>
+            <label for="rule-needs">Necesidades (%)</label>
             <input type="number" inputmode="numeric" id="rule-needs" required autocomplete="off" min="0" max="100">
           </div>
           <div class="input-group">
-            <label>Deseos (%)</label>
+            <label for="rule-wants">Deseos (%)</label>
             <input type="number" inputmode="numeric" id="rule-wants" required autocomplete="off" min="0" max="100">
           </div>
           <div class="input-group">
-            <label>Ahorro (%)</label>
+            <label for="rule-savings">Ahorro (%)</label>
             <input type="number" inputmode="numeric" enterkeyhint="done" id="rule-savings" required autocomplete="off" min="0" max="100">
           </div>
           <button type="submit" class="btn-primary" style="background: var(--accent-purple);">Guardar Regla</button>

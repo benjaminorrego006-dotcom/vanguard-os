@@ -179,11 +179,11 @@ async function renderDesglose() {
       ${desglosePeriodo === 'personalizado' ? `
         <div style="display: flex; gap: 10px; margin-bottom: 18px;">
           <div class="input-group" style="flex: 1; margin-bottom: 0;">
-            <label style="font-size: 11px;">Desde</label>
+            <label for="analisis-fecha-inicio" style="font-size: 11px;">Desde</label>
             <input type="date" id="analisis-fecha-inicio" value="${desgloseFechaInicio || ''}">
           </div>
           <div class="input-group" style="flex: 1; margin-bottom: 0;">
-            <label style="font-size: 11px;">Hasta</label>
+            <label for="analisis-fecha-fin" style="font-size: 11px;">Hasta</label>
             <input type="date" id="analisis-fecha-fin" value="${desgloseFechaFin || ''}">
           </div>
         </div>
