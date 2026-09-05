@@ -48,8 +48,8 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
           <option value="fallo">Fallo</option>
           <option value="dropset">Drop Set</option>
         </select>
-        <input type="text" class="serie-reps" placeholder="Reps" style="width: 60px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">
-        <input type="number" class="serie-peso" placeholder="Peso" style="width: 70px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">
+        <input type="text" inputmode="numeric" class="serie-reps" placeholder="Reps" style="width: 60px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">
+        <input type="number" inputmode="decimal" enterkeyhint="done" class="serie-peso" placeholder="Peso" style="width: 70px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">
         <button class="btn-remove-serie" style="background: transparent; border: none; color: var(--text-disabled); cursor: pointer; font-size: 18px; flex-shrink: 0;">&times;</button>
       </div>
     `;

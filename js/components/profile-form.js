@@ -26,18 +26,18 @@ export function renderProfileForm() {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="input-group">
             <label>Peso (kg)</label>
-            <input type="number" id="profile-peso" placeholder="70" min="1" step="0.1" required>
+            <input type="number" inputmode="decimal" id="profile-peso" placeholder="70" min="1" step="0.1" required>
           </div>
           <div class="input-group">
             <label>Estatura (cm)</label>
-            <input type="number" id="profile-estatura" placeholder="170" min="1" required>
+            <input type="number" inputmode="numeric" id="profile-estatura" placeholder="170" min="1" required>
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="input-group">
             <label>Edad</label>
-            <input type="number" id="profile-edad" placeholder="25" min="1" required>
+            <input type="number" inputmode="numeric" enterkeyhint="done" id="profile-edad" placeholder="25" min="1" required>
           </div>
           <div class="input-group">
             <label>Sexo</label>

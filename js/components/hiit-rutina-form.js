@@ -94,16 +94,16 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
           <div style="flex: 1;">
             <label style="font-size: 11px; color: var(--text-secondary);">Trabajo (seg)</label>
-            <input type="number" id="hiit-rf-s-work" value="${formState.workSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+            <input type="number" inputmode="numeric" id="hiit-rf-s-work" value="${formState.workSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
           <div style="flex: 1;">
             <label style="font-size: 11px; color: var(--text-secondary);">Descanso (seg)</label>
-            <input type="number" id="hiit-rf-s-rest" value="${formState.restSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+            <input type="number" inputmode="numeric" id="hiit-rf-s-rest" value="${formState.restSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
         </div>
         <div>
           <label style="font-size: 11px; color: var(--text-secondary);">Rondas Totales</label>
-          <input type="number" id="hiit-rf-s-rounds" value="${formState.totalRounds}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-rounds" value="${formState.totalRounds}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
         </div>
       `;
     } else if (formState.mode === 'tabata') {
@@ -113,11 +113,11 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
         <div style="display: flex; gap: 8px;">
           <div style="flex: 1;">
             <label style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
-            <input type="number" id="hiit-rf-s-emom-mins" value="${formState.emomTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+            <input type="number" inputmode="numeric" id="hiit-rf-s-emom-mins" value="${formState.emomTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
           <div style="flex: 1;">
             <label style="font-size: 11px; color: var(--text-secondary);">Intervalo (seg)</label>
-            <input type="number" id="hiit-rf-s-emom-sec" value="${formState.emomIntervalSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+            <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-emom-sec" value="${formState.emomIntervalSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
         </div>
       `;
@@ -125,7 +125,7 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
       settingsEl.innerHTML = `
         <div>
           <label style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
-          <input type="number" id="hiit-rf-s-amrap-mins" value="${formState.amrapTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-amrap-mins" value="${formState.amrapTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
         </div>
       `;
     }
