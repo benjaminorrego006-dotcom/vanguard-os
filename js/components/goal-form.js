@@ -31,7 +31,7 @@ export function renderGoalForm() {
     <div id="goal-modal" class="modal-overlay">
       <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-          <h2 id="modal-goal-title" style="font-size: 20px; font-weight: 700; margin: 0; color: var(--accent-purple);">Nueva Meta</h2>
+          <h2 id="modal-goal-title" style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Nueva Meta</h2>
           <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">&times;</button>
         </div>
         <form id="goal-form">
@@ -251,9 +251,7 @@ export function initGoalForm(refreshCallback) {
       document.getElementById('modal-goal-title').textContent = 'Nueva Meta';
     }
     const color = accentFor(dominio);
-    const titleEl = document.getElementById('modal-goal-title');
     const submitBtn = document.querySelector('#goal-form button[type="submit"]');
-    if (titleEl) titleEl.style.color = color;
     if (submitBtn) submitBtn.style.background = color;
     applyTipoUI();
     openModal('goal-modal');

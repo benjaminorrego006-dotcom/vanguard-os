@@ -27,7 +27,7 @@ function renderSinPeso(nombre, oneRM) {
     <div class="card" style="padding: 16px; margin-bottom: 8px; border-left: 3px solid var(--accent-teal);">
       <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px;">
         <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${nombre}</span>
-        <span style="font-size: 13px; color: var(--accent-teal); font-variant-numeric: tabular-nums; white-space: nowrap;">${oneRM} kg · 1RM est.</span>
+        <span style="font-size: 13px; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap;">${oneRM} kg · 1RM est.</span>
       </div>
     </div>
   `;
@@ -43,7 +43,7 @@ function renderConNivel(nombre, oneRM, ratio, nivelInfo, pesoKg) {
     <div class="card" style="padding: 16px; margin-bottom: 8px; border-left: 3px solid var(--accent-teal);">
       <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px;">
         <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${nombre}</span>
-        <span style="font-size: 13px; color: var(--accent-teal); font-variant-numeric: tabular-nums; white-space: nowrap;">${oneRM} kg · ${ratio.toFixed(2)}× peso corporal</span>
+        <span style="font-size: 13px; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap;">${oneRM} kg · ${ratio.toFixed(2)}× peso corporal</span>
       </div>
       <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-top: 8px;">${nivelInfo.label}</div>
       ${gapHtml}

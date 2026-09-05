@@ -105,21 +105,19 @@ body {
     color: var(--accent-primary);
   }
 
-  /* Vanguard MK III: cada ítem lleva su acento exclusivo de forma
-     permanente (no solo cuando está activo) — Entreno cian, Finanzas
-     ámbar, Tareas violeta. Inicio no tiene acento propio (esa pantalla
-     muestra los tres módulos a la vez), así que se queda con el
-     resaltado neutro de arriba. Estas reglas van DESPUÉS de .active
-     porque son más específicas (selector de atributo + clase) y tienen
-     que ganarle al --accent-primary morado genérico. */
-  .nav-item[data-view="entrenamiento"] { color: var(--cy); }
+  /* Vanguard MK III: el acento de cada módulo (Entreno cian, Finanzas
+     ámbar, Tareas/Hábitos violeta) solo aparece cuando el ítem está
+     activo — un ícono de navegación inactivo no debe llevar el color de
+     un módulo al que no estás entrando; si lo pinta igual, deja de
+     significar "estoy acá" y pasa a ser decoración pareja. Inicio no
+     tiene acento propio (esa pantalla muestra los tres módulos a la
+     vez), así que se queda con el resaltado neutro de #app-nav.active de
+     arriba. Estas reglas van DESPUÉS de .active porque son más
+     específicas (selector de atributo + clase) y tienen que ganarle al
+     --accent-primary morado genérico. */
   .nav-item[data-view="entrenamiento"].active { background-color: rgba(92, 225, 230, 0.12); color: var(--cy); }
-  .nav-item[data-view="finanzas"] { color: var(--am); }
   .nav-item[data-view="finanzas"].active { background-color: rgba(255, 182, 39, 0.12); color: var(--am); }
-  .nav-item[data-view="tareas"] { color: var(--vi); }
   .nav-item[data-view="tareas"].active { background-color: rgba(139, 124, 246, 0.12); color: var(--vi); }
-  /* Hábitos comparte el violeta de Tareas (mismo dominio: cosas que hacés). */
-  .nav-item[data-view="habitos"] { color: var(--vi); }
   .nav-item[data-view="habitos"].active { background-color: rgba(139, 124, 246, 0.12); color: var(--vi); }
 
   .nav-item .icon {

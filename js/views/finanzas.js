@@ -638,7 +638,7 @@ const renderAgeOfMoneyHTML = (b) => {
       </div>
       <div style="text-align: right; max-width: 120px;">
         <div style="font-size: 11px; font-weight: 500; color: var(--text-secondary); line-height: 1.3;">
-          ${b.ageOfMoney >= 30 ? '<span style="color:var(--accent-purple);">¡Vives con ingresos del mes pasado!</span>' : 'Aumenta esta métrica para salir del cheque a cheque.'}
+          ${b.ageOfMoney >= 30 ? '<span style="color:var(--text-primary);">¡Vives con ingresos del mes pasado!</span>' : 'Aumenta esta métrica para salir del cheque a cheque.'}
         </div>
       </div>
     </div>
@@ -743,18 +743,18 @@ const renderGoalsHTML = (b) => {
   let html = `
     <div class="flex-between" style="margin-bottom: 12px;">
       <p class="fin-eyebrow">Metas de ahorro</p>
-      ${b.savedThisMonth > 0 ? `<span class="fin-eyebrow" style="color: var(--accent-purple);">Ahorrado este mes: ${formatCurrency(b.savedThisMonth)}</span>` : ''}
+      ${b.savedThisMonth > 0 ? `<span class="fin-eyebrow">Ahorrado este mes: <span class="num">${formatCurrency(b.savedThisMonth)}</span></span>` : ''}
     </div>
   `;
   if (b.goals.length === 0) {
     html += `
        ${finEmptyState('Sin metas', 'Sin metas de ahorro todavía', 'Crea una para apartar dinero mes a mes hacia algo puntual.')}
-       <button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--accent-purple); border: 1px dashed var(--accent-purple); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
+       <button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
     `;
   } else {
     html += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
     html += b.goals.map(g => renderGoalCard(g)).join('');
-    html += `<button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--accent-purple); border: 1px dashed var(--accent-purple); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>`;
+    html += `<button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>`;
     html += `</div>`;
   }
   return html;
@@ -1429,7 +1429,7 @@ export async function render() {
         <div class="card" style="padding: 0; margin-bottom: 24px; overflow: hidden;">
           <div class="flex-between" style="padding: 14px 20px; border-bottom: 1px solid var(--line);">
             <h3 style="font-size: 13px; margin: 0;">Movimientos recientes</h3>
-            <span class="btn-go-movimientos fin-eyebrow" id="btn-ver-todos" style="cursor: pointer; color: var(--accent-purple);">Ver todos</span>
+            <span class="btn-go-movimientos fin-eyebrow" id="btn-ver-todos" style="cursor: pointer;">Ver todos</span>
           </div>
           <div id="recent-tx-list" class="fin-row-list">
             ${b.breakdown.length === 0 ? finEmptyState('Sin datos', 'Todavía no hay movimientos', 'Toca el botón Ingreso o Gasto para registrar el primero.') : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.envelopes)).join('')}
@@ -1464,7 +1464,7 @@ export async function render() {
       <div id="tab-content-presupuesto" class="fin-tab-content" style="display: ${activeFinTab === 'presupuesto' ? 'block' : 'none'};">
         <div class="flex-between" style="margin-bottom: 12px;">
           <p class="fin-eyebrow">Límites mensuales</p>
-          <button id="btn-open-settings" style="background: transparent; border: none; color: var(--accent-purple); font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em;">Editar regla</button>
+          <button id="btn-open-settings" style="background: transparent; border: none; color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em;">Editar regla</button>
         </div>
         <div class="card" style="padding: 24px; margin-bottom: 24px; text-align: center;">
           <div style="position: relative; width: 180px; height: 180px; margin: 0 auto 32px auto;">

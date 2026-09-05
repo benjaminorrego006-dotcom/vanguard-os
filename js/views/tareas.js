@@ -183,7 +183,7 @@ function renderRecurringTasksSection(recurringTasks) {
     <div class="card" style="margin-right:20px; margin-bottom:24px; padding:18px 20px;">
       <div class="flex-between" style="margin-bottom:${recurringTasks.length ? '14px' : '4px'};">
         <h3 style="font-size:13px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin:0;">Tareas Recurrentes</h3>
-        <button id="btn-add-recurring-task" class="tappable" style="background:transparent; border:none; color:var(--accent-purple); font-size:13px; font-weight:700; cursor:pointer;">+ Nueva</button>
+        <button id="btn-add-recurring-task" class="tappable" style="background:transparent; border:none; color:var(--text-secondary); font-size:13px; font-weight:700; cursor:pointer;">+ Nueva</button>
       </div>
       ${recurringTasks.length === 0
         ? `<div style="font-size:12px; color:var(--text-secondary);">Automatiza tareas que se repiten: pagos, revisiones, rutinas.</div>`

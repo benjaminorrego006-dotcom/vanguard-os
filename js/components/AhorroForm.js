@@ -8,7 +8,7 @@ export function renderAhorroForm() {
     <div id="ahorro-modal" class="modal-overlay">
       <div class="modal-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); max-height: 90vh;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--accent-purple);">Aportar a Meta</h2>
+          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Aportar a Meta</h2>
           <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">&times;</button>
         </div>
         
@@ -60,7 +60,7 @@ export function initAhorroForm(db, getBudgetFn, refreshCallback) {
     } else {
       if (!selectedGoalId || !b.goals.find(g => g.id === selectedGoalId)) selectedGoalId = b.goals[0].id;
       chipContainer.innerHTML = b.goals.map(g => `
-        <div class="chip tappable ${selectedGoalId === g.id ? 'active' : ''}" data-goal-id="${g.id}" style="${selectedGoalId === g.id ? 'background: var(--accent-purple); color: #000; border-color: transparent;' : 'background: transparent; color: var(--accent-purple); border-color: rgba(187,134,252,0.3);'}">${escapeHtml(g.name)}</div>
+        <div class="chip tappable ${selectedGoalId === g.id ? 'active' : ''}" data-goal-id="${g.id}" style="${selectedGoalId === g.id ? 'background: var(--accent-purple); color: #000; border-color: transparent;' : 'background: transparent; color: var(--text-secondary); border-color: var(--surface-border);'}">${escapeHtml(g.name)}</div>
       `).join('');
       
       chipContainer.querySelectorAll('.chip').forEach(c => {

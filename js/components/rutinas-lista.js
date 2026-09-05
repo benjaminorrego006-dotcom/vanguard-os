@@ -33,7 +33,7 @@ export async function renderRutinasLista(categoria) {
   let html = `
     <div style="margin-bottom: 24px;">
       <h2 style="font-size: 26px; font-weight: 800; margin: 0 0 16px 0; color: var(--text-primary); letter-spacing: -0.4px;">${catName}</h2>
-      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: rgba(92, 225, 230, 0.08); border: 1px dashed var(--accent-teal); color: var(--accent-teal); font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px;">
+      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px;">
         + Nueva rutina
       </button>
       <button id="btn-generar-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: var(--accent-teal); border: none; color: #000; font-size: 15px; font-weight: 700; cursor: pointer;">
@@ -344,7 +344,7 @@ export function renderPlantillaPreview(plantilla) {
   plantilla.rutinas.forEach(rut => {
     html += `
       <div style="background: var(--surface-2); padding: 16px; border-radius: 14px; border: 1px solid var(--surface-border); margin-bottom: 16px;">
-        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 12px 0; color: var(--accent-teal);">${rut.nombre}</h4>
+        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 12px 0; color: var(--text-primary);">${rut.nombre}</h4>
     `;
 
     const grupoHeaderHtml = (label) => `
@@ -514,7 +514,7 @@ export function renderGeneradorPreview(plan, categoria) {
 
     return `
       <div style="background: var(--surface-2); padding: 16px; border-radius: 14px; border: 1px solid var(--surface-border); margin-bottom: 16px;">
-        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 12px 0; color: var(--accent-teal);">${dia.nombre}</h4>
+        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 12px 0; color: var(--text-primary);">${dia.nombre}</h4>
         ${items || `<div style="font-size: 12px; color: var(--text-secondary);">Sin ejercicios disponibles para este día.</div>`}
       </div>
     `;

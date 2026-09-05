@@ -67,7 +67,7 @@ export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
         ${prEvents.map(ev => `
           <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
             <span style="color: var(--text-secondary);">${formatFechaLarga(new Date(ev.fecha))}</span>
-            <span class="num" style="color: var(--accent-teal); font-weight: 700;">🏆 ${ev.texto}</span>
+            <span class="num" style="color: var(--text-primary); font-weight: 700;">🏆 ${ev.texto}</span>
           </div>
         `).join('')}
       </div>
@@ -84,7 +84,7 @@ export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
       <div style="display: flex; gap: 8px; margin-top: 14px;">
         ${max1RM > 0 ? `
           <div style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); border-radius: 12px; padding: 12px; text-align: center;">
-            <div class="num" style="font-size: 16px; font-weight: 800; color: var(--accent-teal);">${max1RM}kg</div>
+            <div class="num" style="font-size: 16px; font-weight: 800; color: var(--text-primary);">${max1RM}kg</div>
             <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">1RM estimado</div>
           </div>
         ` : ''}

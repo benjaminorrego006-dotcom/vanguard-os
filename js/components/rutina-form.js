@@ -70,7 +70,7 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
       </div>
 
       <button class="btn-add-serie" style="background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); border-radius: 10px; padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 4px;">+ Añadir serie</button>
-      <button class="btn-agrupar-sup" style="background: rgba(92, 225, 230, 0.1); border: 1px dashed var(--accent-teal); color: var(--accent-teal); border-radius: 10px; padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 4px;">${linkSvg}Agrupar en superserie con el anterior</button>
+      <button class="btn-agrupar-sup" style="background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); border-radius: 10px; padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 4px;">${linkSvg}Agrupar en superserie con el anterior</button>
     `;
 
     div.querySelector('.btn-remove-ej').addEventListener('click', () => div.remove());

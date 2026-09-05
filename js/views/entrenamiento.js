@@ -74,9 +74,9 @@ async function renderSugerenciaNivelBanner() {
   if (!sugerencia) { contenedor.innerHTML = ''; return; }
 
   contenedor.innerHTML = `
-    <div class="card" style="padding: 16px 18px; margin-bottom: 20px; border-radius: 18px; border: 1px solid var(--accent-teal); background: rgba(92, 225, 230, 0.08);">
+    <div class="card" style="padding: 16px 18px; margin-bottom: 20px; border-radius: 18px; border: 1px solid var(--surface-border);">
       <div style="display: flex; gap: 12px; align-items: flex-start;">
-        <svg width="20" height="20" fill="none" stroke="var(--accent-teal)" stroke-width="2.3" viewBox="0 0 24 24" style="flex-shrink: 0; margin-top: 1px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+        <svg width="20" height="20" fill="none" stroke="var(--text-secondary)" stroke-width="2.3" viewBox="0 0 24 24" style="flex-shrink: 0; margin-top: 1px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
         <div style="flex: 1;">
           <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Tu progreso en ${sugerencia.ramaLabel} ya es ${NIVEL_SUGERIDO_LABEL[sugerencia.nivelSugerido]}</div>
           <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; font-weight: 500;">${sugerencia.detalle}</div>
@@ -158,7 +158,7 @@ export async function render() {
   // Racha en cian (--cy): es un logro, no una alerta — el rojo (--state-high)
   // en MK III queda reservado para alertas reales (ver auditoría de Fase 6).
   const rachaHtml = racha.actual > 0
-    ? `<div style="display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; background: rgba(92, 225, 230, 0.12); border: 1px solid rgba(92, 225, 230, 0.3); color: var(--accent-teal); font-size: 12px; font-weight: 700; padding: 3px 10px 3px 8px; border-radius: 999px;">
+    ? `<div style="display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 3px 10px 3px 8px; border-radius: 999px;">
         🔥 <span class="num">${racha.actual}</span> día${racha.actual === 1 ? '' : 's'} seguidos
       </div>`
     : '';
@@ -207,7 +207,7 @@ export async function render() {
         <div style="flex: 1;">
           <div style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Gasto calórico</div>
           <div style="font-size: 12.5px; color: var(--text-primary); font-weight: 700;"><span class="num">${tmb.tmbBase}</span> <span style="color: var(--text-secondary); font-weight: 500;">kcal base (TMB)</span></div>
-          <div style="font-size: 12.5px; color: var(--accent-teal); font-weight: 700; margin-top: 2px;">${tmb.gastoDiario} <span style="color: var(--text-secondary); font-weight: 500;">kcal/día estimado</span></div>
+          <div class="num" style="font-size: 12.5px; color: var(--text-primary); font-weight: 700; margin-top: 2px;">${tmb.gastoDiario} <span style="color: var(--text-secondary); font-weight: 500;">kcal/día estimado</span></div>
         </div>
       </div>
     `;
@@ -224,7 +224,7 @@ export async function render() {
   const metasResumenHtml = metasEntreno.length === 0
     ? `<div class="card tappable" id="btn-ir-metas-analisis" style="padding: 20px; border-radius: 18px; text-align: center; cursor: pointer;">
          <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Todavía no tienes metas de entrenamiento.</div>
-         <div style="background: transparent; color: var(--accent-teal); border: 1px dashed var(--accent-teal); padding: 12px; border-radius: 8px; font-weight: 600;">+ Nueva meta</div>
+         <div style="background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; font-weight: 600;">+ Nueva meta</div>
        </div>`
     : `<div class="card tappable" id="btn-ir-metas-analisis" style="padding: 18px 20px; border-radius: 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; cursor: pointer;">
          <div>
@@ -264,7 +264,7 @@ export async function render() {
 
         <div class="card card--glass" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px;">
           <div style="font-size: 14px; font-style: italic; color: var(--text-primary); line-height: 1.5;">
-            "La disciplina lleva a la <span style="color: var(--accent-teal); font-weight: 700; font-style: normal;">grandeza.</span>"
+            "La disciplina lleva a la <span style="color: var(--text-primary); font-weight: 700; font-style: normal;">grandeza.</span>"
           </div>
         </div>
 

@@ -31,10 +31,10 @@ export function renderHiitTimer(rutina) {
       </div>
 
       <div id="hiit-setup-view" style="display: flex; flex-direction: column; flex: 1;">
-        <div id="hiit-streak-container" style="display: flex; gap: 12px; margin-bottom: 24px; background: rgba(92, 225, 230, 0.06); padding: 14px; border-radius: 16px; border: 1px solid rgba(92, 225, 230, 0.25);">
+        <div id="hiit-streak-container" style="display: flex; gap: 12px; margin-bottom: 24px; background: var(--surface-2); padding: 14px; border-radius: 16px; border: 1px solid var(--surface-border);">
           <div style="flex: 1; text-align: center;">
             <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Racha Actual</div>
-            <div id="hiit-racha-actual" class="num" style="font-size: 20px; font-weight: 800; color: var(--accent-teal);">0${fireSvg}</div>
+            <div id="hiit-racha-actual" class="num" style="font-size: 20px; font-weight: 800; color: var(--text-primary);">0${fireSvg}</div>
           </div>
           <div style="width: 1px; background: var(--surface-border);"></div>
           <div style="flex: 1; text-align: center;">
@@ -73,8 +73,8 @@ export function renderHiitTimer(rutina) {
         </div>
         
         <div id="hiit-round-label" class="num" style="font-size: 18px; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Ronda 1 / 8</div>
-        <div id="hiit-next-exercise" style="font-size: 16px; color: var(--accent-teal); font-weight: 700; margin-bottom: 8px; display: none;"></div>
-        <div id="hiit-amrap-record" style="font-size: 14px; color: var(--accent-teal); font-weight: 700; margin-bottom: 24px; display: none;"></div>
+        <div id="hiit-next-exercise" style="font-size: 16px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px; display: none;"></div>
+        <div id="hiit-amrap-record" class="num" style="font-size: 14px; color: var(--text-secondary); font-weight: 700; margin-bottom: 24px; display: none;"></div>
         
         <button id="btn-amrap-add" class="tappable" style="display: none; background: rgba(92, 225, 230, 0.1); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 14px 24px; border-radius: 16px; font-size: 18px; font-weight: 700; margin-bottom: 24px; cursor: pointer;">+1 Ronda Completada</button>
 
@@ -334,8 +334,8 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
     
     document.getElementById('hiit-summary-stats').innerHTML = `
       <div>Duración: <strong style="color:var(--text-primary);">${duracionMin} min</strong></div>
-      <div>Energía Estimada: <strong style="color:var(--accent-teal);">~${estKcal} kcal</strong></div>
-      ${currentState.mode === 'amrap' ? `<div>Rondas completadas: <strong style="color:var(--accent-teal);">${currentState.amrapCount}</strong></div>` : ''}
+      <div>Energía Estimada: <strong class="num" style="color:var(--text-primary);">~${estKcal} kcal</strong></div>
+      ${currentState.mode === 'amrap' ? `<div>Rondas completadas: <strong class="num" style="color:var(--text-primary);">${currentState.amrapCount}</strong></div>` : ''}
     `;
   };
 

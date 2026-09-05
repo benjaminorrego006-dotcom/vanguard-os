@@ -8,7 +8,7 @@ export function renderTransferForm() {
     <div id="transfer-modal" class="modal-overlay">
       <div class="modal-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); max-height: 90vh;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--accent-purple);">Transferir Fondos</h2>
+          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Transferir Fondos</h2>
           <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">&times;</button>
         </div>
         
