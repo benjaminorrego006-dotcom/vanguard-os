@@ -11,10 +11,22 @@ const DOW_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const DOW_LARGO = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
 // Vista local (lista | detalle) — mismo patrón que activeFinTab en
-// finanzas.js: vive en el módulo, se resetea si se navega a otra vista y
-// se vuelve. habitoDetalleId identifica qué hábito ver en detalle.
+// finanzas.js, pero además empuja una entrada de historial al entrar al
+// detalle: instalada como PWA no hay botón atrás del navegador, así que
+// sin esto el botón atrás del sistema saldría directo de la app en vez de
+// volver a la lista. habitoDetalleId identifica qué hábito ver en detalle.
 let vista = 'lista';
 let habitoDetalleId = null;
+let popstateEnganchado = false;
+
+function onPopStateHabitos(e) {
+  if (vista === 'detalle' && (!e.state || !e.state.habitoDetalle)) {
+    vista = 'lista';
+    habitoDetalleId = null;
+    const root = document.getElementById('view-root');
+    if (root) render().then(html => { root.innerHTML = html; mountListeners(); });
+  }
+}
 
 function semanaActual() {
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
@@ -193,8 +205,24 @@ export function mountListeners() {
 
   setupHabitoForm(refresh);
 
-  const abrirDetalle = (id) => { vista = 'detalle'; habitoDetalleId = id; refresh(); };
-  const volverALista = () => { vista = 'lista'; habitoDetalleId = null; refresh(); };
+  if (!popstateEnganchado) {
+    popstateEnganchado = true;
+    window.addEventListener('popstate', onPopStateHabitos);
+  }
+
+  const abrirDetalle = (id) => {
+    vista = 'detalle'; habitoDetalleId = id;
+    history.pushState({ habitoDetalle: true }, '');
+    refresh();
+  };
+  const volverALista = () => {
+    vista = 'lista'; habitoDetalleId = null;
+    // Si la entrada actual sigue siendo la que empujó abrirDetalle, la
+    // sacamos para no dejar un "atrás" fantasma que no vuelva a nada la
+    // próxima vez (mismo criterio que history.js con los modales).
+    if (history.state && history.state.habitoDetalle) history.back();
+    refresh();
+  };
 
   const btnNew = document.getElementById('btn-new-habito');
   if (btnNew) btnNew.addEventListener('click', () => openHabitoForm());
@@ -290,4 +318,20 @@ export function mountListeners() {
       }
     });
   }
+}
+
+// Llamado por el router (app.js) antes de desmontar esta vista — si el
+// detalle de un hábito estaba abierto (con su entrada de historial
+// empujada), su nodo va a desaparecer con el innerHTML de la vista nueva
+// sin pasar por volverALista(); hay que soltar esa entrada (mismo criterio
+// que forgetOpenModals en history.js) y resetear a la lista para la
+// próxima vez que se entre a Hábitos.
+export function cleanup() {
+  window.removeEventListener('popstate', onPopStateHabitos);
+  popstateEnganchado = false;
+  if (vista === 'detalle' && history.state && history.state.habitoDetalle) {
+    history.back();
+  }
+  vista = 'lista';
+  habitoDetalleId = null;
 }

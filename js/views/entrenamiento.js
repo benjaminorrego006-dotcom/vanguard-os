@@ -26,6 +26,18 @@ let rutinaActualId = null;
 let currentViewController = null;
 let volumenChartInstance = null;
 
+// Instalada como PWA no hay botón atrás del navegador — sin esto, el botón
+// atrás del sistema saldría directo de la app en vez de volver a la
+// pantalla principal de Entreno. Un solo nivel de historial para TODA la
+// pila de sub-vistas (rutinas/form/preview/árbol/estándares/sesión): entrar
+// a cualquiera de ellas desde 'main' empuja una entrada; volver a 'main'
+// (desde donde sea de esa pila) la consume. No replica el stepping fino de
+// un nivel a la vez que ya hace el botón "Volver" — el atrás del sistema
+// es más predecible yendo directo al inicio de Entreno.
+let entrenoHistorialEmpujado = false;
+let entrenoPopstateEnganchado = false;
+let entrenoRespondiendoAPopstate = false;
+
 // Barras de volumen total (peso x reps x series) por semana, agregando
 // todas las categorías. Se llama tras insertar el canvas en el DOM.
 const renderVolumenSemanalChart = async () => {
@@ -114,6 +126,29 @@ export function cleanup() {
   cleanupEjercicioCharts();
   cleanupSessionTimer();
   cleanupHiitTimer();
+
+  window.removeEventListener('popstate', onPopStateEntrenamiento);
+  entrenoPopstateEnganchado = false;
+  // Si había una sub-vista abierta con su entrada de historial empujada,
+  // su nodo va a desaparecer con el innerHTML de la vista nueva sin pasar
+  // por goToMain() — hay que soltar esa entrada (mismo criterio que
+  // forgetOpenModals en history.js) para no dejar un "atrás" fantasma.
+  if (entrenoHistorialEmpujado && history.state && history.state.entrenoSubView) {
+    history.back();
+  }
+  entrenoHistorialEmpujado = false;
+  viewState = 'main';
+  categoriaActiva = null;
+}
+
+function onPopStateEntrenamiento(e) {
+  if (viewState !== 'main' && (!e.state || !e.state.entrenoSubView)) {
+    entrenoRespondiendoAPopstate = true;
+    cleanupSessionTimer();
+    cleanupHiitTimer();
+    if (typeof window.__entrenoGoToMain === 'function') window.__entrenoGoToMain();
+    entrenoRespondiendoAPopstate = false;
+  }
 }
 
 const sesionCardHtml = (s) => {
@@ -324,9 +359,8 @@ export async function render() {
 
       <!-- SUB VIEW (ROUTINES, FORMS, SESSIONS) -->
       <div id="entrenamiento-sub-view" style="display: none; padding-top: 20px;">
-        <button id="btn-entrenamiento-volver" style="background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: 20px; padding: 10px 16px; border-radius: 12px;">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-          Volver
+        <button id="btn-entrenamiento-volver" aria-label="Volver" style="width: 44px; height: 44px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; padding: 0;">
+          <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         </button>
         <div id="entrenamiento-sub-content"></div>
       </div>
@@ -395,10 +429,36 @@ mountListeners = () => {
 
     categoriaActiva = null;
     viewState = 'main';
+    // Consume la entrada de historial empujada al entrar a la pila de
+    // sub-vistas — salvo que ya estemos respondiendo a un popstate (el
+    // atrás del sistema), donde esa entrada ya se está consumiendo sola.
+    if (entrenoHistorialEmpujado && !entrenoRespondiendoAPopstate) {
+      entrenoHistorialEmpujado = false;
+      history.back();
+    } else if (entrenoRespondiendoAPopstate) {
+      entrenoHistorialEmpujado = false;
+    }
     // Refresco completo (no solo "recientes"): una sesión recién terminada
     // también cambia los anillos de progreso, el volumen semanal y el mapa
     // de calor, todos calculados en render().
     refreshFull();
+  };
+  window.__entrenoGoToMain = goToMain;
+
+  if (!entrenoPopstateEnganchado) {
+    entrenoPopstateEnganchado = true;
+    window.addEventListener('popstate', onPopStateEntrenamiento);
+  }
+
+  // Empuja UNA entrada de historial al entrar a la pila de sub-vistas desde
+  // 'main' — entrar a otra sub-vista (rutinas→form, rutinas→sesión, etc.)
+  // no empuja una nueva, ya alcanza con esa única entrada mientras no se
+  // vuelva del todo a 'main' (ver goToMain).
+  const empujarHistorialSiHaceFalta = () => {
+    if (!entrenoHistorialEmpujado) {
+      entrenoHistorialEmpujado = true;
+      history.pushState({ entrenoSubView: true }, '');
+    }
   };
 
   const goToRutinas = async (cat) => {
@@ -408,6 +468,7 @@ mountListeners = () => {
 
     categoriaActiva = cat;
     viewState = 'rutinas';
+    empujarHistorialSiHaceFalta();
     mainView.style.display = 'none';
     subView.style.display = 'block';
     
@@ -442,6 +503,7 @@ mountListeners = () => {
     currentViewController = new AbortController();
 
     viewState = 'arbol';
+    empujarHistorialSiHaceFalta();
     mainView.style.display = 'none';
     subView.style.display = 'block';
 
@@ -459,6 +521,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'estandares';
+    empujarHistorialSiHaceFalta();
     mainView.style.display = 'none';
     subView.style.display = 'block';
 
@@ -477,7 +540,8 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'preview';
-    
+    empujarHistorialSiHaceFalta();
+
     try {
       subContent.innerHTML = renderPlantillaPreview(plantilla);
       initPlantillaPreviewListeners(cat, plantilla, async () => {
@@ -496,6 +560,7 @@ mountListeners = () => {
 
     categoriaActiva = cat;
     viewState = 'generador-preview';
+    empujarHistorialSiHaceFalta();
     mainView.style.display = 'none';
     subView.style.display = 'block';
 
@@ -516,6 +581,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'form';
+    empujarHistorialSiHaceFalta();
 
     try {
       if (cat === 'hiit') {
@@ -541,7 +607,8 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'session';
-    
+    empujarHistorialSiHaceFalta();
+
     try {
       if (rutina.categoria === 'hiit') {
         subContent.innerHTML = renderHiitTimer(rutina);

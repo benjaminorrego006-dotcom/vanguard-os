@@ -7,9 +7,11 @@ export function renderTransferForm() {
   return `
     <div id="transfer-modal" class="modal-overlay sheet-overlay">
       <div class="sheet-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom));">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+          <button class="btn-close-modal" style="width: 40px; height: 40px; flex-shrink: 0; background: var(--surface-2); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+            <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          </button>
           <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Transferir Fondos</h2>
-          <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">&times;</button>
         </div>
         
         <div style="text-align: center; font-size: 40px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary); min-height: 48px;" id="transfer-numpad-display">
