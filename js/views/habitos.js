@@ -52,7 +52,7 @@ function renderFranjaSemanal(habito, hoyIso) {
         aria-pressed="${marcado}"
         style="flex: 1; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: transparent; border: none; cursor: ${esFuturo ? 'default' : 'pointer'}; padding: 0; opacity: ${esFuturo ? '0.35' : '1'};">
         <span aria-hidden="true" style="font-size: 10px; font-weight: 700; color: var(--text-disabled); letter-spacing: 0.4px;">${DOW_SHORT[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span>
-        <span aria-hidden="true" style="width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${esHoy ? 'var(--accent-purple)' : 'transparent'}; background: ${marcado ? 'var(--accent-purple)' : 'var(--surface-2)'};">
+        <span aria-hidden="true" class="day-toggle-circle" data-check-size="13" style="width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${esHoy ? 'var(--accent-purple)' : 'transparent'}; background: ${marcado ? 'var(--accent-purple)' : 'var(--surface-2)'};">
           ${marcado ? '<svg width="13" height="13" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
         </span>
       </button>
@@ -127,7 +127,7 @@ async function renderLista() {
           </div>
         </div>
         <button class="day-toggle-hoy tappable" data-id="${habito.id}" data-fecha="${hoyIso}" aria-label="${marcadoHoy ? 'Desmarcar' : 'Marcar'} ${escapeHtml(habito.nombre)} hoy" aria-pressed="${marcadoHoy}" style="flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;">
-          <span aria-hidden="true" style="width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${marcadoHoy ? 'transparent' : 'var(--surface-border)'}; background: ${marcadoHoy ? 'var(--accent-purple)' : 'var(--surface-2)'};">
+          <span aria-hidden="true" class="day-toggle-circle" data-check-size="16" data-borde-marca="1" style="width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${marcadoHoy ? 'transparent' : 'var(--surface-border)'}; background: ${marcadoHoy ? 'var(--accent-purple)' : 'var(--surface-2)'};">
             ${marcadoHoy ? '<svg width="16" height="16" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
           </span>
         </button>
@@ -209,14 +209,55 @@ export function mountListeners() {
     });
   });
 
+  // Optimista: pinta el círculo al instante y recién después escribe en
+  // IndexedDB — un check que espera a la base de datos se siente roto.
+  // Si la escritura falla, vuelve al estado anterior y avisa con un toast
+  // en vez de dejar un check mintiendo en pantalla.
+  const pintarCirculo = (btn, marcado) => {
+    const circle = btn.querySelector('.day-toggle-circle');
+    if (!circle) return;
+    btn.setAttribute('aria-pressed', String(marcado));
+    circle.style.background = marcado ? 'var(--accent-purple)' : 'var(--surface-2)';
+    if (circle.getAttribute('data-borde-marca')) {
+      circle.style.borderColor = marcado ? 'transparent' : 'var(--surface-border)';
+    }
+    const size = circle.getAttribute('data-check-size') || '16';
+    circle.innerHTML = marcado
+      ? `<svg width="${size}" height="${size}" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+      : '';
+  };
+
   document.querySelectorAll('.day-toggle-hoy, .day-toggle').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const el = e.currentTarget;
       const id = el.getAttribute('data-id');
       const fecha = el.getAttribute('data-fecha');
-      await db.toggleMarcaHabito(id, fecha);
-      refresh();
+      const estabaMarcado = el.getAttribute('aria-pressed') === 'true';
+      const nuevoMarcado = !estabaMarcado;
+
+      pintarCirculo(el, nuevoMarcado);
+
+      try {
+        await db.toggleMarcaHabito(id, fecha);
+        // idbSetArray (db.js) atrapa sus propios errores de IndexedDB y
+        // solo los loguea — nunca rechaza la promesa hacia quien la llamó.
+        // Sin esta verificación, una escritura que falló en silencio se
+        // vería igual que una exitosa. Se relee para confirmar que el
+        // marcado realmente quedó como se pintó antes de confiar en él.
+        const habitosActuales = await db.getHabitos();
+        const habitoActual = habitosActuales.find(h => h.id === id);
+        const quedoMarcado = !!(habitoActual && habitoActual.marcas && habitoActual.marcas[fecha]);
+        if (quedoMarcado !== nuevoMarcado) throw new Error('La marca no se guardó en IndexedDB');
+        // El toque ya se vio al instante — este refresh solo pone al día
+        // la racha y otros contadores derivados, ya no bloquea la
+        // respuesta visual.
+        refresh();
+      } catch (err) {
+        console.error('Error al marcar hábito:', err);
+        pintarCirculo(el, estabaMarcado);
+        Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
+      }
     });
   });
 

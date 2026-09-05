@@ -96,7 +96,7 @@ body {
     transition: background 0.2s;
   }
 
-  .nav-item:hover {
+  .nav-item:hover, .nav-item:active {
     background-color: var(--surface-2);
   }
 

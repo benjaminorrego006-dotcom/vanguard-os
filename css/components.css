@@ -8,8 +8,11 @@
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, background-color 0.2s ease;
 }
 
-/* Interacción sutil en tarjetas que se pueden tocar */
-.card.tappable:hover {
+/* Interacción sutil en tarjetas que se pueden tocar. No existe :hover en
+   touch — sin su equivalente :active, el borde de acento se queda pegado
+   después del toque hasta el próximo tap en cualquier otro lado, dando la
+   sensación de que la tarjeta quedó trabada. */
+.card.tappable:hover, .card.tappable:active {
   transform: translateY(-2px);
   border-color: var(--accent-primary);
 }
@@ -34,7 +37,7 @@
   border-radius: var(--radius-md);
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
-.list-row:hover { border-color: var(--surface-border); }
+.list-row:hover, .list-row:active { border-color: var(--surface-border); }
 .list-row:active { transform: scale(0.99); }
 
 /* Círculo de ícono con tinte de color de categoría */

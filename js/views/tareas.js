@@ -423,8 +423,31 @@ export function mountListeners() {
         card.style.pointerEvents = 'none';
       }
 
-      await db.updateTaskStatus(id, to);
-      setTimeout(refresh, 220);
+      try {
+        await db.updateTaskStatus(id, to);
+        // idbSetArray (db.js) atrapa sus propios errores de IndexedDB y
+        // solo los loguea — nunca rechaza la promesa hacia quien la llamó.
+        // Sin esta verificación, una escritura que falló en silencio se
+        // vería igual que una exitosa. Se relee para confirmar que el
+        // estado realmente cambió antes de confiar en él.
+        const tasksActuales = await db.getTasks();
+        const taskActual = tasksActuales.find(t => t.id === id);
+        if (!taskActual || taskActual.status !== to) throw new Error('El estado no se guardó en IndexedDB');
+        setTimeout(refresh, 220);
+      } catch (err) {
+        // Reversión: la animación y los contadores ya se movieron
+        // optimistamente arriba — si la escritura falla, no puede quedar
+        // un estado mintiendo en pantalla.
+        console.error('Error al avanzar tarea:', err);
+        bumpStateCount(to, -1);
+        bumpStateCount(from, 1);
+        if (card) {
+          card.style.opacity = '1';
+          card.style.transform = 'none';
+          card.style.pointerEvents = '';
+        }
+        Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
+      }
     });
   });
 
