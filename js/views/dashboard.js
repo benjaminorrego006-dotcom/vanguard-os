@@ -424,7 +424,10 @@ export function mountListeners() {
       const text = quickInput.value.trim();
       if (!text) return;
 
-      const amountFound = /\d+(?:[.,]\d+)?/.test(text);
+      // El monto tiene que ir AL PRINCIPIO ("50 en super", el ejemplo del
+      // placeholder) — un dígito en cualquier parte del texto (ej. "Comprar
+      // 2 entradas") mandaba tareas comunes a Finanzas como gasto.
+      const amountFound = /^\$?\s*\d/.test(text);
       if (amountFound) {
         const budget = await db.getBudget();
         const parsed = parseQuickGasto(text, budget.envelopes);
