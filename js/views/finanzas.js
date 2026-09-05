@@ -220,7 +220,12 @@ export async function init() {
       row.addEventListener('click', (e) => {
         if (e.target.closest('button')) return;
         const id = e.currentTarget.getAttribute('data-id');
-        document.getElementById('assign-modal').openForm(id);
+        // No existe un "assign-modal" separado — el envelope-modal ya trae
+        // el campo "Monto Asignado", así que tocar la fila abre el mismo
+        // formulario que el ícono de editar (antes esto tiraba
+        // TypeError: apuntaba a un modal que nunca se llegó a construir).
+        const env = b.envelopes.find(x => x.id === id);
+        if (env) document.getElementById('envelope-modal').openForm(env);
       });
     });
     document.querySelectorAll('.edit-env').forEach(btn => {
