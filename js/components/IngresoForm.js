@@ -3,8 +3,8 @@ import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
 
 export function renderIngresoForm() {
   return `
-    <div id="ingreso-modal" class="modal-overlay">
-      <div class="modal-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); max-height: 90vh; position: relative;">
+    <div id="ingreso-modal" class="modal-overlay sheet-overlay">
+      <div class="sheet-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); position: relative;">
         <div id="ingreso-confirm-overlay" style="display:none; position:absolute; inset:0; z-index:5; background: var(--surface-1); border-radius: inherit; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
           <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(34, 197, 94, 0.15); display: flex; align-items: center; justify-content: center; animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
             <svg width="30" height="30" fill="none" stroke="var(--state-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>

@@ -7,8 +7,8 @@ import { Toast } from '../utils/states.js';
 // desde este formulario).
 export function renderHabitoForm() {
   return `
-    <div id="habito-modal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 440px;">
+    <div id="habito-modal" class="modal-overlay sheet-overlay">
+      <div class="sheet-content" style="max-width: 440px;">
         <h2 id="habito-modal-title" style="margin-top: 0; font-size: 20px; font-weight: 700;">Nuevo Hábito</h2>
         <input type="hidden" id="habito-id">
 

@@ -362,6 +362,44 @@ html.mk3-dashboard .btn-primary:focus-visible, html.mk3-dashboard .mk3-fab:focus
   filter: drop-shadow(0 0 1.5px var(--accent-primary)) drop-shadow(0 0 4px var(--accent-primary));
 }
 
+/* Hoja inferior (bottom sheet) — Gasto/Ingreso/Ahorro/Transferir y el alta
+   de hábito. Con el teclado abierto, un modal centrado queda partido a la
+   mitad; una hoja que sube desde abajo deja el campo justo sobre el
+   teclado. Clase independiente de .modal-content a propósito: esa clase
+   pasa a centrada en escritorio y finanzas.js le inyecta su propia copia
+   local (ver comentario en ese archivo) — pelear con esa cascada para un
+   caso especial habría sido más frágil que tener una clase propia. El
+   overlay SÍ reusa .modal-overlay (con el modificador .sheet-overlay)
+   porque history.js rastrea esa clase para el botón atrás del sistema;
+   nunca le pasa nada aunque el contenido de adentro cambie de clase. */
+.sheet-overlay { align-items: flex-end !important; }
+.sheet-content {
+  background: var(--surface-1);
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0) 30%);
+  width: 100%; max-width: 500px;
+  border: 1px solid var(--glass-border); border-bottom: none;
+  padding: 14px 24px calc(28px + env(safe-area-inset-bottom)) 24px;
+  box-sizing: border-box;
+  max-height: 90dvh; overflow-y: auto;
+  transform: translateY(100%); opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+.sheet-content::before {
+  content: ''; display: block; width: 36px; height: 4px; border-radius: 2px;
+  background: var(--surface-border); margin: 0 auto 18px auto;
+  cursor: grab;
+}
+.modal-overlay.open .sheet-content { transform: translateY(0); opacity: 1; }
+
+/* Chaflán solo en la esquina superior izquierda: la hoja está pegada al
+   borde de abajo (las esquinas de abajo no existen visualmente) y la
+   superior derecha queda recta a propósito — acá no hay una "esquina
+   opuesta" que tenga sentido cortar, como sí la había en .card-hero. */
+html.mk3-entreno .sheet-content, html.mk3-finanzas .sheet-content,
+html.mk3-tareas .sheet-content, html.mk3-dashboard .sheet-content {
+  clip-path: polygon(var(--chaflan) 0, 100% 0, 100% 100%, 0 100%, 0 var(--chaflan));
+}
+
 /* Etiquetas de categoría/sección: todas las que ya se escribieron con
    text-transform: uppercase inline pasan a 11px / tracking 2px. */
 html.mk3-entreno [style*="text-transform: uppercase"],

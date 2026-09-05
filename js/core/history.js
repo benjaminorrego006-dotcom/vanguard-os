@@ -65,3 +65,58 @@ export function forgetOpenModals() {
     if (history.state && history.state.modalId === id) history.back();
   }
 }
+
+// Arrastrar hacia abajo para cerrar las hojas inferiores (.sheet-content —
+// ver components.css). Genérico por el mismo motivo que initModalHistory:
+// un solo listener delegado en document cubre a las 5 hojas de la app sin
+// tocar cada formulario. Cerrar acá significa sacar la clase "open" del
+// .modal-overlay contenedor — el MISMO mecanismo que ya usa cada botón de
+// cierre, así que el observer de arriba lo trackea igual y el botón atrás
+// del sistema sigue funcionando sin ningún caso especial.
+const DRAG_DISMISS_PX = 120;
+const DRAG_DISMISS_VELOCITY = 0.5; // px/ms
+
+export function initSheetDragToDismiss() {
+  let drag = null; // { sheet, overlay, startY, lastY, startTime }
+
+  document.addEventListener('pointerdown', (e) => {
+    const sheet = e.target.closest('.sheet-content');
+    if (!sheet) return;
+    // Solo arrastra si el toque empieza cerca del grip de arriba (el
+    // ::before de 36x4px) o el contenido ya está scrolleado hasta el
+    // tope — si no, un swipe adentro del formulario se comería el scroll
+    // normal del usuario (chips, teclado numérico, etc.).
+    const rect = sheet.getBoundingClientRect();
+    const cercaDelGrip = (e.clientY - rect.top) < 32;
+    if (!cercaDelGrip && sheet.scrollTop > 0) return;
+    if (!cercaDelGrip) return;
+
+    const overlay = sheet.closest('.modal-overlay');
+    if (!overlay) return;
+    drag = { sheet, overlay, startY: e.clientY, lastY: e.clientY, startTime: Date.now() };
+    sheet.style.transition = 'none';
+  });
+
+  document.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    drag.lastY = e.clientY;
+    const dy = Math.max(0, drag.lastY - drag.startY);
+    drag.sheet.style.transform = `translateY(${dy}px)`;
+  });
+
+  const soltar = () => {
+    if (!drag) return;
+    const { sheet, overlay, startY, lastY, startTime } = drag;
+    const dy = Math.max(0, lastY - startY);
+    const velocidad = dy / Math.max(1, Date.now() - startTime);
+    sheet.style.transition = '';
+    sheet.style.transform = '';
+    drag = null;
+    if (dy > DRAG_DISMISS_PX || velocidad > DRAG_DISMISS_VELOCITY) {
+      overlay.classList.remove('open');
+      setTimeout(() => { overlay.style.display = 'none'; }, 300);
+    }
+  };
+  document.addEventListener('pointerup', soltar);
+  document.addEventListener('pointercancel', soltar);
+}

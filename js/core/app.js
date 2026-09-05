@@ -1,6 +1,6 @@
 import { db } from './db.js';
 import { mountLockScreen, startInactivityWatch, isLocked } from './lock.js';
-import { initModalHistory, forgetOpenModals } from './history.js';
+import { initModalHistory, forgetOpenModals, initSheetDragToDismiss } from './history.js';
 import { mountOnboardingInicial } from '../components/onboarding-inicial.js';
 import { escapeHtml } from '../utils/escape.js';
 
@@ -214,6 +214,7 @@ class Router {
     // Botón atrás para los modales .modal-overlay (ver history.js) — un
     // solo observer genérico, no hace falta enganchar nada por nav-item.
     initModalHistory();
+    initSheetDragToDismiss();
     initModalAccessibility();
 
     // Los <a href="#tareas"> del nav ya cambian el hash solos (no hay
