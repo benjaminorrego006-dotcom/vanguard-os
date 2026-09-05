@@ -4,18 +4,7 @@
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
 import { generarPlan } from '../core/generador-rutinas.js';
-
-export const EQUIPO_OPCIONES = [
-  { value: 'barra', label: 'Barra' },
-  { value: 'mancuernas', label: 'Mancuernas' },
-  { value: 'banda', label: 'Banda de resistencia' },
-  { value: 'anillas', label: 'Anillas' },
-  { value: 'barra-dominadas', label: 'Barra de dominadas' },
-  { value: 'banco', label: 'Banco' },
-  { value: 'maquina', label: 'Máquina de gimnasio' },
-  { value: 'kettlebell', label: 'Kettlebell' },
-  { value: 'cajon', label: 'Cajón pliométrico' }
-];
+import { EQUIPO_OPCIONES } from '../core/trainingConfig.js';
 
 const DURACIONES = [20, 30, 45, 60, 75, 90];
 

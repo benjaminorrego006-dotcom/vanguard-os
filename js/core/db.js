@@ -1,6 +1,7 @@
 import { getEjercicioMetadata, getEjercicioPorId, getIdPorNombreExacto, GRUPO_MUSCULAR_ORDEN } from './ejercicios-catalogo.js';
 import * as idb from './idb.js';
 import { mesKeyDe, diaKeyDe } from '../utils/fecha.js';
+import { EQUIPO_OPCIONES } from './trainingConfig.js';
 
 function toSafeNumber(value) {
   const n = Number(value);
@@ -1078,9 +1079,13 @@ export const db = {
     return idbGetSingleton('entrenoGeneradorConfig', null);
   },
   async saveGeneradorConfig(data) {
-    const equipoValido = ['barra', 'mancuernas', 'banda', 'anillas', 'cajon', 'kettlebell', 'maquina', 'banco', 'barra-dominadas'];
+    const equipoValido = EQUIPO_OPCIONES.map(o => o.value);
+    const equipoRecibido = Array.isArray(data.equipoDisponible) ? data.equipoDisponible : [];
+    equipoRecibido.filter(e => !equipoValido.includes(e)).forEach(e => {
+      console.warn('[saveGeneradorConfig] Valor de equipo descartado (no está en EQUIPO_OPCIONES):', e);
+    });
     const config = {
-      equipoDisponible: Array.isArray(data.equipoDisponible) ? data.equipoDisponible.filter(e => equipoValido.includes(e)) : [],
+      equipoDisponible: equipoRecibido.filter(e => equipoValido.includes(e)),
       diasSemana: Math.min(6, Math.max(2, toSafeNumber(data.diasSemana) || 3)),
       duracionSesionMin: Math.min(120, Math.max(15, toSafeNumber(data.duracionSesionMin) || 45)),
       actualizadoEn: new Date().toISOString()

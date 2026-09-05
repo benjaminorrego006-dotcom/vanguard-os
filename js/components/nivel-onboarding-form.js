@@ -11,7 +11,7 @@
 // calórico) y Estándares de Fuerza lo lee de ahí directamente.
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
-import { EQUIPO_OPCIONES } from './generador-rutina-form.js';
+import { EQUIPO_OPCIONES } from '../core/trainingConfig.js';
 
 const TIEMPO_OPCIONES = [
   { value: 'menos-1', label: 'Menos de 1 año', ayuda: 'Recién empezando o volviendo después de una pausa larga.' },
