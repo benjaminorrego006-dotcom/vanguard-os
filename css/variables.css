@@ -1,3 +1,46 @@
+/* Autoalojadas (antes: Inter vía <link> a Google Fonts en index.html, y
+   Space Grotesk/IBM Plex Mono declaradas acá abajo pero nunca cargadas en
+   ningún lado — caían calladas al sans/mono del sistema). Una PWA
+   offline-first no puede depender de una petición externa en el arranque
+   para verse bien, y menos aún declarar una fuente que jamás se sirve.
+   Solo el subset latin: el español completo (incluida ñ, á-ú, ¿, ¡) vive
+   en Latin-1 (U+0000-00FF), así que alcanza sin bajar cyrillic/greek/
+   vietnamese que esta app nunca muestra. Pesos: solo los que el proyecto
+   usa de verdad (ver grep de font-weight junto a cada var(--font-*) en
+   css/ y js/). --font-mono-mk3 (más abajo) usa el stack del sistema a
+   propósito y no se toca. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  /* Rango variable, no un peso fijo: Google sirve un solo archivo
+     variable para 400–900 en vez de seis estáticos — menos bytes en
+     total que descargar los seis por separado. */
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('../assets/fonts/inter-variable-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 700; /* único peso usado: .nav-brand del sidebar de escritorio (layout.css) */
+  font-display: swap;
+  src: url('../assets/fonts/space-grotesk-700-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/ibm-plex-mono-400-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/ibm-plex-mono-700-latin.woff2') format('woff2');
+}
+
 :root {
   /* --- Paleta 2026 (hyper-saturated accents sobre dark minimalista) ---
      4 niveles de superficie: fondo real, elevada, elevada secundaria,

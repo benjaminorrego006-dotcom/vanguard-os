@@ -33,7 +33,10 @@ body {
   position: fixed; bottom: calc(env(safe-area-inset-bottom) + 16px); left: 16px; right: 16px; height: 68px;
   border-radius: 26px;
   display: flex; justify-content: space-around; align-items: center; z-index: 1000;
-  box-shadow: 0 12px 32px -8px rgba(0,0,0,0.55);
+  /* MK III: sin sombra — el efecto vidrio de más abajo (móvil, <768px) ya
+     trae su propio border de 1px (var(--glass-border)) para separarse del
+     contenido detrás; en escritorio pasa a sidebar estático con su propio
+     border-right, tampoco necesita sombra. */
 }
 .nav-brand { display: none; }
 .nav-item {

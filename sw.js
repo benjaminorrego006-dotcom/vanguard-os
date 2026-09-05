@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v72';
+const CACHE_NAME = 'vanguard-os-v73';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -6,6 +6,10 @@ const PRECACHE_URLS = [
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/icon-512-maskable.png',
+  './assets/fonts/inter-variable-latin.woff2',
+  './assets/fonts/space-grotesk-700-latin.woff2',
+  './assets/fonts/ibm-plex-mono-400-latin.woff2',
+  './assets/fonts/ibm-plex-mono-700-latin.woff2',
   './css/variables.css',
   './css/layout.css',
   './css/components.css',
