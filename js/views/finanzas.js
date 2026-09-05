@@ -1349,7 +1349,7 @@ export async function render() {
       <div id="tab-content-resumen" class="fin-tab-content" style="display: ${activeFinTab === 'resumen' ? 'block' : 'none'};">
         <p class="fin-eyebrow" style="margin-bottom: 4px;">Resumen del mes</p>
         <div class="fin-grid3" style="margin-bottom: 24px;">
-          <div class="card fin-stat" id="card-disponible" style="min-width: 0;">
+          <div class="card fin-stat card-hero" id="card-disponible" style="min-width: 0;">
             <p class="fin-eyebrow">Balance</p>
             <div id="disponible-mes-value" class="fin-stat-value" style="color: ${isHealthy ? 'var(--state-success)' : 'var(--state-high)'}; overflow-wrap: anywhere;">${fullStr}</div>
             <div id="month-trend-container">${renderMonthTrend(b)}</div>

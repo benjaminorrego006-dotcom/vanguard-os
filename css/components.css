@@ -303,23 +303,63 @@ html.mk3-dashboard * {
   font-variant-numeric: tabular-nums;
 }
 
-/* Geometría — chaflán en vez de radio, en dos tamaños según el elemento.
-   :not([style*="50%"]) protege los círculos genuinos (icon-chip, avatares,
-   el +/- circular del timer de descanso, el botón "+" de nueva tarea) para
-   que no se compriman a un octógono. */
-html.mk3-entreno .card, html.mk3-entreno .list-row, html.mk3-entreno .modal-content,
-html.mk3-finanzas .card, html.mk3-finanzas .list-row, html.mk3-finanzas .modal-content,
-html.mk3-tareas .card, html.mk3-tareas .list-row, html.mk3-tareas .modal-content,
-html.mk3-dashboard .card, html.mk3-dashboard .list-row, html.mk3-dashboard .modal-content {
+/* Geometría — el chaflán marca jerarquía, no decora: antes lo llevaba
+   parejo CUALQUIER .card/.list-row/.modal-content/botón/input, así que
+   dejaba de significar nada. Ahora solo lo llevan la tarjeta principal de
+   cada pantalla (.card-hero: el reactor de Inicio, el balance de
+   Finanzas, completadas/pendientes de Tareas, la racha de Hábitos), el
+   botón de acción primaria (.btn-primary) y el FAB (.mk3-fab) — el resto
+   queda recto (sin border-radius, sin clip-path). :not([style*="50%"])
+   sigue protegiendo los círculos genuinos que no son FAB (icon-chip,
+   avatares, el +/- del timer de descanso). */
+html.mk3-entreno .card:not(.card-hero), html.mk3-entreno .list-row, html.mk3-entreno .modal-content,
+html.mk3-entreno button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+html.mk3-entreno input, html.mk3-entreno select, html.mk3-entreno textarea,
+html.mk3-finanzas .card:not(.card-hero), html.mk3-finanzas .list-row, html.mk3-finanzas .modal-content,
+html.mk3-finanzas button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+html.mk3-finanzas input, html.mk3-finanzas select, html.mk3-finanzas textarea,
+html.mk3-tareas .card:not(.card-hero), html.mk3-tareas .list-row, html.mk3-tareas .modal-content,
+html.mk3-tareas button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+html.mk3-tareas input, html.mk3-tareas select, html.mk3-tareas textarea,
+html.mk3-dashboard .card:not(.card-hero), html.mk3-dashboard .list-row, html.mk3-dashboard .modal-content,
+html.mk3-dashboard button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+html.mk3-dashboard input, html.mk3-dashboard select, html.mk3-dashboard textarea {
   border-radius: 0 !important;
-  clip-path: polygon(0 9px, 9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%) !important;
+  clip-path: none !important;
 }
-html.mk3-entreno .btn-primary, html.mk3-entreno button:not(.icon-chip):not([style*="50%"]), html.mk3-entreno input, html.mk3-entreno select, html.mk3-entreno textarea,
-html.mk3-finanzas .btn-primary, html.mk3-finanzas button:not(.icon-chip):not([style*="50%"]), html.mk3-finanzas input, html.mk3-finanzas select, html.mk3-finanzas textarea,
-html.mk3-tareas .btn-primary, html.mk3-tareas button:not(.icon-chip):not([style*="50%"]), html.mk3-tareas input, html.mk3-tareas select, html.mk3-tareas textarea,
-html.mk3-dashboard .btn-primary, html.mk3-dashboard button:not(.icon-chip):not([style*="50%"]), html.mk3-dashboard input, html.mk3-dashboard select, html.mk3-dashboard textarea {
+
+/* Chaflán en dos esquinas OPUESTAS (sup-izquierda / inf-derecha), no en
+   las cuatro — corte más discreto que el octógono anterior. */
+.chaflan {
+  clip-path: polygon(
+    var(--chaflan) 0, 100% 0,
+    100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%,
+    0 100%, 0 var(--chaflan)
+  );
+}
+html.mk3-entreno .card-hero, html.mk3-entreno .btn-primary, html.mk3-entreno .mk3-fab,
+html.mk3-finanzas .card-hero, html.mk3-finanzas .btn-primary, html.mk3-finanzas .mk3-fab,
+html.mk3-tareas .card-hero, html.mk3-tareas .btn-primary, html.mk3-tareas .mk3-fab,
+html.mk3-dashboard .card-hero, html.mk3-dashboard .btn-primary, html.mk3-dashboard .mk3-fab {
   border-radius: 0 !important;
-  clip-path: polygon(0 7px, 7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%) !important;
+  clip-path: polygon(
+    var(--chaflan) 0, 100% 0,
+    100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%,
+    0 100%, 0 var(--chaflan)
+  ) !important;
+}
+
+/* clip-path recorta su propio anillo de foco (outline/box-shadow no se ven
+   más allá del polígono) — .btn-primary y .mk3-fab son los únicos
+   controles enfocables con chaflán, así que el foco se dibuja con un
+   filtro drop-shadow: a diferencia de outline/box-shadow, un filtro se
+   compone DESPUÉS del recorte y no queda contenido por él. */
+html.mk3-entreno .btn-primary:focus-visible, html.mk3-entreno .mk3-fab:focus-visible,
+html.mk3-finanzas .btn-primary:focus-visible, html.mk3-finanzas .mk3-fab:focus-visible,
+html.mk3-tareas .btn-primary:focus-visible, html.mk3-tareas .mk3-fab:focus-visible,
+html.mk3-dashboard .btn-primary:focus-visible, html.mk3-dashboard .mk3-fab:focus-visible {
+  outline: none;
+  filter: drop-shadow(0 0 1.5px var(--accent-primary)) drop-shadow(0 0 4px var(--accent-primary));
 }
 
 /* Etiquetas de categoría/sección: todas las que ya se escribieron con

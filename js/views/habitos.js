@@ -93,8 +93,8 @@ export async function render() {
       </div>
 
       ${habitos.length > 0 ? `
-        <!-- Racha de días perfectos -->
-        <div class="card" style="margin-right: 20px; margin-bottom: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+        <!-- Racha de días perfectos — tarjeta principal de Hábitos, lleva chaflán (ver .card-hero). -->
+        <div class="card card-hero" style="margin-right: 20px; margin-bottom: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
           <div style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 50%; background: rgba(139, 124, 246, 0.12); display: flex; align-items: center; justify-content: center; font-size: 24px;">🔥</div>
           <div>
             <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);"><span class="num">${rachaGlobal.actual}</span> ${rachaGlobal.actual === 1 ? 'día perfecto seguido' : 'días perfectos seguidos'}</div>
@@ -115,7 +115,7 @@ export async function render() {
            contenido centrada) queda lejos del contenido — mismo criterio
            que el FAB de Tareas (ver tareas.js). -->
       <div style="position: sticky; bottom: 100px; height: 0; z-index: 2000; display: flex; justify-content: flex-end; pointer-events: none;">
-        <button id="btn-new-habito" class="tappable" style="pointer-events: auto; margin-right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent-purple); color: #000; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <button id="btn-new-habito" class="tappable mk3-fab" style="pointer-events: auto; margin-right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent-purple); color: #000; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer;">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
       </div>

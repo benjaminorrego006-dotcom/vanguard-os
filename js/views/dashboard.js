@@ -288,8 +288,9 @@ export async function render() {
       ${backupReminderHtml}
       ${installBannerHtml}
 
-      <!-- Reactor: tres anillos (Entreno/Finanzas/Tareas) + racha global -->
-      <div class="card" style="padding: 24px 18px; margin-bottom: 20px;">
+      <!-- Reactor: tres anillos (Entreno/Finanzas/Tareas) + racha global —
+           tarjeta principal de Inicio, lleva chaflán (ver .card-hero). -->
+      <div class="card card-hero" style="padding: 24px 18px; margin-bottom: 20px;">
         ${renderReactor({ cyPct, amPct, viPct, rachaGlobal })}
       </div>
 

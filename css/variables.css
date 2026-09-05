@@ -122,4 +122,9 @@
   --t1: #C8DDE4; --t2: #8CA9B4; --t3: #698692; --t4: #64828E; --t5: #6E838E;
 
   --font-mono-mk3: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Tamaño del corte de chaflán (ver .chaflan en components.css) — un solo
+     valor para que la tarjeta principal, el botón primario y el FAB
+     compartan el mismo lenguaje geométrico. */
+  --chaflan: 12px;
 }
