@@ -91,7 +91,11 @@ body {
     display: block;
     font-family: var(--font-display);
     font-size: 20px;
-    font-weight: 800;
+    /* 700, no 800: es el único peso que existe en el .woff2 autoalojado de
+       Space Grotesk (ver @font-face en variables.css) — pedir 800 hacía
+       que el navegador sintetizara una negrita falsa en vez de usar el
+       archivo real. */
+    font-weight: 700;
     letter-spacing: 1px;
     color: var(--text-primary);
     margin-bottom: var(--space-5);
