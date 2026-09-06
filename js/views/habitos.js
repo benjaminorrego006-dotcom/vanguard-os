@@ -72,6 +72,36 @@ function renderFranjaSemanal(habito, hoyIso) {
   }).join('');
 }
 
+// Cuadrícula semanal compacta por hábito, para la fila de la lista —
+// mismo espíritu que el heatmap de Tareas/Entreno (una franja de celdas de
+// color), pero de 7 días fijos (semana calendario actual, no un mes) y con
+// 3 estados discretos en vez de intensidad por opacidad: un hábito no mide
+// "cuánta actividad hubo" sino si se cumplió ese día o no.
+//   cumplido → relleno sólido con el acento del módulo.
+//   fallado  → día ya pasado y sin marcar, tinte rojizo apagado.
+//   pendiente → hoy (todavía accionable) o futuro; hoy lleva un anillo para
+//   distinguirlo de "ya pasó y no se hizo".
+function renderMiniSemana(habito, hoyIso) {
+  const marcas = habito.marcas || {};
+  const dias7 = semanaActual();
+  const celdas = dias7.map(d => {
+    const iso = diaKeyDe(d);
+    const marcado = !!marcas[iso];
+    const esHoy = iso === hoyIso;
+    const esFuturo = iso > hoyIso;
+    const fallado = !marcado && !esHoy && !esFuturo;
+    const bg = marcado
+      ? 'var(--accent-purple)'
+      : fallado
+        ? 'color-mix(in srgb, var(--state-high) 40%, var(--surface-2))'
+        : 'var(--surface-2)';
+    const ring = esHoy ? 'box-shadow: 0 0 0 1.5px var(--accent-purple) inset;' : '';
+    const dim = esFuturo ? 'opacity: 0.4;' : '';
+    return `<div aria-hidden="true" style="flex: 1; aspect-ratio: 1; border-radius: 3px; background: ${bg}; ${ring} ${dim}"></div>`;
+  }).join('');
+  return `<div style="display: flex; gap: 3px; margin-top: 8px;">${celdas}</div>`;
+}
+
 async function renderDetalle(id) {
   const habitos = await db.getHabitos();
   const habito = habitos.find(h => h.id === id);
@@ -131,19 +161,22 @@ async function renderLista() {
     const marcadoHoy = !!(habito.marcas || {})[hoyIso];
     const racha = habito._racha || { actual: 0, mejor: 0 };
     return `
-      <div class="list-row habito-row tappable" data-id="${habito.id}" style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; min-height: 44px; cursor: pointer; margin-bottom: 8px;">
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(habito.nombre)}</div>
-          <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">
-            ${racha.actual > 0 ? `🔥 <span class="num">${racha.actual}</span> ${racha.actual === 1 ? 'día seguido' : 'días seguidos'}` : 'Sin racha todavía'}
+      <div class="list-row habito-row tappable" data-id="${habito.id}" style="display: flex; flex-direction: column; padding: 10px 12px; min-height: 44px; cursor: pointer; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(habito.nombre)}</div>
+            <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">
+              ${racha.actual > 0 ? `🔥 <span class="num">${racha.actual}</span> ${racha.actual === 1 ? 'día seguido' : 'días seguidos'}` : 'Sin racha todavía'}
+            </div>
           </div>
+          <button class="day-toggle-hoy tappable" data-id="${habito.id}" data-fecha="${hoyIso}" aria-label="${marcadoHoy ? 'Desmarcar' : 'Marcar'} ${escapeHtml(habito.nombre)} hoy" aria-pressed="${marcadoHoy}" style="flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;">
+            <span aria-hidden="true" class="day-toggle-circle" data-check-size="16" data-borde-marca="1" style="width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${marcadoHoy ? 'transparent' : 'var(--surface-border)'}; background: ${marcadoHoy ? 'var(--accent-purple)' : 'var(--surface-2)'};">
+              ${marcadoHoy ? '<svg width="16" height="16" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+            </span>
+          </button>
+          <svg aria-hidden="true" width="16" height="16" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24" style="flex-shrink: 0;"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </div>
-        <button class="day-toggle-hoy tappable" data-id="${habito.id}" data-fecha="${hoyIso}" aria-label="${marcadoHoy ? 'Desmarcar' : 'Marcar'} ${escapeHtml(habito.nombre)} hoy" aria-pressed="${marcadoHoy}" style="flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;">
-          <span aria-hidden="true" class="day-toggle-circle" data-check-size="16" data-borde-marca="1" style="width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${marcadoHoy ? 'transparent' : 'var(--surface-border)'}; background: ${marcadoHoy ? 'var(--accent-purple)' : 'var(--surface-2)'};">
-            ${marcadoHoy ? '<svg width="16" height="16" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
-          </span>
-        </button>
-        <svg aria-hidden="true" width="16" height="16" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24" style="flex-shrink: 0;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        ${renderMiniSemana(habito, hoyIso)}
       </div>
     `;
   };

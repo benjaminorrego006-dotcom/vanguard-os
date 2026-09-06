@@ -21,18 +21,17 @@ export function SkeletonCard(height = '100px') {
 // lo que hacía que se renderizara "undefined" en vez del mensaje.
 // Se simplifica a (title, subtitle) para que coincida con el uso real,
 // manteniendo la prohibición de emojis (icono SVG opcional en vez de emoji).
+//
+// Rediseño: la caja punteada + ícono genérico de "info" se reemplaza por
+// .vg-empty (components.css) — el mismo patrón de texto centrado sin caja
+// que ya usaba Finanzas en su propio .fin-empty, ahora generalizado para
+// que Análisis/Anotaciones/Hábitos (los ~13 llamadores de este helper)
+// dejen de verse como "recuadro de error vacío" genérico.
 export function EmptyState(title, subtitle = '') {
   return `
-    <div class="card" style="padding: 32px 20px; text-align: center; background-color: var(--surface-1); border-radius: 16px; margin-bottom: 24px; border: 1px dashed var(--surface-border);">
-      <div style="margin-bottom: 12px; display: flex; justify-content: center;">
-        <svg width="28" height="28" fill="none" stroke="var(--text-disabled)" stroke-width="1.5" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-      </div>
-      <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-secondary);">${title}</h3>
-      ${subtitle ? `<p style="margin: 6px 0 0 0; font-size: 12px; color: var(--text-disabled);">${subtitle}</p>` : ''}
+    <div class="vg-empty">
+      <h3>${title}</h3>
+      ${subtitle ? `<p class="vg-desc">${subtitle}</p>` : ''}
     </div>
   `;
 }

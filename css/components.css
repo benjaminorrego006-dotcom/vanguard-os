@@ -584,6 +584,15 @@ input[type="date"] { color-scheme: dark; }
 .fin-empty .fin-eyebrow { margin-bottom: 10px; }
 .fin-empty p.fin-desc { color: var(--text-secondary); max-width: 380px; margin: 10px auto 0; font-size: 12.5px; }
 
+/* Empty state genérico: generaliza el mismo patrón de .fin-empty de arriba
+   (texto centrado, sin caja ni ícono genérico) para el resto de la app —
+   lo consume EmptyState() en utils/states.js, compartido por Análisis,
+   Anotaciones y Hábitos. .fin-empty queda intacto (Finanzas ya lo usa
+   directo con su propio eyebrow) para no arrastrar cambios a esa vista. */
+.vg-empty { padding: 48px 24px; text-align: center; }
+.vg-empty h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.vg-empty p.vg-desc { color: var(--text-secondary); max-width: 380px; margin: 10px auto 0; font-size: 12.5px; }
+
 .fin-bal { font-size: 20px; font-weight: 700; margin-top: 8px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 /* Accesibilidad de movimiento — global, no depende de qué sección esté
