@@ -291,6 +291,20 @@ export async function render() {
   const viPct = habitos.length > 0 ? (habitosMarcadosHoy / habitos.length) * 100 : 0;
   const tareasActivas = tareas.filter(t => t.status !== 'done').length;
 
+  // Semana actual (lunes a domingo) para el resumen de Planificador —
+  // mismo cálculo que usa planificador.js para su propia vista.
+  const lunesActual = new Date(); lunesActual.setHours(0, 0, 0, 0);
+  lunesActual.setDate(lunesActual.getDate() - ((lunesActual.getDay() + 6) % 7));
+  const domingoActual = new Date(lunesActual); domingoActual.setDate(lunesActual.getDate() + 6);
+
+  const [progresoRitual, tareasSemana, notas, categoriasNota] = await Promise.all([
+    db.getProgresoRitual(hoyIso),
+    db.getTareasPlan(diaKeyDe(lunesActual), diaKeyDe(domingoActual)),
+    db.getNotas(),
+    db.getCategoriasNota()
+  ]);
+  const tareasSemanaHechas = tareasSemana.filter(t => t.hecha).length;
+
   const rachaSubtitle = stats.rachaSemanas > 0
     ? `${stats.rachaSemanas} semana${stats.rachaSemanas === 1 ? '' : 's'} de racha en Entreno`
     : 'Empieza tu semana con una sesión';
@@ -377,6 +391,30 @@ export async function render() {
           value: habitos.length === 0
             ? 'Sin hábitos todavía'
             : `${habitosMarcadosHoy}/${habitos.length} marcados hoy`
+        })}
+        ${renderHeroicRow({
+          id: 'row-ritual',
+          color: 'var(--accent-ritual)',
+          label: 'Ritual',
+          value: progresoRitual.hechos === 0
+            ? 'Ritual pendiente'
+            : `${progresoRitual.hechos} de ${progresoRitual.total} campos hoy`
+        })}
+        ${renderHeroicRow({
+          id: 'row-planificador',
+          color: 'var(--accent-plan)',
+          label: 'Semana',
+          value: tareasSemana.length === 0
+            ? 'Semana sin tareas'
+            : `${tareasSemanaHechas} de ${tareasSemana.length} completadas`
+        })}
+        ${renderHeroicRow({
+          id: 'row-anotaciones',
+          color: 'var(--accent-notas)',
+          label: 'Anotaciones',
+          value: notas.length === 0
+            ? 'Sin notas todavía'
+            : `${notas.length} ${notas.length === 1 ? 'nota' : 'notas'} en ${categoriasNota.length} ${categoriasNota.length === 1 ? 'categoría' : 'categorías'}`
         })}
       </div>
 
@@ -474,6 +512,9 @@ export function mountListeners() {
   const rowFinanzas = document.getElementById('row-finanzas');
   const rowTareas = document.getElementById('row-tareas');
   const rowHabitos = document.getElementById('row-habitos');
+  const rowRitual = document.getElementById('row-ritual');
+  const rowPlanificador = document.getElementById('row-planificador');
+  const rowAnotaciones = document.getElementById('row-anotaciones');
 
   if (qaGasto) qaGasto.addEventListener('click', () => go('finanzas'));
   if (qaEntreno) qaEntreno.addEventListener('click', () => go('entrenamiento'));
@@ -481,6 +522,9 @@ export function mountListeners() {
   if (rowFinanzas) rowFinanzas.addEventListener('click', () => go('finanzas'));
   if (rowTareas) rowTareas.addEventListener('click', () => go('tareas'));
   if (rowHabitos) rowHabitos.addEventListener('click', () => go('habitos'));
+  if (rowRitual) rowRitual.addEventListener('click', () => go('ritual'));
+  if (rowPlanificador) rowPlanificador.addEventListener('click', () => go('planificador'));
+  if (rowAnotaciones) rowAnotaciones.addEventListener('click', () => go('anotaciones'));
 
   // Captura rápida: si el texto trae un monto, se registra como gasto
   // (mismo parser que "Agregar gasto rápido" de Finanzas); si no, se crea

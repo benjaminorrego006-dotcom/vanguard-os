@@ -64,6 +64,14 @@
   --accent-orange: #F59E0B;
   --accent-blue: #3B82F6; /* solo para distinguir categorías/datos (ej. "Deseos" en Finanzas, columna "En Progreso" en Tareas) — no es un acento de marca */
 
+  /* --- Fase "vida" (Ritual, Planificador, Anotaciones): igual que
+     --cy/--am/--vi, tokens globales en :root para que las filas heroicas
+     de Inicio puedan usarlos aunque #view-root esté en scope
+     .mk3-dashboard, no en el de cada módulo. --- */
+  --accent-ritual: #8B7CFF;
+  --accent-plan: #4ADE80;
+  --accent-notas: #94A3B8;
+
   /* --- Estados semánticos: mismos colores de feedback en toda la app,
      nunca varían entre secciones. --- */
   --state-high: #EF4444;
