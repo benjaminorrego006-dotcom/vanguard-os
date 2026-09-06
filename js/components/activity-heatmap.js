@@ -26,7 +26,7 @@ export function renderActivityHeatmap({ id, monthLabel, year, month, countByDay,
     const fullLabel = `${day} de ${monthLabel}: ${detailText}`;
     return `
       <div class="heatmap-cell tappable" data-day="${day}" data-detail="${escapeHtml(fullLabel)}" title="${escapeHtml(fullLabel)}"
-        style="aspect-ratio: 1; border-radius: 5px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-sizing: border-box; border: 1.5px solid transparent; font-size: 9.5px; font-weight: 700; transition: border-color 0.15s ease; background: ${count === 0 ? 'var(--surface-2)' : accentVar}; opacity: ${count === 0 ? 1 : alpha}; color: ${count === 0 ? 'var(--text-disabled)' : 'var(--text-primary)'};">
+        style="aspect-ratio: 1; border-radius: 5px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-sizing: border-box; border: 1.5px solid transparent; font-size: 9.5px; font-weight: 700; transition: border-color 0.15s ease; background: ${count === 0 ? 'var(--surface-2)' : accentVar}; opacity: ${count === 0 ? 1 : alpha}; color: ${count === 0 ? 'var(--text-disabled)' : '#000'};">
         ${day}
       </div>`;
   };
