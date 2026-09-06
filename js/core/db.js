@@ -1293,6 +1293,15 @@ export const db = {
   // Racha de productividad de Tareas: días consecutivos con al menos una
   // tarea completada. Mismo algoritmo que getRachaGeneral, misma fuente
   // (log de eventos) — usada por Análisis > Tareas > Racha.
+  //
+  // Tareas salió del nav (primera etapa de su retiro, reversible), pero el
+  // filtro `modulo === 'tareas'` de acá abajo se queda igual a propósito:
+  // el log de eventos es inmutable y estas tareas_completada históricas sí
+  // pasaron. Si algún día se "limpia" este filtro para que deje de contar
+  // esos eventos, la racha se recalcula hacia atrás y le miente al usuario
+  // sobre su propio pasado. Ya no se generan eventos nuevos de este tipo
+  // porque no hay dónde crear una tarea — la cuenta simplemente deja de
+  // crecer, no se le resta lo que ya pasó.
   async getRachaTareas() {
     const eventos = await idb.getAll('events');
     const tareaEventos = eventos.filter(e => e.modulo === 'tareas' && e.tipo === 'tarea_completada');
@@ -1388,6 +1397,12 @@ export const db = {
   // Actividad de Tareas por día de un mes (tareas completadas), misma
   // fuente/forma que getActividadEntrenoPorDia — usada por el heatmap de
   // Tareas y por Análisis > Tareas.
+  //
+  // Mismo motivo que getRachaTareas() más arriba para no tocar el filtro
+  // 'tareas' de getActividadPorDia() pese a que el módulo salió del nav:
+  // el log es inmutable, esos días de actividad pasaron de verdad. No se
+  // generan eventos nuevos porque no hay dónde completar una tarea, pero
+  // el historial ya registrado no se recalcula ni se borra.
   async getActividadTareasPorDia(year, month) {
     const { countByDay, eventsByDay } = await this.getActividadPorDia('tareas', 'tarea_completada', year, month);
     const detailByDay = {};
