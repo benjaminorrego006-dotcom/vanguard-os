@@ -156,9 +156,9 @@ function renderReactor({ cyPct, amPct, viPct, rachaGlobal }) {
 // ícono de billetera) de la versión anterior.
 function renderHeroicRow({ id, color, label, value }) {
   return `
-    <div id="${id}" class="card tappable" style="display: flex; align-items: center; gap: 14px; padding: 15px 16px; margin-bottom: 10px; border-left: 3px solid ${color}; cursor: pointer;">
+    <div id="${id}" class="card tappable" style="display: flex; align-items: center; gap: 14px; padding: 15px 16px; margin-bottom: 10px; border-left: 2px solid ${color}; cursor: pointer;">
       <div style="flex: 1; min-width: 0;">
-        <div style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px;">${label}</div>
+        <div class="num" style="font-size: 10px; font-weight: 700; color: ${color}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px;">${label}</div>
         <div class="num" style="font-size: 19px; font-weight: 800; color: var(--text-primary); line-height: 1.15;">${value}</div>
       </div>
       <svg width="16" height="16" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -187,7 +187,7 @@ function renderBadgeHex(b) {
 }
 
 export async function render() {
-  const [budget, stats, sesiones, resumenSemanal, racha, rachaGlobal, badges, habitos, rachaHabitos] = await Promise.all([
+  const [budget, stats, sesiones, resumenSemanal, racha, rachaGlobal, badges, habitos, tareas] = await Promise.all([
     db.getBudget(),
     db.getDashboardStats(),
     db.getSesiones(),
@@ -196,7 +196,7 @@ export async function render() {
     db.getRachaGlobal(),
     db.getBadges(),
     db.getHabitos(),
-    db.getRachaHabitosGlobal()
+    db.getTasks()
   ]);
 
   const sesionesSemanaTotal = Object.values(resumenSemanal).reduce((a, b2) => a + b2, 0);
@@ -275,6 +275,7 @@ export async function render() {
   // Sin hábitos creados no hay nada que marcar todavía — el anillo va en 0
   // en vez de inventar un porcentaje (0/0 no es 100%).
   const viPct = habitos.length > 0 ? (habitosMarcadosHoy / habitos.length) * 100 : 0;
+  const tareasActivas = tareas.filter(t => t.status !== 'done').length;
 
   const rachaSubtitle = stats.rachaSemanas > 0
     ? `${stats.rachaSemanas} semana${stats.rachaSemanas === 1 ? '' : 's'} de racha en Entreno`
@@ -335,12 +336,18 @@ export async function render() {
           value: `${formatCurrency(Math.max(0, budget.remaining))} disponibles`
         })}
         ${renderHeroicRow({
+          id: 'row-tareas',
+          color: 'var(--vi)',
+          label: 'Tareas',
+          value: `${tareasActivas} activa${tareasActivas === 1 ? '' : 's'}`
+        })}
+        ${renderHeroicRow({
           id: 'row-habitos',
           color: 'var(--vi)',
           label: 'Hábitos',
           value: habitos.length === 0
             ? 'Sin hábitos todavía'
-            : `${rachaHabitos.actual} día${rachaHabitos.actual === 1 ? '' : 's'} de racha perfecta`
+            : `${habitosMarcadosHoy}/${habitos.length} marcados hoy`
         })}
       </div>
 
@@ -412,12 +419,14 @@ export function mountListeners() {
   const qaEntreno = document.getElementById('qa-entreno');
   const rowEntreno = document.getElementById('row-entreno');
   const rowFinanzas = document.getElementById('row-finanzas');
+  const rowTareas = document.getElementById('row-tareas');
   const rowHabitos = document.getElementById('row-habitos');
 
   if (qaGasto) qaGasto.addEventListener('click', () => go('finanzas'));
   if (qaEntreno) qaEntreno.addEventListener('click', () => go('entrenamiento'));
   if (rowEntreno) rowEntreno.addEventListener('click', () => go('entrenamiento'));
   if (rowFinanzas) rowFinanzas.addEventListener('click', () => go('finanzas'));
+  if (rowTareas) rowTareas.addEventListener('click', () => go('tareas'));
   if (rowHabitos) rowHabitos.addEventListener('click', () => go('habitos'));
 
   // Captura rápida: si el texto trae un monto, se registra como gasto
