@@ -348,7 +348,7 @@ export async function render() {
       <div style="margin-bottom: 20px;">
         <div style="position: relative;">
           <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
-          <input type="text" id="quick-capture-input" placeholder="Registrar gasto rápido (ej. &quot;50 en super&quot;)..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box;" autocomplete="off">
+          <input type="text" id="quick-capture-input" placeholder="Anota algo — tarea o gasto (ej. &quot;50 en super&quot;)..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box;" autocomplete="off">
         </div>
         <div id="quick-capture-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
         <div id="quick-capture-sobre-opciones" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
@@ -420,11 +420,10 @@ export function mountListeners() {
   if (rowFinanzas) rowFinanzas.addEventListener('click', () => go('finanzas'));
   if (rowHabitos) rowHabitos.addEventListener('click', () => go('habitos'));
 
-  // Captura rápida: un solo destino, Gasto (mismo parser que "Agregar
-  // gasto rápido" de Finanzas). Antes también creaba tareas si el texto no
-  // traía monto; con Tareas fuera del nav esa rama ya no tiene dónde
-  // guardar nada, así que un texto sin monto al principio solo avisa que
-  // no encontró qué registrar — no crea nada ni adivina.
+  // Captura rápida: si el texto trae un monto, se registra como gasto
+  // (mismo parser que "Agregar gasto rápido" de Finanzas); si no, se crea
+  // como tarea. Dos destinos nada más — evita inventar un "log de nota
+  // libre" de Entreno que la app no tiene forma estructurada de guardar.
   const quickInput = document.getElementById('quick-capture-input');
   const quickHint = document.getElementById('quick-capture-hint');
   const quickOpciones = document.getElementById('quick-capture-sobre-opciones');
@@ -474,9 +473,7 @@ export function mountListeners() {
 
       // El monto tiene que ir AL PRINCIPIO ("50 en super", el ejemplo del
       // placeholder) — un dígito en cualquier parte del texto (ej. "Comprar
-      // 2 entradas") registraba un gasto de $2 con ese texto como si "2"
-      // fuera un precio. Se mantiene esta guarda aunque ya no haya un
-      // destino alternativo (Tareas): un texto así sigue sin ser un monto.
+      // 2 entradas") mandaba tareas comunes a Finanzas como gasto.
       const amountFound = /^\$?\s*\d/.test(text);
       if (amountFound) {
         const budget = await db.getBudget();
@@ -491,8 +488,12 @@ export function mountListeners() {
         }
         await registrarGasto(parsed, parsed.matches[0] || null);
         return;
+      } else {
+        await db.saveTask({ title: text, status: 'todo', priority: 'medium' });
+        Toast('Tarea creada', 'success');
       }
-      quickHint.textContent = 'Escribí un monto al principio, ej. "50 en super"';
+      limpiarCapturaRapida();
+      refresh();
     });
   }
 }
