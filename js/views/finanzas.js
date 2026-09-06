@@ -16,7 +16,6 @@ import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { escapeHtml } from '../utils/escape.js';
 import { mesKeyDe, formatFechaCorta, formatMes } from '../utils/fecha.js';
-import { renderMiniChart } from '../components/mini-chart.js';
 
 const editSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const transferSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
@@ -1198,44 +1197,6 @@ export async function render() {
   const presupuestoLegendHtml = renderPresupuestoLegend(b);
   const envelopesHtml = await renderEnvelopesHTML(b);
 
-  // Hitos (ex Análisis > Finanzas > Hitos, TAREA 4 del retiro de Tareas):
-  // getMesesSinExceder/getCategoriasFueraDeRango/getTendenciaAhorro son las
-  // 3 llamadas que el hallazgo 7 de docs/PENDIENTES-CODE-REVIEW.md marca
-  // como lentas (18 llamadas secuenciales a getBudget). Antes corrían solo
-  // al entrar a Análisis; acá corren en cada render de Finanzas, que se
-  // visita mucho más seguido. No se arregla en este prompt (pedido
-  // explícito), pero queda anotado por si el rendimiento se nota peor.
-  const [mesesSinExceder, categoriasFuera, tendenciaAhorro] = await Promise.all([
-    db.getMesesSinExceder(6),
-    db.getCategoriasFueraDeRango(6),
-    db.getTendenciaAhorro(6)
-  ]);
-  const hitosMesLabel = (mesStr) => {
-    const [y, m] = mesStr.split('-');
-    const mesDate = new Date(Number(y), Number(m) - 1, 1);
-    return `${formatMes(mesDate)} ${mesDate.getFullYear()}`;
-  };
-  const hitosMesesHtml = mesesSinExceder.length === 0
-    ? `<div style="font-size: 12.5px; color: var(--text-secondary);">Todavía no hay un mes completo sin excederte.</div>`
-    : mesesSinExceder.map(m => `
-        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--surface-border);">
-          <span style="font-size: 13px; color: var(--text-primary); text-transform: capitalize;">${hitosMesLabel(m.mes)}</span>
-          <span style="font-size: 12px; color: var(--state-success); font-weight: 700;">✓ Sin excederte</span>
-        </div>`).join('');
-  const hitosCategoriasHtml = categoriasFuera.length === 0
-    ? `<div style="font-size: 12.5px; color: var(--text-secondary);">Ninguna categoría se sale de rango de forma consistente.</div>`
-    : categoriasFuera.map(c => `
-        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--surface-border);">
-          <span style="font-size: 13px; color: var(--text-primary);">${c.categoria}</span>
-          <span style="font-size: 12px; color: var(--rd); font-weight: 700;">${c.meses}/${c.totalMeses} meses</span>
-        </div>`).join('');
-  const hitosAhorroChartHtml = renderMiniChart(tendenciaAhorro, {
-    color: 'var(--am)',
-    unidad: '',
-    label: 'Ahorro guardado por mes (últimos 6 meses)',
-    emptyText: 'Registra algunos meses de ahorro para ver la tendencia.'
-  });
-
   // getHistoricalSummary ahora es async (lee IndexedDB): se precalcula acá
   // el bloque de "Tendencia de gastos" en vez de armarlo en una IIFE
   // síncrona dentro del template literal de más abajo.
@@ -1382,8 +1343,8 @@ export async function render() {
 
       <!-- TABS BAR -->
       <div class="segmented-control" style="margin-bottom: 20px; overflow-x: auto; flex-wrap: nowrap;">
-        ${['resumen', 'movimientos', 'presupuesto', 'recurrentes', 'cuentas', 'hitos'].map(t => {
-          const labels = { resumen: 'Resumen', movimientos: 'Movimientos', presupuesto: 'Presupuesto', recurrentes: 'Recurrentes', cuentas: 'Cuentas', hitos: 'Hitos' };
+        ${['resumen', 'movimientos', 'presupuesto', 'recurrentes', 'cuentas'].map(t => {
+          const labels = { resumen: 'Resumen', movimientos: 'Movimientos', presupuesto: 'Presupuesto', recurrentes: 'Recurrentes', cuentas: 'Cuentas' };
           const isActive = activeFinTab === t;
           return `<button class="fin-tab ${isActive ? 'active' : ''}" data-tab="${t}" style="flex: 0 0 auto; padding: 10px 14px; background: ${isActive ? 'var(--surface-1)' : 'transparent'}; color: ${isActive ? 'var(--text-primary)' : 'var(--text-secondary)'};">${labels[t]}</button>`;
         }).join('')}
@@ -1543,23 +1504,6 @@ export async function render() {
         </div>
         <div id="goals-container" style="margin-top: 24px;">
           ${renderGoalsHTML(b)}
-        </div>
-      </div>
-
-      <!-- TAB 6: HITOS (ex Análisis > Finanzas > Hitos) -->
-      <div id="tab-content-hitos" class="fin-tab-content" style="display: ${activeFinTab === 'hitos' ? 'block' : 'none'};">
-        <p class="fin-eyebrow" style="margin-bottom: 12px;">Hitos</p>
-        <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 20px;">
-          <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Tendencia de ahorro</h3>
-          ${hitosAhorroChartHtml}
-        </div>
-        <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 20px;">
-          <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Meses sin exceder presupuesto</h3>
-          ${hitosMesesHtml}
-        </div>
-        <div class="card" style="padding: 18px; border-radius: 18px;">
-          <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Categorías fuera de rango</h3>
-          ${hitosCategoriasHtml}
         </div>
       </div>
 

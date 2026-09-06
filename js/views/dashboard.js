@@ -6,6 +6,20 @@ import { parseQuickGasto } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
 import { diaKeyDe } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
+import { renderLaboratorio, initLaboratorioListeners, cleanupLaboratorio } from '../components/laboratorio.js';
+
+let labObserver = null;
+
+// Llamado por el router (app.js) antes de desmontar Inicio. El laboratorio
+// puede tener instancias de Chart.js vivas (donut/línea) que si no, quedan
+// con su canvas fuera del DOM pero corriendo — mismo motivo que ya
+// documentaba analisis.js. Si el usuario nunca scrolleó hasta el
+// laboratorio, el observer sigue esperando: hay que desconectarlo también,
+// o queda observando un nodo que el próximo render va a reemplazar.
+export function cleanup() {
+  cleanupLaboratorio();
+  if (labObserver) { labObserver.disconnect(); labObserver = null; }
+}
 
 // El evento beforeinstallprompt lo captura index.html apenas carga la
 // página (antes de que este módulo exista) y lo guarda en
@@ -294,6 +308,20 @@ export async function render() {
       ${backupReminderHtml}
       ${installBannerHtml}
 
+      <!-- Laboratorio: gráficos de todos los módulos juntos (ex Análisis).
+           Va primero, arriba del reactor. El contenido real (datos +
+           Chart.js, 204KB) se difiere hasta que este contenedor entra al
+           viewport — ver el IntersectionObserver en mountListeners() — así
+           el arranque de la app no paga ese costo si el usuario ni llega a
+           scrollear hasta acá. -->
+      <div style="margin-bottom: 20px;">
+        <h2 style="font-size: 18px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Laboratorio</h2>
+        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 14px 0;">Gráficos y tendencias de tus módulos, todos juntos.</p>
+        <div id="lab-section-content">
+          <div class="card" style="padding: 40px 20px; text-align: center; color: var(--text-disabled); font-size: 12px;">Cargando…</div>
+        </div>
+      </div>
+
       <!-- Reactor: tres anillos (Entreno/Finanzas/Hábitos) + racha global —
            tarjeta principal de Inicio, lleva chaflán (ver .card-hero). -->
       <div class="card card-hero" style="padding: 24px 18px; margin-bottom: 20px;">
@@ -370,6 +398,30 @@ export function mountListeners() {
     if (window.appRouter) window.appRouter.navigate(view);
   };
   const refresh = () => { if (window.appRouter) window.appRouter.navigate('dashboard'); };
+
+  // El laboratorio se monta recién cuando su contenedor entra al viewport
+  // (rootMargin da un pequeño margen para que empiece a cargar un poco
+  // antes de que el usuario lo vea del todo). refreshLab() solo reemplaza
+  // #lab-section-content, no toda Inicio — cambiar de pestaña ahí adentro
+  // no debe recalcular el reactor ni las filas.
+  const refreshLab = async () => {
+    const labContent = document.getElementById('lab-section-content');
+    if (!labContent) return;
+    labContent.innerHTML = await renderLaboratorio();
+    initLaboratorioListeners(refreshLab);
+  };
+  const labPlaceholder = document.getElementById('lab-section-content');
+  if (labPlaceholder) {
+    if (labObserver) labObserver.disconnect();
+    labObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        labObserver.disconnect();
+        labObserver = null;
+        refreshLab();
+      }
+    }, { rootMargin: '150px' });
+    labObserver.observe(labPlaceholder);
+  }
 
   const btnBackupExport = document.getElementById('btn-backup-export-inicio');
   const btnBackupSnooze = document.getElementById('btn-backup-snooze');

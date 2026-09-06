@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v94';
+const CACHE_NAME = 'vanguard-os-v95';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -74,7 +74,11 @@ const PRECACHE_URLS = [
   './js/components/session-summary-form.js',
   './js/components/goal-card.js',
   './js/components/goal-form.js',
-  './js/components/onboarding-inicial.js'
+  './js/components/onboarding-inicial.js',
+  './js/components/laboratorio.js',
+  './js/components/lab-entreno.js',
+  './js/components/lab-finanzas.js',
+  './js/components/lab-tareas.js'
 ];
 
 self.addEventListener('install', event => {

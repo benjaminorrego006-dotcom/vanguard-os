@@ -13,15 +13,13 @@ import { calcularIMC, calcularTMB } from '../utils/bodyMetrics.js';
 import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
-import { formatFechaCorta, formatFechaLarga, formatMes } from '../utils/fecha.js';
+import { formatFechaCorta, formatMes } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { renderArbolProgresion } from '../components/arbol-progresion.js';
 import { renderEstandaresFuerza, initEstandaresFuerzaListeners } from '../components/estandares-fuerza.js';
 import { detectarSugerenciaPendiente } from '../core/sugerencias-nivel.js';
-import { Toast, EmptyState, ConfirmDialog } from '../utils/states.js';
-import { GRUPO_MUSCULAR_ORDEN, GRUPO_MUSCULAR_LABELS, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
-import { renderGoalCard, formatGoalValue } from '../components/goal-card.js';
-import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
+import { Toast } from '../utils/states.js';
+import { setSeleccionInicial } from '../components/laboratorio.js';
 
 let categoriaActiva = null;
 let viewState = 'main'; // 'main', 'rutinas', 'form', 'session'
@@ -40,26 +38,6 @@ let volumenChartInstance = null;
 let entrenoHistorialEmpujado = false;
 let entrenoPopstateEnganchado = false;
 let entrenoRespondiendoAPopstate = false;
-
-// --- Estadísticas: movidas acá desde Análisis (retiro de Tareas del nav,
-// TAREA 4) — mismo contenido de las pestañas Desglose/Ejercicios/Metas/
-// Récords que tenía el módulo Entreno ahí, sin el selector de módulo (acá
-// ya no hace falta, solo hay uno). analisis.js queda intacto como
-// referencia histórica; esto es una copia adaptada, no un import.
-let estadTab = 'desglose'; // 'desglose' | 'ejercicios' | 'metas' | 'records'
-let estadDesgloseMetrica = 'series'; // 'series' | 'volumen' | 'reps'
-let estadDesglosePeriodo = 'semana'; // 'semana' | 'mes' | 'personalizado'
-let estadDesgloseFechaInicio = null;
-let estadDesgloseFechaFin = null;
-let estadLastDesgloseEntries = [];
-let estadEjercicioSeleccionado = null;
-let estadEjercicioGrupoFiltro = 'todos';
-let estadEjercicioRango = '3m'; // '1m' | '3m' | '6m' | '1a' | 'todo'
-let estadEjercicioModo = 'peso'; // 'peso' | '1rm' | 'volumen'
-let estadLastEjercicioHistorial = [];
-let estadRecordsGrupoFiltro = 'todos';
-let estadDonutChartInstance = null;
-let estadEjercicioChartInstance = null;
 
 // Barras de volumen total (peso x reps x series) por semana, agregando
 // todas las categorías. Se llama tras insertar el canvas en el DOM.
@@ -146,8 +124,6 @@ export let mountListeners;
 // segundo plano indefinidamente.
 export function cleanup() {
   if (volumenChartInstance) { volumenChartInstance.destroy(); volumenChartInstance = null; }
-  if (estadDonutChartInstance) { estadDonutChartInstance.destroy(); estadDonutChartInstance = null; }
-  if (estadEjercicioChartInstance) { estadEjercicioChartInstance.destroy(); estadEjercicioChartInstance = null; }
   cleanupEjercicioCharts();
   cleanupSessionTimer();
   cleanupHiitTimer();
@@ -202,453 +178,6 @@ const recientesEmptyHtml = () => `
     <p style="margin: 6px 0 0 0; font-size: 12px; color: var(--text-secondary); line-height: 1.5;">Elige una categoría arriba y registra tu entrenamiento de hoy — así arranca tu racha.</p>
   </div>
 `;
-
-// =====================================================================
-// ESTADÍSTICAS (ex Análisis > Entreno) — Desglose/Ejercicios/Metas/
-// Récords, sin cambios de comportamiento respecto a la versión que vivía
-// en analisis.js, solo sin el selector de módulo (acá ya no hace falta).
-// =====================================================================
-
-function getEstadCyanShades() {
-  const base = document.documentElement.classList.contains('mk3-entreno')
-    ? [cssVarEstad('--cy'), cssVarEstad('--cy2'), cssVarEstad('--cy3'), cssVarEstad('--cyb')]
-    : ['#06B6D4', '#22D3EE', '#67E8F9', '#0891B2'];
-  return [...base, ...base.map(c => c + 'AA')];
-}
-function cssVarEstad(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
-const estadResumenCardHtml = (label, value) => `
-  <div class="card" style="padding: 16px; border-radius: 16px; text-align: center;">
-    <div class="num" style="font-size: 20px; font-weight: 800; color: var(--text-primary);">${value}</div>
-    <div style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px;">${label}</div>
-  </div>`;
-
-function estadRangoFechasPeriodo() {
-  const hoy = new Date();
-  if (estadDesglosePeriodo === 'semana') {
-    const start = new Date(hoy);
-    const dia = start.getDay();
-    const distLunes = dia === 0 ? 6 : dia - 1;
-    start.setDate(start.getDate() - distLunes);
-    return { start, end: hoy };
-  }
-  if (estadDesglosePeriodo === 'mes') {
-    return { start: new Date(hoy.getFullYear(), hoy.getMonth(), 1), end: hoy };
-  }
-  const start = estadDesgloseFechaInicio ? new Date(estadDesgloseFechaInicio) : new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-  const end = estadDesgloseFechaFin ? new Date(estadDesgloseFechaFin) : hoy;
-  return { start, end };
-}
-
-function estadFiltrarPorRango(historial, rango) {
-  if (rango === 'todo') return historial;
-  const meses = { '1m': 1, '3m': 3, '6m': 6, '1a': 12 };
-  const cutoff = new Date();
-  cutoff.setMonth(cutoff.getMonth() - meses[rango]);
-  return historial.filter(h => new Date(h.fecha) >= cutoff);
-}
-
-// --- Desglose ---------------------------------------------------------
-
-async function renderEstadDesglose() {
-  const { start, end } = estadRangoFechasPeriodo();
-  const data = await db.getDesgloseGrupoMuscular(start, end);
-  const metricLabel = { series: 'Series', volumen: 'Volumen (kg)', reps: 'Repeticiones' }[estadDesgloseMetrica];
-
-  const cyanShades = getEstadCyanShades();
-  const entries = GRUPO_MUSCULAR_ORDEN
-    .map((g, i) => ({ grupo: g, label: GRUPO_MUSCULAR_LABELS[g], valor: data.grupos[g][estadDesgloseMetrica], color: cyanShades[i % cyanShades.length] }))
-    .filter(e => e.valor > 0);
-  estadLastDesgloseEntries = entries;
-
-  const totalMetrica = entries.reduce((sum, e) => sum + e.valor, 0);
-
-  const leyendaHtml = entries.map(e => `
-    <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="width: 10px; height: 10px; border-radius: 3px; background: ${e.color}; flex-shrink: 0;"></span>
-        <span style="font-size: 12.5px; color: var(--text-primary); font-weight: 600;">${e.label}</span>
-      </div>
-      <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: 700;">${totalMetrica > 0 ? Math.round(e.valor / totalMetrica * 100) : 0}%</span>
-    </div>`).join('');
-
-  const donutSection = entries.length === 0
-    ? EmptyState('Sin datos en este período', 'Registra una sesión para ver tu distribución por grupo muscular.')
-    : `<div style="height: 200px;"><canvas id="chart-estad-donut"></canvas></div>
-       <div style="margin-top: 14px;">${leyendaHtml}</div>`;
-
-  return `
-    <div>
-      <select id="estad-desglose-metrica" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 12px;">
-        <option value="series" ${estadDesgloseMetrica === 'series' ? 'selected' : ''}>Series por grupo muscular</option>
-        <option value="volumen" ${estadDesgloseMetrica === 'volumen' ? 'selected' : ''}>Volumen por grupo muscular</option>
-        <option value="reps" ${estadDesgloseMetrica === 'reps' ? 'selected' : ''}>Repeticiones totales</option>
-      </select>
-
-      <div style="display: flex; gap: 8px; margin-bottom: ${estadDesglosePeriodo === 'personalizado' ? '14px' : '18px'};">
-        ${['semana', 'mes', 'personalizado'].map(p => `
-          <button type="button" class="btn-estad-desglose-periodo" data-periodo="${p}" style="flex: 1; padding: 8px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid ${estadDesglosePeriodo === p ? 'var(--accent-teal)' : 'var(--surface-border)'}; background: ${estadDesglosePeriodo === p ? 'var(--accent-teal)' : 'transparent'}; color: ${estadDesglosePeriodo === p ? 'var(--bg-base)' : 'var(--text-secondary)'};">${p === 'semana' ? 'Semana' : p === 'mes' ? 'Mes' : 'Personalizado'}</button>
-        `).join('')}
-      </div>
-
-      ${estadDesglosePeriodo === 'personalizado' ? `
-        <div style="display: flex; gap: 10px; margin-bottom: 18px;">
-          <div class="input-group" style="flex: 1; margin-bottom: 0;">
-            <label for="estad-fecha-inicio" style="font-size: 11px;">Desde</label>
-            <input type="date" id="estad-fecha-inicio" value="${estadDesgloseFechaInicio || ''}">
-          </div>
-          <div class="input-group" style="flex: 1; margin-bottom: 0;">
-            <label for="estad-fecha-fin" style="font-size: 11px;">Hasta</label>
-            <input type="date" id="estad-fecha-fin" value="${estadDesgloseFechaFin || ''}">
-          </div>
-        </div>
-      ` : ''}
-
-      <div class="card" style="padding: 18px 20px; margin-bottom: 20px; border-radius: 18px;">
-        <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">${metricLabel} por grupo muscular</h3>
-        ${donutSection}
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-        ${estadResumenCardHtml('Entrenamientos', data.entrenamientos)}
-        ${estadResumenCardHtml('Series totales', data.seriesTotales)}
-        ${estadResumenCardHtml('Repeticiones totales', data.repsTotales)}
-        ${estadResumenCardHtml('Volumen total (kg)', Math.round(data.volumenTotal).toLocaleString('es-ES'))}
-      </div>
-    </div>
-  `;
-}
-
-async function initEstadDesgloseChart() {
-  const canvas = document.getElementById('chart-estad-donut');
-  if (!canvas || estadLastDesgloseEntries.length === 0) return;
-  const Chart = await ensureChartJs();
-  const opts = baseChartOptions();
-
-  if (estadDonutChartInstance) estadDonutChartInstance.destroy();
-  estadDonutChartInstance = new Chart(canvas, {
-    type: 'doughnut',
-    data: {
-      labels: estadLastDesgloseEntries.map(e => e.label),
-      datasets: [{
-        data: estadLastDesgloseEntries.map(e => e.valor),
-        backgroundColor: estadLastDesgloseEntries.map(e => e.color),
-        borderColor: 'transparent',
-        hoverOffset: 6
-      }]
-    },
-    options: {
-      ...opts,
-      cutout: '68%',
-      plugins: {
-        ...opts.plugins,
-        tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed}` } }
-      }
-    }
-  });
-}
-
-// --- Ejercicios ---------------------------------------------------------
-
-async function renderEstadEjercicios() {
-  const lista = await db.getListaEjerciciosRegistrados();
-
-  if (lista.length === 0) {
-    return `<div>${EmptyState('Sin ejercicios registrados', 'Registra una sesión para poder ver el progreso de tus ejercicios acá.')}</div>`;
-  }
-
-  const gruposPresentes = [...new Set(lista.map(e => e.grupoMuscular))];
-  const listaFiltrada = estadEjercicioGrupoFiltro === 'todos' ? lista : lista.filter(e => e.grupoMuscular === estadEjercicioGrupoFiltro);
-
-  if (!estadEjercicioSeleccionado || !listaFiltrada.some(e => e.nombre === estadEjercicioSeleccionado)) {
-    estadEjercicioSeleccionado = listaFiltrada[0] ? listaFiltrada[0].nombre : null;
-  }
-
-  const RANGOS = [{ v: '1m', l: '1M' }, { v: '3m', l: '3M' }, { v: '6m', l: '6M' }, { v: '1a', l: '1A' }, { v: 'todo', l: 'Todo' }];
-  const MODOS = [{ v: 'peso', l: 'Peso máx.' }, { v: '1rm', l: '1RM est.' }, { v: 'volumen', l: 'Volumen' }];
-
-  const historialCompleto = estadEjercicioSeleccionado ? await db.getHistorialEjercicio(estadEjercicioSeleccionado) : [];
-  const historial = estadFiltrarPorRango(historialCompleto, estadEjercicioRango);
-  estadLastEjercicioHistorial = historial;
-
-  const chartSection = historial.length < 2
-    ? `<div style="display: flex; align-items: center; justify-content: center; height: 160px; color: var(--text-disabled); font-size: 12px; text-align: center; padding: 0 16px;">Necesitas al menos 2 sesiones registradas en este rango para ver la tendencia.</div>`
-    : `<div style="height: 180px;"><canvas id="chart-estad-ejercicio"></canvas></div>`;
-
-  return `
-    <div>
-      <select id="estad-ejercicio-grupo" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 10px;">
-        <option value="todos">Todos los grupos</option>
-        ${gruposPresentes.map(g => `<option value="${g}" ${estadEjercicioGrupoFiltro === g ? 'selected' : ''}>${GRUPO_MUSCULAR_LABELS[g] || g}</option>`).join('')}
-      </select>
-
-      <select id="estad-ejercicio-select" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 14px;">
-        ${listaFiltrada.map(e => `<option value="${escapeHtml(e.nombre)}" ${e.nombre === estadEjercicioSeleccionado ? 'selected' : ''}>${escapeHtml(e.nombre)}</option>`).join('')}
-      </select>
-
-      <div style="display: flex; gap: 6px; margin-bottom: 14px;">
-        ${RANGOS.map(r => `<button type="button" class="btn-estad-ejercicio-rango" data-rango="${r.v}" style="flex: 1; padding: 7px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid ${estadEjercicioRango === r.v ? 'var(--accent-teal)' : 'var(--surface-border)'}; background: ${estadEjercicioRango === r.v ? 'var(--accent-teal)' : 'transparent'}; color: ${estadEjercicioRango === r.v ? 'var(--bg-base)' : 'var(--text-secondary)'};">${r.l}</button>`).join('')}
-      </div>
-
-      <div class="card" style="padding: 18px 20px; border-radius: 18px;">
-        <div style="display: flex; gap: 6px; margin-bottom: 14px;">
-          ${MODOS.map(m => `<button type="button" class="btn-estad-ejercicio-modo" data-modo="${m.v}" style="flex: 1; padding: 8px; border-radius: 8px; font-size: 11.5px; font-weight: 700; cursor: pointer; border: 1px solid ${estadEjercicioModo === m.v ? 'var(--accent-teal)' : 'var(--surface-border)'}; background: ${estadEjercicioModo === m.v ? 'var(--accent-teal)' : 'transparent'}; color: ${estadEjercicioModo === m.v ? 'var(--bg-base)' : 'var(--text-secondary)'};">${m.l}</button>`).join('')}
-        </div>
-        ${chartSection}
-      </div>
-    </div>
-  `;
-}
-
-async function initEstadEjercicioChart() {
-  const canvas = document.getElementById('chart-estad-ejercicio');
-  if (!canvas || estadLastEjercicioHistorial.length < 2) return;
-  const Chart = await ensureChartJs();
-  const palette = appPalette();
-  const opts = baseChartOptions();
-
-  const esPesoCorporal = estadLastEjercicioHistorial.every(d => d.pesoMax === 0);
-  const dataPoints = estadLastEjercicioHistorial.map(d => {
-    if (estadEjercicioModo === 'volumen') return d.volumenTotal;
-    if (estadEjercicioModo === '1rm') return d.pesoMax > 0 ? db.estimar1RM(d.pesoMax, d.repsEnPesoMax || 1) : 0;
-    return esPesoCorporal ? d.repsMax : d.pesoMax;
-  });
-  const labels = estadLastEjercicioHistorial.map(d => formatFechaCorta(new Date(d.fecha)));
-  const unidad = estadEjercicioModo === 'volumen' ? '' : (esPesoCorporal && estadEjercicioModo !== '1rm' ? ' reps' : ' kg');
-
-  if (estadEjercicioChartInstance) estadEjercicioChartInstance.destroy();
-  estadEjercicioChartInstance = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        data: dataPoints,
-        borderColor: palette.teal,
-        backgroundColor: palette.teal + '26',
-        fill: true,
-        tension: 0.25,
-        pointRadius: 3,
-        pointBackgroundColor: palette.teal,
-        pointHoverRadius: 5,
-        borderWidth: 2.5
-      }]
-    },
-    options: {
-      ...opts,
-      plugins: {
-        ...opts.plugins,
-        tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.parsed.y}${unidad}` } }
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
-        y: { display: false }
-      }
-    }
-  });
-}
-
-// --- Metas ---------------------------------------------------------
-
-async function renderEstadMetas() {
-  const metas = await db.getGoals('entreno');
-
-  if (metas.length === 0) {
-    return `
-      <div>
-        ${EmptyState('Sin metas todavía', 'Ej. "Levantar 100kg en sentadilla", "Completar 20 sesiones este trimestre" o "Correr 50km este mes"')}
-        <button id="btn-estad-nueva-meta" style="margin-top: 12px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
-      </div>`;
-  }
-
-  return `
-    <div style="display: flex; flex-direction: column; gap: 12px;">
-      ${metas.map(g => renderGoalCard(g)).join('')}
-      <button id="btn-estad-nueva-meta" style="margin-top: 4px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
-    </div>`;
-}
-
-// --- Récords ---------------------------------------------------------
-
-const estadRenderPRCard = (pr) => {
-  const esPesoCorporal = pr.pesoMax === 0;
-  const valorTxt = esPesoCorporal ? `${pr.repsMax} reps` : `${pr.pesoMax}kg × ${pr.repsMax}`;
-  return `
-    <div class="card" style="padding: 14px 16px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-      <div style="min-width: 0;">
-        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(pr.nombre)}</div>
-        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${formatFechaLarga(new Date(pr.fecha))}</div>
-      </div>
-      <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
-        <div class="num" style="font-size: 14px; font-weight: 800; color: var(--text-primary); white-space: nowrap;">${valorTxt}</div>
-        <button class="btn-estad-fav-pr" data-nombre="${escapeHtml(pr.nombre)}" aria-label="${pr.favorito ? 'Quitar de favoritos' : 'Marcar como favorito'} ${escapeHtml(pr.nombre)}" aria-pressed="${!!pr.favorito}" style="background: transparent; border: none; cursor: pointer; padding: 2px; color: ${pr.favorito ? '#FBBF24' : 'var(--text-disabled)'};">
-          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="${pr.favorito ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-        </button>
-      </div>
-    </div>`;
-};
-
-async function renderEstadRecords() {
-  const prsObj = await db.getPRs();
-  const prsArray = Object.values(prsObj).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-
-  if (prsArray.length === 0) {
-    return `<div>${EmptyState('Sin récords todavía', 'Registra sesiones con peso o repeticiones y tus PRs van a aparecer acá automáticamente.')}</div>`;
-  }
-
-  const gruposPresentes = [...new Set(prsArray.map(p => p.grupoMuscular))];
-  const favoritos = prsArray.filter(p => p.favorito);
-  const filtrados = estadRecordsGrupoFiltro === 'todos' ? prsArray : prsArray.filter(p => p.grupoMuscular === estadRecordsGrupoFiltro);
-  const agrupados = agruparPorGrupoMuscular(filtrados, p => p.grupoMuscular);
-
-  const filtrosHtml = `
-    <div style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 2px;">
-      <button type="button" class="btn-estad-records-grupo" data-grupo="todos" style="flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid ${estadRecordsGrupoFiltro === 'todos' ? 'var(--accent-teal)' : 'var(--surface-border)'}; background: ${estadRecordsGrupoFiltro === 'todos' ? 'var(--accent-teal)' : 'transparent'}; color: ${estadRecordsGrupoFiltro === 'todos' ? 'var(--bg-base)' : 'var(--text-secondary)'};">Todos</button>
-      ${gruposPresentes.map(g => `<button type="button" class="btn-estad-records-grupo" data-grupo="${g}" style="flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid ${estadRecordsGrupoFiltro === g ? 'var(--accent-teal)' : 'var(--surface-border)'}; background: ${estadRecordsGrupoFiltro === g ? 'var(--accent-teal)' : 'transparent'}; color: ${estadRecordsGrupoFiltro === g ? 'var(--bg-base)' : 'var(--text-secondary)'};">${GRUPO_MUSCULAR_LABELS[g] || g}</button>`).join('')}
-    </div>`;
-
-  const favHtml = (estadRecordsGrupoFiltro === 'todos' && favoritos.length > 0) ? `
-    <div style="margin-bottom: 20px;">
-      <h3 style="font-size: 12px; font-weight: 700; color: #FBBF24; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 10px 0;">⭐ Favoritos</h3>
-      <div style="display: flex; flex-direction: column; gap: 10px;">${favoritos.map(estadRenderPRCard).join('')}</div>
-    </div>` : '';
-
-  const gruposHtml = agrupados.map(({ label, items }) => `
-    <div style="margin-bottom: 20px;">
-      <h3 style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 10px 0;">${label}</h3>
-      <div style="display: flex; flex-direction: column; gap: 10px;">${items.map(estadRenderPRCard).join('')}</div>
-    </div>`).join('');
-
-  return `<div>${filtrosHtml}${favHtml}${gruposHtml}</div>`;
-}
-
-const ESTAD_TABS = [
-  { id: 'desglose', label: 'Desglose' },
-  { id: 'ejercicios', label: 'Ejercicios' },
-  { id: 'metas', label: 'Metas' },
-  { id: 'records', label: 'Récords' }
-];
-
-async function renderEstadisticasContent() {
-  if (estadTab === 'ejercicios') return await renderEstadEjercicios();
-  if (estadTab === 'metas') return await renderEstadMetas();
-  if (estadTab === 'records') return await renderEstadRecords();
-  return await renderEstadDesglose();
-}
-
-async function renderEstadisticas() {
-  const contentHtml = await renderEstadisticasContent();
-  return `
-    <div>
-      <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 16px 0; color: var(--text-primary);">Estadísticas</h2>
-      <div style="display: flex; gap: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 14px; padding: 5px; margin-bottom: 22px; overflow-x: auto;">
-        ${ESTAD_TABS.map(t => `
-          <button type="button" class="estad-tab" data-tab="${t.id}" style="flex: 1; padding: 9px 6px; border-radius: 10px; border: none; cursor: pointer; font-size: 12.5px; font-weight: 700; white-space: nowrap; background: ${estadTab === t.id ? 'var(--accent-teal)' : 'transparent'}; color: ${estadTab === t.id ? 'var(--bg-base)' : 'var(--text-secondary)'};">${t.label}</button>
-        `).join('')}
-      </div>
-      <div id="estad-tab-content">${contentHtml}</div>
-      ${renderGoalForm()}
-    </div>
-  `;
-}
-
-function initEstadisticasListeners(refreshEstad) {
-  document.querySelectorAll('.estad-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.getAttribute('data-tab');
-      if (tab === estadTab) return;
-      estadTab = tab;
-      refreshEstad();
-    });
-  });
-
-  initGoalForm(refreshEstad);
-
-  if (estadTab === 'desglose') {
-    const metricaSel = document.getElementById('estad-desglose-metrica');
-    if (metricaSel) metricaSel.addEventListener('change', (e) => { estadDesgloseMetrica = e.target.value; refreshEstad(); });
-
-    document.querySelectorAll('.btn-estad-desglose-periodo').forEach(btn => {
-      btn.addEventListener('click', () => { estadDesglosePeriodo = btn.getAttribute('data-periodo'); refreshEstad(); });
-    });
-
-    const fi = document.getElementById('estad-fecha-inicio');
-    const ff = document.getElementById('estad-fecha-fin');
-    if (fi) fi.addEventListener('change', (e) => { estadDesgloseFechaInicio = e.target.value; refreshEstad(); });
-    if (ff) ff.addEventListener('change', (e) => { estadDesgloseFechaFin = e.target.value; refreshEstad(); });
-
-    initEstadDesgloseChart();
-  }
-
-  if (estadTab === 'ejercicios') {
-    const grupoSel = document.getElementById('estad-ejercicio-grupo');
-    if (grupoSel) grupoSel.addEventListener('change', (e) => { estadEjercicioGrupoFiltro = e.target.value; estadEjercicioSeleccionado = null; refreshEstad(); });
-
-    const ejSel = document.getElementById('estad-ejercicio-select');
-    if (ejSel) ejSel.addEventListener('change', (e) => { estadEjercicioSeleccionado = e.target.value; refreshEstad(); });
-
-    document.querySelectorAll('.btn-estad-ejercicio-rango').forEach(btn => {
-      btn.addEventListener('click', () => { estadEjercicioRango = btn.getAttribute('data-rango'); refreshEstad(); });
-    });
-    document.querySelectorAll('.btn-estad-ejercicio-modo').forEach(btn => {
-      btn.addEventListener('click', () => { estadEjercicioModo = btn.getAttribute('data-modo'); refreshEstad(); });
-    });
-
-    initEstadEjercicioChart();
-  }
-
-  if (estadTab === 'metas') {
-    const btnNueva = document.getElementById('btn-estad-nueva-meta');
-    if (btnNueva) {
-      btnNueva.addEventListener('click', () => {
-        openGoalForm(null, { dominio: 'entreno', tipo: 'sesiones', unidad: 'sesiones', icon: 'run' });
-      });
-    }
-    document.querySelectorAll('.edit-goal').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.currentTarget.getAttribute('data-id');
-        const goal = (await db.getGoals('entreno')).find(g => g.id === id);
-        if (goal) openGoalForm(goal);
-      });
-    });
-    document.querySelectorAll('.delete-goal').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.currentTarget.getAttribute('data-id');
-        const goal = (await db.getGoals('entreno')).find(g => g.id === id);
-        const confirmed = await ConfirmDialog(
-          `Eliminar meta${goal ? ' ' + goal.name : ''}`,
-          goal && goal.currentAmount > 0
-            ? `Se pierde el seguimiento de tu avance (${formatGoalValue(goal, goal.currentAmount)}). No se puede deshacer.`
-            : 'No se puede deshacer.',
-          { verb: 'Eliminar' }
-        );
-        if (confirmed) { await db.deleteGoal(id); refreshEstad(); }
-      });
-    });
-    document.querySelectorAll('.goal-row').forEach(row => {
-      row.addEventListener('click', async (e) => {
-        if (e.target.closest('button')) return;
-        const id = e.currentTarget.getAttribute('data-id');
-        const goal = (await db.getGoals('entreno')).find(g => g.id === id);
-        if (goal && !goal.autoTrack) openGoalContribute(goal);
-      });
-    });
-  }
-
-  if (estadTab === 'records') {
-    document.querySelectorAll('.btn-estad-records-grupo').forEach(btn => {
-      btn.addEventListener('click', () => { estadRecordsGrupoFiltro = btn.getAttribute('data-grupo'); refreshEstad(); });
-    });
-    document.querySelectorAll('.btn-estad-fav-pr').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const nombre = e.currentTarget.getAttribute('data-nombre');
-        await db.toggleFavoritoPR(nombre);
-        refreshEstad();
-      });
-    });
-  }
-}
 
 export async function render() {
   const sesiones = await db.getSesiones();
@@ -729,11 +258,11 @@ export async function render() {
     : 0;
 
   const metasResumenHtml = metasEntreno.length === 0
-    ? `<div class="card tappable" id="btn-ir-estad-metas" style="padding: 20px; border-radius: 18px; text-align: center; cursor: pointer;">
+    ? `<div class="card tappable" id="btn-ir-metas-lab" style="padding: 20px; border-radius: 18px; text-align: center; cursor: pointer;">
          <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Todavía no tienes metas de entrenamiento.</div>
          <div style="background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; font-weight: 600;">+ Nueva meta</div>
        </div>`
-    : `<div class="card tappable" id="btn-ir-estad-metas" style="padding: 18px 20px; border-radius: 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; cursor: pointer;">
+    : `<div class="card tappable" id="btn-ir-metas-lab" style="padding: 18px 20px; border-radius: 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; cursor: pointer;">
          <div>
            <div style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${metasActivas.length}</div>
            <div style="font-size: 11.5px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">meta${metasActivas.length === 1 ? '' : 's'} activa${metasActivas.length === 1 ? '' : 's'} &bull; ${progresoPromedio}% de progreso promedio</div>
@@ -816,17 +345,6 @@ export async function render() {
           ${heatmapHtml}
         </div>
 
-        <div class="card tappable" id="btn-ir-estadisticas" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px; display: flex; align-items: center; gap: 14px; cursor: pointer;">
-          <div class="icon-chip" style="width: 40px; height: 40px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal); flex-shrink: 0;">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-          </div>
-          <div style="flex: 1;">
-            <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 2px 0; color: var(--text-primary);">Estadísticas</h3>
-            <p style="color: var(--text-secondary); font-size: 12px; margin: 0; font-weight: 500;">Desglose por grupo muscular, progreso por ejercicio y récords</p>
-          </div>
-          <svg width="18" height="18" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-        </div>
-
         <div style="margin-bottom: 24px;">
           <div class="flex-between" style="margin-bottom: 14px;">
             <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary);">Metas</h3>
@@ -870,14 +388,23 @@ mountListeners = () => {
   renderSugerenciaNivelBanner();
   initActivityHeatmapListeners('entreno-heatmap', 'var(--accent-teal)');
 
-  // Análisis salió del nav (retiro de Tareas, TAREA 4): Desglose/
-  // Ejercicios/Metas/Récords ahora viven acá mismo, en la sub-vista
-  // Estadísticas, en vez de navegar a otra vista.
-  const btnIrEstadisticas = document.getElementById('btn-ir-estadisticas');
-  if (btnIrEstadisticas) btnIrEstadisticas.addEventListener('click', () => goToEstadisticas('desglose'));
-
-  const btnIrEstadMetas = document.getElementById('btn-ir-estad-metas');
-  if (btnIrEstadMetas) btnIrEstadMetas.addEventListener('click', () => goToEstadisticas('metas'));
+  // El laboratorio (ex Análisis, ex "Estadísticas" acá mismo) vive en
+  // Inicio ahora — "+ Nueva meta" deja seleccionada la pestaña Metas de
+  // Entreno antes de navegar, así el usuario no tiene que buscarla. El
+  // scroll de #view-root no se resetea solo al cambiar de vista (el
+  // contenedor es el mismo nodo, solo cambia su innerHTML) — sin esto, si
+  // veníamos scrolleados hacia abajo acá, Inicio arranca con el
+  // laboratorio ya scrolleado fuera de vista, justo lo que este atajo
+  // quería evitar.
+  const btnIrMetasLab = document.getElementById('btn-ir-metas-lab');
+  if (btnIrMetasLab) {
+    btnIrMetasLab.addEventListener('click', async () => {
+      setSeleccionInicial('entreno', 'metas');
+      if (window.appRouter) await window.appRouter.navigate('dashboard');
+      const root = document.getElementById('view-root');
+      if (root) root.scrollTop = 0;
+    });
+  }
 
   setupProfileForm(refreshFull);
   const btnOpenProfile = document.getElementById('btn-open-profile');
@@ -1009,31 +536,6 @@ mountListeners = () => {
       initEstandaresFuerzaListeners(signal);
     } catch (err) {
       console.error('Error renderizando estándares de fuerza:', err);
-      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
-    }
-  };
-
-  const refreshEstadisticas = async () => {
-    if (estadDonutChartInstance) { estadDonutChartInstance.destroy(); estadDonutChartInstance = null; }
-    if (estadEjercicioChartInstance) { estadEjercicioChartInstance.destroy(); estadEjercicioChartInstance = null; }
-    subContent.innerHTML = await renderEstadisticas();
-    initEstadisticasListeners(refreshEstadisticas);
-  };
-
-  const goToEstadisticas = async (tabInicial) => {
-    if (currentViewController) currentViewController.abort();
-    currentViewController = new AbortController();
-
-    if (tabInicial) estadTab = tabInicial;
-    viewState = 'estadisticas';
-    empujarHistorialSiHaceFalta();
-    mainView.style.display = 'none';
-    subView.style.display = 'block';
-
-    try {
-      await refreshEstadisticas();
-    } catch (err) {
-      console.error('Error renderizando estadísticas:', err);
       subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
     }
   };

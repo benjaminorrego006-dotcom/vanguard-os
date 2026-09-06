@@ -353,7 +353,7 @@ class Router {
     // <html>) — preparación para la pantalla única que viene después,
     // donde varios módulos van a estar montados a la vez, cada uno en su
     // propio contenedor con su propio scope, sin pisarse entre ellos.
-    this.root.classList.toggle('mk3-entreno', viewId === 'entrenamiento' || viewId === 'analisis');
+    this.root.classList.toggle('mk3-entreno', viewId === 'entrenamiento');
     this.root.classList.toggle('mk3-finanzas', viewId === 'finanzas');
     // Hábitos comparte el scope MK III de Tareas (mismo acento violeta,
     // mismo dominio): no hace falta un .mk3-habitos aparte que
