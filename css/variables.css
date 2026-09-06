@@ -58,8 +58,11 @@
   /* --- Acentos: morado = acento primario (Finanzas, Tareas, nav);
      cian = acento secundario, EXCLUSIVO de Entreno (anillos, racha,
      "Iniciar sesión", mapa de actividad). --- */
-  --accent-primary: #A855F7;
-  --accent-purple: #A855F7;
+  /* Retinte "rediseño Vanguard": dorado/latón como acento de marca propio
+     de Inicio (.mk3-dashboard no lo redefine), separado del color de
+     cualquier módulo — antes compartía el morado con Tareas. */
+  --accent-primary: #C9A24A;
+  --accent-purple: #C9A24A; /* alias histórico, usado en varios lugares */
   --accent-teal: #06B6D4;
   --accent-orange: #F59E0B;
   --accent-blue: #3B82F6; /* solo para distinguir categorías/datos (ej. "Deseos" en Finanzas, columna "En Progreso" en Tareas) — no es un acento de marca */
@@ -116,10 +119,22 @@
   --line: #16323A;
   --div: #0E1F25;
 
-  --cy: #5CE1E6; --cy2: #3FA9B4; --cy3: #2C6E78; --cy4: #24565F; --cyb: #1E4A52; --cyp: #0A1318;
-  --am: #FFB627; --am2: #BA7517; --amd: #7A5C12; --amb: #2E2413; --amp: #12100A;
-  --vi: #8B7CF6; --vib: #3A3470; --vid: #2E2B52; --vip: #0D0A18; --vis: #12102B;
-  --rd: #FF4D3D; --rdb: #5C1F1F; --rd2: #993C1D;
+  /* Retinte "rediseño Vanguard": bajamos saturación/subimos sofisticación
+     de los 4 acentos base, manteniéndolos distinguibles entre sí y del
+     nuevo dorado de marca (--accent-primary). Cada familia derivada se
+     regeneró en HSL preservando la RATIO de saturación/luminosidad que
+     cada paso ya tenía respecto de su base vieja (no un delta absoluto —
+     un delta absoluto colapsaba los pasos más oscuros de vi/vis a negro
+     puro al aplicarse sobre un base con luminosidad de partida distinta).
+     --vi y --rd además se subieron un poco de L respecto del cálculo
+     directo de la tabla de diseño (#6C74B0→#737AB4, #C1554B→#C56056):
+     con el tono "apagado" propuesto quedaban en 4.26:1 y 4.17:1 contra
+     --panel, por debajo del piso de 4.5:1 de la auditoría WCAG existente.
+     Todos los pares base-vs-panel quedaron re-verificados en ≥4.5:1. */
+  --cy: #4FA6B3; --cy2: #48747B; --cy3: #314E52; --cy4: #283E41; --cyb: #223538; --cyp: #0B1011;
+  --am: #D98A3D; --am2: #97622F; --amd: #634221; --amb: #271F16; --amp: #100D0B;
+  --vi: #737AB4; --vib: #393B4A; --vid: #2C2E37; --vip: #0C0C0F; --vis: #14151B;
+  --rd: #C56056; --rdb: #442C2A; --rd2: #6D3B36;
 
   /* t3/t4/t5 aclarados (Fase 7, auditoría WCAG): fallaban 4.5:1 contra
      --panel (t3 2.56:1, t4 1.89:1) o lo pasaban raspando (t5 4.49:1) —

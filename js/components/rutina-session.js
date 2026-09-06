@@ -36,7 +36,7 @@ const TIPO_COLORS = {
   normal: { bg: 'var(--surface-1)', border: 'var(--surface-border)', color: 'var(--text-secondary)' },
   calentamiento: { bg: 'rgba(245,158,11,0.15)', border: 'var(--accent-orange)', color: 'var(--accent-orange)' },
   fallo: { bg: 'rgba(239,68,68,0.15)', border: 'var(--state-high)', color: 'var(--state-high)' },
-  dropset: { bg: 'rgba(168,85,247,0.15)', border: 'var(--accent-purple)', color: 'var(--accent-purple)' },
+  dropset: { bg: 'color-mix(in srgb, var(--accent-purple) 15%, transparent)', border: 'var(--accent-purple)', color: 'var(--accent-purple)' },
 };
 
 // Una fila de serie completa: la fila visible + su hint de 1RM como

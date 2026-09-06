@@ -302,7 +302,7 @@ export async function render() {
       <!-- Search -->
       <div style="margin-right: 20px; margin-bottom: 24px; position: relative;">
         <svg style="position: absolute; left: 16px; top: 13px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="task-search" placeholder="Buscar tareas, proyectos..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-primary)'; this.style.boxShadow='0 0 0 4px rgba(139,124,246,0.18)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+        <input type="text" id="task-search" placeholder="Buscar tareas, proyectos..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-primary)'; this.style.boxShadow='0 0 0 4px color-mix(in srgb, var(--accent-primary) 18%, transparent)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
       </div>
 
       <!-- Tablero por estado -->

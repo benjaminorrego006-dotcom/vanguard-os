@@ -209,7 +209,13 @@ input[type="date"] { color-scheme: dark; }
 .input-group textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
 .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.18);
+  /* color-mix en vez de una tripleta rgba() fija: esta regla vive fuera de
+     cualquier scope mk3-*, así que antes el foco de CUALQUIER input en
+     CUALQUIER vista se veía morado sin importar el módulo (quedó pegado al
+     acento viejo). Con color-mix sigue a --accent-primary automáticamente
+     la próxima vez que la paleta cambie, sin que alguien tenga que acordarse
+     de venir a actualizar este valor a mano. */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 18%, transparent);
 }
 
 /* ============================================================
