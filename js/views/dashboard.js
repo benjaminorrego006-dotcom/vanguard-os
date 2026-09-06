@@ -4,6 +4,7 @@ import { WEEKLY_GOALS } from '../core/trainingConfig.js';
 import { Toast } from '../utils/states.js';
 import { parseQuickGasto } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
+import { diaKeyDe } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 
 // El evento beforeinstallprompt lo captura index.html apenas carga la
@@ -106,8 +107,9 @@ function colorAlerta(nivel) {
 // texto dentro del SVG). "Avance del día" se aproxima con la métrica de
 // progreso más cercana que ya calcula cada módulo: Entreno usa el avance
 // de la meta semanal de sesiones (no hay meta diaria en la app), Finanzas
-// usa el % del presupuesto del mes ya gastado, Tareas usa el % de tareas
-// completadas sobre el total.
+// usa el % del presupuesto del mes ya gastado, Hábitos usa el % de
+// hábitos marcados hoy sobre el total de hábitos activos (Tareas salió
+// del nav — ver TAREA 2 del prompt de retiro).
 function renderReactor({ cyPct, amPct, viPct, rachaGlobal }) {
   const size = 220;
   const c = 110;
@@ -185,7 +187,7 @@ function renderBadgeHex(b) {
 }
 
 export async function render() {
-  const [budget, stats, sesiones, resumenSemanal, racha, rachaGlobal, badges, tareas] = await Promise.all([
+  const [budget, stats, sesiones, resumenSemanal, racha, rachaGlobal, badges, habitos, rachaHabitos] = await Promise.all([
     db.getBudget(),
     db.getDashboardStats(),
     db.getSesiones(),
@@ -193,7 +195,8 @@ export async function render() {
     db.getRachaGeneral(),
     db.getRachaGlobal(),
     db.getBadges(),
-    db.getTasks()
+    db.getHabitos(),
+    db.getRachaHabitosGlobal()
   ]);
 
   const sesionesSemanaTotal = Object.values(resumenSemanal).reduce((a, b2) => a + b2, 0);
@@ -267,9 +270,11 @@ export async function render() {
 
   const cyPct = metaSemanaTotal > 0 ? Math.min(100, (sesionesSemanaTotal / metaSemanaTotal) * 100) : 0;
   const amPct = pctBar;
-  const tareasCompletadas = tareas.filter(t => t.status === 'done').length;
-  const tareasActivas = tareas.length - tareasCompletadas;
-  const viPct = tareas.length > 0 ? (tareasCompletadas / tareas.length) * 100 : 0;
+  const hoyIso = diaKeyDe(new Date());
+  const habitosMarcadosHoy = habitos.filter(h => h.marcas && h.marcas[hoyIso]).length;
+  // Sin hábitos creados no hay nada que marcar todavía — el anillo va en 0
+  // en vez de inventar un porcentaje (0/0 no es 100%).
+  const viPct = habitos.length > 0 ? (habitosMarcadosHoy / habitos.length) * 100 : 0;
 
   const rachaSubtitle = stats.rachaSemanas > 0
     ? `${stats.rachaSemanas} semana${stats.rachaSemanas === 1 ? '' : 's'} de racha en Entreno`
@@ -288,7 +293,7 @@ export async function render() {
       ${backupReminderHtml}
       ${installBannerHtml}
 
-      <!-- Reactor: tres anillos (Entreno/Finanzas/Tareas) + racha global —
+      <!-- Reactor: tres anillos (Entreno/Finanzas/Hábitos) + racha global —
            tarjeta principal de Inicio, lleva chaflán (ver .card-hero). -->
       <div class="card card-hero" style="padding: 24px 18px; margin-bottom: 20px;">
         ${renderReactor({ cyPct, amPct, viPct, rachaGlobal })}
@@ -330,10 +335,12 @@ export async function render() {
           value: `${formatCurrency(Math.max(0, budget.remaining))} disponibles`
         })}
         ${renderHeroicRow({
-          id: 'row-tareas',
+          id: 'row-habitos',
           color: 'var(--vi)',
-          label: 'Tareas',
-          value: `${tareasActivas} activa${tareasActivas === 1 ? '' : 's'}`
+          label: 'Hábitos',
+          value: habitos.length === 0
+            ? 'Sin hábitos todavía'
+            : `${rachaHabitos.actual} día${rachaHabitos.actual === 1 ? '' : 's'} de racha perfecta`
         })}
       </div>
 
@@ -341,7 +348,7 @@ export async function render() {
       <div style="margin-bottom: 20px;">
         <div style="position: relative;">
           <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
-          <input type="text" id="quick-capture-input" placeholder="Anota algo — tarea o gasto (ej. &quot;50 en super&quot;)..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box;" autocomplete="off">
+          <input type="text" id="quick-capture-input" placeholder="Registrar gasto rápido (ej. &quot;50 en super&quot;)..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box;" autocomplete="off">
         </div>
         <div id="quick-capture-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
         <div id="quick-capture-sobre-opciones" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
@@ -405,18 +412,19 @@ export function mountListeners() {
   const qaEntreno = document.getElementById('qa-entreno');
   const rowEntreno = document.getElementById('row-entreno');
   const rowFinanzas = document.getElementById('row-finanzas');
-  const rowTareas = document.getElementById('row-tareas');
+  const rowHabitos = document.getElementById('row-habitos');
 
   if (qaGasto) qaGasto.addEventListener('click', () => go('finanzas'));
   if (qaEntreno) qaEntreno.addEventListener('click', () => go('entrenamiento'));
   if (rowEntreno) rowEntreno.addEventListener('click', () => go('entrenamiento'));
   if (rowFinanzas) rowFinanzas.addEventListener('click', () => go('finanzas'));
-  if (rowTareas) rowTareas.addEventListener('click', () => go('tareas'));
+  if (rowHabitos) rowHabitos.addEventListener('click', () => go('habitos'));
 
-  // Captura rápida: si el texto trae un monto, se registra como gasto
-  // (mismo parser que "Agregar gasto rápido" de Finanzas); si no, se crea
-  // como tarea. Dos destinos nada más — evita inventar un "log de nota
-  // libre" de Entreno que la app no tiene forma estructurada de guardar.
+  // Captura rápida: un solo destino, Gasto (mismo parser que "Agregar
+  // gasto rápido" de Finanzas). Antes también creaba tareas si el texto no
+  // traía monto; con Tareas fuera del nav esa rama ya no tiene dónde
+  // guardar nada, así que un texto sin monto al principio solo avisa que
+  // no encontró qué registrar — no crea nada ni adivina.
   const quickInput = document.getElementById('quick-capture-input');
   const quickHint = document.getElementById('quick-capture-hint');
   const quickOpciones = document.getElementById('quick-capture-sobre-opciones');
@@ -466,7 +474,9 @@ export function mountListeners() {
 
       // El monto tiene que ir AL PRINCIPIO ("50 en super", el ejemplo del
       // placeholder) — un dígito en cualquier parte del texto (ej. "Comprar
-      // 2 entradas") mandaba tareas comunes a Finanzas como gasto.
+      // 2 entradas") registraba un gasto de $2 con ese texto como si "2"
+      // fuera un precio. Se mantiene esta guarda aunque ya no haya un
+      // destino alternativo (Tareas): un texto así sigue sin ser un monto.
       const amountFound = /^\$?\s*\d/.test(text);
       if (amountFound) {
         const budget = await db.getBudget();
@@ -481,12 +491,8 @@ export function mountListeners() {
         }
         await registrarGasto(parsed, parsed.matches[0] || null);
         return;
-      } else {
-        await db.saveTask({ title: text, status: 'todo', priority: 'medium' });
-        Toast('Tarea creada', 'success');
       }
-      limpiarCapturaRapida();
-      refresh();
+      quickHint.textContent = 'Escribí un monto al principio, ej. "50 en super"';
     });
   }
 }
