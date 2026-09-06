@@ -346,17 +346,20 @@ class Router {
 
     // Vanguard MK III (paleta/tipografía/geometría nuevas): rollout
     // completo — Entreno, Finanzas, Tareas y ahora Inicio. Ver los bloques
-    // html.mk3-entreno / html.mk3-finanzas / html.mk3-tareas /
-    // html.mk3-dashboard en components.css: se activan acá porque es el
-    // único punto por el que pasa toda navegación, sin importar qué vista
-    // la dispare.
-    document.documentElement.classList.toggle('mk3-entreno', viewId === 'entrenamiento' || viewId === 'analisis');
-    document.documentElement.classList.toggle('mk3-finanzas', viewId === 'finanzas');
+    // .mk3-entreno / .mk3-finanzas / .mk3-tareas / .mk3-dashboard en
+    // components.css: se activan acá porque es el único punto por el que
+    // pasa toda navegación, sin importar qué vista la dispare. El scope
+    // vive en this.root (el contenedor de la vista montada, no en
+    // <html>) — preparación para la pantalla única que viene después,
+    // donde varios módulos van a estar montados a la vez, cada uno en su
+    // propio contenedor con su propio scope, sin pisarse entre ellos.
+    this.root.classList.toggle('mk3-entreno', viewId === 'entrenamiento' || viewId === 'analisis');
+    this.root.classList.toggle('mk3-finanzas', viewId === 'finanzas');
     // Hábitos comparte el scope MK III de Tareas (mismo acento violeta,
-    // mismo dominio): no hace falta un html.mk3-habitos aparte que
+    // mismo dominio): no hace falta un .mk3-habitos aparte que
     // duplicaría el mismo bloque de chaflán/tipografía en components.css.
-    document.documentElement.classList.toggle('mk3-tareas', viewId === 'tareas' || viewId === 'habitos');
-    document.documentElement.classList.toggle('mk3-dashboard', viewId === 'dashboard');
+    this.root.classList.toggle('mk3-tareas', viewId === 'tareas' || viewId === 'habitos');
+    this.root.classList.toggle('mk3-dashboard', viewId === 'dashboard');
 
     try {
       this.root.style.animation = 'none';

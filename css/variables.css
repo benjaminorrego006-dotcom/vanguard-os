@@ -98,10 +98,11 @@
 
   --transition-view: 200ms ease-out;
 
-  /* --- Vanguard MK III — tokens del nuevo sistema de diseño. Por ahora
-     solo se activan dentro de <html class="mk3-entreno">, alternada por
-     el router (app.js) según la vista montada; ver el bloque de overrides
-     en components.css. --- */
+  /* --- Vanguard MK III — tokens del nuevo sistema de diseño. Se activan
+     dentro de la clase .mk3-entreno (y sus hermanas .mk3-finanzas/
+     .mk3-tareas/.mk3-dashboard), que el router (app.js) pone sobre el
+     contenedor de la vista montada (#view-root), no sobre <html> — ver el
+     bloque de overrides en components.css. --- */
   --bg: #05070A;
   --panel: #0A1318;
   --line: #16323A;

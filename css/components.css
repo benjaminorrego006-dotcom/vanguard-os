@@ -228,7 +228,7 @@ input[type="date"] { color-scheme: dark; }
    elemento, que gana por especificidad inline sobre cualquier regla de
    clase sin !important.
    ============================================================ */
-html.mk3-entreno {
+.mk3-entreno {
   --bg-base: var(--bg);
   --surface-1: var(--panel);
   --surface-2: var(--line);
@@ -242,7 +242,7 @@ html.mk3-entreno {
   font-variant-numeric: tabular-nums;
 }
 
-html.mk3-finanzas {
+.mk3-finanzas {
   --bg-base: var(--bg);
   --surface-1: var(--panel);
   --surface-2: var(--line);
@@ -256,7 +256,7 @@ html.mk3-finanzas {
   font-variant-numeric: tabular-nums;
 }
 
-html.mk3-tareas {
+.mk3-tareas {
   --bg-base: var(--bg);
   --surface-1: var(--panel);
   --surface-2: var(--line);
@@ -276,7 +276,7 @@ html.mk3-tareas {
    acá. dashboard.js usa var(--cy)/var(--am)/var(--vi) directo por elemento
    (reactor, filas heroicas, insignias). Sí hereda superficies/texto/
    tipografía/geometría como las demás. */
-html.mk3-dashboard {
+.mk3-dashboard {
   --bg-base: var(--bg);
   --surface-1: var(--panel);
   --surface-2: var(--line);
@@ -288,10 +288,10 @@ html.mk3-dashboard {
   font-variant-numeric: tabular-nums;
 }
 
-html.mk3-entreno *,
-html.mk3-finanzas *,
-html.mk3-tareas *,
-html.mk3-dashboard * {
+.mk3-entreno *,
+.mk3-finanzas *,
+.mk3-tareas *,
+.mk3-dashboard * {
   box-shadow: none !important;
 }
 
@@ -315,18 +315,18 @@ html.mk3-dashboard * {
    queda recto (sin border-radius, sin clip-path). :not([style*="50%"])
    sigue protegiendo los círculos genuinos que no son FAB (icon-chip,
    avatares, el +/- del timer de descanso). */
-html.mk3-entreno .card:not(.card-hero), html.mk3-entreno .list-row, html.mk3-entreno .modal-content,
-html.mk3-entreno button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
-html.mk3-entreno input, html.mk3-entreno select, html.mk3-entreno textarea,
-html.mk3-finanzas .card:not(.card-hero), html.mk3-finanzas .list-row, html.mk3-finanzas .modal-content,
-html.mk3-finanzas button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
-html.mk3-finanzas input, html.mk3-finanzas select, html.mk3-finanzas textarea,
-html.mk3-tareas .card:not(.card-hero), html.mk3-tareas .list-row, html.mk3-tareas .modal-content,
-html.mk3-tareas button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
-html.mk3-tareas input, html.mk3-tareas select, html.mk3-tareas textarea,
-html.mk3-dashboard .card:not(.card-hero), html.mk3-dashboard .list-row, html.mk3-dashboard .modal-content,
-html.mk3-dashboard button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
-html.mk3-dashboard input, html.mk3-dashboard select, html.mk3-dashboard textarea {
+.mk3-entreno .card:not(.card-hero), .mk3-entreno .list-row, .mk3-entreno .modal-content,
+.mk3-entreno button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+.mk3-entreno input, .mk3-entreno select, .mk3-entreno textarea,
+.mk3-finanzas .card:not(.card-hero), .mk3-finanzas .list-row, .mk3-finanzas .modal-content,
+.mk3-finanzas button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+.mk3-finanzas input, .mk3-finanzas select, .mk3-finanzas textarea,
+.mk3-tareas .card:not(.card-hero), .mk3-tareas .list-row, .mk3-tareas .modal-content,
+.mk3-tareas button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+.mk3-tareas input, .mk3-tareas select, .mk3-tareas textarea,
+.mk3-dashboard .card:not(.card-hero), .mk3-dashboard .list-row, .mk3-dashboard .modal-content,
+.mk3-dashboard button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+.mk3-dashboard input, .mk3-dashboard select, .mk3-dashboard textarea {
   border-radius: 0 !important;
   clip-path: none !important;
 }
@@ -340,10 +340,10 @@ html.mk3-dashboard input, html.mk3-dashboard select, html.mk3-dashboard textarea
     0 100%, 0 var(--chaflan)
   );
 }
-html.mk3-entreno .card-hero, html.mk3-entreno .btn-primary, html.mk3-entreno .mk3-fab,
-html.mk3-finanzas .card-hero, html.mk3-finanzas .btn-primary, html.mk3-finanzas .mk3-fab,
-html.mk3-tareas .card-hero, html.mk3-tareas .btn-primary, html.mk3-tareas .mk3-fab,
-html.mk3-dashboard .card-hero, html.mk3-dashboard .btn-primary, html.mk3-dashboard .mk3-fab {
+.mk3-entreno .card-hero, .mk3-entreno .btn-primary, .mk3-entreno .mk3-fab,
+.mk3-finanzas .card-hero, .mk3-finanzas .btn-primary, .mk3-finanzas .mk3-fab,
+.mk3-tareas .card-hero, .mk3-tareas .btn-primary, .mk3-tareas .mk3-fab,
+.mk3-dashboard .card-hero, .mk3-dashboard .btn-primary, .mk3-dashboard .mk3-fab {
   border-radius: 0 !important;
   clip-path: polygon(
     var(--chaflan) 0, 100% 0,
@@ -357,10 +357,10 @@ html.mk3-dashboard .card-hero, html.mk3-dashboard .btn-primary, html.mk3-dashboa
    controles enfocables con chaflán, así que el foco se dibuja con un
    filtro drop-shadow: a diferencia de outline/box-shadow, un filtro se
    compone DESPUÉS del recorte y no queda contenido por él. */
-html.mk3-entreno .btn-primary:focus-visible, html.mk3-entreno .mk3-fab:focus-visible,
-html.mk3-finanzas .btn-primary:focus-visible, html.mk3-finanzas .mk3-fab:focus-visible,
-html.mk3-tareas .btn-primary:focus-visible, html.mk3-tareas .mk3-fab:focus-visible,
-html.mk3-dashboard .btn-primary:focus-visible, html.mk3-dashboard .mk3-fab:focus-visible {
+.mk3-entreno .btn-primary:focus-visible, .mk3-entreno .mk3-fab:focus-visible,
+.mk3-finanzas .btn-primary:focus-visible, .mk3-finanzas .mk3-fab:focus-visible,
+.mk3-tareas .btn-primary:focus-visible, .mk3-tareas .mk3-fab:focus-visible,
+.mk3-dashboard .btn-primary:focus-visible, .mk3-dashboard .mk3-fab:focus-visible {
   outline: none;
   filter: drop-shadow(0 0 1.5px var(--accent-primary)) drop-shadow(0 0 4px var(--accent-primary));
 }
@@ -398,17 +398,17 @@ html.mk3-dashboard .btn-primary:focus-visible, html.mk3-dashboard .mk3-fab:focus
    borde de abajo (las esquinas de abajo no existen visualmente) y la
    superior derecha queda recta a propósito — acá no hay una "esquina
    opuesta" que tenga sentido cortar, como sí la había en .card-hero. */
-html.mk3-entreno .sheet-content, html.mk3-finanzas .sheet-content,
-html.mk3-tareas .sheet-content, html.mk3-dashboard .sheet-content {
+.mk3-entreno .sheet-content, .mk3-finanzas .sheet-content,
+.mk3-tareas .sheet-content, .mk3-dashboard .sheet-content {
   clip-path: polygon(var(--chaflan) 0, 100% 0, 100% 100%, 0 100%, 0 var(--chaflan));
 }
 
 /* Etiquetas de categoría/sección: todas las que ya se escribieron con
    text-transform: uppercase inline pasan a 11px / tracking 2px. */
-html.mk3-entreno [style*="text-transform: uppercase"],
-html.mk3-finanzas [style*="text-transform: uppercase"],
-html.mk3-tareas [style*="text-transform: uppercase"],
-html.mk3-dashboard [style*="text-transform: uppercase"] {
+.mk3-entreno [style*="text-transform: uppercase"],
+.mk3-finanzas [style*="text-transform: uppercase"],
+.mk3-tareas [style*="text-transform: uppercase"],
+.mk3-dashboard [style*="text-transform: uppercase"] {
   font-size: 11px !important;
   letter-spacing: 2px !important;
 }
@@ -434,7 +434,7 @@ html.mk3-dashboard [style*="text-transform: uppercase"] {
    fila plana, budget cards, empty states) — no dependen de datos, por
    eso viven acá como utilidades en vez de estar inline en finanzas.js.
    El chaflán/color ámbar ya los pone el bloque MK III de arriba
-   (html.mk3-finanzas .card / button / input / select): estas clases
+   (.mk3-finanzas .card / button / input / select): estas clases
    solo definen tipografía y layout, no geometría ni acento.
    ============================================================ */
 .fin-eyebrow { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.11em; color: var(--text-secondary); margin: 0; }

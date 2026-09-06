@@ -47,6 +47,20 @@ body {
 }
 .nav-item .icon, .nav-item .label { transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), color 180ms ease; }
 .nav-item.active { color: var(--accent-primary); }
+/* Vanguard MK III: el acento de cada módulo (Entreno cian, Finanzas
+   ámbar, Tareas/Hábitos violeta) solo aparece cuando el ítem está
+   activo. Van acá (no dentro de un scope .mk3-X) porque el scope vive en
+   #view-root — hermano de #app-nav, no ancestro — así que el nav no
+   puede depender de --accent-primary redefinido ahí; usa los tokens
+   crudos (--cy/--am/--vi) directo, que no dependen de ningún scope.
+   Ganan por especificidad (selector de atributo + clase) sobre el
+   --accent-primary genérico de arriba. Inicio no tiene acento propio
+   (esa pantalla muestra todos los módulos a la vez), así que se queda
+   con el resaltado neutro de .nav-item.active. */
+.nav-item[data-view="entrenamiento"].active { color: var(--cy); }
+.nav-item[data-view="finanzas"].active { color: var(--am); }
+.nav-item[data-view="tareas"].active { color: var(--vi); }
+.nav-item[data-view="habitos"].active { color: var(--vi); }
 .nav-item.active .icon { transform: translateY(-2px) scale(1.08); }
 .nav-item .icon { font-size: 24px; }
 .nav-item .icon svg { display: block; }
@@ -102,23 +116,15 @@ body {
 
   .nav-item.active {
     background-color: rgba(168, 85, 247, 0.1); /* accent-primary con opacidad */
-    color: var(--accent-primary);
   }
 
-  /* Vanguard MK III: el acento de cada módulo (Entreno cian, Finanzas
-     ámbar, Tareas/Hábitos violeta) solo aparece cuando el ítem está
-     activo — un ícono de navegación inactivo no debe llevar el color de
-     un módulo al que no estás entrando; si lo pinta igual, deja de
-     significar "estoy acá" y pasa a ser decoración pareja. Inicio no
-     tiene acento propio (esa pantalla muestra los tres módulos a la
-     vez), así que se queda con el resaltado neutro de #app-nav.active de
-     arriba. Estas reglas van DESPUÉS de .active porque son más
-     específicas (selector de atributo + clase) y tienen que ganarle al
-     --accent-primary morado genérico. */
-  .nav-item[data-view="entrenamiento"].active { background-color: rgba(92, 225, 230, 0.12); color: var(--cy); }
-  .nav-item[data-view="finanzas"].active { background-color: rgba(255, 182, 39, 0.12); color: var(--am); }
-  .nav-item[data-view="tareas"].active { background-color: rgba(139, 124, 246, 0.12); color: var(--vi); }
-  .nav-item[data-view="habitos"].active { background-color: rgba(139, 124, 246, 0.12); color: var(--vi); }
+  /* El color por módulo ya se define arriba (fuera del media query, para
+     que mobile también lo tenga) — acá solo se agrega el fondo tenue a
+     juego, que es puramente decoración de escritorio. */
+  .nav-item[data-view="entrenamiento"].active { background-color: rgba(92, 225, 230, 0.12); }
+  .nav-item[data-view="finanzas"].active { background-color: rgba(255, 182, 39, 0.12); }
+  .nav-item[data-view="tareas"].active { background-color: rgba(139, 124, 246, 0.12); }
+  .nav-item[data-view="habitos"].active { background-color: rgba(139, 124, 246, 0.12); }
 
   .nav-item .icon {
     margin-bottom: 0;
