@@ -308,20 +308,6 @@ export async function render() {
       ${backupReminderHtml}
       ${installBannerHtml}
 
-      <!-- Laboratorio: gráficos de todos los módulos juntos (ex Análisis).
-           Va primero, arriba del reactor. El contenido real (datos +
-           Chart.js, 204KB) se difiere hasta que este contenedor entra al
-           viewport — ver el IntersectionObserver en mountListeners() — así
-           el arranque de la app no paga ese costo si el usuario ni llega a
-           scrollear hasta acá. -->
-      <div style="margin-bottom: 20px;">
-        <h2 style="font-size: 18px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Laboratorio</h2>
-        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 14px 0;">Gráficos y tendencias de tus módulos, todos juntos.</p>
-        <div id="lab-section-content">
-          <div class="card" style="padding: 40px 20px; text-align: center; color: var(--text-disabled); font-size: 12px;">Cargando…</div>
-        </div>
-      </div>
-
       <!-- Reactor: tres anillos (Entreno/Finanzas/Hábitos) + racha global —
            tarjeta principal de Inicio, lleva chaflán (ver .card-hero). -->
       <div class="card card-hero" style="padding: 24px 18px; margin-bottom: 20px;">
@@ -347,6 +333,21 @@ export async function render() {
           </div>
           Entrenar ahora
         </button>
+      </div>
+
+      <!-- Laboratorio: gráficos de todos los módulos juntos (ex Análisis).
+           Justo arriba de las filas de módulo (pedido explícito: no antes
+           del reactor). El contenido real (datos + Chart.js, 204KB) se
+           difiere hasta que este contenedor entra al viewport — ver el
+           IntersectionObserver en mountListeners() — así el arranque de la
+           app no paga ese costo si el usuario ni llega a scrollear hasta
+           acá. -->
+      <div style="margin-bottom: 20px;">
+        <h2 style="font-size: 18px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Laboratorio</h2>
+        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 14px 0;">Gráficos y tendencias de tus módulos, todos juntos.</p>
+        <div id="lab-section-content">
+          <div class="card" style="padding: 40px 20px; text-align: center; color: var(--text-disabled); font-size: 12px;">Cargando…</div>
+        </div>
       </div>
 
       <!-- Filas heroicas por módulo -->
