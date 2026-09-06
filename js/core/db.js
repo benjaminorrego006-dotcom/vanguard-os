@@ -2238,6 +2238,174 @@ export const db = {
       ],
       breakdown
     };
+  },
+
+  // =====================================================================
+  // RITUAL MATUTINO
+  // Una fila por día en el store `ritual`, con keyPath = fecha ISO. Los
+  // campos se guardan por separado (no en un blob) porque el ritual se
+  // completa de a poco durante la mañana y cada guardado es parcial.
+  // =====================================================================
+  async getRitual(fecha) {
+    try {
+      const row = await idb.getOne('ritual', fecha);
+      return row || { fecha, mision: '', proyecto: '', pilar: '', servir: '', gratitud: '', energia: null };
+    } catch (e) {
+      console.error('[Vanguard OS] Error leyendo ritual', fecha, e);
+      return { fecha, mision: '', proyecto: '', pilar: '', servir: '', gratitud: '', energia: null };
+    }
+  },
+
+  async setRitualCampo(fecha, campo, valor) {
+    const actual = await this.getRitual(fecha);
+    const previo = actual[campo];
+    // Segundo toque en el mismo valor = deseleccionar (aplica a `energia`).
+    const nuevo = { ...actual, [campo]: (previo === valor ? null : valor) };
+    try { await idb.put('ritual', nuevo); }
+    catch (e) { console.error('[Vanguard OS] Error guardando ritual', e); return actual; }
+    this._triggerUpdate();
+    // Un solo evento por día: el primer campo lo abre, el resto lo completa.
+    const eraVacio = !actual.mision && !actual.proyecto && !actual.pilar && !actual.servir && !actual.gratitud && actual.energia == null;
+    await logEvent({
+      modulo: 'ritual',
+      tipo: eraVacio ? 'ritual_iniciado' : 'ritual_actualizado',
+      entidadId: fecha,
+      payload: { campo, valor: nuevo[campo] }
+    });
+    return nuevo;
+  },
+
+  // Campos completados sobre el total (6). Lo usa el Dashboard para saber
+  // si mostrar el aviso "todavía no hiciste tu ritual".
+  async getProgresoRitual(fecha) {
+    const r = await this.getRitual(fecha);
+    const campos = ['mision', 'proyecto', 'pilar', 'servir', 'gratitud'];
+    const hechos = campos.filter(c => r[c] && String(r[c]).trim()).length + (r.energia ? 1 : 0);
+    return { hechos, total: campos.length + 1, completo: hechos === campos.length + 1 };
+  },
+
+  // Racha de rituales: días consecutivos con la misión definida, hacia
+  // atrás desde hoy. Si hoy todavía no se hizo, no rompe la racha — se
+  // empieza a contar desde ayer, igual que getRachaHabitosGlobal().
+  async getRachaRitual() {
+    const filas = await idbGetArray('ritual');
+    const conMision = new Set(filas.filter(r => r.mision && String(r.mision).trim()).map(r => r.fecha));
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const d = new Date(); d.setHours(0, 0, 0, 0);
+    if (!conMision.has(iso(d))) d.setDate(d.getDate() - 1);
+    let actual = 0;
+    while (conMision.has(iso(d))) { actual++; d.setDate(d.getDate() - 1); }
+    return { actual, total: conMision.size };
+  },
+
+  // =====================================================================
+  // PLANIFICADOR SEMANAL
+  // Store propio (`planificador`), NO el store `tareas` — ese es del
+  // módulo Tareas y mezclarlos obligaría a discriminar por forma en cada
+  // lectura.
+  // =====================================================================
+  async getTareasPlan(desdeIso, hastaIso) {
+    const todas = sortByCreatedAt(await idbGetArray('planificador'));
+    if (!desdeIso || !hastaIso) return todas;
+    return todas.filter(t => t.fecha >= desdeIso && t.fecha <= hastaIso);
+  },
+
+  async crearTareaPlan(fecha, texto) {
+    const limpio = String(texto || '').trim();
+    if (!limpio) return null;
+    const tareas = await idbGetArray('planificador');
+    const nueva = { id: generateId(), fecha, texto: limpio, hecha: false, createdAt: new Date().toISOString() };
+    tareas.push(nueva);
+    await idbSetArray('planificador', tareas); this._triggerUpdate();
+    await logEvent({ modulo: 'planificador', tipo: 'tarea_creada', entidadId: nueva.id, payload: nueva });
+    return nueva;
+  },
+
+  async toggleTareaPlan(id) {
+    const tareas = await idbGetArray('planificador');
+    const idx = tareas.findIndex(t => t.id === id);
+    if (idx === -1) return null;
+    tareas[idx] = { ...tareas[idx], hecha: !tareas[idx].hecha };
+    await idbSetArray('planificador', tareas); this._triggerUpdate();
+    await logEvent({
+      modulo: 'planificador',
+      tipo: tareas[idx].hecha ? 'tarea_completada' : 'tarea_descompletada',
+      entidadId: id,
+      payload: { fecha: tareas[idx].fecha, texto: tareas[idx].texto }
+    });
+    return tareas[idx];
+  },
+
+  async eliminarTareaPlan(id) {
+    let tareas = await idbGetArray('planificador');
+    const tarea = tareas.find(t => t.id === id);
+    tareas = tareas.filter(t => t.id !== id);
+    await idbSetArray('planificador', tareas); this._triggerUpdate();
+    await logEvent({ modulo: 'planificador', tipo: 'tarea_eliminada', entidadId: id, payload: tarea || {} });
+  },
+
+  // =====================================================================
+  // ANOTACIONES
+  // =====================================================================
+  async getCategoriasNota() {
+    const cats = sortByCreatedAt(await idbGetArray('notas_categorias'));
+    if (cats.length) return cats;
+    // Semilla en la primera lectura, mismo criterio que DEFAULT_ENVELOPES.
+    const base = [
+      { id: generateId(), nombre: 'Personal', createdAt: new Date().toISOString() },
+      { id: generateId(), nombre: 'Ideas', createdAt: new Date().toISOString() }
+    ];
+    await idbSetArray('notas_categorias', base);
+    return base;
+  },
+
+  async crearCategoriaNota(nombre) {
+    const limpio = String(nombre || '').trim();
+    if (!limpio) return null;
+    const cats = await idbGetArray('notas_categorias');
+    const nueva = { id: generateId(), nombre: limpio, createdAt: new Date().toISOString() };
+    cats.push(nueva);
+    await idbSetArray('notas_categorias', cats); this._triggerUpdate();
+    await logEvent({ modulo: 'anotaciones', tipo: 'categoria_creada', entidadId: nueva.id, payload: nueva });
+    return nueva;
+  },
+
+  async eliminarCategoriaNota(id) {
+    let cats = await idbGetArray('notas_categorias');
+    cats = cats.filter(c => c.id !== id);
+    await idbSetArray('notas_categorias', cats);
+    // Las notas huérfanas se borran con la categoría: sin ella no hay
+    // pantalla desde la cual llegar a leerlas.
+    let notas = await idbGetArray('notas');
+    const borradas = notas.filter(n => n.catId === id).length;
+    notas = notas.filter(n => n.catId !== id);
+    await idbSetArray('notas', notas); this._triggerUpdate();
+    await logEvent({ modulo: 'anotaciones', tipo: 'categoria_eliminada', entidadId: id, payload: { notasBorradas: borradas } });
+  },
+
+  async getNotas(catId) {
+    const notas = sortByCreatedAt(await idbGetArray('notas'));
+    const filtradas = catId ? notas.filter(n => n.catId === catId) : notas;
+    return filtradas.reverse(); // más recientes arriba
+  },
+
+  async crearNota(catId, titulo, texto) {
+    const t = String(titulo || '').trim(), x = String(texto || '').trim();
+    if (!t && !x) return null;
+    const notas = await idbGetArray('notas');
+    const nueva = { id: generateId(), catId, titulo: t, texto: x, createdAt: new Date().toISOString() };
+    notas.push(nueva);
+    await idbSetArray('notas', notas); this._triggerUpdate();
+    await logEvent({ modulo: 'anotaciones', tipo: 'nota_creada', entidadId: nueva.id, payload: { catId, titulo: t } });
+    return nueva;
+  },
+
+  async eliminarNota(id) {
+    let notas = await idbGetArray('notas');
+    const nota = notas.find(n => n.id === id);
+    notas = notas.filter(n => n.id !== id);
+    await idbSetArray('notas', notas); this._triggerUpdate();
+    await logEvent({ modulo: 'anotaciones', tipo: 'nota_eliminada', entidadId: id, payload: { catId: nota?.catId } });
   }
 };
 

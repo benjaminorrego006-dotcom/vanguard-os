@@ -413,6 +413,107 @@ input[type="date"] { color-scheme: dark; }
   letter-spacing: 2px !important;
 }
 
+/* ============================================================
+   MK III — fase "vida": Ritual, Planificador y Anotaciones.
+   Mismo patrón que los otros scopes MK III de arriba: variables
+   semánticas de superficie/texto/acento redefinidas en .mk3-X, más
+   geometría/box-shadow replicadas acá en vez de sumadas a los
+   selectores agrupados de arriba, para que este bloque se pegue
+   entero sin editar ninguna línea existente. Cada sección tiene su
+   propio acento (violeta amanecer / verde / gris azulado) para que
+   se distingan entre sí en el heatmap y en el log de eventos — igual
+   que Entreno/Finanzas/Tareas no comparten color entre ellas.
+   ============================================================ */
+.mk3-ritual {
+  --bg-base: var(--bg);
+  --surface-1: var(--panel);
+  --surface-2: var(--line);
+  --surface-border: var(--line);
+  --text-primary: var(--t1);
+  --text-secondary: var(--t2);
+  --text-disabled: var(--t3);
+  --accent-ritual: #8B7CFF;          /* violeta amanecer */
+  --rtp: rgba(139, 124, 255, 0.14);  /* tinte del círculo de racha */
+  --accent-primary: var(--accent-ritual);
+  --state-high: var(--rd);
+  font-variant-numeric: tabular-nums;
+}
+
+.mk3-planificador {
+  --bg-base: var(--bg);
+  --surface-1: var(--panel);
+  --surface-2: var(--line);
+  --surface-border: var(--line);
+  --text-primary: var(--t1);
+  --text-secondary: var(--t2);
+  --text-disabled: var(--t3);
+  --accent-plan: #4ADE80;            /* verde: distinto de cian/ámbar/violeta */
+  --accent-primary: var(--accent-plan);
+  --state-high: var(--rd);
+  font-variant-numeric: tabular-nums;
+}
+
+.mk3-anotaciones {
+  --bg-base: var(--bg);
+  --surface-1: var(--panel);
+  --surface-2: var(--line);
+  --surface-border: var(--line);
+  --text-primary: var(--t1);
+  --text-secondary: var(--t2);
+  --text-disabled: var(--t3);
+  --accent-notas: #94A3B8;           /* gris azulado: la nota manda, no el color */
+  --accent-primary: var(--accent-notas);
+  --state-high: var(--rd);
+  font-variant-numeric: tabular-nums;
+}
+
+.mk3-ritual *,
+.mk3-planificador *,
+.mk3-anotaciones * {
+  box-shadow: none !important;
+}
+
+/* Geometría — mismo criterio que el resto de MK III: la tarjeta
+   principal (.card-hero) y el botón primario llevan chaflán; el resto
+   (tarjetas normales, list-row, inputs, botones genéricos) queda recto. */
+.mk3-ritual .card:not(.card-hero), .mk3-ritual .list-row, .mk3-ritual .modal-content,
+.mk3-ritual button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+.mk3-ritual input, .mk3-ritual select, .mk3-ritual textarea,
+.mk3-planificador .card:not(.card-hero), .mk3-planificador .list-row, .mk3-planificador .modal-content,
+.mk3-planificador button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+.mk3-planificador input, .mk3-planificador select, .mk3-planificador textarea,
+.mk3-anotaciones .card:not(.card-hero), .mk3-anotaciones .list-row, .mk3-anotaciones .modal-content,
+.mk3-anotaciones button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+.mk3-anotaciones input, .mk3-anotaciones select, .mk3-anotaciones textarea {
+  border-radius: 0 !important;
+  clip-path: none !important;
+}
+
+.mk3-ritual .card-hero, .mk3-ritual .btn-primary, .mk3-ritual .mk3-fab,
+.mk3-planificador .card-hero, .mk3-planificador .btn-primary, .mk3-planificador .mk3-fab,
+.mk3-anotaciones .card-hero, .mk3-anotaciones .btn-primary, .mk3-anotaciones .mk3-fab {
+  border-radius: 0 !important;
+  clip-path: polygon(
+    var(--chaflan) 0, 100% 0,
+    100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%,
+    0 100%, 0 var(--chaflan)
+  ) !important;
+}
+
+.mk3-ritual .btn-primary:focus-visible, .mk3-ritual .mk3-fab:focus-visible,
+.mk3-planificador .btn-primary:focus-visible, .mk3-planificador .mk3-fab:focus-visible,
+.mk3-anotaciones .btn-primary:focus-visible, .mk3-anotaciones .mk3-fab:focus-visible {
+  outline: none;
+  filter: drop-shadow(0 0 1.5px var(--accent-primary)) drop-shadow(0 0 4px var(--accent-primary));
+}
+
+.mk3-ritual [style*="text-transform: uppercase"],
+.mk3-planificador [style*="text-transform: uppercase"],
+.mk3-anotaciones [style*="text-transform: uppercase"] {
+  font-size: 11px !important;
+  letter-spacing: 2px !important;
+}
+
 /* Panal hexagonal de insignias (Inicio) — hexágono de punta arriba/abajo
    vía clip-path, reemplaza las cajas redondeadas genéricas. */
 .mk3-hex {

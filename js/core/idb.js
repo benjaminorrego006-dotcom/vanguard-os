@@ -16,7 +16,11 @@ const DB_NAME = 'vanguard_os';
 // sin reemplazarlo). Solo se agrega una entrada a STORE_DEFS — no hay
 // nada que migrar ni borrar, así que onupgradeneeded no necesita un caso
 // especial más allá de crear el store nuevo (ya lo hace el loop de abajo).
-const DB_VERSION = 3;
+// v4: rollout "vida" — agrega 'ritual' (una fila por día, keyPath = fecha
+// ISO), 'planificador' (tareas fechadas del planificador semanal) y
+// 'notas' / 'notas_categorias' (anotaciones por categoría). Mismo caso:
+// solo entradas nuevas en STORE_DEFS, nada que migrar.
+const DB_VERSION = 4;
 
 // keyPath por store. `events` además indexa por ts/modulo+ts/entidadId/tipo
 // para poder consultar por rango cronológico o por entidad sin leer todo el
@@ -41,6 +45,13 @@ const STORE_DEFS = {
   tareas: { keyPath: 'id' },
   tareas_recurrentes: { keyPath: 'id' },
   habitos: { keyPath: 'id' },
+  // Ritual matutino: una fila por día. El keyPath es la fecha ISO
+  // ('2026-09-06') en vez de un uuid porque nunca hay dos rituales del
+  // mismo día — así `getOne('ritual', fecha)` resuelve sin escanear.
+  ritual: { keyPath: 'fecha' },
+  planificador: { keyPath: 'id' },
+  notas: { keyPath: 'id' },
+  notas_categorias: { keyPath: 'id' },
   // Singletons de app (perfil, ajustes, favoritos de PR): una sola fila por
   // `key`, con el valor completo en `value`. Evita inventar un keyPath
   // artificial para datos que siempre fueron un único objeto/array.

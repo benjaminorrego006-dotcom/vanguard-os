@@ -4,7 +4,7 @@ import { initModalHistory, forgetOpenModals, initSheetDragToDismiss } from './hi
 import { mountOnboardingInicial } from '../components/onboarding-inicial.js';
 import { escapeHtml } from '../utils/escape.js';
 
-const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas'];
+const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones'];
 
 // El servidor local a veces omite el header Content-Type cuando recibe
 // varias peticiones en paralelo (medido: 0/52 fallos pidiendo los archivos
@@ -360,6 +360,9 @@ class Router {
     // duplicaría el mismo bloque de chaflán/tipografía en components.css.
     this.root.classList.toggle('mk3-tareas', viewId === 'tareas' || viewId === 'habitos');
     this.root.classList.toggle('mk3-dashboard', viewId === 'dashboard');
+    this.root.classList.toggle('mk3-ritual', viewId === 'ritual');
+    this.root.classList.toggle('mk3-planificador', viewId === 'planificador');
+    this.root.classList.toggle('mk3-anotaciones', viewId === 'anotaciones');
 
     try {
       this.root.style.animation = 'none';
