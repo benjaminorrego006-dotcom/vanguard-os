@@ -1,6 +1,6 @@
 // js/components/ejercicio-detalle.js
 import { db } from '../core/db.js';
-import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
+import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, lineValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatFechaCorta, formatFechaLarga } from '../utils/fecha.js';
 
@@ -23,7 +23,7 @@ export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
   const tieneDatos = historial.length >= 2;
 
   const chartHtml = tieneDatos
-    ? `<div style="height: 130px;"><canvas id="${chartCanvasId}"></canvas></div>`
+    ? `<div style="height: 150px;"><canvas id="${chartCanvasId}"></canvas></div>`
     : `<div style="display:flex; align-items:center; justify-content:center; height:90px; color: var(--text-disabled); font-size: 12px;">Necesitas al menos 2 sesiones registradas para ver la tendencia.</div>`;
 
   const toggleHtml = (tieneDatos && !esPesoCorporal) ? `
@@ -119,6 +119,10 @@ export async function initEjercicioDetalleChart(chartCanvasId, historial) {
   let modo = 'peso';
   let unidad = esPesoCorporal ? ' reps' : ' kg';
 
+  // Degradado real en vez de un alpha plano — más profundidad visual bajo
+  // la línea, mismo criterio que el resto de los charts "HD" de la app.
+  const gradient = verticalGradient(canvas.getContext('2d'), palette.teal, canvas.clientHeight || 150);
+
   if (chartInstances.has(chartCanvasId)) chartInstances.get(chartCanvasId).destroy();
   const chart = new Chart(canvas, {
     type: 'line',
@@ -127,26 +131,31 @@ export async function initEjercicioDetalleChart(chartCanvasId, historial) {
       datasets: [{
         data: pesoData,
         borderColor: palette.teal,
-        backgroundColor: palette.teal + '26',
+        backgroundColor: gradient,
         fill: true,
-        tension: 0.25,
-        pointRadius: 3,
+        tension: 0.3,
+        pointRadius: 4,
         pointBackgroundColor: palette.teal,
-        pointHoverRadius: 5,
-        borderWidth: 2.5
+        pointBorderColor: cssVar('--panel'),
+        pointBorderWidth: 2,
+        pointHoverRadius: 6,
+        borderWidth: 3
       }]
     },
     options: {
       ...opts,
+      devicePixelRatio: hdPixelRatio(),
+      layout: { padding: { top: 20 } },
       plugins: {
         ...opts.plugins,
         tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.parsed.y}${unidad}` } }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
         y: { display: false }
       }
-    }
+    },
+    plugins: [lineValueLabelsPlugin(cssVar('--text-primary'))]
   });
   chartInstances.set(chartCanvasId, chart);
 

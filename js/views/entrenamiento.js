@@ -10,7 +10,7 @@ import { WEEKLY_GOALS, CATEGORY_COLORS } from '../core/trainingConfig.js';
 import { renderProfileForm, setupProfileForm, openProfileForm } from '../components/profile-form.js';
 import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardingForm } from '../components/nivel-onboarding-form.js';
 import { calcularIMC, calcularTMB } from '../utils/bodyMetrics.js';
-import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '../utils/charts.js';
+import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, barValueLabelsPlugin } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
 import { formatFechaCorta, formatMes } from '../utils/fecha.js';
@@ -63,11 +63,14 @@ const renderVolumenSemanalChart = async () => {
     },
     options: {
       ...opts,
+      devicePixelRatio: hdPixelRatio(),
+      layout: { padding: { top: 18 } },
       scales: {
         x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
         y: { display: false }
       }
-    }
+    },
+    plugins: [barValueLabelsPlugin(cssVar('--text-primary'))]
   });
 };
 
@@ -337,7 +340,7 @@ export async function render() {
 
         <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px;">
           <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Volumen semanal</h3>
-          <div style="height: 110px;"><canvas id="chart-volumen-semanal"></canvas></div>
+          <div style="height: 128px;"><canvas id="chart-volumen-semanal"></canvas></div>
         </div>
 
         <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px;">

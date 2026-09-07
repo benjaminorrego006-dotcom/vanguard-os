@@ -1,10 +1,20 @@
 import { db } from '../core/db.js';
 import { PLANTILLAS } from '../core/plantillas.js';
 import { getEjercicioPorId, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
-import { renderMiniChart } from './mini-chart.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatDiaSemana } from '../utils/fecha.js';
+import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, barValueLabelsPlugin } from '../utils/charts.js';
+
+// Series calculadas durante renderRutinasLista() y consumidas por los
+// initXChart() de más abajo — mismo patrón que lastHabitosDonutEntries en
+// habitos.js: Chart.js necesita el canvas ya en el DOM, así que el número
+// se calcula en el render (síncrono con el HTML) y el chart se monta
+// después, en initRutinasListaListeners().
+let lastVolumenPorSemana = [];
+let lastMinutosPorSemana = [];
+let volumenChartInstance = null;
+let minutosChartInstance = null;
 
 // Escala de dificultad para ordenar "Plantillas sugeridas" de menor a mayor.
 // 'Todos los niveles' se trata como accesible para principiantes (rango 1).
@@ -195,12 +205,11 @@ export async function renderRutinasLista(categoria) {
   // --- Tendencia de volumen (GYM / Calistenia) ---
   if (categoria === 'gym' || categoria === 'calistenia') {
     const { volumenPorSemana } = await db.getTendenciaSemanal(categoria, 8);
-    const chartHtml = renderMiniChart(volumenPorSemana, {
-      color: 'var(--accent-teal)',
-      unidad: categoria === 'gym' ? ' kg' : ' reps',
-      label: 'Volumen total por semana (últimas 8 semanas)',
-      emptyText: 'Registra un par de sesiones más para ver tu tendencia.'
-    });
+    lastVolumenPorSemana = volumenPorSemana;
+    const hayDatos = volumenPorSemana.some(v => v > 0);
+    const chartHtml = hayDatos
+      ? `<div style="height: 130px;"><canvas id="chart-volumen-categoria"></canvas></div>`
+      : EmptyState('Sin datos todavía', 'Registra un par de sesiones más para ver tu tendencia.');
 
     const infoText = categoria === 'gym'
       ? `${infoSvg}<b>Volumen:</b> Total de kilos movidos esta semana (Series × Reps × Peso).`
@@ -264,12 +273,11 @@ export async function renderRutinasLista(categoria) {
   // --- Tendencia de minutos (HIIT) ---
   if (categoria === 'hiit') {
     const { minutosPorSemana } = await db.getTendenciaSemanal('hiit', 8);
-    const chartHtml = renderMiniChart(minutosPorSemana, {
-      color: 'var(--accent-teal)',
-      unidad: ' min',
-      label: 'Minutos entrenados por semana (últimas 8 semanas)',
-      emptyText: 'Completa un par de sesiones HIIT más para ver tu tendencia.'
-    });
+    lastMinutosPorSemana = minutosPorSemana;
+    const hayDatosMin = minutosPorSemana.some(v => v > 0);
+    const chartHtml = hayDatosMin
+      ? `<div style="height: 130px;"><canvas id="chart-minutos-hiit"></canvas></div>`
+      : EmptyState('Sin datos todavía', 'Completa un par de sesiones HIIT más para ver tu tendencia.');
 
     html += `
       <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 24px;">
@@ -330,6 +338,74 @@ export async function renderRutinasLista(categoria) {
   }
 
   return html;
+}
+
+function labelsSemanas(n) {
+  return Array.from({ length: n }, (_, i) => i === n - 1 ? 'Esta sem.' : `S-${n - 1 - i}`);
+}
+
+// Los dos charts de esta vista se destruyen solos al abortar `signal` (el
+// mismo AbortController que ya usa initRutinasListaListeners para sus
+// listeners) — no hace falta un cleanup() exportado aparte ni que
+// entrenamiento.js se acuerde de llamarlo.
+async function initVolumenCategoriaChart(signal) {
+  const canvas = document.getElementById('chart-volumen-categoria');
+  if (!canvas || lastVolumenPorSemana.length === 0) return;
+
+  const Chart = await ensureChartJs();
+  const palette = appPalette();
+  const opts = baseChartOptions();
+
+  if (volumenChartInstance) volumenChartInstance.destroy();
+  volumenChartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: labelsSemanas(lastVolumenPorSemana.length),
+      datasets: [{ data: lastVolumenPorSemana, backgroundColor: palette.teal, borderRadius: 6, maxBarThickness: 28 }]
+    },
+    options: {
+      ...opts,
+      devicePixelRatio: hdPixelRatio(),
+      layout: { padding: { top: 18 } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
+        y: { display: false }
+      }
+    },
+    plugins: [barValueLabelsPlugin(cssVar('--text-primary'))]
+  });
+  const instance = volumenChartInstance;
+  signal?.addEventListener('abort', () => { instance.destroy(); if (volumenChartInstance === instance) volumenChartInstance = null; });
+}
+
+async function initMinutosHiitChart(signal) {
+  const canvas = document.getElementById('chart-minutos-hiit');
+  if (!canvas || lastMinutosPorSemana.length === 0) return;
+
+  const Chart = await ensureChartJs();
+  const palette = appPalette();
+  const opts = baseChartOptions();
+
+  if (minutosChartInstance) minutosChartInstance.destroy();
+  minutosChartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: labelsSemanas(lastMinutosPorSemana.length),
+      datasets: [{ data: lastMinutosPorSemana, backgroundColor: palette.teal, borderRadius: 6, maxBarThickness: 28 }]
+    },
+    options: {
+      ...opts,
+      devicePixelRatio: hdPixelRatio(),
+      layout: { padding: { top: 18 } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
+        y: { display: false }
+      }
+    },
+    plugins: [barValueLabelsPlugin(cssVar('--text-primary'))]
+  });
+  const instance = minutosChartInstance;
+  signal?.addEventListener('abort', () => { instance.destroy(); if (minutosChartInstance === instance) minutosChartInstance = null; });
 }
 
 export function renderPlantillaPreview(plantilla) {
@@ -393,6 +469,9 @@ export function renderPlantillaPreview(plantilla) {
 }
 
 export function initRutinasListaListeners(categoria, onNewRoutine, onStartSession, onPreviewMode, signal, onArbolProgresion, onEstandaresFuerza, onGenerarRutina) {
+  initVolumenCategoriaChart(signal);
+  initMinutosHiitChart(signal);
+
   const btnNueva = document.getElementById('btn-nueva-rutina');
   if (btnNueva) {
     btnNueva.addEventListener('click', () => {

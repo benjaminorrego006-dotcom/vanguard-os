@@ -1,7 +1,7 @@
 import { db } from '../core/db.js';
 import { renderHabitoForm, setupHabitoForm, openHabitoForm } from '../components/habito-form.js';
 import { renderDonutChart, renderDonutLegend, destroyAllDonuts } from '../components/donut-chart.js';
-import { ensureChartJs, baseChartOptions, chartFontFamily, cssVar } from '../utils/charts.js';
+import { ensureChartJs, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, lineValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
@@ -226,32 +226,6 @@ function etiquetasSemanas(n) {
   return Array.from({ length: n }, (_, i) => i === n - 1 ? 'Esta sem.' : `S-${n - 1 - i}`);
 }
 
-// Dibuja el % de cada punto arriba del punto — Chart.js no trae esto
-// nativo (esa es una librería aparte, chartjs-plugin-datalabels, que no
-// está vendorizada acá) y sin esto el valor solo se veía al tocar/hacer
-// hover, mientras que la versión SVG anterior (renderMiniChart) lo pintaba
-// siempre. Un plugin inline con Canvas 2D directo evita sumar una
-// dependencia nueva solo para esto.
-function valueLabelsPlugin(color) {
-  return {
-    id: 'valueLabels',
-    afterDatasetsDraw(chart) {
-      const { ctx } = chart;
-      const meta = chart.getDatasetMeta(0);
-      const data = chart.data.datasets[0].data;
-      ctx.save();
-      ctx.font = '600 10px ' + (chartFontFamily() || 'sans-serif');
-      ctx.fillStyle = color;
-      ctx.textAlign = 'center';
-      meta.data.forEach((point, i) => {
-        if (data[i] <= 0) return;
-        ctx.fillText(`${data[i]}%`, point.x, point.y - 10);
-      });
-      ctx.restore();
-    }
-  };
-}
-
 async function initTendenciaChart() {
   const canvas = document.getElementById('habitos-tendencia-chart');
   if (!canvas || lastHabitosTendencia.length === 0) return;
@@ -262,13 +236,7 @@ async function initTendenciaChart() {
   const textPrimary = cssVar('--text-primary');
   const family = chartFontFamily();
 
-  // Degradado real (no un alpha plano) para que el área bajo la línea se
-  // vea con más profundidad — mismo espíritu "HD" que el resto de la
-  // paleta ya cuida en el rediseño, sin salirse del acento del módulo.
-  const ctx2d = canvas.getContext('2d');
-  const gradient = ctx2d.createLinearGradient(0, 0, 0, canvas.clientHeight || 200);
-  gradient.addColorStop(0, color + '55');
-  gradient.addColorStop(1, color + '02');
+  const gradient = verticalGradient(canvas.getContext('2d'), color, canvas.clientHeight || 200);
 
   if (tendenciaChartInstance) tendenciaChartInstance.destroy();
   tendenciaChartInstance = new Chart(canvas, {
@@ -291,11 +259,7 @@ async function initTendenciaChart() {
     },
     options: {
       ...opts,
-      // Sin esto Chart.js usa 1 en pantallas normales y se ve borroso en
-      // cualquier panel con densidad de píxeles alta (la mayoría de los
-      // teléfonos) — 2 como piso fuerza nitidez incluso si el navegador
-      // reporta un devicePixelRatio menor.
-      devicePixelRatio: Math.max(2, window.devicePixelRatio || 1),
+      devicePixelRatio: hdPixelRatio(),
       layout: { padding: { top: 20 } },
       plugins: {
         ...opts.plugins,
@@ -310,7 +274,7 @@ async function initTendenciaChart() {
         }
       }
     },
-    plugins: [valueLabelsPlugin(textPrimary)]
+    plugins: [lineValueLabelsPlugin(textPrimary, '%')]
   });
 }
 

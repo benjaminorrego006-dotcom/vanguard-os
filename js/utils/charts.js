@@ -104,3 +104,67 @@ export function baseChartOptions() {
     }
   };
 }
+
+// Piso de 2 para devicePixelRatio: Chart.js no siempre toma el valor real
+// de la pantalla en todos los entornos, y con 1 el canvas se ve borroso en
+// cualquier panel de alta densidad de píxeles (la mayoría de los
+// teléfonos). Repetir `Math.max(2, window.devicePixelRatio || 1)` en cada
+// chart invitaba a que alguno se olvidara — un solo lugar que lo define.
+export function hdPixelRatio() {
+  return Math.max(2, window.devicePixelRatio || 1);
+}
+
+// Dibuja el valor de cada barra arriba de ella con Canvas 2D directo, en
+// vez de sumar chartjs-plugin-datalabels como dependencia nueva. Pensado
+// para charts de un solo dataset con el eje Y oculto (decorativo) — sin
+// esto el número solo se ve al tocar/hacer hover.
+export function barValueLabelsPlugin(color) {
+  return {
+    id: 'barValueLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      const meta = chart.getDatasetMeta(0);
+      const data = chart.data.datasets[0].data;
+      ctx.save();
+      ctx.font = '600 10px ' + (chartFontFamily() || 'sans-serif');
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      meta.data.forEach((bar, i) => {
+        if (!data[i]) return;
+        ctx.fillText(String(data[i]), bar.x, bar.y - 8);
+      });
+      ctx.restore();
+    }
+  };
+}
+
+// Misma idea que barValueLabelsPlugin, para charts de línea/puntos. `suffix`
+// opcional para series en porcentaje (Hábitos: "42%" en vez de "42").
+export function lineValueLabelsPlugin(color, suffix = '') {
+  return {
+    id: 'lineValueLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      const meta = chart.getDatasetMeta(0);
+      const data = chart.data.datasets[0].data;
+      ctx.save();
+      ctx.font = '600 10px ' + (chartFontFamily() || 'sans-serif');
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      meta.data.forEach((point, i) => {
+        if (!data[i]) return;
+        ctx.fillText(`${data[i]}${suffix}`, point.x, point.y - 10);
+      });
+      ctx.restore();
+    }
+  };
+}
+
+// Degradado vertical real (no un alpha plano) para el relleno bajo una
+// línea — mismo criterio "HD" en todos los line charts de la app.
+export function verticalGradient(ctx2d, colorHex, heightPx) {
+  const gradient = ctx2d.createLinearGradient(0, 0, 0, heightPx || 150);
+  gradient.addColorStop(0, colorHex + '55');
+  gradient.addColorStop(1, colorHex + '02');
+  return gradient;
+}
