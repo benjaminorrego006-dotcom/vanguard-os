@@ -14,8 +14,13 @@ export function renderActivityHeatmap({ id, monthLabel, year, month, countByDay,
   const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
   const maxCount = Math.max(1, ...Object.values(countByDay), 0);
 
+  // Celdas de tamaño fijo (no 1fr): antes se estiraban a todo el ancho de
+  // la tarjeta (~91px cada una en una tarjeta típica). Probando el doble
+  // de los 46px (mitad real medida) del paso anterior.
+  const CELL = 92; // px
+
   const weekdayHeaderHtml = WEEKDAY_LABELS
-    .map(d => `<div style="text-align: center; font-size: 9px; font-weight: 700; color: var(--text-disabled);">${d}</div>`)
+    .map(d => `<div style="text-align: center; font-size: 11px; font-weight: 700; color: var(--text-disabled);">${d}</div>`)
     .join('');
 
   const cellHtml = (day) => {
@@ -26,28 +31,28 @@ export function renderActivityHeatmap({ id, monthLabel, year, month, countByDay,
     const fullLabel = `${day} de ${monthLabel}: ${detailText}`;
     return `
       <div class="heatmap-cell tappable" data-day="${day}" data-detail="${escapeHtml(fullLabel)}" title="${escapeHtml(fullLabel)}"
-        style="aspect-ratio: 1; border-radius: 5px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-sizing: border-box; border: 1.5px solid transparent; font-size: 9.5px; font-weight: 700; transition: border-color 0.15s ease; background: ${count === 0 ? 'var(--surface-2)' : accentVar}; opacity: ${count === 0 ? 1 : alpha}; color: ${count === 0 ? 'var(--text-disabled)' : '#000'};">
+        style="width: ${CELL}px; height: ${CELL}px; border-radius: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-sizing: border-box; border: 1.5px solid transparent; font-size: 14px; font-weight: 700; transition: border-color 0.15s ease, transform 0.1s ease; background: ${count === 0 ? 'var(--surface-2)' : accentVar}; opacity: ${count === 0 ? 1 : alpha}; color: ${count === 0 ? 'var(--text-disabled)' : '#000'};">
         ${day}
       </div>`;
   };
 
   let cells = '';
-  for (let i = 0; i < firstWeekday; i++) cells += `<div></div>`;
+  for (let i = 0; i < firstWeekday; i++) cells += `<div style="width: ${CELL}px; height: ${CELL}px;"></div>`;
   for (let day = 1; day <= daysInMonth; day++) cells += cellHtml(day);
   const totalCells = firstWeekday + daysInMonth;
   const trailing = (7 - (totalCells % 7)) % 7;
-  for (let i = 0; i < trailing; i++) cells += `<div></div>`;
+  for (let i = 0; i < trailing; i++) cells += `<div style="width: ${CELL}px; height: ${CELL}px;"></div>`;
 
   return `
     <div id="${id}">
-      <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 6px;">${weekdayHeaderHtml}</div>
-      <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">${cells}</div>
+      <div style="display: grid; grid-template-columns: repeat(7, ${CELL}px); gap: 6px; margin-bottom: 8px; width: max-content;">${weekdayHeaderHtml}</div>
+      <div style="display: grid; grid-template-columns: repeat(7, ${CELL}px); gap: 6px; width: max-content;">${cells}</div>
       <div id="${id}-detail" style="min-height: 16px; margin-top: 10px; font-size: 11.5px; color: var(--text-secondary); font-weight: 600;"></div>
       <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 10px; font-size: 10px; color: var(--text-disabled);">
         Menos
-        <div style="width: 10px; height: 10px; border-radius: 2px; background: var(--surface-2);"></div>
-        <div style="width: 10px; height: 10px; border-radius: 2px; background: ${accentVar}; opacity: 0.4;"></div>
-        <div style="width: 10px; height: 10px; border-radius: 2px; background: ${accentVar};"></div>
+        <div style="width: 9px; height: 9px; border-radius: 2px; background: var(--surface-2);"></div>
+        <div style="width: 9px; height: 9px; border-radius: 2px; background: ${accentVar}; opacity: 0.4;"></div>
+        <div style="width: 9px; height: 9px; border-radius: 2px; background: ${accentVar};"></div>
         Más
       </div>
     </div>
