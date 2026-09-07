@@ -1,5 +1,7 @@
 import { db } from '../core/db.js';
 import { renderHabitoForm, setupHabitoForm, openHabitoForm } from '../components/habito-form.js';
+import { renderDonutChart, renderDonutLegend, destroyAllDonuts } from '../components/donut-chart.js';
+import { ensureChartJs, baseChartOptions, chartFontFamily, cssVar } from '../utils/charts.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
@@ -8,6 +10,12 @@ import { escapeHtml } from '../utils/escape.js';
 // anterior (últimos 7 días terminando hoy), esta es la semana calendario
 // fija: lunes a domingo, hoy puede caer en cualquier posición.
 const DOW_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
+// Mismo trazo que el ícono del header de esta vista (ver renderLista) —
+// reemplaza al emoji 🔥 del contador de racha por un ícono vectorial
+// consistente con el resto del set de íconos outline de la app.
+const iconoFuego = (size = 15, color = 'currentColor') =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" style="flex-shrink: 0;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`;
 const DOW_LARGO = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
 // Vista local (lista | detalle) — mismo patrón que activeFinTab en
@@ -18,6 +26,19 @@ const DOW_LARGO = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábad
 let vista = 'lista';
 let habitoDetalleId = null;
 let popstateEnganchado = false;
+
+// Entries de la dona de "cumplimiento por hábito" del resumen de Hábitos
+// (ver renderResumenHabitos) — igual que lastTareasDonutEntries en
+// lab-tareas.js, se guardan al renderizar el HTML (síncrono) para que
+// mountListeners() pueda montar el Chart.js real después, sin recalcular.
+let lastHabitosDonutEntries = [];
+let lastHabitosTendencia = [];
+let tendenciaChartInstance = null;
+
+// Variantes del acento violeta (mismo que lab-habitos.js): la dona de
+// Hábitos usa shades de SU PROPIO acento, no colores prestados de otros
+// módulos — mismo criterio que Entreno (shades de --cy) o Tareas.
+const VIOLET_SHADES_RESUMEN = ['var(--vi)', 'var(--vib)', 'var(--vid)', 'var(--vip)', 'var(--vis)'];
 
 function onPopStateHabitos(e) {
   if (vista === 'detalle' && (!e.state || !e.state.habitoDetalle)) {
@@ -57,15 +78,22 @@ function renderFranjaSemanal(habito, hoyIso) {
     const esFuturo = iso > hoyIso;
     const diaLabel = `${DOW_LARGO[d.getDay() === 0 ? 6 : d.getDay() - 1]} ${d.getDate()}`;
     const accion = marcado ? 'Desmarcar' : 'Marcar';
+    // Un solo tratamiento de borde para todo lo "sin marcar" (hoy incluido)
+    // — antes hoy llevaba un anillo de acento aparte, dos reglas de borde
+    // distintas conviviendo se sentía menos prolijo. "Hoy" ahora se marca
+    // por tipografía (la letra del día en el acento, en negrita), no por
+    // una caja con borde especial — la caja en sí queda uniforme.
+    const labelColor = esHoy ? 'var(--accent-purple)' : 'var(--text-disabled)';
+    const labelWeight = esHoy ? '800' : '700';
     return `
       <button class="day-toggle tappable" data-id="${habito.id}" data-fecha="${iso}"
         ${esFuturo ? 'disabled' : ''}
         aria-label="${esFuturo ? `${escapeHtml(habito.nombre)} el ${diaLabel} (todavía no llega)` : `${accion} ${escapeHtml(habito.nombre)} el ${diaLabel}`}"
         aria-pressed="${marcado}"
-        style="flex: 1; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: transparent; border: none; cursor: ${esFuturo ? 'default' : 'pointer'}; padding: 0; opacity: ${esFuturo ? '0.35' : '1'};">
-        <span aria-hidden="true" style="font-size: 10px; font-weight: 700; color: var(--text-disabled); letter-spacing: 0.4px;">${DOW_SHORT[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span>
-        <span aria-hidden="true" class="day-toggle-circle" data-check-size="13" style="width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${esHoy ? 'var(--accent-purple)' : 'transparent'}; background: ${marcado ? 'var(--accent-purple)' : 'var(--surface-2)'};">
-          ${marcado ? '<svg width="13" height="13" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+        style="flex: 1; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; background: transparent; border: none; cursor: ${esFuturo ? 'default' : 'pointer'}; padding: 0; opacity: ${esFuturo ? '0.4' : '1'};">
+        <span aria-hidden="true" style="font-size: 11px; font-weight: ${labelWeight}; color: ${labelColor}; letter-spacing: 0.4px;">${DOW_SHORT[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span>
+        <span aria-hidden="true" class="day-toggle-circle" data-check-size="8" style="width: 50%; aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : 'var(--surface-border)'}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; transition: background 0.15s ease, border-color 0.15s ease;">
+          ${marcado ? '<svg width="8" height="8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
         </span>
       </button>
     `;
@@ -81,6 +109,13 @@ function renderFranjaSemanal(habito, hoyIso) {
 //   fallado  → día ya pasado y sin marcar, tinte rojizo apagado.
 //   pendiente → hoy (todavía accionable) o futuro; hoy lleva un anillo para
 //   distinguirlo de "ya pasó y no se hizo".
+// Mismo lenguaje visual que la franja de racha del detalle (ver
+// renderFranjaSemanal): sin marcar = solo borde fino, sin relleno oscuro;
+// marcado = relleno del acento + check blanco. La única diferencia real es
+// que acá "fallado" (día pasado sin marcar) sí necesita distinguirse de
+// "pendiente" (hoy o futuro) porque no hay letra de día para hacerlo por
+// tipografía — se resuelve con un borde con tinte rojizo en vez de uno
+// gris neutro.
 function renderMiniSemana(habito, hoyIso) {
   const marcas = habito.marcas || {};
   const dias7 = semanaActual();
@@ -90,16 +125,193 @@ function renderMiniSemana(habito, hoyIso) {
     const esHoy = iso === hoyIso;
     const esFuturo = iso > hoyIso;
     const fallado = !marcado && !esHoy && !esFuturo;
-    const bg = marcado
-      ? 'var(--accent-purple)'
-      : fallado
-        ? 'color-mix(in srgb, var(--state-high) 40%, var(--surface-2))'
-        : 'var(--surface-2)';
+    const borderColor = fallado
+      ? 'color-mix(in srgb, var(--state-high) 45%, var(--surface-border))'
+      : 'var(--surface-border)';
     const ring = esHoy ? 'box-shadow: 0 0 0 1.5px var(--accent-purple) inset;' : '';
     const dim = esFuturo ? 'opacity: 0.4;' : '';
-    return `<div aria-hidden="true" style="flex: 1; aspect-ratio: 1; border-radius: 3px; background: ${bg}; ${ring} ${dim}"></div>`;
+    return `
+      <div aria-hidden="true" style="flex: 1; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 50%; aspect-ratio: 1; border-radius: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : borderColor}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; ${ring} ${dim}">
+          ${marcado ? '<svg width="8" height="8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+        </div>
+      </div>`;
   }).join('');
   return `<div style="display: flex; gap: 3px; margin-top: 8px;">${celdas}</div>`;
+}
+
+// Resumen agregado de Hábitos: cumplimiento por hábito (dona), el hábito
+// que más necesita atención hoy, y la tendencia semanal — todo por encima
+// de la lista fila-por-fila, porque es información sobre el CONJUNTO de
+// hábitos, no de uno puntual (esa ya la cubre cada fila con su racha y su
+// franja de 7 días). Solo tiene sentido con al menos un hábito creado.
+async function renderResumenHabitos(habitos, hoyIso) {
+  if (habitos.length === 0) return '';
+
+  const hace7Dias = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    return diaKeyDe(d);
+  });
+  const entries = habitos.map((h, i) => {
+    const marcas = h.marcas || {};
+    const marcados = hace7Dias.filter(iso => marcas[iso]).length;
+    return { label: escapeHtml(h.nombre), valor: marcados, color: VIOLET_SHADES_RESUMEN[i % VIOLET_SHADES_RESUMEN.length] };
+  }).filter(e => e.valor > 0);
+  lastHabitosDonutEntries = entries;
+
+  const donutHtml = entries.length === 0
+    ? EmptyState('Sin marcas esta semana', 'Marca un hábito para ver su desglose acá.')
+    : `<div style="display: flex; gap: 16px; align-items: center;">
+         <div style="width: 92px; height: 92px; flex-shrink: 0;"><canvas id="habitos-donut"></canvas></div>
+         <div style="flex: 1; min-width: 0;">${renderDonutLegend(entries)}</div>
+       </div>`;
+
+  // En riesgo: el hábito con la racha más floja entre los que hoy siguen
+  // sin marcar — con un solo hábito no hay "el más flojo" que destacar,
+  // ya lo cubre la tarjeta de racha global de arriba.
+  let riesgoHtml = '';
+  if (habitos.length >= 2) {
+    const sinMarcarHoy = habitos.filter(h => !(h.marcas || {})[hoyIso]);
+    if (sinMarcarHoy.length > 0) {
+      const masFlojo = [...sinMarcarHoy].sort((a, b) => (a._racha?.actual || 0) - (b._racha?.actual || 0))[0];
+      const rachaTxt = masFlojo._racha && masFlojo._racha.actual > 0
+        ? `Racha de <span class="num">${masFlojo._racha.actual}</span> ${masFlojo._racha.actual === 1 ? 'día' : 'días'} — todavía sin marcar hoy.`
+        : 'Sin racha y todavía sin marcar hoy.';
+      riesgoHtml = `
+        <div class="card" style="padding: 16px; border-color: color-mix(in srgb, var(--state-high) 35%, var(--surface-border));">
+          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--state-high); margin-bottom: 8px;">En riesgo hoy</div>
+          <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${escapeHtml(masFlojo.nombre)}</div>
+          <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px;">${rachaTxt}</div>
+        </div>`;
+    }
+  }
+
+  // Reusa la serie del Laboratorio (getTendenciaCumplimientoHabitos) en vez
+  // de calcular una nueva — mismo dato, un solo lugar que lo define.
+  const tendencia = await db.getTendenciaCumplimientoHabitos(8);
+  lastHabitosTendencia = tendencia;
+  const hayTendencia = tendencia.some(v => v > 0);
+  const tendenciaHoy = tendencia[tendencia.length - 1] || 0;
+  const tendenciaProm = Math.round(tendencia.reduce((a, b) => a + b, 0) / tendencia.length);
+
+  const tendenciaHtml = !hayTendencia
+    ? EmptyState('Sin tendencia todavía', 'Marca hábitos un par de semanas más para ver el avance.')
+    : `
+      <div style="display: flex; gap: 20px; margin-bottom: 14px;">
+        <div><span class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${tendenciaHoy}%</span><div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px;">Esta semana</div></div>
+        <div><span class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${tendenciaProm}%</span><div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px;">Promedio 8 sem.</div></div>
+      </div>
+      <div style="height: 200px; padding-top: 8px;"><canvas id="habitos-tendencia-chart"></canvas></div>
+    `;
+
+  return `
+    <div style="display: grid; grid-template-columns: ${riesgoHtml ? '1.3fr 1fr' : '1fr'}; gap: 12px; margin-right: 20px; margin-bottom: 12px;">
+      <div class="card" style="padding: 16px;">
+        <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 10px;">Cumplimiento por hábito, 7 días</div>
+        ${donutHtml}
+      </div>
+      ${riesgoHtml}
+    </div>
+    <div class="card" style="padding: 16px; margin-right: 20px; margin-bottom: 20px;">
+      <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 10px;">% de hábitos cumplidos por semana (últimas 8 semanas)</div>
+      ${tendenciaHtml}
+    </div>
+  `;
+}
+
+// Etiqueta de cada barra/punto de la tendencia semanal — mismo criterio
+// que renderVolumenSemanalChart en entrenamiento.js ("Esta sem." para la
+// última, "S-N" contando hacia atrás para el resto).
+function etiquetasSemanas(n) {
+  return Array.from({ length: n }, (_, i) => i === n - 1 ? 'Esta sem.' : `S-${n - 1 - i}`);
+}
+
+// Dibuja el % de cada punto arriba del punto — Chart.js no trae esto
+// nativo (esa es una librería aparte, chartjs-plugin-datalabels, que no
+// está vendorizada acá) y sin esto el valor solo se veía al tocar/hacer
+// hover, mientras que la versión SVG anterior (renderMiniChart) lo pintaba
+// siempre. Un plugin inline con Canvas 2D directo evita sumar una
+// dependencia nueva solo para esto.
+function valueLabelsPlugin(color) {
+  return {
+    id: 'valueLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      const meta = chart.getDatasetMeta(0);
+      const data = chart.data.datasets[0].data;
+      ctx.save();
+      ctx.font = '600 10px ' + (chartFontFamily() || 'sans-serif');
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      meta.data.forEach((point, i) => {
+        if (data[i] <= 0) return;
+        ctx.fillText(`${data[i]}%`, point.x, point.y - 10);
+      });
+      ctx.restore();
+    }
+  };
+}
+
+async function initTendenciaChart() {
+  const canvas = document.getElementById('habitos-tendencia-chart');
+  if (!canvas || lastHabitosTendencia.length === 0) return;
+
+  const Chart = await ensureChartJs();
+  const opts = baseChartOptions();
+  const color = cssVar('--accent-purple');
+  const textPrimary = cssVar('--text-primary');
+  const family = chartFontFamily();
+
+  // Degradado real (no un alpha plano) para que el área bajo la línea se
+  // vea con más profundidad — mismo espíritu "HD" que el resto de la
+  // paleta ya cuida en el rediseño, sin salirse del acento del módulo.
+  const ctx2d = canvas.getContext('2d');
+  const gradient = ctx2d.createLinearGradient(0, 0, 0, canvas.clientHeight || 200);
+  gradient.addColorStop(0, color + '55');
+  gradient.addColorStop(1, color + '02');
+
+  if (tendenciaChartInstance) tendenciaChartInstance.destroy();
+  tendenciaChartInstance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: etiquetasSemanas(lastHabitosTendencia.length),
+      datasets: [{
+        data: lastHabitosTendencia,
+        borderColor: color,
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0.35,
+        pointRadius: 4,
+        pointBackgroundColor: color,
+        pointBorderColor: cssVar('--panel'),
+        pointBorderWidth: 2,
+        pointHoverRadius: 6,
+        borderWidth: 3
+      }]
+    },
+    options: {
+      ...opts,
+      // Sin esto Chart.js usa 1 en pantallas normales y se ve borroso en
+      // cualquier panel con densidad de píxeles alta (la mayoría de los
+      // teléfonos) — 2 como piso fuerza nitidez incluso si el navegador
+      // reporta un devicePixelRatio menor.
+      devicePixelRatio: Math.max(2, window.devicePixelRatio || 1),
+      layout: { padding: { top: 20 } },
+      plugins: {
+        ...opts.plugins,
+        tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.parsed.y}% cumplido` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: cssVar('--text-disabled'), font: { size: 10, family } } },
+        y: {
+          min: 0, max: 100,
+          grid: { color: cssVar('--surface-border') },
+          ticks: { color: cssVar('--text-disabled'), font: { size: 10, family }, stepSize: 25, callback: (v) => `${v}%` }
+        }
+      }
+    },
+    plugins: [valueLabelsPlugin(textPrimary)]
+  });
 }
 
 async function renderDetalle(id) {
@@ -120,14 +332,16 @@ async function renderDetalle(id) {
         <h1 style="font-size: 22px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.4px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(habito.nombre)}</h1>
       </div>
 
-      <div class="card card-hero" style="padding: 16px; margin-bottom: 20px;">
-        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-bottom: 12px;">
-          ${racha.actual > 0
-            ? `🔥 <span class="num">${racha.actual}</span> ${racha.actual === 1 ? 'día seguido' : 'días seguidos'}`
-            : 'Sin racha — márcalo hoy'}
-          · Mejor: <span class="num">${racha.mejor}</span> ${racha.mejor === 1 ? 'día' : 'días'}
+      <div class="card card-hero" style="padding: 1.25rem; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600;">
+            ${racha.actual > 0
+              ? `<span class="num">${racha.actual}</span> ${racha.actual === 1 ? 'día seguido' : 'días seguidos'} · Mejor: <span class="num">${racha.mejor}</span> ${racha.mejor === 1 ? 'día' : 'días'}`
+              : 'Sin racha — márcalo hoy'}
+          </div>
+          ${racha.actual > 0 ? iconoFuego(18, 'var(--accent-purple)') : ''}
         </div>
-        <div style="display: flex; justify-content: space-between;">
+        <div style="display: flex; gap: 8px;">
           ${renderFranjaSemanal(habito, hoyIso)}
         </div>
       </div>
@@ -194,13 +408,15 @@ async function renderLista() {
       ${habitos.length > 0 ? `
         <!-- Racha de días perfectos — tarjeta principal de Hábitos, lleva chaflán (ver .card-hero). -->
         <div class="card card-hero" style="margin-right: 20px; margin-bottom: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
-          <div style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 50%; background: rgba(139, 124, 246, 0.12); display: flex; align-items: center; justify-content: center; font-size: 24px;">🔥</div>
+          <div style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 50%; background: color-mix(in srgb, var(--accent-purple) 12%, transparent); display: flex; align-items: center; justify-content: center; font-size: 24px;">🔥</div>
           <div>
             <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);"><span class="num">${rachaGlobal.actual}</span> ${rachaGlobal.actual === 1 ? 'día perfecto seguido' : 'días perfectos seguidos'}</div>
             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Mejor racha: <span class="num">${rachaGlobal.mejor}</span> ${rachaGlobal.mejor === 1 ? 'día' : 'días'} · todos los hábitos cumplidos ese día</div>
           </div>
         </div>
       ` : ''}
+
+      ${await renderResumenHabitos(habitos, hoyIso)}
 
       <!-- Lista de hábitos -->
       <div style="padding-right: 20px; padding-bottom: 110px;">
@@ -229,6 +445,16 @@ export async function render() {
   return renderLista();
 }
 
+// Monta el Chart.js real de la dona de cumplimiento, recién después de
+// que el HTML ya está en el DOM — mismo patrón que initDesgloseChart() en
+// lab-tareas.js/lab-finanzas.js. Sin efecto si el canvas no existe (vista
+// de detalle) o si no hay datos para la dona (sin hábitos marcados aún).
+function initHabitosCharts() {
+  if (vista !== 'lista') return;
+  if (lastHabitosDonutEntries.length > 0) renderDonutChart('habitos-donut', lastHabitosDonutEntries);
+  initTendenciaChart();
+}
+
 export function mountListeners() {
   const refresh = async () => {
     const root = document.getElementById('view-root');
@@ -236,6 +462,7 @@ export function mountListeners() {
     mountListeners();
   };
 
+  initHabitosCharts();
   setupHabitoForm(refresh);
 
   if (!popstateEnganchado) {
@@ -278,13 +505,23 @@ export function mountListeners() {
     const circle = btn.querySelector('.day-toggle-circle');
     if (!circle) return;
     btn.setAttribute('aria-pressed', String(marcado));
-    circle.style.background = marcado ? 'var(--accent-purple)' : 'var(--surface-2)';
-    if (circle.getAttribute('data-borde-marca')) {
+    // Dos "sabores" de círculo comparten esta función: el toggle de hoy en
+    // la lista (data-borde-marca="1", relleno gris cuando no está marcado,
+    // check negro) y las celdas de la franja semanal en el detalle (sin
+    // relleno cuando no está marcado, solo borde fino, check blanco).
+    const esListaFlavor = !!circle.getAttribute('data-borde-marca');
+    if (esListaFlavor) {
+      circle.style.background = marcado ? 'var(--accent-purple)' : 'var(--surface-2)';
       circle.style.borderColor = marcado ? 'transparent' : 'var(--surface-border)';
+    } else {
+      circle.style.background = marcado ? 'var(--accent-purple)' : 'transparent';
+      circle.style.borderColor = marcado ? 'transparent' : 'var(--surface-border)';
+      circle.style.borderWidth = marcado ? '0px' : '0.5px';
     }
     const size = circle.getAttribute('data-check-size') || '16';
+    const checkColor = esListaFlavor ? '#000' : '#fff';
     circle.innerHTML = marcado
-      ? `<svg width="${size}" height="${size}" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+      ? `<svg width="${size}" height="${size}" fill="none" stroke="${checkColor}" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`
       : '';
   };
 
@@ -367,4 +604,6 @@ export function cleanup() {
   }
   vista = 'lista';
   habitoDetalleId = null;
+  destroyAllDonuts();
+  if (tendenciaChartInstance) { tendenciaChartInstance.destroy(); tendenciaChartInstance = null; }
 }
