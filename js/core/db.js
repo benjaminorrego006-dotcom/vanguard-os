@@ -402,6 +402,24 @@ async function migrateFromLocalStorageIfNeeded() {
   localStorage.setItem('vg_migrated_to_idb', 'true');
 }
 
+// El generador de rutinas de GYM dejó de producir splits Full Body (ahora
+// solo Push/Pull/Legs, ver generador-rutinas.js), pero eso no borra las que
+// ya estaban guardadas de generaciones anteriores — sin este barrido
+// seguirían apareciendo en "Mis Rutinas" para siempre, aunque el generador
+// nunca vuelva a crear una. Corre en cada init(): idempotente y barato (no
+// escribe nada si no encuentra ninguna coincidencia).
+async function eliminarRutinasFullBodyGym() {
+  const rutinas = await idbGetArray('rutinas');
+  const aEliminar = rutinas.filter(r => r.categoria === 'gym' && /^full body/i.test((r.nombre || '').trim()));
+  if (aEliminar.length === 0) return;
+
+  const idsAEliminar = new Set(aEliminar.map(r => r.id));
+  await idbSetArray('rutinas', rutinas.filter(r => !idsAEliminar.has(r.id)));
+  for (const r of aEliminar) {
+    await logEvent({ modulo: 'entreno', tipo: 'rutina_eliminada', entidadId: r.id, payload: {} });
+  }
+}
+
 // Hash del PIN de bloqueo. Usa claves con prefijo "vglock_" (NO "vg_") a
 // propósito, para que exportAllData/importAllData (que solo copian claves
 // "vg_"/"vanguard:") nunca muevan el PIN entre dispositivos ni lo metan en
@@ -463,6 +481,11 @@ export const db = {
       await migrateFromLocalStorageIfNeeded();
     } catch (e) {
       console.error('[Vanguard OS] Error migrando datos a IndexedDB', e);
+    }
+    try {
+      await eliminarRutinasFullBodyGym();
+    } catch (e) {
+      console.error('[Vanguard OS] Error limpiando rutinas Full Body de GYM', e);
     }
     try {
       await solicitarAlmacenamientoPersistente();
