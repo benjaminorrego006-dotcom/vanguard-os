@@ -71,7 +71,6 @@ const PRECACHE_URLS = [
   './js/components/RecurringForm.js',
   './js/components/task-form.js',
   './js/components/habito-form.js',
-  './js/components/recurring-task-form.js',
   './js/components/profile-form.js',
   './js/components/session-summary-form.js',
   './js/components/goal-card.js',

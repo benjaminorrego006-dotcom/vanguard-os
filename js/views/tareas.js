@@ -1,9 +1,8 @@
 import { db } from '../core/db.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
-import { Toast, ConfirmDialog } from '../utils/states.js';
+import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
-import { renderRecurringTaskForm, initRecurringTaskForm, attachRecurringTaskDeleteListeners, describeRecurringTaskFreq } from '../components/recurring-task-form.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatFechaCorta, formatMes } from '../utils/fecha.js';
 
@@ -27,9 +26,9 @@ const STATE_LABELS = {
 };
 
 const EMPTY_MSG = {
-  'todo': 'Sin tareas pendientes',
-  'in-progress': 'Sin tareas en curso',
-  'done': 'Sin tareas completadas'
+  'todo': { title: 'Sin tareas pendientes', subtitle: 'Agrega la primera con el botón + de abajo.' },
+  'in-progress': { title: 'Sin tareas en curso', subtitle: 'Avanza una desde "Por Hacer" para verla acá.' },
+  'done': { title: 'Sin tareas completadas', subtitle: 'Termina una tarea para verla acá.' }
 };
 
 const renderTasksDonut = async (tasks) => {
@@ -164,36 +163,8 @@ function renderStatusTask(task) {
   `;
 }
 
-function renderRecurringTaskRow(item) {
-  return `
-    <div class="card" data-id="${item.id}" style="padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
-      <div>
-        <div style="font-size:13px; font-weight:700; color:var(--text-primary);">${escapeHtml(item.title)}</div>
-        <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${describeRecurringTaskFreq(item)}</div>
-      </div>
-      <button class="delete-recurring-task tappable" data-id="${item.id}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; flex-shrink:0;">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-      </button>
-    </div>
-  `;
-}
-
-function renderRecurringTasksSection(recurringTasks) {
-  return `
-    <div class="card" style="margin-right:20px; margin-bottom:24px; padding:18px 20px;">
-      <div class="flex-between" style="margin-bottom:${recurringTasks.length ? '14px' : '4px'};">
-        <h3 style="font-size:13px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin:0;">Tareas Recurrentes</h3>
-        <button id="btn-add-recurring-task" class="tappable" style="background:transparent; border:none; color:var(--text-secondary); font-size:13px; font-weight:700; cursor:pointer;">+ Nueva</button>
-      </div>
-      ${recurringTasks.length === 0
-        ? `<div style="font-size:12px; color:var(--text-secondary);">Automatiza tareas que se repiten: pagos, revisiones, rutinas.</div>`
-        : recurringTasks.map(renderRecurringTaskRow).join('')}
-    </div>
-  `;
-}
-
-function renderEmptyBoard(msg) {
-  return `<div style="border:1.5px dashed var(--surface-border); padding:32px 16px; text-align:center; color:var(--text-secondary); font-size:12px; font-weight:600;">${msg}</div>`;
+function renderEmptyBoard(title, subtitle = '') {
+  return EmptyState(title, subtitle);
 }
 
 function renderStateSelector(cols) {
@@ -204,7 +175,7 @@ function renderStateSelector(cols) {
         return `
           <button class="btn-state-tab tappable" data-state="${id}" style="flex:1; padding:14px 8px; background:${isActive ? 'var(--vis)' : 'var(--surface-1)'}; border:1px solid var(--surface-border); border-bottom:2px solid ${isActive ? 'var(--vi)' : 'transparent'}; color:${isActive ? 'var(--text-primary)' : 'var(--text-secondary)'}; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;">
             <span style="text-transform:uppercase; font-weight:700;">${STATE_LABELS[id]}</span>
-            <span style="font-size:16px; font-weight:800; font-variant-numeric: tabular-nums;">${cols[id].tasks.length}</span>
+            <span class="num" style="font-size:16px; font-weight:800;">${cols[id].tasks.length}</span>
           </button>
         `;
       }).join('')}
@@ -217,7 +188,7 @@ function renderBoardContent(cols) {
 
   if (activeTaskState === 'todo') {
     const sorted = [...activeCol.tasks].sort(ordenUrgencia);
-    if (sorted.length === 0) return renderEmptyBoard(EMPTY_MSG.todo);
+    if (sorted.length === 0) return renderEmptyBoard(EMPTY_MSG.todo.title, EMPTY_MSG.todo.subtitle);
 
     const urgentes = sorted.slice(0, 2);
     const cola = sorted.slice(2);
@@ -232,13 +203,12 @@ function renderBoardContent(cols) {
     `;
   }
 
-  if (activeCol.tasks.length === 0) return renderEmptyBoard(EMPTY_MSG[activeTaskState]);
+  if (activeCol.tasks.length === 0) return renderEmptyBoard(EMPTY_MSG[activeTaskState].title, EMPTY_MSG[activeTaskState].subtitle);
   return activeCol.tasks.map(renderStatusTask).join('');
 }
 
 export async function render() {
   const tasks = await db.getTasks();
-  const recurringTasks = await db.getRecurringTasks();
 
   const cols = {
     'todo': { tasks: [] },
@@ -284,20 +254,11 @@ export async function render() {
             <canvas id="tasks-donut-chart" width="56" height="56"></canvas>
           </div>
           <div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${tasks.filter(t => t.status === 'done').length} de ${tasks.length} completadas</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${tasks.length - tasks.filter(t => t.status === 'done').length} pendientes</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);"><span class="num">${tasks.filter(t => t.status === 'done').length}</span> de <span class="num">${tasks.length}</span> completadas</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;"><span class="num">${tasks.length - tasks.filter(t => t.status === 'done').length}</span> pendientes</div>
           </div>
         </div>
       ` : ''}
-
-      <!-- Mapa de actividad -->
-      <div class="card" style="margin-right: 20px; margin-bottom: 24px; padding: 18px 20px;">
-        <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
-        ${heatmapHtml}
-      </div>
-
-      <!-- Recurrentes -->
-      ${renderRecurringTasksSection(recurringTasks)}
 
       <!-- Search -->
       <div style="margin-right: 20px; margin-bottom: 24px; position: relative;">
@@ -309,6 +270,12 @@ export async function render() {
       ${renderStateSelector(cols)}
       <div style="margin-right: 20px; padding-bottom: 24px;">
         ${renderBoardContent(cols)}
+      </div>
+
+      <!-- Mapa de actividad — debajo del tablero (Por Hacer/En Curso/Hecho). -->
+      <div class="card" style="margin-right: 20px; margin-bottom: 24px; padding: 18px 20px;">
+        <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
+        ${heatmapHtml}
       </div>
 
       <!-- Captura rápida -->
@@ -325,13 +292,12 @@ export async function render() {
            sidebar) quedaba flotando lejos del contenido que opera. Sticky
            lo mantiene pegado al borde derecho de la MISMA columna. -->
       <div style="position: sticky; bottom: 100px; height: 0; z-index: 2000; display: flex; justify-content: flex-end; pointer-events: none;">
-        <button id="btn-new-task" class="tappable mk3-fab" style="pointer-events: auto; margin-right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent-purple); color: #000; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px -6px rgba(139, 124, 246, 0.6); cursor: pointer;">
+        <button id="btn-new-task" class="tappable mk3-fab" style="pointer-events: auto; margin-right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent-purple); color: #000; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px -6px color-mix(in srgb, var(--accent-purple) 60%, transparent); cursor: pointer;">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
       </div>
 
       ${renderTaskForm()}
-      ${renderRecurringTaskForm()}
     </div>
   `;
 }
@@ -347,18 +313,9 @@ export function mountListeners() {
   initActivityHeatmapListeners('tareas-heatmap', 'var(--accent-purple)');
 
   setupTaskForm(refresh);
-  initRecurringTaskForm(db, refresh);
-  attachRecurringTaskDeleteListeners(db, refresh);
 
   const btnNew = document.getElementById('btn-new-task');
   if (btnNew) btnNew.addEventListener('click', () => openTaskForm());
-
-  const btnAddRecurringTask = document.getElementById('btn-add-recurring-task');
-  if (btnAddRecurringTask) {
-    btnAddRecurringTask.addEventListener('click', () => {
-      document.getElementById('task-recurring-modal').openForm();
-    });
-  }
 
   // Selector de estado del tablero
   document.querySelectorAll('.btn-state-tab').forEach(btn => {

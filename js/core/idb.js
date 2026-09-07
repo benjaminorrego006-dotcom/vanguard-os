@@ -43,7 +43,6 @@ const STORE_DEFS = {
   envelopes: { keyPath: 'id' },
   recurrentes: { keyPath: 'id' },
   tareas: { keyPath: 'id' },
-  tareas_recurrentes: { keyPath: 'id' },
   habitos: { keyPath: 'id' },
   // Ritual matutino: una fila por día. El keyPath es la fecha ISO
   // ('2026-09-06') en vez de un uuid porque nunca hay dos rituales del
