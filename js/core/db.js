@@ -1568,6 +1568,41 @@ export const db = {
     return { volumenPorSemana, minutosPorSemana };
   },
 
+  // Mismo cálculo de volumen que getTendenciaSemanal (peso × reps por
+  // serie, sumado), pero por día en vez de por semana — usada por el
+  // resumen cruzado del Laboratorio (energía del Ritual × volumen de
+  // Entreno), donde cruzar por semana perdería la granularidad diaria que
+  // sí tiene el Ritual. Orden cronológico (antiguo -> reciente).
+  async getVolumenPorDia(dias = 14) {
+    const sesiones = await idbGetArray('sesiones');
+    const porFecha = {};
+    sesiones.forEach(s => {
+      const sDate = new Date(s.fecha);
+      if (isNaN(sDate)) return;
+      const iso = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}-${String(sDate.getDate()).padStart(2, '0')}`;
+      let volumen = 0;
+      (s.ejercicios || []).forEach(ej => {
+        (ej.series || []).forEach(serie => {
+          const p = Number(serie.peso) || 0;
+          const match = String(serie.reps).match(/\d+/);
+          const r = match ? parseInt(match[0]) : 0;
+          volumen += (p > 0 ? p * r : r);
+        });
+      });
+      porFecha[iso] = (porFecha[iso] || 0) + volumen;
+    });
+
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const serie = [];
+    for (let i = dias - 1; i >= 0; i--) {
+      const d = new Date(hoy);
+      d.setDate(d.getDate() - i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      serie.push(porFecha[iso] || 0);
+    }
+    return serie;
+  },
+
   async getProyeccionRecurrentes() {
     const recurring = await this.getRecurring();
     const envs = await this.getEnvelopes();
@@ -2126,6 +2161,69 @@ export const db = {
     return calcularRachaDesdeDias(diasUnicosDesdeFechas(diasPerfectos));
   },
 
+  // Tendencia de cumplimiento de hábitos por semana, últimas `semanas`
+  // semanas — mismo dato base que getRachaHabitosGlobal (conteo de hábitos
+  // marcados por día), pero acá se promedia el % de hábitos cumplidos por
+  // día dentro de cada semana en vez de exigir el 100% ("día perfecto"):
+  // una racha exige el 100% para no rompirse, pero una serie donde casi
+  // toda semana da 0% (por no llegar nunca al 100% justo) no serviría para
+  // ver progreso parcial. Orden cronológico (antiguo -> reciente), mismo
+  // criterio que getTendenciaSemanal/getTendenciaTareasCompletadas.
+  async getTendenciaCumplimientoHabitos(semanas = 8) {
+    const habitos = await idbGetArray('habitos');
+    if (!habitos.length) return Array.from({ length: semanas }, () => 0);
+
+    const conteoPorDia = {};
+    habitos.forEach(h => {
+      Object.keys(h.marcas || {}).forEach(fecha => {
+        conteoPorDia[fecha] = (conteoPorDia[fecha] || 0) + 1;
+      });
+    });
+
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const porSemana = Array.from({ length: semanas }, () => ({ suma: 0, dias: 0 }));
+
+    for (let i = 0; i < semanas * 7; i++) {
+      const d = new Date(hoy);
+      d.setDate(d.getDate() - i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const weekIdx = semanas - 1 - Math.floor(i / 7);
+      if (weekIdx < 0 || weekIdx >= semanas) continue;
+      const pct = ((conteoPorDia[iso] || 0) / habitos.length) * 100;
+      porSemana[weekIdx].suma += pct;
+      porSemana[weekIdx].dias++;
+    }
+
+    return porSemana.map(w => w.dias > 0 ? Math.round(w.suma / w.dias) : 0);
+  },
+
+  // Mismo cálculo que getTendenciaCumplimientoHabitos (% de hábitos
+  // marcados sobre el total, por día), pero sin promediar por semana —
+  // usada por el gráfico de barras del Laboratorio, que quiere el avance
+  // día a día en vez de un número por semana. Orden cronológico (antiguo
+  // -> reciente).
+  async getCumplimientoDiarioHabitos(dias = 30) {
+    const habitos = await idbGetArray('habitos');
+    if (!habitos.length) return Array.from({ length: dias }, () => 0);
+
+    const conteoPorDia = {};
+    habitos.forEach(h => {
+      Object.keys(h.marcas || {}).forEach(fecha => {
+        conteoPorDia[fecha] = (conteoPorDia[fecha] || 0) + 1;
+      });
+    });
+
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const serie = [];
+    for (let i = dias - 1; i >= 0; i--) {
+      const d = new Date(hoy);
+      d.setDate(d.getDate() - i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      serie.push(Math.round(((conteoPorDia[iso] || 0) / habitos.length) * 100));
+    }
+    return serie;
+  },
+
   // Transacciones dentro de un rango de fechas arbitrario (a diferencia de
   // getBudget, que solo mira un mes calendario) — usada por Análisis >
   // Finanzas > Movimientos para los filtros de trimestre/año/todo.
@@ -2296,6 +2394,29 @@ export const db = {
     let actual = 0;
     while (conMision.has(iso(d))) { actual++; d.setDate(d.getDate() - 1); }
     return { actual, total: conMision.size };
+  },
+
+  // Serie de energía del Ritual matutino, últimos `dias` días (orden
+  // cronológico, antiguo -> reciente) — lee el store `ritual` directo,
+  // igual que getRachaRitual, porque getRitual(fecha) es por día puntual y
+  // no hay getter de rango hoy. Días sin ritual (o sin campo energia)
+  // quedan en 0, mismo criterio que el resto de las series con huecos
+  // (getTendenciaSemanal, getTendenciaTareasCompletadas). Usada por el
+  // resumen cruzado del Laboratorio (energía × volumen de Entreno).
+  async getEnergiaPorDia(dias = 14) {
+    const filas = await idbGetArray('ritual');
+    const porFecha = {};
+    filas.forEach(r => { if (r.energia != null) porFecha[r.fecha] = r.energia; });
+
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const serie = [];
+    for (let i = dias - 1; i >= 0; i--) {
+      const d = new Date(hoy);
+      d.setDate(d.getDate() - i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      serie.push(porFecha[iso] || 0);
+    }
+    return serie;
   },
 
   // =====================================================================

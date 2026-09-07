@@ -6,6 +6,7 @@ import { db } from '../core/db.js';
 import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar } from '../utils/charts.js';
 import { renderGoalCard, formatGoalValue } from './goal-card.js';
 import { openGoalForm, openGoalContribute } from './goal-form.js';
+import { renderMiniChart } from './mini-chart.js';
 import { EmptyState, ConfirmDialog } from '../utils/states.js';
 import { GRUPO_MUSCULAR_ORDEN, GRUPO_MUSCULAR_LABELS, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
 import { formatFechaCorta, formatFechaLarga } from '../utils/fecha.js';
@@ -13,6 +14,7 @@ import { escapeHtml } from '../utils/escape.js';
 
 export const TABS = [
   { id: 'desglose', label: 'Desglose' },
+  { id: 'tendencia', label: 'Tendencia' },
   { id: 'ejercicios', label: 'Ejercicios' },
   { id: 'metas', label: 'Metas' },
   { id: 'records', label: 'Récords' }
@@ -184,6 +186,17 @@ async function initDesgloseChart() {
   });
 }
 
+async function renderTendencia() {
+  const { volumenPorSemana } = await db.getTendenciaSemanal(null, 8);
+  const chartHtml = renderMiniChart(volumenPorSemana, {
+    color: 'var(--cy)',
+    unidad: '',
+    label: 'Volumen total por semana (últimas 8 semanas)',
+    emptyText: 'Registra un par de sesiones más para ver tu tendencia.'
+  });
+  return `<div class="card" style="padding: 18px; border-radius: 18px;">${chartHtml}</div>`;
+}
+
 async function renderEjercicios() {
   const lista = await db.getListaEjerciciosRegistrados();
 
@@ -352,6 +365,7 @@ async function renderRecords() {
 }
 
 export async function renderTab(activeTab) {
+  if (activeTab === 'tendencia') return await renderTendencia();
   if (activeTab === 'ejercicios') return await renderEjercicios();
   if (activeTab === 'metas') return await renderMetas();
   if (activeTab === 'records') return await renderRecords();
