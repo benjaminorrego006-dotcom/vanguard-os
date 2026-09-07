@@ -337,7 +337,32 @@ const PIERNA = ['rodilla', 'cadera'];
 // (sesión corta) siga cubriendo lo esencial antes que lo accesorio.
 const PATRONES_FULL_BODY = ['empuje-horizontal', 'traccion-horizontal', 'empuje-vertical', 'traccion-vertical', 'rodilla', 'cadera', 'core'];
 
-function elegirSplit(diasSemana) {
+// Push (pecho/tríceps) - Pull (espalda/bíceps) - Legs (pierna): el único
+// split que GYM genera, sin importar cuántos días declare el usuario —
+// pedido explícito para no mezclar patrones de empuje y tracción en la
+// misma sesión (el problema del Full Body/Upper-Lower) cuando hay pesas de
+// por medio. Rota en round-robin y numera la vuelta (Push 2, Pull 2...)
+// una vez que diasSemana supera 3.
+const SPLIT_PPL = [
+  { nombre: 'Push', patrones: EMPUJE },
+  { nombre: 'Pull', patrones: TRACCION },
+  { nombre: 'Legs', patrones: [...PIERNA, 'core'] }
+];
+
+function elegirSplitPPL(diasSemana) {
+  return Array.from({ length: diasSemana }, (_, i) => {
+    const d = SPLIT_PPL[i % 3];
+    const vuelta = Math.floor(i / 3) + 1;
+    return { nombre: vuelta > 1 ? `${d.nombre} ${vuelta}` : d.nombre, patrones: d.patrones };
+  });
+}
+
+// categoria: GYM siempre usa Push/Pull/Legs (ver elegirSplitPPL) — nunca
+// Full Body ni Upper/Lower. Calistenia conserva el split original (Full
+// Body para 1-3 días, Upper/Lower para 4, Push/Pull/Legs desde 5).
+function elegirSplit(diasSemana, categoria) {
+  if (categoria === 'gym') return elegirSplitPPL(diasSemana);
+
   if (diasSemana <= 3) {
     return Array.from({ length: diasSemana }, (_, i) => ({
       nombre: diasSemana === 1 ? 'Full Body' : `Full Body ${String.fromCharCode(65 + i)}`,
@@ -352,16 +377,7 @@ function elegirSplit(diasSemana) {
       { nombre: 'Lower B', patrones: ['core', ...PIERNA] }
     ];
   }
-  const base = [
-    { nombre: 'Push', patrones: EMPUJE },
-    { nombre: 'Pull', patrones: TRACCION },
-    { nombre: 'Legs', patrones: [...PIERNA, 'core'] }
-  ];
-  return Array.from({ length: diasSemana }, (_, i) => {
-    const d = base[i % 3];
-    const vuelta = Math.floor(i / 3) + 1;
-    return { nombre: vuelta > 1 ? `${d.nombre} ${vuelta}` : d.nombre, patrones: d.patrones };
-  });
+  return elegirSplitPPL(diasSemana);
 }
 
 // --- Selección de ejercicios -----------------------------------------------
@@ -547,11 +563,12 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
   const usadosEstaSemana = new Set();
   const exercisesPerSession = Math.max(3, Math.min(8, Math.round(duracionSesionMin / 9)));
 
-  const splits = categoria === 'hiit' ? elegirSplitHiit(diasSemana) : elegirSplit(diasSemana);
+  const splits = categoria === 'hiit' ? elegirSplitHiit(diasSemana) : elegirSplit(diasSemana, categoria);
   const nombreCategoria = categoria === 'gym' ? 'GYM' : categoria === 'calistenia' ? 'calistenia' : 'HIIT';
-  // Sección c) del prompt: 2-3 días → casi todo compuesto (Full Body, el
-  // único split que arma elegirSplit() para ese rango). HIIT queda afuera:
-  // es circuito por tiempo, no series/reps de fuerza — el concepto
+  // Sección c) del prompt: 2-3 días → casi todo compuesto (Full Body en
+  // calistenia, Push/Pull/Legs en GYM — el único split que arma
+  // elegirSplit() para ese rango en cada categoría). HIIT queda afuera: es
+  // circuito por tiempo, no series/reps de fuerza — el concepto
   // compuesto/aislamiento no aplica ahí de la misma forma.
   const priorizarCompuestos = categoria !== 'hiit' && diasSemana <= 3;
 
