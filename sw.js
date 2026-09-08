@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v103';
+const CACHE_NAME = 'vanguard-os-v104';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -48,6 +48,9 @@ const PRECACHE_URLS = [
   './js/views/ritual.js',
   './js/views/planificador.js',
   './js/views/anotaciones.js',
+  './js/views/mas.js',
+  './js/views/configuracion.js',
+  './js/components/pin-security.js',
   './js/components/activity-heatmap.js',
   './js/components/arbol-progresion.js',
   './js/components/estandares-fuerza.js',

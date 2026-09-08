@@ -4,7 +4,7 @@ import { initModalHistory, forgetOpenModals, initSheetDragToDismiss } from './hi
 import { mountOnboardingInicial } from '../components/onboarding-inicial.js';
 import { escapeHtml } from '../utils/escape.js';
 
-const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones'];
+const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'mas', 'configuracion'];
 
 // El servidor local a veces omite el header Content-Type cuando recibe
 // varias peticiones en paralelo (medido: 0/52 fallos pidiendo los archivos
@@ -337,8 +337,14 @@ class Router {
 
     this.currentView = viewId;
 
+    // Ritual/Planificador/Anotaciones/Configuración no tienen pestaña
+    // propia en el nav — se llega a ellas desde el hub de "Más" (ver
+    // views/mas.js) — así que esa pestaña queda marcada activa mientras se
+    // esté en cualquiera de ellas, igual que un tab padre en un nav anidado.
+    const MAS_HIJOS = ['ritual', 'planificador', 'anotaciones', 'configuracion'];
+    const viewIdParaNav = MAS_HIJOS.includes(viewId) ? 'mas' : viewId;
     this.navItems.forEach(item => {
-      const isActive = item.getAttribute('data-view') === viewId;
+      const isActive = item.getAttribute('data-view') === viewIdParaNav;
       item.classList.toggle('active', isActive);
       if (isActive) item.setAttribute('aria-current', 'page');
       else item.removeAttribute('aria-current');
@@ -359,7 +365,10 @@ class Router {
     // mismo dominio): no hace falta un .mk3-habitos aparte que
     // duplicaría el mismo bloque de chaflán/tipografía en components.css.
     this.root.classList.toggle('mk3-tareas', viewId === 'tareas' || viewId === 'habitos');
-    this.root.classList.toggle('mk3-dashboard', viewId === 'dashboard');
+    // Más y Configuración son pantallas utilitarias sin identidad de
+    // módulo propia — comparten la paleta neutra de Inicio en vez de sumar
+    // un .mk3-mas/.mk3-configuracion que duplicaría el mismo bloque neutro.
+    this.root.classList.toggle('mk3-dashboard', viewId === 'dashboard' || viewId === 'mas' || viewId === 'configuracion');
     this.root.classList.toggle('mk3-ritual', viewId === 'ritual');
     this.root.classList.toggle('mk3-planificador', viewId === 'planificador');
     this.root.classList.toggle('mk3-anotaciones', viewId === 'anotaciones');

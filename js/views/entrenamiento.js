@@ -285,11 +285,10 @@ export async function render() {
             ${rachaHtml}
           </div>
           <div style="display: flex; gap: 8px; flex-shrink: 0;">
-            <button id="btn-open-nivel" class="icon-chip tappable" title="Perfil de nivel" style="width: 44px; height: 44px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal); flex-shrink: 0; border: none; cursor: pointer;">
-              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-            </button>
-            <button id="btn-open-profile" class="icon-chip tappable" title="Tu perfil" style="width: 44px; height: 44px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal); flex-shrink: 0; border: none; cursor: pointer;">
-              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <!-- Perfil y nivel de entrenamiento se editan desde Configuración
+                 (ver Más → Configuración) — este ícono es solo el atajo. -->
+            <button id="btn-open-cfg-entreno" class="icon-chip tappable" title="Configuración" style="width: 44px; height: 44px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal); flex-shrink: 0; border: none; cursor: pointer;">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
           </div>
         </div>
@@ -410,14 +409,11 @@ mountListeners = () => {
   }
 
   setupProfileForm(refreshFull);
-  const btnOpenProfile = document.getElementById('btn-open-profile');
-  if (btnOpenProfile) btnOpenProfile.addEventListener('click', () => openProfileForm());
-
   setupGeneradorConfigForm((plan, cat) => goToGeneradorPreview(plan, cat));
-
   setupNivelOnboardingForm(refreshFull);
-  const btnOpenNivel = document.getElementById('btn-open-nivel');
-  if (btnOpenNivel) btnOpenNivel.addEventListener('click', () => openNivelOnboardingForm());
+
+  const btnOpenCfgEntreno = document.getElementById('btn-open-cfg-entreno');
+  if (btnOpenCfgEntreno) btnOpenCfgEntreno.addEventListener('click', () => window.appRouter.navigate('configuracion'));
 
   // Onboarding: si todavía no hay perfil guardado, se abre automáticamente
   // al entrar a Entreno (el usuario igual puede cancelar y completarlo después

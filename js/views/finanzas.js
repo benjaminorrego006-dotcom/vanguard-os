@@ -2,8 +2,6 @@ import { Toast, ConfirmDialog, SkeletonCard } from '../utils/states.js';
 import { renderDonut } from '../utils/donut.js';
 import { db } from '../core/db.js';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
-import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
-import { mountSetPinFlow, requestPinVerification } from '../core/lock.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { renderIngresoForm, initIngresoForm } from '../components/IngresoForm.js';
 import { renderGastoForm, initGastoForm } from '../components/GastoForm.js';
@@ -497,89 +495,13 @@ export async function init() {
 
     initGoalForm(refresh);
 
-      // --- AJUSTES Y RESPALDOS ---
+      // La Regla de Asignación (y Respaldos/Seguridad, que vivían en el
+      // mismo modal) se centralizaron en Configuración — ver views/mas.js.
       const btnOpenSettings = document.getElementById('btn-open-settings');
-      if (btnOpenSettings) btnOpenSettings.addEventListener('click', () => {
-        // FIX: el formulario de ajustes no precargaba la regla actual (quedaba vacío).
-        const rule = b.rule || { needs: 0.5, wants: 0.3, savings: 0.2 };
-        document.getElementById('rule-needs').value = Math.round(rule.needs * 100);
-        document.getElementById('rule-wants').value = Math.round(rule.wants * 100);
-        document.getElementById('rule-savings').value = Math.round(rule.savings * 100);
-        openModal('settings-modal');
-      });
+      if (btnOpenSettings) btnOpenSettings.addEventListener('click', () => window.appRouter.navigate('configuracion'));
 
       const btnCardDisponible = document.getElementById('card-disponible');
       // (el listener de click de esta tarjeta se agrega más abajo junto a las demás top-cards)
-
-      const settingsForm = document.getElementById('settings-form');
-      if (settingsForm) {
-        settingsForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const n = parseFloat(document.getElementById('rule-needs').value) || 0;
-          const w = parseFloat(document.getElementById('rule-wants').value) || 0;
-          const s = parseFloat(document.getElementById('rule-savings').value) || 0;
-          if (n + w + s !== 100) {
-            Toast("Los porcentajes deben sumar 100", "error");
-            return;
-          }
-          await db.setAllocationRule({ needs: n/100, wants: w/100, savings: s/100 });
-          closeModal('settings-modal');
-          Toast("Regla actualizada", "success");
-          refresh();
-        });
-      }
-
-      const btnExportData = document.getElementById('btn-export-data');
-      if(btnExportData) btnExportData.addEventListener('click', async () => {
-        exportAllData();
-      });
-
-      const fileImportData = document.getElementById('file-import-data');
-      if (fileImportData) fileImportData.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const res = await importAllData(file);
-        if(res) {
-          Toast("Datos restaurados", "success");
-          setTimeout(() => window.location.reload(), 1500);
-        }
-        // Si res es false, importAllData ya mostró el Toast de error o el usuario canceló.
-        e.target.value = '';
-      });
-
-      const pinContainer = document.getElementById('pin-security-container');
-      const refreshPinSection = () => { if (pinContainer) pinContainer.innerHTML = renderPinSecuritySection(); attachPinListeners(); };
-
-      const attachPinListeners = () => {
-        const btnEnablePin = document.getElementById('btn-enable-pin');
-        if (btnEnablePin) btnEnablePin.addEventListener('click', () => {
-          // Respaldo obligatorio antes de activar el PIN: es la única red de
-          // seguridad si después se olvida (ver mountSetPinFlow / lock.js).
-          exportAllData();
-          mountSetPinFlow(refreshPinSection);
-        });
-
-        const btnChangePin = document.getElementById('btn-change-pin');
-        if (btnChangePin) btnChangePin.addEventListener('click', () => {
-          requestPinVerification({
-            title: 'Cambiar PIN',
-            onVerified: () => mountSetPinFlow(refreshPinSection)
-          });
-        });
-
-        const btnDisablePin = document.getElementById('btn-disable-pin');
-        if (btnDisablePin) btnDisablePin.addEventListener('click', () => {
-          requestPinVerification({
-            title: 'Desactivar PIN',
-            onVerified: () => {
-              db.disablePin();
-              Toast('PIN desactivado', 'success');
-              refreshPinSection();
-            }
-          });
-        });
-      };
-      attachPinListeners();
 
       // --- HISTORY MODAL & TABS ---
       document.querySelectorAll('.history-tab').forEach(tab => {
@@ -955,22 +877,6 @@ const buildFinanzasHeatmapHtml = () => {
   });
 };
 
-const renderPinSecuritySection = () => {
-  if (db.isPinEnabled()) {
-    return `
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 13px; color: var(--state-success); font-weight: 600;">
-        <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--state-success); flex-shrink: 0;"></span>
-        PIN activado
-      </div>
-      <div style="display: flex; gap: 12px;">
-        <button id="btn-change-pin" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-weight: 600; cursor: pointer;">Cambiar PIN</button>
-        <button id="btn-disable-pin" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: transparent; color: var(--state-high); border: 1px solid var(--state-high); font-weight: 600; cursor: pointer;">Desactivar</button>
-      </div>
-    `;
-  }
-  return `<button id="btn-enable-pin" type="button" class="btn-primary tappable" style="background: var(--accent-primary); color: #000;">Activar PIN</button>`;
-};
-
 // "Puedes gastar $X hoy" = (disponible restante) / días que quedan del mes (incluye hoy).
 const renderDailyAvailable = (b) => {
   const now = new Date();
@@ -1226,43 +1132,6 @@ export async function render() {
     </div>`;
   })();
 
-  // Estado de respaldo/persistencia para el bloque "Respaldos" de Ajustes.
-  // Se precalcula acá (async) porque el template de más abajo es un string
-  // síncrono — mismo patrón que presupuestoLegendHtml/trendHtml arriba.
-  const diasDesdeBackup = await getDiasDesdeUltimoBackup();
-  const estadoAlmacenamiento = await db.getEstadoAlmacenamiento();
-  const backupStatusHtml = (() => {
-    let backupMsg, backupColor;
-    if (diasDesdeBackup === null) {
-      backupMsg = 'Nunca has exportado un respaldo';
-      backupColor = 'var(--state-medium)';
-    } else if (diasDesdeBackup > 14) {
-      backupMsg = `Último respaldo hace ${diasDesdeBackup} días`;
-      backupColor = 'var(--state-medium)';
-    } else if (diasDesdeBackup === 0) {
-      backupMsg = 'Último respaldo: hoy';
-      backupColor = 'var(--text-secondary)';
-    } else {
-      backupMsg = `Último respaldo hace ${diasDesdeBackup} día${diasDesdeBackup === 1 ? '' : 's'}`;
-      backupColor = 'var(--text-secondary)';
-    }
-
-    const persistida = estadoAlmacenamiento.persistencia ? estadoAlmacenamiento.persistencia.concedido : undefined;
-    let persistMsg;
-    if (persistida === true) {
-      persistMsg = 'Almacenamiento persistente: concedido. El navegador no debería borrar tus datos por falta de espacio o inactividad.';
-    } else if (persistida === false) {
-      persistMsg = 'Almacenamiento persistente: no concedido. En iOS, si no abres la app por ~7 días, el sistema puede borrar tus datos — exporta respaldos seguido.';
-    } else {
-      persistMsg = 'Este navegador no soporta almacenamiento persistente. Exporta respaldos seguido para no perder tu progreso.';
-    }
-
-    return `
-      <p style="color: ${backupColor}; font-size: 13px; margin: 0 0 8px 0; font-weight: 600;">${backupMsg}</p>
-      <p style="color: var(--text-secondary); font-size: 12px; margin: 0 0 16px 0;">${persistMsg}</p>
-    `;
-  })();
-
   const [heatYear, heatMonthNum] = currentMonth.split('-').map(Number);
   const nombreMesActual = formatMes(new Date(heatYear, heatMonthNum - 1, 1));
   const heatmapHtml = buildFinanzasHeatmapHtml();
@@ -1469,7 +1338,7 @@ export async function render() {
       <div id="tab-content-presupuesto" class="fin-tab-content" style="display: ${activeFinTab === 'presupuesto' ? 'block' : 'none'};">
         <div class="flex-between" style="margin-bottom: 12px;">
           <p class="fin-eyebrow">Límites mensuales</p>
-          <button id="btn-open-settings" style="background: transparent; border: none; color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em;">Editar regla</button>
+          <button id="btn-open-settings" style="background: transparent; border: none; color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em;">Editar en Configuración</button>
         </div>
         <div class="card" style="padding: 24px; margin-bottom: 24px; text-align: center;">
           <div style="position: relative; width: 180px; height: 180px; margin: 0 auto 32px auto;">
@@ -1507,45 +1376,6 @@ export async function render() {
         </div>
       </div>
 
-    </div>
-
-    <!-- Settings Edit Modal -->
-    <div id="settings-modal" class="modal-overlay">
-      <div class="modal-content" style="max-height: 600px; overflow-y: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-          <h2 style="font-size: 20px; font-weight: 600; margin: 0; color: var(--text-primary);">Ajustes de Finanzas</h2>
-          <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">&times;</button>
-        </div>
-        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">Regla de Asignación</h3>
-        <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">Los porcentajes deben sumar exactamente 100.</p>
-        <form id="settings-form">
-          <div class="input-group">
-            <label for="rule-needs">Necesidades (%)</label>
-            <input type="number" inputmode="numeric" id="rule-needs" required autocomplete="off" min="0" max="100">
-          </div>
-          <div class="input-group">
-            <label for="rule-wants">Deseos (%)</label>
-            <input type="number" inputmode="numeric" id="rule-wants" required autocomplete="off" min="0" max="100">
-          </div>
-          <div class="input-group">
-            <label for="rule-savings">Ahorro (%)</label>
-            <input type="number" inputmode="numeric" enterkeyhint="done" id="rule-savings" required autocomplete="off" min="0" max="100">
-          </div>
-          <button type="submit" class="btn-primary" style="background: var(--accent-purple);">Guardar Regla</button>
-        </form>
-        <hr style="border: none; border-top: 1px solid var(--surface-border); margin: 24px 0;">
-        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">Respaldos</h3>
-        ${backupStatusHtml}
-        <button id="btn-export-data" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); margin-bottom: 16px; border: 1px solid var(--surface-border);">Exportar respaldo</button>
-        <div style="position: relative;">
-          <input type="file" id="file-import-data" accept=".json" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;">
-          <button class="btn-primary tappable" style="background: var(--accent-purple); color: #000; pointer-events: none;">Restaurar respaldo</button>
-        </div>
-        <hr style="border: none; border-top: 1px solid var(--surface-border); margin: 24px 0;">
-        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 8px 0;">Seguridad</h3>
-        <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">Bloquea la app con un PIN de 4 dígitos. Si lo olvidas, la única recuperación es borrar los datos del dispositivo y restaurarlos desde un respaldo — por eso exportamos uno automáticamente antes de activarlo.</p>
-        <div id="pin-security-container">${renderPinSecuritySection()}</div>
-      </div>
     </div>
 
     ${renderGoalForm()}
