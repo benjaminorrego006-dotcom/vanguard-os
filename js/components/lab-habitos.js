@@ -4,7 +4,7 @@
 // renderTab, initTabListeners, cleanup), calcado de lab-tareas.js por ser
 // el más chico: Desglose por hábito + Tendencia diaria de cumplimiento.
 import { db } from '../core/db.js';
-import { ensureChartJs, baseChartOptions, chartFontFamily, cssVar } from '../utils/charts.js';
+import { ensureChartJs, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio } from '../utils/charts.js';
 import { renderDonutChart, renderDonutLegend, destroyAllDonuts } from './donut-chart.js';
 import { formatFechaLarga } from '../utils/fecha.js';
 import { EmptyState } from '../utils/states.js';
@@ -156,6 +156,7 @@ async function initTendenciaChart() {
     },
     options: {
       ...opts,
+      devicePixelRatio: hdPixelRatio(),
       plugins: {
         ...opts.plugins,
         tooltip: {

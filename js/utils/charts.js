@@ -138,6 +138,33 @@ export function barValueLabelsPlugin(color) {
   };
 }
 
+// Igual que barValueLabelsPlugin pero para barras horizontales
+// (`indexAxis: 'y'`): la geometría es incompatible con la variante
+// vertical — ahí `bar.x/bar.y` son el centro-arriba de la barra, acá
+// `bar.x` es su extremo derecho y `bar.y` el centro vertical, así que el
+// label se ancla a la derecha de la barra en vez de arriba. `formatter`
+// opcional para series que no son números crudos (ej. moneda).
+export function horizontalBarValueLabelsPlugin(color, formatter = String) {
+  return {
+    id: 'horizontalBarValueLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      const meta = chart.getDatasetMeta(0);
+      const data = chart.data.datasets[0].data;
+      ctx.save();
+      ctx.font = '600 11px ' + (chartFontFamily() || 'sans-serif');
+      ctx.fillStyle = color;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      meta.data.forEach((bar, i) => {
+        if (!data[i]) return;
+        ctx.fillText(formatter(data[i]), bar.x + 8, bar.y);
+      });
+      ctx.restore();
+    }
+  };
+}
+
 // Misma idea que barValueLabelsPlugin, para charts de línea/puntos. `suffix`
 // opcional para series en porcentaje (Hábitos: "42%" en vez de "42").
 export function lineValueLabelsPlugin(color, suffix = '') {

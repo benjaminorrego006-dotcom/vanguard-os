@@ -3,7 +3,7 @@
 // vista tenía su propia copia casi idéntica: analisis.js para desglose por
 // grupo muscular, tareas.js para completadas/pendientes, finanzas.js para
 // gasto por categoría).
-import { ensureChartJs, baseChartOptions, cssVar } from '../utils/charts.js';
+import { ensureChartJs, baseChartOptions, cssVar, hdPixelRatio } from '../utils/charts.js';
 
 const instances = new Map(); // canvasId -> instancia Chart.js activa
 
@@ -50,6 +50,7 @@ export async function renderDonutChart(canvasId, entries, opts = {}) {
     },
     options: {
       ...baseOpts,
+      devicePixelRatio: hdPixelRatio(),
       cutout: opts.cutout || '68%',
       plugins: {
         ...baseOpts.plugins,

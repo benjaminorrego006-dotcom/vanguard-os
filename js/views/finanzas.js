@@ -9,7 +9,7 @@ import { renderAhorroForm, initAhorroForm } from '../components/AhorroForm.js';
 import { renderEnvelopeForm, initEnvelopeForm } from '../components/EnvelopeForm.js';
 import { renderTransferForm, initTransferForm } from '../components/TransferForm.js';
 import { renderRecurringForm, initRecurringForm } from '../components/RecurringForm.js';
-import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily } from '../utils/charts.js';
+import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, horizontalBarValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { escapeHtml } from '../utils/escape.js';
@@ -963,7 +963,7 @@ const renderResumenCharts = async (b) => {
           borderWidth: 2
         }]
       },
-      options: { ...opts, cutout: '74%' }
+      options: { ...opts, devicePixelRatio: hdPixelRatio(), cutout: '74%' }
     });
   }
 
@@ -971,6 +971,11 @@ const renderResumenCharts = async (b) => {
   if (lineCanvas) {
     const { labels, data } = computeDailyBalanceSeries(b);
     if (dailyBalanceChartInstance) dailyBalanceChartInstance.destroy();
+    // Degradado real en vez de un alpha plano — mismo criterio "HD" que el
+    // resto de los line charts de la app. Sin value labels acá a propósito:
+    // esta serie es diaria (hasta 30+ puntos), no semanal — un número por
+    // punto se superpondría todo entre sí en vez de sumar información.
+    const gradient = verticalGradient(lineCanvas.getContext('2d'), palette.purple, lineCanvas.clientHeight || 100);
     dailyBalanceChartInstance = new Chart(lineCanvas, {
       type: 'line',
       data: {
@@ -978,7 +983,7 @@ const renderResumenCharts = async (b) => {
         datasets: [{
           data,
           borderColor: palette.purple,
-          backgroundColor: palette.purple + '26',
+          backgroundColor: gradient,
           fill: true,
           tension: 0.3,
           pointRadius: 0,
@@ -988,6 +993,7 @@ const renderResumenCharts = async (b) => {
       },
       options: {
         ...opts,
+        devicePixelRatio: hdPixelRatio(),
         scales: {
           x: { display: false },
           y: { display: false }
@@ -1015,12 +1021,15 @@ const renderResumenCharts = async (b) => {
       },
       options: {
         ...opts,
+        devicePixelRatio: hdPixelRatio(),
         indexAxis: 'y',
+        layout: { padding: { right: 40 } },
         scales: {
           x: { display: false },
           y: { display: true, grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 12, weight: '600', family: chartFontFamily() } } }
         }
-      }
+      },
+      plugins: [horizontalBarValueLabelsPlugin(cssVar('--text-primary'), formatCompactCurrency)]
     });
   }
 };

@@ -1,7 +1,7 @@
 import { db } from '../core/db.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
-import { ensureChartJs, appPalette, baseChartOptions } from '../utils/charts.js';
+import { ensureChartJs, appPalette, baseChartOptions, hdPixelRatio } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatFechaCorta, formatMes } from '../utils/fecha.js';
@@ -53,7 +53,7 @@ const renderTasksDonut = async (tasks) => {
         borderWidth: 1
       }]
     },
-    options: { ...baseChartOptions(), cutout: '68%' }
+    options: { ...baseChartOptions(), devicePixelRatio: hdPixelRatio(), cutout: '68%' }
   });
 };
 

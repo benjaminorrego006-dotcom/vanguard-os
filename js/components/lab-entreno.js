@@ -3,7 +3,7 @@
 // completa. Mismo comportamiento que tenían ahí: Desglose por grupo
 // muscular, progreso por Ejercicio, Metas y Récords.
 import { db } from '../core/db.js';
-import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar } from '../utils/charts.js';
+import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, lineValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
 import { renderGoalCard, formatGoalValue } from './goal-card.js';
 import { openGoalForm, openGoalContribute } from './goal-form.js';
 import { renderMiniChart } from './mini-chart.js';
@@ -177,6 +177,7 @@ async function initDesgloseChart() {
     },
     options: {
       ...opts,
+      devicePixelRatio: hdPixelRatio(),
       cutout: '68%',
       plugins: {
         ...opts.plugins,
@@ -264,6 +265,11 @@ async function initEjercicioChart() {
   const unidad = ejercicioModo === 'volumen' ? '' : (esPesoCorporal && ejercicioModo !== '1rm' ? ' reps' : ' kg');
 
   if (ejercicioChartInstance) ejercicioChartInstance.destroy();
+  // Degradado real + value labels + HD — mismo criterio que
+  // ejercicio-detalle.js (misma clase de chart: progreso de un ejercicio
+  // en el tiempo), solo que este vive en la pestaña "Ejercicios" del
+  // Laboratorio en vez de dentro de una sesión activa.
+  const gradient = verticalGradient(canvas.getContext('2d'), palette.teal, canvas.clientHeight || 180);
   ejercicioChartInstance = new Chart(canvas, {
     type: 'line',
     data: {
@@ -271,17 +277,21 @@ async function initEjercicioChart() {
       datasets: [{
         data: dataPoints,
         borderColor: palette.teal,
-        backgroundColor: palette.teal + '26',
+        backgroundColor: gradient,
         fill: true,
         tension: 0.25,
         pointRadius: 3,
         pointBackgroundColor: palette.teal,
+        pointBorderColor: cssVar('--panel'),
+        pointBorderWidth: 2,
         pointHoverRadius: 5,
         borderWidth: 2.5
       }]
     },
     options: {
       ...opts,
+      devicePixelRatio: hdPixelRatio(),
+      layout: { padding: { top: 18 } },
       plugins: {
         ...opts.plugins,
         tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.parsed.y}${unidad}` } }
@@ -290,7 +300,8 @@ async function initEjercicioChart() {
         x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
         y: { display: false }
       }
-    }
+    },
+    plugins: [lineValueLabelsPlugin(cssVar('--text-primary'), unidad)]
   });
 }
 
