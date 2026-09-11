@@ -4,14 +4,12 @@
 // Racha de días con al menos una tarea completada, e Historial.
 import { db } from '../core/db.js';
 import { renderDonutChart, renderDonutLegend, destroyAllDonuts } from './donut-chart.js';
-import { renderMiniChart } from './mini-chart.js';
 import { EmptyState } from '../utils/states.js';
 import { formatFechaLarga } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 
 export const TABS = [
   { id: 'desglose', label: 'Desglose' },
-  { id: 'tendencia', label: 'Tendencia' },
   { id: 'racha', label: 'Racha' },
   { id: 'historial', label: 'Historial' }
 ];
@@ -70,17 +68,6 @@ async function initDesgloseChart() {
   await renderDonutChart('lab-tar-donut', lastTareasDonutEntries);
 }
 
-async function renderTendencia() {
-  const porSemana = await db.getTendenciaTareasCompletadas(10);
-  const chartHtml = renderMiniChart(porSemana, {
-    color: 'var(--vi)',
-    unidad: '',
-    label: 'Tareas completadas por semana (últimas 10 semanas)',
-    emptyText: 'Completa un par de tareas más para ver tu tendencia.'
-  });
-  return `<div class="card" style="padding: 18px; border-radius: 18px;">${chartHtml}</div>`;
-}
-
 async function renderRacha() {
   const racha = await db.getRachaTareas();
   return `
@@ -125,7 +112,6 @@ async function renderHistorial() {
 }
 
 export async function renderTab(activeTab) {
-  if (activeTab === 'tendencia') return await renderTendencia();
   if (activeTab === 'racha') return await renderRacha();
   if (activeTab === 'historial') return await renderHistorial();
   return await renderDesglose();

@@ -10,6 +10,7 @@ import { renderEnvelopeForm, initEnvelopeForm } from '../components/EnvelopeForm
 import { renderTransferForm, initTransferForm } from '../components/TransferForm.js';
 import { renderRecurringForm, initRecurringForm } from '../components/RecurringForm.js';
 import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, horizontalBarValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
+import { renderDonutChart, destroyAllDonuts } from '../components/donut-chart.js';
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { escapeHtml } from '../utils/escape.js';
@@ -21,7 +22,6 @@ const delSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" strok
 const backspaceSvg = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>`;
 let b = null;
 let activeFinTab = 'resumen';
-let donutChartInstance = null;
 let dailyBalanceChartInstance = null;
 let monthCompareChartInstance = null;
 let currentMonth = mesKeyDe(new Date());
@@ -83,7 +83,7 @@ export let mountListeners;
 // Llamado por el router (app.js) antes de desmontar esta vista — evita que
 // las instancias de Chart.js sigan vivas con su canvas ya fuera del DOM.
 export function cleanup() {
-  if (donutChartInstance) { donutChartInstance.destroy(); donutChartInstance = null; }
+  destroyAllDonuts();
   if (dailyBalanceChartInstance) { dailyBalanceChartInstance.destroy(); dailyBalanceChartInstance = null; }
   if (monthCompareChartInstance) { monthCompareChartInstance.destroy(); monthCompareChartInstance = null; }
 }
@@ -951,20 +951,23 @@ const renderResumenCharts = async (b) => {
     const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
     const totalWants = b.allocations.find(a => a.category === 'Wants')?.amount || 0;
     const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
-    if (donutChartInstance) donutChartInstance.destroy();
-    donutChartInstance = new Chart(donutCanvas, {
-      type: 'doughnut',
-      data: {
-        labels: ['Necesidades', 'Deseos', 'Ahorro'],
-        datasets: [{
-          data: [totalNeeds, totalWants, totalSavings],
-          backgroundColor: [palette.high, palette.blue, palette.purple],
-          borderColor: 'transparent',
-          borderWidth: 2
-        }]
-      },
-      options: { ...opts, devicePixelRatio: hdPixelRatio(), cutout: '74%' }
-    });
+    // Mismos colores que renderResumenLegend() de más abajo — antes el
+    // anillo usaba palette.high/blue/purple (un rojo de alerta para
+    // Necesidades) mientras la leyenda pintaba su punto en ámbar: el
+    // anillo y su propia leyenda no coincidían.
+    const entries = [
+      { label: 'Necesidades', valor: totalNeeds, color: 'var(--am2)' },
+      { label: 'Deseos', valor: totalWants, color: 'var(--accent-blue)' },
+      { label: 'Ahorro', valor: totalSavings, color: 'var(--accent-purple)' }
+    ].filter(e => e.valor > 0);
+    if (entries.length > 0) {
+      await renderDonutChart('donut-chart-resumen', entries, {
+        cutout: '74%',
+        tooltipLabel: (ctx, entry) => `${entry.label}: ${formatCurrency(entry.valor)}`
+      });
+    } else {
+      destroyAllDonuts();
+    }
   }
 
   const lineCanvas = document.getElementById('line-chart-saldo-diario');

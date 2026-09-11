@@ -45,6 +45,12 @@ export async function renderDonutChart(canvasId, entries, opts = {}) {
         data: entries.map(e => e.valor),
         backgroundColor: entries.map(e => resolveColor(e.color)),
         borderColor: 'transparent',
+        // spacing + borderRadius: separa los segmentos con un hueco real en
+        // vez de dejarlos pegados — más legible en la primera mirada cuando
+        // hay 2-3 valores parecidos, y de paso le da un acabado más pulido
+        // a los anillos "planos" que tenía antes.
+        spacing: 3,
+        borderRadius: 4,
         hoverOffset: 6
       }]
     },
