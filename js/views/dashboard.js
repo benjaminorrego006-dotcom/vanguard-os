@@ -236,6 +236,12 @@ export async function render() {
   }
 
   const diasDesdeBackup = await getDiasDesdeUltimoBackup();
+  // Sin esto, alguien que recién instaló la app y todavía no cargó nada
+  // ve el aviso más grande y llamativo de toda la pantalla — no hay nada
+  // real que valga la pena respaldar todavía. Reutiliza datos que este
+  // render() ya pidió arriba (sesiones/habitos/tareas/budget), sin
+  // consultas nuevas.
+  const hayDatosReales = sesiones.length > 0 || habitos.length > 0 || tareas.length > 0 || budget.breakdown.length > 0;
   const backupReminderHtml = (backupNecesitaAviso(diasDesdeBackup) && !avisoBackupPospuesto()) ? (() => {
     const esAlertaRoja = diasDesdeBackup !== null && diasDesdeBackup > BACKUP_ALERTA_ROJA_DIAS;
     const color = esAlertaRoja ? 'var(--state-high)' : 'var(--state-medium)';
@@ -244,6 +250,18 @@ export async function render() {
       : esAlertaRoja
         ? `Hace más de ${BACKUP_ALERTA_ROJA_DIAS} días que no exportas un respaldo`
         : `Hace ${diasDesdeBackup} días que no exportas un respaldo`;
+
+    if (!hayDatosReales) {
+      return `
+        <div id="backup-reminder" style="display: flex; align-items: center; gap: 6px; margin-bottom: 16px; padding: 0 2px;">
+          <svg width="13" height="13" fill="none" stroke="var(--text-disabled)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink: 0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span style="font-size: 11px; color: var(--text-disabled); flex: 1;">Todavía no exportaste un respaldo — te lo recordamos cuando tengas algo cargado.</span>
+          <button id="btn-backup-export-inicio" class="tappable" style="background: transparent; border: none; color: var(--text-secondary); font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline; flex-shrink: 0; padding: 2px;">Exportar</button>
+          <button id="btn-backup-snooze" class="tappable" style="display: none;" aria-label="Recordarme en 7 días">Después</button>
+        </div>
+      `;
+    }
+
     return `
       <div id="backup-reminder" class="card" style="padding: 14px 16px; margin-bottom: 20px;">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">

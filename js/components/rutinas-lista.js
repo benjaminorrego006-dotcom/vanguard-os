@@ -43,10 +43,10 @@ export async function renderRutinasLista(categoria) {
   let html = `
     <div style="margin-bottom: 24px;">
       <h2 style="font-size: 26px; font-weight: 800; margin: 0 0 16px 0; color: var(--text-primary); letter-spacing: -0.4px;">${catName}</h2>
-      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px;">
+      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: var(--accent-teal); border: none; color: #000; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px;">
         + Nueva rutina
       </button>
-      <button id="btn-generar-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: var(--accent-teal); border: none; color: #000; font-size: 15px; font-weight: 700; cursor: pointer;">
+      <button id="btn-generar-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); font-size: 15px; font-weight: 700; cursor: pointer;">
         Generar Rutina
       </button>
     </div>

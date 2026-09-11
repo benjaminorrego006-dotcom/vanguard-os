@@ -453,40 +453,47 @@ export async function init() {
 
     const quickGastoInput = document.getElementById('quick-gasto-input');
     const quickGastoHint = document.getElementById('quick-gasto-hint');
+    const btnQuickGasto = document.getElementById('btn-quick-gasto-submit');
+    const submitQuickGasto = async () => {
+      const text = quickGastoInput.value.trim();
+      if (!text) return;
+
+      const parsed = parseQuickGasto(text, b.envelopes);
+      if (!parsed) {
+        quickGastoHint.textContent = 'No pude leer el monto — prueba algo como "50 en supermercado"';
+        quickGastoHint.style.color = 'var(--state-high)';
+        return;
+      }
+
+      if (parsed.matches.length === 1) {
+        const env = parsed.matches[0];
+        await db.addTransaction({
+          type: 'Gasto',
+          category: env.category,
+          label: parsed.label || env.name,
+          amount: parsed.amount,
+          envelopeId: env.id,
+          goalId: null
+        });
+        Toast(`Gasto de ${formatCurrency(parsed.amount)} agregado a ${escapeHtml(env.name)}`, 'success');
+        quickGastoInput.value = '';
+        quickGastoHint.textContent = '';
+      } else {
+        quickGastoHint.textContent = parsed.matches.length > 1
+          ? 'Encontré más de un sobre posible — confirma cuál es'
+          : 'No encontré una categoría clara — confirma cuál es';
+        quickGastoHint.style.color = 'var(--text-disabled)';
+        document.getElementById('gasto-modal').openForm({ amount: parsed.amount, label: parsed.label });
+        quickGastoInput.value = '';
+      }
+    };
     if (quickGastoInput) {
-      quickGastoInput.addEventListener('keydown', async (e) => {
+      quickGastoInput.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter') return;
-        const text = quickGastoInput.value.trim();
-        if (!text) return;
-
-        const parsed = parseQuickGasto(text, b.envelopes);
-        if (!parsed) {
-          quickGastoHint.textContent = 'No encontré un monto — prueba algo como "50 en supermercado"';
-          return;
-        }
-
-        if (parsed.matches.length === 1) {
-          const env = parsed.matches[0];
-          await db.addTransaction({
-            type: 'Gasto',
-            category: env.category,
-            label: parsed.label || env.name,
-            amount: parsed.amount,
-            envelopeId: env.id,
-            goalId: null
-          });
-          Toast(`Gasto de ${formatCurrency(parsed.amount)} agregado a ${escapeHtml(env.name)}`, 'success');
-          quickGastoInput.value = '';
-          quickGastoHint.textContent = '';
-        } else {
-          quickGastoHint.textContent = parsed.matches.length > 1
-            ? 'Encontré más de un sobre posible — confirma cuál es'
-            : 'No encontré una categoría clara — confirma cuál es';
-          document.getElementById('gasto-modal').openForm({ amount: parsed.amount, label: parsed.label });
-          quickGastoInput.value = '';
-        }
+        submitQuickGasto();
       });
     }
+    if (btnQuickGasto) btnQuickGasto.addEventListener('click', submitQuickGasto);
 
     attachTxListeners();
     attachGoalListeners();
@@ -1266,11 +1273,20 @@ export async function render() {
           </button>
         </div>
 
-        <!-- Gasto rápido: texto libre tipo "50 en supermercado" -->
+        <!-- Gasto rápido: texto libre tipo "50 en supermercado". Botón de
+             confirmar visible además de Enter — sin él, en mobile no hay
+             ninguna pista de que este campo hace algo al tocar "listo" en
+             el teclado (algunos teclados no disparan un keydown de Enter
+             consistente). -->
         <div style="margin-bottom: 24px;">
-          <div style="position: relative;">
-            <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
-            <input type="text" id="quick-gasto-input" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px rgba(239,68,68,0.15)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+          <div style="position: relative; display: flex; align-items: stretch; gap: 8px;">
+            <div style="position: relative; flex: 1; min-width: 0;">
+              <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
+              <input type="text" id="quick-gasto-input" inputmode="text" enterkeyhint="done" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px rgba(239,68,68,0.15)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+            </div>
+            <button type="button" id="btn-quick-gasto-submit" class="tappable" title="Agregar gasto" style="flex-shrink: 0; width: 48px; border-radius: 16px; background: var(--state-high); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
           </div>
           <div id="quick-gasto-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
         </div>

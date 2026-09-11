@@ -53,6 +53,16 @@ export function initModalHistory() {
       }
     }
   });
+
+  // Escape cierra el modal abierto más reciente — reusa exactamente el
+  // mismo camino que el botón atrás (history.back()) en vez de duplicar el
+  // cierre acá, así el popstate de arriba hace todo el trabajo (destrackear
+  // + closeModalElement) sin dos mecanismos de cierre que puedan
+  // desincronizarse entre sí.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || trackedOpen.size === 0) return;
+    history.back();
+  });
 }
 
 // Llamado por el router antes de tirar el HTML de la vista saliente: si
