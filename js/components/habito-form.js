@@ -1,5 +1,6 @@
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
+import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 
 // Modal de alta/edición de hábito — mismo patrón que task-form.js, pero
 // más simple: un hábito solo tiene nombre (las marcas se tocan desde la
@@ -12,15 +13,17 @@ export function renderHabitoForm() {
         <h2 id="habito-modal-title" style="margin-top: 0; font-size: 20px; font-weight: 700;">Nuevo Hábito</h2>
         <input type="hidden" id="habito-id">
 
-        <div class="input-group">
-          <label for="habito-nombre">Nombre del hábito</label>
-          <input type="text" id="habito-nombre" placeholder="Ej. Entrenar 45 min" maxlength="60">
-        </div>
+        <form id="habito-form" onsubmit="return false;">
+          <div class="input-group">
+            <label for="habito-nombre">Nombre del hábito</label>
+            <input type="text" id="habito-nombre" placeholder="Ej. Entrenar 45 min" maxlength="60" enterkeyhint="done">
+          </div>
 
-        <div style="display: flex; gap: 12px; margin-top: 24px;">
-          <button id="btn-cancel-habito" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Cancelar</button>
-          <button id="btn-save-habito" class="btn-primary" style="background: var(--accent-purple); color: #000; flex: 1;">Guardar</button>
-        </div>
+          <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button type="button" id="btn-cancel-habito" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Cancelar</button>
+            <button type="submit" id="btn-save-habito" class="btn-primary" style="background: var(--accent-purple); color: #000; flex: 1;">Guardar</button>
+          </div>
+        </form>
       </div>
     </div>
   `;
@@ -29,7 +32,6 @@ export function renderHabitoForm() {
 export function setupHabitoForm(onSaveCallback) {
   const modal = document.getElementById('habito-modal');
   const btnCancel = document.getElementById('btn-cancel-habito');
-  const btnSave = document.getElementById('btn-save-habito');
   const input = document.getElementById('habito-nombre');
 
   const close = () => {
@@ -52,8 +54,7 @@ export function setupHabitoForm(onSaveCallback) {
     if (onSaveCallback) setTimeout(onSaveCallback, 300);
   };
 
-  btnSave.addEventListener('click', save);
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+  bindQuickCaptureForm(document.getElementById('habito-form'), save);
 }
 
 export function openHabitoForm(habito = null) {

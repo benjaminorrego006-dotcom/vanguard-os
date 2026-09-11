@@ -205,14 +205,14 @@ async function renderResumenHabitos(habitos, hoyIso) {
     `;
 
   return `
-    <div style="display: grid; grid-template-columns: ${riesgoHtml ? '1.3fr 1fr' : '1fr'}; gap: 12px; margin-right: 20px; margin-bottom: 12px;">
+    <div style="display: grid; grid-template-columns: ${riesgoHtml ? '1.3fr 1fr' : '1fr'}; gap: 12px; margin-top: 20px; margin-bottom: 12px;">
       <div class="card" style="padding: 16px;">
         <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 10px;">Cumplimiento por hábito, 7 días</div>
         ${donutHtml}
       </div>
       ${riesgoHtml}
     </div>
-    <div class="card" style="padding: 16px; margin-right: 20px; margin-bottom: 20px;">
+    <div class="card" style="padding: 16px;">
       <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 10px;">% de hábitos cumplidos por semana (últimas 8 semanas)</div>
       ${tendenciaHtml}
     </div>
@@ -380,13 +380,21 @@ async function renderLista() {
         </div>
       ` : ''}
 
-      ${await renderResumenHabitos(habitos, hoyIso)}
-
-      <!-- Lista de hábitos -->
+      <!-- Lista de hábitos primero: es lo único con lo que se puede
+           interactuar (marcar el día) — el resumen/analítica de abajo es
+           soporte, no debería empujarlo hacia abajo (mismo criterio que
+           Inicio, donde el contenido accionable va antes que Laboratorio).
+           Envueltos juntos en un solo wrapper (en vez de que cada uno
+           cargue su propio padding-right/bottom) porque cuál de los dos
+           termina siendo el último varía: sin datos de resumen todavía,
+           renderResumenHabitos() devuelve '' y la lista queda al final. -->
       <div style="padding-right: 20px; padding-bottom: 110px;">
-        ${habitos.length > 0
-          ? habitos.map(renderFila).join('')
-          : EmptyState('Sin hábitos todavía', 'Agrega el primero y empieza a marcar días.')}
+        <div>
+          ${habitos.length > 0
+            ? habitos.map(renderFila).join('')
+            : EmptyState('Sin hábitos todavía', 'Agrega el primero y empieza a marcar días.')}
+        </div>
+        ${await renderResumenHabitos(habitos, hoyIso)}
       </div>
 
       <!-- FAB. Sticky en vez de fixed: fixed lo ancla al borde de la

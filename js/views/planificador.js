@@ -2,6 +2,7 @@ import { db } from '../core/db.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
 import { diaKeyDe, formatFechaCorta } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
+import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 
 const DOW = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -57,8 +58,10 @@ export async function render() {
           </span>
         </div>
         ${delDia.map(filaTarea).join('')}
-        <input class="plan-nueva" data-fecha="${iso}" type="text" placeholder="Nueva tarea…"
-          style="width: 100%; margin-top: 8px; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; font-size: 14px; font-family: inherit; box-sizing: border-box; outline: none;">
+        <form class="plan-nueva-form" onsubmit="return false;">
+          <input class="plan-nueva" data-fecha="${iso}" type="text" placeholder="Nueva tarea…" enterkeyhint="go"
+            style="width: 100%; margin-top: 8px; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; font-size: 14px; font-family: inherit; box-sizing: border-box; outline: none;">
+        </form>
       </div>`;
   };
 
@@ -114,13 +117,12 @@ export function mountListeners() {
     });
   });
 
-  document.querySelectorAll('.plan-nueva').forEach(input => {
-    input.addEventListener('keydown', async (e) => {
-      if (e.key !== 'Enter') return;
-      const el = e.currentTarget;
-      const texto = el.value.trim();
+  document.querySelectorAll('.plan-nueva-form').forEach(form => {
+    const input = form.querySelector('.plan-nueva');
+    bindQuickCaptureForm(form, async () => {
+      const texto = input.value.trim();
       if (!texto) return;
-      await db.crearTareaPlan(el.getAttribute('data-fecha'), texto);
+      await db.crearTareaPlan(input.getAttribute('data-fecha'), texto);
       refresh();
     });
   });

@@ -2,6 +2,7 @@ import { db } from '../core/db.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { formatFechaLarga } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
+import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 
 // Categoría abierta. null = pantalla de categorías. Vive fuera de render()
 // para sobrevivir a los refresh, igual que el offset del planificador.
@@ -52,8 +53,10 @@ async function renderCategorias() {
       ${cats.length ? cats.map(fila).join('') : EmptyState('Sin categorías', 'Crea la primera para empezar a anotar.')}
       <div class="card" style="margin-top: 16px; padding: 16px;">
         <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Nueva categoría</label>
-        <input id="cat-nueva" type="text" placeholder="Viajes, Compras, Escritos…"
-          style="width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px 14px; font-size: 15px; font-family: inherit; box-sizing: border-box; outline: none;">
+        <form id="cat-nueva-form" onsubmit="return false;">
+          <input id="cat-nueva" type="text" placeholder="Viajes, Compras, Escritos…" enterkeyhint="go"
+            style="width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px 14px; font-size: 15px; font-family: inherit; box-sizing: border-box; outline: none;">
+        </form>
       </div>
     </div>`;
 }
@@ -130,15 +133,12 @@ export function mountListeners() {
   });
 
   const inputCat = document.getElementById('cat-nueva');
-  if (inputCat) {
-    inputCat.addEventListener('keydown', async (e) => {
-      if (e.key !== 'Enter') return;
-      const nombre = e.currentTarget.value.trim();
-      if (!nombre) return;
-      await db.crearCategoriaNota(nombre);
-      refresh();
-    });
-  }
+  bindQuickCaptureForm(document.getElementById('cat-nueva-form'), async () => {
+    const nombre = inputCat.value.trim();
+    if (!nombre) return;
+    await db.crearCategoriaNota(nombre);
+    refresh();
+  });
 
   // --- pantalla de notas ---
   document.getElementById('cat-volver')?.addEventListener('click', () => {
