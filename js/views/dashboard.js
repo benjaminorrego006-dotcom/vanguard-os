@@ -6,7 +6,8 @@ import { parseQuickGasto } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
 import { diaKeyDe } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
-import { renderLaboratorio, initLaboratorioListeners, cleanupLaboratorio } from '../components/laboratorio.js';
+import * as LabFinanzas from '../components/lab-finanzas.js';
+import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 
 let labObserver = null;
 
@@ -17,7 +18,7 @@ let labObserver = null;
 // laboratorio, el observer sigue esperando: hay que desconectarlo también,
 // o queda observando un nodo que el próximo render va a reemplazar.
 export function cleanup() {
-  cleanupLaboratorio();
+  LabFinanzas.cleanup();
   if (labObserver) { labObserver.disconnect(); labObserver = null; }
 }
 
@@ -309,19 +310,10 @@ export async function render() {
   const viPct = habitos.length > 0 ? (habitosMarcadosHoy / habitos.length) * 100 : 0;
   const tareasActivas = tareas.filter(t => t.status !== 'done').length;
 
-  // Semana actual (lunes a domingo) para el resumen de Planificador —
-  // mismo cálculo que usa planificador.js para su propia vista.
-  const lunesActual = new Date(); lunesActual.setHours(0, 0, 0, 0);
-  lunesActual.setDate(lunesActual.getDate() - ((lunesActual.getDay() + 6) % 7));
-  const domingoActual = new Date(lunesActual); domingoActual.setDate(lunesActual.getDate() + 6);
-
-  const [progresoRitual, tareasSemana, notas, categoriasNota] = await Promise.all([
-    db.getProgresoRitual(hoyIso),
-    db.getTareasPlan(diaKeyDe(lunesActual), diaKeyDe(domingoActual)),
+  const [notas, categoriasNota] = await Promise.all([
     db.getNotas(),
     db.getCategoriasNota()
   ]);
-  const tareasSemanaHechas = tareasSemana.filter(t => t.hecha).length;
 
   const rachaSubtitle = stats.rachaSemanas > 0
     ? `${stats.rachaSemanas} semana${stats.rachaSemanas === 1 ? '' : 's'} de racha en Entreno`
@@ -367,16 +359,21 @@ export async function render() {
         </button>
       </div>
 
-      <!-- Laboratorio: gráficos de todos los módulos juntos (ex Análisis).
-           Justo arriba de las filas de módulo (pedido explícito: no antes
-           del reactor). El contenido real (datos + Chart.js, 204KB) se
-           difiere hasta que este contenedor entra al viewport — ver el
-           IntersectionObserver en mountListeners() — así el arranque de la
-           app no paga ese costo si el usuario ni llega a scrollear hasta
-           acá. -->
+      <!-- Laboratorio: en Inicio solo el gráfico más destacado (distribución
+           de gasto del mes — Entreno ya tiene su propio espacio arriba, en
+           el reactor/CTA), no el selector de módulo+pestaña completo de
+           antes. La versión completa de los 4 módulos vive en Más >
+           Laboratorio (views/laboratorio.js). El contenido real (datos +
+           Chart.js, 204KB) se difiere hasta que este contenedor entra al
+           viewport — ver el IntersectionObserver en mountListeners() — así
+           el arranque de la app no paga ese costo si el usuario ni llega a
+           scrollear hasta acá. -->
       <div style="margin-bottom: 20px;">
-        <h2 style="font-size: 18px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Laboratorio</h2>
-        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 14px 0;">Gráficos y tendencias de tus módulos, todos juntos.</p>
+        <div class="flex-between" style="margin: 0 0 4px 0;">
+          <h2 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-primary);">Laboratorio</h2>
+          <a href="#laboratorio" style="font-size: 12.5px; font-weight: 700; color: var(--cy); text-decoration: none;">Ver todo →</a>
+        </div>
+        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 14px 0;">Tu distribución de gasto del mes.</p>
         <div id="lab-section-content">
           <div class="card" style="padding: 40px 20px; text-align: center; color: var(--text-disabled); font-size: 12px;">Cargando…</div>
         </div>
@@ -411,22 +408,6 @@ export async function render() {
             : `${habitosMarcadosHoy}/${habitos.length} marcados hoy`
         })}
         ${renderHeroicRow({
-          id: 'row-ritual',
-          color: 'var(--accent-ritual)',
-          label: 'Ritual',
-          value: progresoRitual.hechos === 0
-            ? 'Ritual pendiente'
-            : `${progresoRitual.hechos} de ${progresoRitual.total} campos hoy`
-        })}
-        ${renderHeroicRow({
-          id: 'row-planificador',
-          color: 'var(--accent-plan)',
-          label: 'Semana',
-          value: tareasSemana.length === 0
-            ? 'Semana sin tareas'
-            : `${tareasSemanaHechas} de ${tareasSemana.length} completadas`
-        })}
-        ${renderHeroicRow({
           id: 'row-anotaciones',
           color: 'var(--accent-notas)',
           label: 'Anotaciones',
@@ -436,12 +417,17 @@ export async function render() {
         })}
       </div>
 
-      <!-- Captura rápida global -->
+      <!-- Captura rápida global — <form> a propósito, no un div + keydown:
+           ver commit 4396aa1 (mismo fix que "Agregar gasto rápido" de
+           Finanzas). Un <input> solo dentro de un <form> ya dispara
+           "submit" en Enter/Ir/Listo sin necesitar un botón visible. -->
       <div style="margin-bottom: 20px;">
-        <div style="position: relative;">
-          <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
-          <input type="text" id="quick-capture-input" placeholder="Anota algo — tarea o gasto (ej. &quot;50 en super&quot;)..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box;" autocomplete="off">
-        </div>
+        <form id="quick-capture-form" onsubmit="return false;">
+          <div style="position: relative;">
+            <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
+            <input type="text" id="quick-capture-input" placeholder="Anota algo — tarea o gasto (ej. &quot;50 en super&quot;)..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box;" autocomplete="off">
+          </div>
+        </form>
         <div id="quick-capture-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
         <div id="quick-capture-sobre-opciones" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
       </div>
@@ -458,14 +444,12 @@ export function mountListeners() {
 
   // El laboratorio se monta recién cuando su contenedor entra al viewport
   // (rootMargin da un pequeño margen para que empiece a cargar un poco
-  // antes de que el usuario lo vea del todo). refreshLab() solo reemplaza
-  // #lab-section-content, no toda Inicio — cambiar de pestaña ahí adentro
-  // no debe recalcular el reactor ni las filas.
+  // antes de que el usuario lo vea del todo).
   const refreshLab = async () => {
     const labContent = document.getElementById('lab-section-content');
     if (!labContent) return;
-    labContent.innerHTML = await renderLaboratorio();
-    initLaboratorioListeners(refreshLab);
+    labContent.innerHTML = await LabFinanzas.renderTab('desglose');
+    LabFinanzas.initTabListeners('desglose', refreshLab);
   };
   const labPlaceholder = document.getElementById('lab-section-content');
   if (labPlaceholder) {
@@ -530,8 +514,6 @@ export function mountListeners() {
   const rowFinanzas = document.getElementById('row-finanzas');
   const rowTareas = document.getElementById('row-tareas');
   const rowHabitos = document.getElementById('row-habitos');
-  const rowRitual = document.getElementById('row-ritual');
-  const rowPlanificador = document.getElementById('row-planificador');
   const rowAnotaciones = document.getElementById('row-anotaciones');
 
   if (qaGasto) qaGasto.addEventListener('click', () => go('finanzas'));
@@ -540,8 +522,6 @@ export function mountListeners() {
   if (rowFinanzas) rowFinanzas.addEventListener('click', () => go('finanzas'));
   if (rowTareas) rowTareas.addEventListener('click', () => go('tareas'));
   if (rowHabitos) rowHabitos.addEventListener('click', () => go('habitos'));
-  if (rowRitual) rowRitual.addEventListener('click', () => go('ritual'));
-  if (rowPlanificador) rowPlanificador.addEventListener('click', () => go('planificador'));
   if (rowAnotaciones) rowAnotaciones.addEventListener('click', () => go('anotaciones'));
 
   // Captura rápida: si el texto trae un monto, se registra como gasto
@@ -588,36 +568,34 @@ export function mountListeners() {
     });
   };
 
-  if (quickInput) {
-    quickInput.addEventListener('keydown', async (e) => {
-      if (e.key !== 'Enter') return;
-      const text = quickInput.value.trim();
-      if (!text) return;
-      if (quickOpciones) quickOpciones.innerHTML = '';
+  const submitQuickCapture = async () => {
+    const text = quickInput.value.trim();
+    if (!text) return;
+    if (quickOpciones) quickOpciones.innerHTML = '';
 
-      // El monto tiene que ir AL PRINCIPIO ("50 en super", el ejemplo del
-      // placeholder) — un dígito en cualquier parte del texto (ej. "Comprar
-      // 2 entradas") mandaba tareas comunes a Finanzas como gasto.
-      const amountFound = /^\$?\s*\d/.test(text);
-      if (amountFound) {
-        const budget = await db.getBudget();
-        const parsed = parseQuickGasto(text, budget.envelopes);
-        if (!parsed) {
-          quickHint.textContent = 'No encontré un monto válido';
-          return;
-        }
-        if (parsed.matches.length > 1) {
-          mostrarSelectorDeSobre(parsed);
-          return;
-        }
-        await registrarGasto(parsed, parsed.matches[0] || null);
+    // El monto tiene que ir AL PRINCIPIO ("50 en super", el ejemplo del
+    // placeholder) — un dígito en cualquier parte del texto (ej. "Comprar
+    // 2 entradas") mandaba tareas comunes a Finanzas como gasto.
+    const amountFound = /^\$?\s*\d/.test(text);
+    if (amountFound) {
+      const budget = await db.getBudget();
+      const parsed = parseQuickGasto(text, budget.envelopes);
+      if (!parsed) {
+        quickHint.textContent = 'No encontré un monto válido';
         return;
-      } else {
-        await db.saveTask({ title: text, status: 'todo', priority: 'medium' });
-        Toast('Tarea creada', 'success');
       }
-      limpiarCapturaRapida();
-      refresh();
-    });
-  }
+      if (parsed.matches.length > 1) {
+        mostrarSelectorDeSobre(parsed);
+        return;
+      }
+      await registrarGasto(parsed, parsed.matches[0] || null);
+      return;
+    } else {
+      await db.saveTask({ title: text, status: 'todo', priority: 'medium' });
+      Toast('Tarea creada', 'success');
+    }
+    limpiarCapturaRapida();
+    refresh();
+  };
+  bindQuickCaptureForm(document.getElementById('quick-capture-form'), submitQuickCapture);
 }

@@ -4,7 +4,7 @@ import { initModalHistory, forgetOpenModals, initSheetDragToDismiss } from './hi
 import { mountOnboardingInicial } from '../components/onboarding-inicial.js';
 import { escapeHtml } from '../utils/escape.js';
 
-const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'mas', 'configuracion'];
+const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'mas', 'configuracion'];
 
 // El servidor local a veces omite el header Content-Type cuando recibe
 // varias peticiones en paralelo (medido: 0/52 fallos pidiendo los archivos

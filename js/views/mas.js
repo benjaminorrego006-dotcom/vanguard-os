@@ -28,6 +28,13 @@ const SECCIONES = [
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path><path d="M14 4v6h6"></path></svg>`
   },
   {
+    id: 'laboratorio',
+    nombre: 'Laboratorio',
+    desc: 'Gráficos y tendencias de todos tus módulos, todos juntos.',
+    accent: 'var(--cy)',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2v6L4 20a1 1 0 0 0 1 2h14a1 1 0 0 0 1-2L15 8V2"></path><line x1="9" y1="2" x2="15" y2="2"></line><line x1="8" y1="16" x2="16" y2="16"></line></svg>`
+  },
+  {
     id: 'configuracion',
     nombre: 'Configuración',
     desc: 'Perfil, seguridad, respaldos y preferencias de la app.',

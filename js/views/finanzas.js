@@ -9,6 +9,7 @@ import { renderAhorroForm, initAhorroForm } from '../components/AhorroForm.js';
 import { renderEnvelopeForm, initEnvelopeForm } from '../components/EnvelopeForm.js';
 import { renderTransferForm, initTransferForm } from '../components/TransferForm.js';
 import { renderRecurringForm, initRecurringForm } from '../components/RecurringForm.js';
+import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, horizontalBarValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
 import { renderDonutChart, destroyAllDonuts } from '../components/donut-chart.js';
 import { renderGoalCard } from '../components/goal-card.js';
@@ -487,17 +488,7 @@ export async function init() {
         quickGastoInput.value = '';
       }
     };
-    // "submit" (no keydown) es lo que dispara CUALQUIER teclado móvil al
-    // tocar Enter/Ir/Listo dentro de un <input> que vive en un <form> —
-    // nativo del navegador, no depende de qué evento de teclado mande ese
-    // teclado en particular. Cubre el botón (type="submit") y Enter con el
-    // mismo único listener.
-    if (quickGastoForm) {
-      quickGastoForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        submitQuickGasto();
-      });
-    }
+    bindQuickCaptureForm(quickGastoForm, submitQuickGasto);
 
     attachTxListeners();
     attachGoalListeners();
