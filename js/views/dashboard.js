@@ -9,17 +9,12 @@ import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import * as LabFinanzas from '../components/lab-finanzas.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 
-let labObserver = null;
-
 // Llamado por el router (app.js) antes de desmontar Inicio. El laboratorio
-// puede tener instancias de Chart.js vivas (donut/línea) que si no, quedan
-// con su canvas fuera del DOM pero corriendo — mismo motivo que ya
-// documentaba analisis.js. Si el usuario nunca scrolleó hasta el
-// laboratorio, el observer sigue esperando: hay que desconectarlo también,
-// o queda observando un nodo que el próximo render va a reemplazar.
+// puede tener una instancia de Chart.js viva (el donut de "Distribución del
+// mes") que si no, queda con su canvas fuera del DOM pero corriendo — mismo
+// motivo que ya documentaba analisis.js.
 export function cleanup() {
   LabFinanzas.cleanup();
-  if (labObserver) { labObserver.disconnect(); labObserver = null; }
 }
 
 // El evento beforeinstallprompt lo captura index.html apenas carga la
@@ -363,11 +358,8 @@ export async function render() {
            de gasto del mes — Entreno ya tiene su propio espacio arriba, en
            el reactor/CTA), no el selector de módulo+pestaña completo de
            antes. La versión completa de los 4 módulos vive en Más >
-           Laboratorio (views/laboratorio.js). El contenido real (datos +
-           Chart.js, 204KB) se difiere hasta que este contenedor entra al
-           viewport — ver el IntersectionObserver en mountListeners() — así
-           el arranque de la app no paga ese costo si el usuario ni llega a
-           scrollear hasta acá. -->
+           Laboratorio (views/laboratorio.js). El contenido (datos +
+           Chart.js) se llena en mountListeners() — ver refreshLab() ahí. -->
       <div style="margin-bottom: 20px;">
         <div class="flex-between" style="margin: 0 0 4px 0;">
           <h2 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-primary);">Laboratorio</h2>
@@ -442,27 +434,28 @@ export function mountListeners() {
   };
   const refresh = () => { if (window.appRouter) window.appRouter.navigate('dashboard'); };
 
-  // El laboratorio se monta recién cuando su contenedor entra al viewport
-  // (rootMargin da un pequeño margen para que empiece a cargar un poco
-  // antes de que el usuario lo vea del todo).
+  // Antes se difería con un IntersectionObserver hasta que el contenedor
+  // entraba al viewport (tenía sentido cuando acá vivía el selector
+  // completo de módulo+pestaña). Con el recorte a un solo gráfico, ya
+  // renderiza directo: es liviano, y queda a un scroll mínimo del reactor
+  // — total, casi cualquier usuario lo ve enseguida. Directo también evita
+  // depender de que el observer efectivamente dispare (no reprodujimos un
+  // caso donde no lo hacía, pero tampoco hay forma de descartarlo del
+  // todo sin el dispositivo real, y acá ya no hay costo que justifique el
+  // riesgo). Si falla, muestra un estado de error en vez de quedarse
+  // pegado en "Cargando…" para siempre.
   const refreshLab = async () => {
     const labContent = document.getElementById('lab-section-content');
     if (!labContent) return;
-    labContent.innerHTML = await LabFinanzas.renderTab('desglose');
-    LabFinanzas.initTabListeners('desglose', refreshLab);
+    try {
+      labContent.innerHTML = await LabFinanzas.renderTab('desglose');
+      LabFinanzas.initTabListeners('desglose', refreshLab);
+    } catch (err) {
+      console.error('Error al cargar el Laboratorio de Inicio:', err);
+      labContent.innerHTML = `<div class="card" style="padding: 24px 20px; text-align: center; color: var(--text-secondary); font-size: 12.5px;">No se pudo cargar el gráfico. Probá de nuevo desde Más &gt; Laboratorio.</div>`;
+    }
   };
-  const labPlaceholder = document.getElementById('lab-section-content');
-  if (labPlaceholder) {
-    if (labObserver) labObserver.disconnect();
-    labObserver = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        labObserver.disconnect();
-        labObserver = null;
-        refreshLab();
-      }
-    }, { rootMargin: '150px' });
-    labObserver.observe(labPlaceholder);
-  }
+  refreshLab();
 
   const btnBackupExport = document.getElementById('btn-backup-export-inicio');
   const btnBackupSnooze = document.getElementById('btn-backup-snooze');
