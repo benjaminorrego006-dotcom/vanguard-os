@@ -1120,7 +1120,7 @@ export const db = {
     });
     const config = {
       equipoDisponible: equipoRecibido.filter(e => equipoValido.includes(e)),
-      diasSemana: Math.min(6, Math.max(2, toSafeNumber(data.diasSemana) || 3)),
+      diasSemana: Math.min(7, Math.max(1, toSafeNumber(data.diasSemana) || 3)),
       duracionSesionMin: Math.min(120, Math.max(15, toSafeNumber(data.duracionSesionMin) || 45)),
       actualizadoEn: new Date().toISOString()
     };

@@ -68,8 +68,8 @@ export function renderNivelOnboardingForm() {
         <div id="nivel-onboarding-paso-2" class="nivel-onboarding-paso" style="display: none;">
           <h2 style="margin-top: 0; font-size: 19px; font-weight: 700;">¿Cuántos días por semana puedes entrenar?</h2>
           <p style="color: var(--text-secondary); font-size: 13px; margin: -6px 0 20px 0;">Define si tus rutinas priorizan ejercicios compuestos (pocos días) o suman aislamiento (más días).</p>
-          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
-            ${[2, 3, 4, 5, 6].map(n => `
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+            ${[1, 2, 3, 4, 5, 6, 7].map(n => `
               <button class="nivel-onboarding-dias-btn tappable" data-value="${n}" style="padding: 16px 0; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 16px; font-weight: 700; cursor: pointer;">${n}</button>
             `).join('')}
           </div>
