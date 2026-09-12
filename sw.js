@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v120';
+const CACHE_NAME = 'vanguard-os-v121';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -95,8 +95,18 @@ self.addEventListener('install', event => {
       // cache.addAll() es atómico: si UNA sola URL falla, toda la instalación
       // falla y el SW queda atascado sirviendo una versión vieja/incompleta.
       // Cacheamos cada URL por separado para que un fallo puntual no rompa el resto.
+      //
+      // {cache: 'reload'} en cada Request es igual de importante: sin esto,
+      // cache.add() puede resolverse desde el caché HTTP normal del
+      // navegador en vez de pegarle a la red — un archivo que el navegador
+      // ya tenía cacheado de una visita anterior (dentro de su propio
+      // max-age) entra tal cual, viejo, al cache NUEVO de esta versión,
+      // aunque CACHE_NAME haya cambiado. Eso rompe de raíz el mecanismo de
+      // "bump CACHE_NAME para forzar contenido fresco" en el que se apoya
+      // todo este archivo. 'reload' fuerza a cada precache a ir siempre a
+      // la red.
       return Promise.all(
-        PRECACHE_URLS.map(url => cache.add(url).catch(err => {
+        PRECACHE_URLS.map(url => cache.add(new Request(url, { cache: 'reload' })).catch(err => {
           console.warn('[SW] No se pudo precachear:', url, err);
         }))
       );
