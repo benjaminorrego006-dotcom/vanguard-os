@@ -132,7 +132,16 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
     const mostrarSugerencias = () => {
       const q = inputNombre.value.trim().toLowerCase();
       if (!q) { cerrarDropdown(); return; }
-      const matches = catalogo.filter(e => e.nombre.toLowerCase().includes(q)).slice(0, 6);
+      // Por palabra, no substring literal completo: "Press ba" (saltando
+      // "de") no matchea "Press de Banca" con un .includes(q) de la
+      // consulta entera, aunque cada palabra suelta sí está ahí. Exigir
+      // que TODAS las palabras tipeadas aparezcan en algún lado del
+      // nombre cubre ese caso sin dejar de filtrar razonablemente.
+      const palabras = q.split(/\s+/).filter(Boolean);
+      const matches = catalogo.filter(e => {
+        const nombreLower = e.nombre.toLowerCase();
+        return palabras.every(p => nombreLower.includes(p));
+      }).slice(0, 6);
 
       const itemsHtml = matches.map(e => `
         <div class="ac-item tappable" data-nombre="${escapeHtml(e.nombre)}" style="padding: 10px 12px; font-size: 12.5px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; border-bottom: 1px solid var(--surface-border);">
