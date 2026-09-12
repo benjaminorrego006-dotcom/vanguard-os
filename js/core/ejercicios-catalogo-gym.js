@@ -60,6 +60,183 @@ export const CATALOGO_GYM = {
     patronMovimiento: "rodilla",
     tipoMovimiento: "compuesto"
   },
+  'sentadilla en máquina smith': {
+    id: 'sentadilla en máquina smith',
+    nombre: 'Sentadilla en Máquina Smith',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'glúteos, core',
+    posturaInicial: 'Barra fija de la máquina Smith apoyada sobre el trapecio superior, pies un paso adelante del eje de la barra.',
+    pasosEjecucion: [
+      'Flexiona cadera y rodillas bajando en línea recta guiada por la máquina.',
+      'Desciende hasta que el pliegue de cadera quede a la altura o por debajo de la rodilla.',
+      'Empuja el piso con los talones para subir.'
+    ],
+    erroresComunes: [
+      'Poner los pies justo bajo la barra (fuerza demasiado la rodilla por el recorrido fijo).',
+      'Rodillas colapsando hacia adentro.'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
+  },
+  'sentadilla hack': {
+    id: 'sentadilla hack',
+    nombre: 'Sentadilla Hack',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'glúteos',
+    posturaInicial: 'Espalda y hombros apoyados en los soportes de la máquina hack, pies al ancho de hombros en la plataforma.',
+    pasosEjecucion: [
+      'Flexiona las rodillas bajando la plataforma en línea recta.',
+      'Desciende hasta un ángulo de rodilla cómodo sin despegar la espalda del soporte.',
+      'Empuja la plataforma con los talones para subir.'
+    ],
+    erroresComunes: [
+      'Despegar la espalda baja del soporte.',
+      'Bajar tan profundo que la cadera se redondea.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
+  },
+  'prensa de piernas': {
+    id: 'prensa de piernas',
+    nombre: 'Prensa de Piernas',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'glúteos',
+    posturaInicial: 'Sentado en la máquina, espalda apoyada, pies en la plataforma al ancho de hombros.',
+    pasosEjecucion: [
+      'Flexiona las rodillas bajando la plataforma hacia el pecho, sin despegar la espalda baja del asiento.',
+      'Empuja la plataforma con los talones hasta casi extender las rodillas, sin trabarlas.'
+    ],
+    erroresComunes: [
+      'Despegar la espalda baja del asiento (redondeo lumbar bajo carga).',
+      'Trabar las rodillas por completo arriba.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
+  },
+  'sentadilla goblet': {
+    id: 'sentadilla goblet',
+    nombre: 'Sentadilla Goblet',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'glúteos, core',
+    posturaInicial: 'De pie, una mancuerna sostenida verticalmente contra el pecho con ambas manos.',
+    pasosEjecucion: [
+      'Flexiona cadera y rodillas bajando en línea recta, codos rozando la parte interna de las rodillas abajo.',
+      'Empuja el piso con los talones para subir.'
+    ],
+    erroresComunes: [
+      'Rodillas colapsando hacia adentro.',
+      'Redondear la espalda baja.'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
+  },
+  'zancadas búlgaras': {
+    id: 'zancadas búlgaras',
+    nombre: 'Zancadas Búlgaras',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'glúteos',
+    posturaInicial: 'De pie de espaldas a un banco, empeine del pie trasero apoyado en el banco, mancuerna en cada mano.',
+    pasosEjecucion: [
+      'Baja flexionando la rodilla delantera hasta que el muslo quede casi paralelo al piso.',
+      'Empuja con la pierna delantera para volver a la posición inicial.'
+    ],
+    erroresComunes: [
+      'Perder el equilibrio por un stance demasiado cerca del banco.',
+      'Dejar que la rodilla delantera colapse hacia adentro.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["zancadas"],
+    progresionDe: "zancadas",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
+  },
+  'step-up': {
+    id: 'step-up',
+    nombre: 'Step-Up',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'glúteos',
+    posturaInicial: 'De pie frente a un banco o cajón, un pie apoyado completamente arriba.',
+    pasosEjecucion: [
+      'Empuja con el pie de arriba hasta pararte completo sobre el banco.',
+      'Baja controladamente sin dejarte caer.'
+    ],
+    erroresComunes: [
+      'Impulsarse con el pie de abajo en vez de con el de arriba.',
+      'Elegir una altura tan alta que compromete la técnica.'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "banco",
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
+  },
+  'sissy squat': {
+    id: 'sissy squat',
+    nombre: 'Sissy Squat',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'core',
+    posturaInicial: 'De pie, sujeto de algo fijo con una mano para el equilibrio, talones elevados.',
+    pasosEjecucion: [
+      'Inclina el torso hacia atrás mientras flexionas las rodillas, manteniendo cadera y torso en línea recta.',
+      'Baja hasta el máximo estiramiento cómodo del cuádriceps y regresa.'
+    ],
+    erroresComunes: [
+      'Doblar la cadera en vez de mantener la línea recta torso-cadera.',
+      'Bajar demasiado rápido sin control.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
+  },
   'peso muerto': {
     id: 'peso muerto',
     nombre: 'Peso Muerto Convencional',
@@ -1535,6 +1712,131 @@ export const CATALOGO_GYM = {
     patronMovimiento: "cadera",
     tipoMovimiento: "aislamiento"
   },
+  'curl femoral sentado': {
+    id: 'curl femoral sentado',
+    nombre: 'Curl Femoral Sentado',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'Sentado en la máquina, respaldo de rodillas sobre la parte baja de los muslos, tobillos bajo el rodillo.',
+    pasosEjecucion: [
+      'Flexiona las rodillas llevando el rodillo hacia atrás contra resistencia.',
+      'Controla tanto la fase de flexión como la de extensión.'
+    ],
+    erroresComunes: [
+      'Soltar el peso de golpe en la fase de extensión.',
+      'Despegar la cadera del asiento.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "cadera",
+    tipoMovimiento: "aislamiento"
+  },
+  'curl femoral nórdico': {
+    id: 'curl femoral nórdico',
+    nombre: 'Curl Femoral Nórdico',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'glúteos',
+    posturaInicial: 'De rodillas, tobillos fijados por un compañero o un soporte, torso recto.',
+    pasosEjecucion: [
+      'Baja el torso hacia adelante lo más lento posible, controlando con los isquiotibiales.',
+      'Usa las manos para amortiguar al llegar al piso y empuja de vuelta con ayuda de los brazos.'
+    ],
+    erroresComunes: [
+      'Doblar la cadera en vez de mantener el cuerpo en línea recta.',
+      'Bajar sin control y caer de golpe.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":5,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "cadera",
+    tipoMovimiento: "compuesto"
+  },
+  'patada de glúteo en polea': {
+    id: 'patada de glúteo en polea',
+    nombre: 'Patada de Glúteo en Polea',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'De pie frente a la polea baja, tobillera puesta, sujeto de la máquina para el equilibrio.',
+    pasosEjecucion: [
+      'Extiende la cadera empujando la pierna hacia atrás, apretando el glúteo.',
+      'Regresa controladamente sin que la pierna toque el piso entre repeticiones.'
+    ],
+    erroresComunes: [
+      'Arquear la espalda baja para ganar rango.',
+      'Usar impulso en vez de control.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "cadera",
+    tipoMovimiento: "aislamiento"
+  },
+  'abducción de cadera en máquina': {
+    id: 'abducción de cadera en máquina',
+    nombre: 'Abducción de Cadera en Máquina',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'Sentado en la máquina, piernas juntas contra las almohadillas.',
+    pasosEjecucion: [
+      'Separa las piernas contra resistencia.',
+      'Regresa controladamente sin dejar caer el peso.'
+    ],
+    erroresComunes: [
+      'Usar impulso del torso.',
+      'Rango de movimiento parcial.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "cadera",
+    tipoMovimiento: "aislamiento"
+  },
+  'máquina de aductores': {
+    id: 'máquina de aductores',
+    nombre: 'Máquina de Aductores',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'Sentado en la máquina, piernas separadas contra las almohadillas.',
+    pasosEjecucion: [
+      'Junta las piernas contra resistencia.',
+      'Regresa controladamente sin dejar caer el peso.'
+    ],
+    erroresComunes: [
+      'Usar impulso del torso.',
+      'Rango de movimiento parcial.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "cadera",
+    tipoMovimiento: "aislamiento"
+  },
   'zancadas': {
     id: 'zancadas',
     nombre: 'Zancadas',
@@ -1995,6 +2297,59 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
     tambienEn: [],
     equipo: "maquina",
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "aislamiento"
+  },
+  'elevación de talones sentado': {
+    id: 'elevación de talones sentado',
+    nombre: 'Elevación de Talones Sentado',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    // Rodillas flexionadas (sentado) enfatiza el sóleo por encima del
+    // gastrocnemio, a diferencia de la variante de pie/prensa (rodilla
+    // extendida) — vale la pena como entrada aparte, no una duplicación.
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'Sentado en la máquina, rodillas bajo las almohadillas, talones colgando del borde de la plataforma.',
+    pasosEjecucion: [
+      'Eleva los talones contra resistencia.',
+      'Controla la bajada completa para maximizar el rango de movimiento.'
+    ],
+    erroresComunes: [
+      'Rango de movimiento parcial.',
+      'Rebotar en vez de controlar la bajada.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "aislamiento"
+  },
+  'elevación de talones a una pierna con mancuerna': {
+    id: 'elevación de talones a una pierna con mancuerna',
+    nombre: 'Elevación de Talones a Una Pierna con Mancuerna',
+    categoria: 'gym',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'De pie sobre un pie (el otro doblado atrás), mancuerna en la mano del mismo lado, sujeto de algo fijo con la otra mano para el equilibrio.',
+    pasosEjecucion: [
+      'Eleva el talón lo más alto posible.',
+      'Baja controladamente hasta el estiramiento completo de la pantorrilla.'
+    ],
+    erroresComunes: [
+      'Rango de movimiento parcial.',
+      'Usar el brazo de apoyo para impulsar en vez de solo equilibrarse.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
     patronMovimiento: "rodilla",
     tipoMovimiento: "aislamiento"
   },

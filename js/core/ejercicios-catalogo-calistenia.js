@@ -738,7 +738,7 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
-    tambienEn: [],
+    tambienEn: ["gym"],
     equipo: "ninguno",
     patronMovimiento: "cadera",
     tipoMovimiento: "compuesto"
@@ -763,7 +763,7 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: ["puente de glúteo"],
     progresionDe: "puente de glúteo",
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
-    tambienEn: [],
+    tambienEn: ["gym"],
     equipo: "ninguno",
     patronMovimiento: "cadera",
     tipoMovimiento: "compuesto"
