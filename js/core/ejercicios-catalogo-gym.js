@@ -857,8 +857,14 @@ export const CATALOGO_GYM = {
       'No completar el rango de movimiento arriba o abajo.'
     ],
     nivel: "principiante",
-    prerequisitos: ["jalón al pecho"],
-    progresionDe: "jalón al pecho",
+    // Raíz independiente, NO progresión de jalón al pecho: jalón al pecho
+    // necesita máquina, y gatear la única dominada "fácil" alcanzable con
+    // solo barra de dominadas detrás de un ejercicio de máquina dejaba a
+    // cualquier usuario sin máquina sin ningún compuesto real de Tracción
+    // Vertical (el generador terminaba llenando el slot con Encogimientos
+    // de Hombros, un accesorio, sin avisar del hueco).
+    prerequisitos: [],
+    progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":6,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
@@ -883,8 +889,10 @@ export const CATALOGO_GYM = {
       'No completar el rango de movimiento arriba o abajo.'
     ],
     nivel: "principiante",
-    prerequisitos: ["jalón al pecho"],
-    progresionDe: "jalón al pecho",
+    // Raíz independiente — mismo motivo que Dominadas Supinas: no gatear
+    // detrás de jalón al pecho (requiere máquina).
+    prerequisitos: [],
+    progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":6,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",

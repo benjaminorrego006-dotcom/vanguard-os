@@ -473,8 +473,18 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
     if (sinEquipoNiPrereq.length === 0) sinEquipoNiPrereq = Object.values(CATALOGO_EJERCICIOS).filter(baseFiltro);
   }
 
-  if (primerPoolNoVacio) {
-    return { pool: primerPoolNoVacio.pool, relajado: primerPoolNoVacio.nivelIntento !== nivelRama, nivelUsado: primerPoolNoVacio.nivelIntento, razon: null };
+  // Se pidió un tipo concreto (preferirTipo) y NINGÚN nivel lo tuvo, pero sí
+  // hubo pool de otro tipo en el camino (primerPoolNoVacio): esto NO es un
+  // "no se pudo incluir" real — es solo que esta fase (compuesto o
+  // aislación) no tiene nada para ofrecer todavía; la otra fase sí va a
+  // cubrir el patrón con lo que sí hay. Devolver vacío sin aviso, en vez de
+  // aceptar el tipo equivocado (que fue exactamente el bug: un accesorio
+  // como Curl de Bíceps o Encogimientos de Hombros terminaba representando
+  // el slot "compuesto" del patrón, incluso apareciendo como si fuera el
+  // ejercicio principal de Tracción Horizontal/Vertical) NI avisar un hueco
+  // que en realidad se va a llenar un instante después.
+  if (preferirTipo && primerPoolNoVacio) {
+    return { pool: [], relajado: false, nivelUsado: null, razon: null };
   }
   return { pool: [], relajado: false, nivelUsado: null, razon: sinEquipoNiPrereq.length > 0 ? 'bloqueado-prerrequisitos' : 'sin-equipo' };
 }
@@ -588,7 +598,10 @@ function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, 
       const nivelInfo = nivelPorRama[patron];
       const { pool, relajado, nivelUsado, razon } = candidatosPara(patron, categoria, nivelInfo.nivel, equipoDisponible, historialPorNombre, preferirTipo);
       if (pool.length === 0) {
-        registrarAviso(patron, razon);
+        // razon null: no había del tipo pedido en esta fase, pero sí de
+        // otro — no es un hueco real, la otra fase lo cubre, así que no
+        // se avisa (ver candidatosPara).
+        if (razon) registrarAviso(patron, razon);
         agotados.add(patron);
         vueltasSinExito++;
         continue;
