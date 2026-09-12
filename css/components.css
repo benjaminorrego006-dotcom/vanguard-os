@@ -325,7 +325,8 @@ input[type="date"] { color-scheme: dark; }
    parejo CUALQUIER .card/.list-row/.modal-content/botón/input, así que
    dejaba de significar nada. Ahora solo lo llevan la tarjeta principal de
    cada pantalla (.card-hero: el reactor de Inicio, el balance de
-   Finanzas, completadas/pendientes de Tareas, la racha de Hábitos), el
+   Finanzas, completadas/pendientes de Tareas, la racha de Hábitos, "Hoy
+   toca" de Entreno), el
    botón de acción primaria (.btn-primary) y el FAB (.mk3-fab) — el resto
    queda recto (sin border-radius, sin clip-path). :not([style*="50%"])
    sigue protegiendo los círculos genuinos que no son FAB (icon-chip,

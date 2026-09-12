@@ -4,17 +4,6 @@ import { getEjercicioPorId, agruparPorGrupoMuscular } from '../core/ejercicios-c
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatDiaSemana } from '../utils/fecha.js';
-import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, barValueLabelsPlugin } from '../utils/charts.js';
-
-// Series calculadas durante renderRutinasLista() y consumidas por los
-// initXChart() de más abajo — mismo patrón que lastHabitosDonutEntries en
-// habitos.js: Chart.js necesita el canvas ya en el DOM, así que el número
-// se calcula en el render (síncrono con el HTML) y el chart se monta
-// después, en initRutinasListaListeners().
-let lastVolumenPorSemana = [];
-let lastMinutosPorSemana = [];
-let volumenChartInstance = null;
-let minutosChartInstance = null;
 
 // Escala de dificultad para ordenar "Plantillas sugeridas" de menor a mayor.
 // 'Todos los niveles' se trata como accesible para principiantes (rango 1).
@@ -103,47 +92,6 @@ export async function renderRutinasLista(categoria) {
 
   html += balanceHtml;
 
-  // El árbol de progresión (progresiones.js) es un dato unificado que cubre
-  // las tres modalidades, pero cada una ve su propio recorte filtrado por
-  // categoria/tambienEn (Etapa 3 + fix post-Etapa 4a: mostrar "Dominadas"
-  // como tarjeta suelta dentro de Calistenia era confuso, aunque sea un
-  // prerrequisito real de Front Lever/Muscle-up). Vive acá adentro de cada
-  // modalidad en vez de listarse aparte en el nivel superior de
-  // Entrenamiento. Mismo formato de tarjeta que las de modalidad (ícono,
-  // título, subtítulo, chevron); como ya está dentro de la modalidad el
-  // subtítulo no necesita repetirla.
-  html += `
-    <div class="card tappable" id="btn-ir-arbol-progresion" style="padding: 20px; display: flex; align-items: center; gap: 18px; border-radius: 20px; cursor: pointer; margin-bottom: 24px;">
-      <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(92, 225, 230, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-        <svg width="24" height="24" fill="none" stroke="var(--accent-teal)" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="22" x2="12" y2="12"></line><path d="M12 12 5 5"></path><path d="M12 12l7-7"></path><circle cx="12" cy="12" r="2"></circle><circle cx="5" cy="5" r="2"></circle><circle cx="19" cy="5" r="2"></circle></svg>
-      </div>
-      <div style="flex: 1;">
-        <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 3px 0; color: var(--text-primary);">Árbol de Progresión</h3>
-        <p style="color: var(--text-secondary); font-size: 12px; margin: 0; font-weight: 500;">Qué entrenar después</p>
-      </div>
-      <svg width="18" height="18" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-    </div>
-  `;
-
-  // Hermano del Árbol de Progresión de Calistenia, pero para pesas — vive
-  // adentro de GYM por la misma razón: es específico de esta modalidad
-  // (en gym se progresa subiendo peso del mismo ejercicio, no cambiando
-  // de ejercicio, así que no tiene sentido en calistenia ni en HIIT).
-  if (categoria === 'gym') {
-    html += `
-      <div class="card tappable" id="btn-ir-estandares-fuerza" style="padding: 20px; display: flex; align-items: center; gap: 18px; border-radius: 20px; cursor: pointer; margin-bottom: 24px;">
-        <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(92, 225, 230, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-          <svg width="24" height="24" fill="none" stroke="var(--accent-teal)" stroke-width="2" viewBox="0 0 24 24"><path d="M6 7v10M4 9v6M2 10v4"></path><path d="M18 7v10M20 9v6M22 10v4"></path><line x1="6" y1="12" x2="18" y2="12"></line></svg>
-        </div>
-        <div style="flex: 1;">
-          <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 3px 0; color: var(--text-primary);">Estándares de Fuerza</h3>
-          <p style="color: var(--text-secondary); font-size: 12px; margin: 0; font-weight: 500;">Dónde estás y qué falta</p>
-        </div>
-        <svg width="18" height="18" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </div>
-    `;
-  }
-
   let volumenGrupoHtml = '';
   if (categoria === 'gym') {
     const { volumen } = await db.getVolumenPorGrupo(7, 'gym');
@@ -202,30 +150,6 @@ export async function renderRutinasLista(categoria) {
   }
   html += deloadHtml;
 
-  // --- Tendencia de volumen (GYM / Calistenia) ---
-  if (categoria === 'gym' || categoria === 'calistenia') {
-    const { volumenPorSemana } = await db.getTendenciaSemanal(categoria, 8);
-    lastVolumenPorSemana = volumenPorSemana;
-    const hayDatos = volumenPorSemana.some(v => v > 0);
-    const chartHtml = hayDatos
-      ? `<div style="height: 130px;"><canvas id="chart-volumen-categoria"></canvas></div>`
-      : EmptyState('Sin datos todavía', 'Registra un par de sesiones más para ver tu tendencia.');
-
-    const infoText = categoria === 'gym'
-      ? `${infoSvg}<b>Volumen:</b> Total de kilos movidos esta semana (Series × Reps × Peso).`
-      : `${infoSvg}<b>Volumen:</b> Cantidad total de repeticiones hechas esta semana.`;
-
-    html += `
-      <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 24px;">
-        <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Tendencia de entrenamiento</h3>
-        ${chartHtml}
-        <div style="margin-top: 12px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
-          ${infoText}
-        </div>
-      </div>
-    `;
-  }
-
   let heatmapHtml = '';
   if (categoria === 'hiit') {
     const todasSesiones = await db.getSesiones();
@@ -270,53 +194,13 @@ export async function renderRutinasLista(categoria) {
 
   html += heatmapHtml;
 
-  // --- Tendencia de minutos (HIIT) ---
-  if (categoria === 'hiit') {
-    const { minutosPorSemana } = await db.getTendenciaSemanal('hiit', 8);
-    lastMinutosPorSemana = minutosPorSemana;
-    const hayDatosMin = minutosPorSemana.some(v => v > 0);
-    const chartHtml = hayDatosMin
-      ? `<div style="height: 130px;"><canvas id="chart-minutos-hiit"></canvas></div>`
-      : EmptyState('Sin datos todavía', 'Completa un par de sesiones HIIT más para ver tu tendencia.');
-
-    html += `
-      <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 24px;">
-        <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Tendencia de constancia</h3>
-        ${chartHtml}
-        <div style="margin-top: 12px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
-          ${infoSvg}<b>Constancia:</b> Suma total de minutos activos en tus sesiones de cardio y HIIT de la semana.
-        </div>
-      </div>
-    `;
-  }
-
-  // Plantillas Sugeridas
-  if (plantillas.length > 0) {
-    html += `
-      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Plantillas sugeridas</h3>
-      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px;">
-    `;
-    plantillas.forEach(p => {
-      html += `
-        <div class="card tappable btn-preview-plantilla" data-id="${p.id}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; cursor: pointer; position: relative;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-            <h4 style="font-size: 16px; font-weight: 600; margin: 0; color: var(--text-primary);">${p.nombre}</h4>
-            <span style="background: var(--surface-1); color: var(--text-secondary); font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">${p.nivel}</span>
-          </div>
-          <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">${p.resumen}</p>
-        </div>
-      `;
-    });
-    html += `</div>`;
-  }
-
   // Mis Rutinas
   html += `<h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Mis Rutinas</h3>`;
 
   if (rutinas.length === 0) {
     html += EmptyState("Sin rutinas personalizadas", "Crea la primera o usa una plantilla sugerida");
   } else {
-    html += `<div style="display: flex; flex-direction: column; gap: 16px;">`;
+    html += `<div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">`;
     rutinas.forEach(r => {
       const eCount = r.ejercicios ? r.ejercicios.length : 0;
       html += `
@@ -337,75 +221,38 @@ export async function renderRutinasLista(categoria) {
     html += `</div>`;
   }
 
+  // Plantillas sugeridas: colapsado por default (<details> nativo, sin JS
+  // propio) — es contenido de descubrimiento, no la razón principal de
+  // estar en esta pantalla (esa es "Mis Rutinas", arriba).
+  if (plantillas.length > 0) {
+    html += `
+      <details style="margin-bottom: 24px;">
+        <summary class="tappable" style="cursor: pointer; font-size: 14px; font-weight: 700; color: var(--text-primary); padding: 4px 0;">Plantillas sugeridas (${plantillas.length})</summary>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+    `;
+    plantillas.forEach(p => {
+      html += `
+        <div class="card tappable btn-preview-plantilla" data-id="${p.id}" style="background: var(--surface-2); padding: 14px 16px; border-radius: 14px; cursor: pointer; position: relative;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <h4 style="font-size: 15px; font-weight: 600; margin: 0; color: var(--text-primary);">${p.nombre}</h4>
+            <span style="background: var(--surface-1); color: var(--text-secondary); font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">${p.nivel}</span>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 12.5px; margin: 0;">${p.resumen}</p>
+        </div>
+      `;
+    });
+    html += `</div></details>`;
+  }
+
+  // Progreso detallado (árbol, estándares, tendencia) ya no vive dentro de
+  // cada categoría — se consolidó en su propia pantalla para no repetir la
+  // misma estructura de 3 pestañas de análisis dentro de GYM/Calistenia/HIIT
+  // por separado (ver views/entrenamiento.js > goToProgreso).
+  html += `
+    <a id="link-ver-progreso-categoria" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal); text-decoration: none; padding: 8px 0 4px 0;">Ver tu progreso en ${catName} →</a>
+  `;
+
   return html;
-}
-
-function labelsSemanas(n) {
-  return Array.from({ length: n }, (_, i) => i === n - 1 ? 'Esta sem.' : `S-${n - 1 - i}`);
-}
-
-// Los dos charts de esta vista se destruyen solos al abortar `signal` (el
-// mismo AbortController que ya usa initRutinasListaListeners para sus
-// listeners) — no hace falta un cleanup() exportado aparte ni que
-// entrenamiento.js se acuerde de llamarlo.
-async function initVolumenCategoriaChart(signal) {
-  const canvas = document.getElementById('chart-volumen-categoria');
-  if (!canvas || lastVolumenPorSemana.length === 0) return;
-
-  const Chart = await ensureChartJs();
-  const palette = appPalette();
-  const opts = baseChartOptions();
-
-  if (volumenChartInstance) volumenChartInstance.destroy();
-  volumenChartInstance = new Chart(canvas, {
-    type: 'bar',
-    data: {
-      labels: labelsSemanas(lastVolumenPorSemana.length),
-      datasets: [{ data: lastVolumenPorSemana, backgroundColor: palette.teal, borderRadius: 6, maxBarThickness: 28 }]
-    },
-    options: {
-      ...opts,
-      devicePixelRatio: hdPixelRatio(),
-      layout: { padding: { top: 18 } },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
-        y: { display: false }
-      }
-    },
-    plugins: [barValueLabelsPlugin(cssVar('--text-primary'))]
-  });
-  const instance = volumenChartInstance;
-  signal?.addEventListener('abort', () => { instance.destroy(); if (volumenChartInstance === instance) volumenChartInstance = null; });
-}
-
-async function initMinutosHiitChart(signal) {
-  const canvas = document.getElementById('chart-minutos-hiit');
-  if (!canvas || lastMinutosPorSemana.length === 0) return;
-
-  const Chart = await ensureChartJs();
-  const palette = appPalette();
-  const opts = baseChartOptions();
-
-  if (minutosChartInstance) minutosChartInstance.destroy();
-  minutosChartInstance = new Chart(canvas, {
-    type: 'bar',
-    data: {
-      labels: labelsSemanas(lastMinutosPorSemana.length),
-      datasets: [{ data: lastMinutosPorSemana, backgroundColor: palette.teal, borderRadius: 6, maxBarThickness: 28 }]
-    },
-    options: {
-      ...opts,
-      devicePixelRatio: hdPixelRatio(),
-      layout: { padding: { top: 18 } },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
-        y: { display: false }
-      }
-    },
-    plugins: [barValueLabelsPlugin(cssVar('--text-primary'))]
-  });
-  const instance = minutosChartInstance;
-  signal?.addEventListener('abort', () => { instance.destroy(); if (minutosChartInstance === instance) minutosChartInstance = null; });
 }
 
 export function renderPlantillaPreview(plantilla) {
@@ -468,10 +315,7 @@ export function renderPlantillaPreview(plantilla) {
   return html;
 }
 
-export function initRutinasListaListeners(categoria, onNewRoutine, onStartSession, onPreviewMode, signal, onArbolProgresion, onEstandaresFuerza, onGenerarRutina) {
-  initVolumenCategoriaChart(signal);
-  initMinutosHiitChart(signal);
-
+export function initRutinasListaListeners(categoria, onNewRoutine, onStartSession, onPreviewMode, signal, onVerProgreso, onGenerarRutina) {
   const btnNueva = document.getElementById('btn-nueva-rutina');
   if (btnNueva) {
     btnNueva.addEventListener('click', () => {
@@ -484,14 +328,9 @@ export function initRutinasListaListeners(categoria, onNewRoutine, onStartSessio
     btnGenerar.addEventListener('click', () => onGenerarRutina(), { signal });
   }
 
-  const btnArbol = document.getElementById('btn-ir-arbol-progresion');
-  if (btnArbol && onArbolProgresion) {
-    btnArbol.addEventListener('click', () => onArbolProgresion(), { signal });
-  }
-
-  const btnEstandares = document.getElementById('btn-ir-estandares-fuerza');
-  if (btnEstandares && onEstandaresFuerza) {
-    btnEstandares.addEventListener('click', () => onEstandaresFuerza(), { signal });
+  const linkProgreso = document.getElementById('link-ver-progreso-categoria');
+  if (linkProgreso && onVerProgreso) {
+    linkProgreso.addEventListener('click', (e) => { e.preventDefault(); onVerProgreso(); }, { signal });
   }
 
   document.querySelectorAll('.btn-iniciar-sesion').forEach(btn => {
