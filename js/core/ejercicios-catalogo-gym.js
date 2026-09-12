@@ -322,6 +322,59 @@ export const CATALOGO_GYM = {
     patronMovimiento: "traccion-horizontal",
     tipoMovimiento: "compuesto"
   },
+  'remo con mancuerna a una mano': {
+    id: 'remo con mancuerna a una mano',
+    nombre: 'Remo con Mancuerna a Una Mano',
+    categoria: 'gym',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'bíceps',
+    posturaInicial: 'Una rodilla y la mano del mismo lado apoyadas en un banco, espalda paralela al piso, mancuerna en la otra mano colgando.',
+    pasosEjecucion: [
+      'Tira de la mancuerna hacia la cadera, llevando el codo hacia atrás pegado al cuerpo.',
+      'Aprieta el omóplato al final del movimiento.',
+      'Baja controladamente hasta extender el brazo por completo.'
+    ],
+    erroresComunes: [
+      'Rotar el torso para ayudar con impulso en vez de aislar la espalda.',
+      'No completar el rango de movimiento.'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "compuesto"
+  },
+  'remo pendlay': {
+    id: 'remo pendlay',
+    nombre: 'Remo Pendlay',
+    categoria: 'gym',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'bíceps',
+    posturaInicial: 'Torso paralelo al piso, barra en el suelo frente a las piernas, agarre prono al ancho de hombros.',
+    pasosEjecucion: [
+      'Desde parada muerta en el piso, tira explosivo de la barra hacia el abdomen bajo.',
+      'Aprieta los omóplatos al final del movimiento.',
+      'Devuelve la barra al piso hasta parada completa antes de la siguiente repetición.'
+    ],
+    erroresComunes: [
+      'No devolver la barra al piso entre repeticiones (convertirlo en un remo con barra normal).',
+      'Redondear la espalda baja al bajar.',
+      'Usar impulso de piernas en vez de tirón explosivo controlado.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["remo con barra"],
+    progresionDe: "remo con barra",
+    criterioAvance: {"tipo":"reps","valor":6,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "compuesto"
+  },
   'dominadas': {
     id: 'dominadas',
     nombre: 'Dominadas',
