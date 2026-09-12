@@ -389,10 +389,26 @@ function elegirSplit(diasSemana, categoria) {
 // (ej. Tracción Vertical en calistenia sin ningún historial: Dead Hang
 // requiere Remo Invertido antes, no es un problema de equipo). Son avisos
 // distintos y accionables de forma distinta.
+// Orden de niveles a probar, más cercano al nivel real primero, pero SIN
+// quedarse corto: antes esto solo bajaba (avanzado->intermedio->
+// principiante), así que un principiante con la rama en 'traccion-vertical'
+// nunca llegaba a ver Dominadas (nivel intermedio, solo pide una barra) si
+// el único ejercicio principiante del patrón (Jalón al Pecho) pedía una
+// máquina que no declaró — "no hay ejercicios con el equipo que declaraste"
+// aun cuando SÍ había uno, un nivel más arriba. Bug real, no solo de
+// Tracción Vertical: cualquier patrón donde el ejercicio del nivel de
+// arranque pida un equipo distinto al del siguiente nivel puede pisarlo.
+const ORDEN_NIVELES = ['principiante', 'intermedio', 'avanzado'];
+function nivelesAIntentarPara(nivelRama) {
+  const idx = ORDEN_NIVELES.indexOf(nivelRama);
+  if (idx === -1) return ['principiante'];
+  const resto = ORDEN_NIVELES.filter((_, i) => i !== idx)
+    .sort((a, b) => Math.abs(ORDEN_NIVELES.indexOf(a) - idx) - Math.abs(ORDEN_NIVELES.indexOf(b) - idx));
+  return [nivelRama, ...resto];
+}
+
 function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historialPorNombre, priorizarCompuestos) {
-  const nivelesAIntentar = nivelRama === 'avanzado' ? ['avanzado', 'intermedio', 'principiante']
-    : nivelRama === 'intermedio' ? ['intermedio', 'principiante']
-    : ['principiante'];
+  const nivelesAIntentar = nivelesAIntentarPara(nivelRama);
 
   let sinEquipoNiPrereq = [];
   for (const nivelIntento of nivelesAIntentar) {

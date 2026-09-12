@@ -18,6 +18,22 @@ export const GOAL_ICON_LABELS = {
   target: 'Meta general'
 };
 
+// Set de íconos para metas de Entreno (dominio 'entreno') — antes usaban el
+// mismo set de arriba (Finanzas: "Fondo de emergencia", "Viaje", "Auto"...)
+// sin ningún ajuste al contexto. "run" y "target" ya eran genéricos/aptos
+// para fitness, así que se reutilizan tal cual en vez de duplicarlos.
+export const GOAL_ICONS_ENTRENO = ['dumbbell', 'run', 'scale', 'fire', 'target', 'calendar', 'muscle', 'trophy'];
+export const GOAL_ICON_LABELS_ENTRENO = {
+  dumbbell: 'Pesas',
+  run: 'Cardio',
+  scale: 'Peso corporal',
+  fire: 'Racha',
+  target: 'Objetivo',
+  calendar: 'Constancia',
+  muscle: 'Fuerza',
+  trophy: 'Récord'
+};
+
 const ICON_PATHS = {
   shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>',
   plane: '<path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"></path>',
@@ -27,6 +43,17 @@ const ICON_PATHS = {
   education: '<path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path>',
   run: '<circle cx="13" cy="4" r="2"></circle><path d="M4 17l4-3 3 1 4-5 3 2M8 21l3-4"></path>',
   target: '<circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1"></circle>',
+  dumbbell: '<rect x="1" y="9" width="4" height="6" rx="1"></rect><rect x="19" y="9" width="4" height="6" rx="1"></rect><rect x="7" y="7" width="2.5" height="10" rx="1"></rect><rect x="14.5" y="7" width="2.5" height="10" rx="1"></rect><line x1="9.5" y1="12" x2="14.5" y2="12"></line>',
+  scale: '<rect x="3" y="9" width="18" height="12" rx="2"></rect><path d="M9 9a3 3 0 0 1 6 0"></path><circle cx="12" cy="15" r="2"></circle>',
+  // Misma llama que ya usan habitos.js/entrenamiento.js para racha — un
+  // solo path de referencia en vez de inventar uno nuevo para este mismo
+  // concepto.
+  fire: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>',
+  // Mismo calendario que ya usa mas.js para Planificador.
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>',
+  muscle: '<path d="M7 6c-2 0-3 2-3 4 0 3 2 4 2 7a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3c0-3 2-4 2-7 0-2-1-4-3-4"></path><path d="M9 12a3 3 0 0 0 6 0"></path>',
+  // Mismo trofeo que ya usa rutina-session.js para el badge de PR.
+  trophy: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path>',
   default: '<circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle>'
 };
 

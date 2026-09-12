@@ -131,7 +131,14 @@ export async function renderRutinaSession(rutina) {
       </div>
     `;
 
-    let currentGrupoId = null;
+    // Ejercicios que comparten grupoId (asignado al agrupar en superserie
+    // en Crear Rutina) se ejecutan sin descanso entre sí — ver el chip
+    // dentro de la tarjeta y el skip del timer en el handler del check de
+    // serie, más abajo. Solo el SEGUNDO+ de la corrida lleva el borde
+    // ámbar y el chip; el primero se ve como cualquier otro (mismo
+    // criterio visual que el mockup: "Press de Banca" normal, "Press
+    // Inclinado" marcado).
+    const gruposYaMostrados = new Set();
 
     for (const ej of seccion.items) {
     const hist = currentHistorial[ej.nombre];
@@ -142,18 +149,15 @@ export async function renderRutinaSession(rutina) {
     const sug = currentSugerencias[ej.nombre];
     const estancado = currentEstancamiento[ej.nombre];
 
-    if (ej.grupoId && ej.grupoId !== currentGrupoId) {
-      if (currentGrupoId !== null) html += `</div>`; // close previous group
-      currentGrupoId = ej.grupoId;
-      html += `<div style="border: 2px dashed var(--surface-border); border-radius: 18px; padding: 14px; position: relative;">
-                <div style="position: absolute; top: -10px; left: 16px; background: var(--surface-1); padding: 0 8px; font-size: 11px; font-weight: 700; color: var(--accent-teal); border-radius: 4px;">Superserie ${ej.grupoId}</div>`;
-    } else if (!ej.grupoId && currentGrupoId !== null) {
-      html += `</div>`; // close previous group
-      currentGrupoId = null;
-    }
+    const esSegundoDelGrupo = !!ej.grupoId && gruposYaMostrados.has(ej.grupoId);
+    if (ej.grupoId) gruposYaMostrados.add(ej.grupoId);
+    const supChipHtml = esSegundoDelGrupo
+      ? `<div style="margin-bottom: 8px;"><span class="badge badge--medium">SUPERSERIE · sin descanso entre estos dos</span></div>`
+      : '';
 
     html += `
-      <div class="card ejercicio-sesion-block" data-ej-nombre="${escapeHtml(ej.nombre)}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; margin-bottom: ${ej.grupoId ? '12px' : '0'};">
+      <div class="card ejercicio-sesion-block" data-ej-nombre="${escapeHtml(ej.nombre)}" data-grupo-id="${ej.grupoId || ''}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; ${esSegundoDelGrupo ? 'border-left: 2px solid var(--state-medium);' : ''}">
+        ${supChipHtml}
 
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
           <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
@@ -215,10 +219,6 @@ export async function renderRutinaSession(rutina) {
     html += `</div>`;
     html += `<button type="button" class="btn-add-serie tappable" style="margin-top: 4px; width: 100%; padding: 8px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer;">+ Serie</button>`;
     html += `</div>`;
-    }
-
-    if (currentGrupoId !== null) {
-      html += `</div>`;
     }
   }
 
@@ -551,11 +551,19 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         btn.style.color = '#000';
         btn.style.borderColor = 'var(--state-success)';
 
-        startRestTimer(currentRestTimerSecs);
-
         // Live PR Check
         const ejContainer = row.closest('.card');
         const ejNombre = ejContainer.querySelector('h3').innerText;
+
+        // Superserie: sin descanso ENTRE los ejercicios agrupados — el
+        // timer arranca recién al completar una serie del ÚLTIMO ejercicio
+        // de la corrida (el siguiente bloque no comparte su grupoId, o no
+        // hay siguiente). Un ejercicio suelto (sin grupoId) siempre dispara
+        // el timer, como antes.
+        const grupoId = ejContainer.dataset.grupoId;
+        const siguienteBloque = ejContainer.nextElementSibling;
+        const esUltimoDeLaSuperserie = !grupoId || !siguienteBloque || siguienteBloque.dataset.grupoId !== grupoId;
+        if (esUltimoDeLaSuperserie) startRestTimer(currentRestTimerSecs);
         const pesoVal = parseFloat(pesoInput.value) || 0;
         const repsVal = parseFloat(repsInput.value) || 0;
 

@@ -19,6 +19,48 @@ function ordenarPorNivel(plantillas) {
   return [...plantillas].sort((a, b) => (NIVEL_ORDEN[a.nivel] || 99) - (NIVEL_ORDEN[b.nivel] || 99));
 }
 
+const setsResumen = (series) => {
+  if (!series || series.length === 0) return '';
+  const reps = series[0].reps;
+  return ` — ${series.length}×${reps}`;
+};
+
+// Ejercicios con el mismo grupoId (2+, no solo pares) se agrupan en un
+// solo bracket con borde ámbar + un chip "SUPERSERIE" — mismo id de grupo
+// asignado al guardar en rutina-form.js, y mismo campo que ya leía (sin
+// que nada lo escribiera nunca) rutina-session.js. Recorre en orden y
+// arma "corridas" de ejercicios consecutivos que comparten grupo;
+// cualquier ejercicio sin grupoId (o que rompe la corrida) sale como
+// línea suelta, igual que antes.
+function renderEjerciciosRutina(ejercicios) {
+  let html = '';
+  let i = 0;
+  while (i < ejercicios.length) {
+    const ej = ejercicios[i];
+    if (ej.grupoId) {
+      const grupo = [ej];
+      let j = i + 1;
+      while (j < ejercicios.length && ejercicios[j].grupoId === ej.grupoId) {
+        grupo.push(ejercicios[j]);
+        j++;
+      }
+      html += `
+        <div class="sup-bracket" style="display: flex; gap: 8px; align-items: stretch; margin-top: 8px; padding-left: 10px; border-left: 2px solid var(--state-medium); border-radius: 2px;">
+          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--text-secondary);">
+            ${grupo.map(g => `<div>${escapeHtml(g.nombre)}${setsResumen(g.series)}</div>`).join('')}
+          </div>
+        </div>
+        <div style="margin-top: 4px;"><span class="badge badge--medium">SUPERSERIE</span></div>
+      `;
+      i = j;
+    } else {
+      html += `<div class="exline" style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-secondary); margin-top: 8px;"><span style="width: 3px; height: 3px; border-radius: 50%; background: var(--text-disabled); flex-shrink: 0;"></span> ${escapeHtml(ej.nombre)}${setsResumen(ej.series)}</div>`;
+      i++;
+    }
+  }
+  return html;
+}
+
 const warningSvg = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px; flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
 const infoSvg = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
 
@@ -203,6 +245,9 @@ export async function renderRutinasLista(categoria) {
     html += `<div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">`;
     rutinas.forEach(r => {
       const eCount = r.ejercicios ? r.ejercicios.length : 0;
+      const ejerciciosHtml = r.hiitSettings
+        ? `<p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0 0 16px 0;">Configuración HIIT</p>`
+        : `<div style="margin-bottom: 16px;"><p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0;">${eCount} ejercicio${eCount === 1 ? '' : 's'}</p>${renderEjerciciosRutina(r.ejercicios || [])}</div>`;
       html += `
         <div class="card" style="padding: 20px; border-radius: 18px;">
           <div class="flex-between" style="margin-bottom: 12px;">
@@ -211,7 +256,7 @@ export async function renderRutinasLista(categoria) {
               <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
           </div>
-          <p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0 0 16px 0;">${r.hiitSettings ? 'Configuración HIIT' : eCount + ' ejercicios'}</p>
+          ${ejerciciosHtml}
           <button class="btn-iniciar-sesion btn-primary tappable" data-id="${r.id}" style="background: var(--accent-teal); color: #000; padding: 12px; font-size: 14px;">
             Iniciar sesión
           </button>
@@ -360,7 +405,16 @@ export function initRutinasListaListeners(categoria, onNewRoutine, onStartSessio
       if (confirmed) {
         await db.eliminarRutina(id);
         Toast("Rutina eliminada", "success");
-        document.getElementById('btn-entrenamiento-volver').click();
+        // Re-renderiza esta misma pantalla de categoría en vez de "volver"
+        // (que cae al Home de Entreno porque viewState en ese momento es
+        // 'rutinas', no una de las sub-vistas que sí reconoce) — si el
+        // usuario quiere borrar varias rutinas seguidas no tiene que volver
+        // a entrar a la categoría cada vez.
+        const subContent = document.getElementById('entrenamiento-sub-content');
+        if (subContent) {
+          subContent.innerHTML = await renderRutinasLista(categoria);
+          initRutinasListaListeners(categoria, onNewRoutine, onStartSession, onPreviewMode, signal, onVerProgreso, onGenerarRutina);
+        }
       }
     }, { signal });
   });

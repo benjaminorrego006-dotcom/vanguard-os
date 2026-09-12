@@ -4,7 +4,7 @@
 // progreso manual a metas que no son de dinero ni de auto-track.
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
-import { GOAL_ICONS, GOAL_ICON_LABELS } from './goal-card.js';
+import { GOAL_ICONS, GOAL_ICON_LABELS, GOAL_ICONS_ENTRENO, GOAL_ICON_LABELS_ENTRENO, getGoalSVG } from './goal-card.js';
 
 const TIPOS_ENTRENO = [
   { value: 'sesiones', label: 'Cantidad de sesiones', unidadDefault: 'sesiones' },
@@ -41,6 +41,9 @@ export function renderGoalForm() {
             <label for="goal-name">Nombre de la meta</label>
             <input type="text" id="goal-name" placeholder="Ej. Fondo de emergencia" required autocomplete="off">
           </div>
+          <!-- El placeholder de arriba y el set de íconos de abajo cambian
+               según el dominio (finanzas/entreno) — ver applyDominioUI(). -->
+          <input type="hidden" id="goal-icon" value="shield">
 
           <div class="input-group" id="goal-tipo-container" style="display: none;">
             <label for="goal-tipo">Tipo de meta</label>
@@ -69,10 +72,8 @@ export function renderGoalForm() {
             <input type="date" id="goal-deadline" autocomplete="off">
           </div>
           <div class="input-group">
-            <label for="goal-icon">Ícono</label>
-            <select id="goal-icon">
-              ${GOAL_ICONS.map(icon => `<option value="${icon}">${GOAL_ICON_LABELS[icon]}</option>`).join('')}
-            </select>
+            <label>Ícono</label>
+            <div id="goal-icon-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;"></div>
           </div>
           <button type="submit" class="btn-primary" style="background: var(--accent-purple);">Guardar Meta</button>
         </form>
@@ -114,6 +115,35 @@ export function initGoalForm(refreshCallback) {
   const tipoSelect = document.getElementById('goal-tipo');
   const targetInput = document.getElementById('goal-target');
   const initialInput = document.getElementById('goal-initial');
+  const nameInput = document.getElementById('goal-name');
+  const iconInput = document.getElementById('goal-icon');
+  const iconGrid = document.getElementById('goal-icon-grid');
+
+  // Set de íconos completo, distinto al de Finanzas — antes esta pantalla
+  // reusaba GOAL_ICONS de Finanzas tal cual (con "Fondo de emergencia",
+  // "Viaje", "Auto"... para una meta de sentadilla). Se re-renderiza cada
+  // vez que cambia el dominio; seleccionar uno solo actualiza el input
+  // oculto y el estado visual, sin tocar el resto del formulario.
+  const renderIconGrid = () => {
+    if (!iconGrid) return;
+    const dominio = document.getElementById('goal-dominio').value;
+    const set = dominio === 'entreno' ? GOAL_ICONS_ENTRENO : GOAL_ICONS;
+    const labels = dominio === 'entreno' ? GOAL_ICON_LABELS_ENTRENO : GOAL_ICON_LABELS;
+    const accent = dominio === 'entreno' ? 'var(--accent-teal)' : 'var(--accent-purple)';
+    iconGrid.innerHTML = set.map(icon => `
+      <button type="button" class="goal-icon-opt tappable" data-icon="${icon}" title="${labels[icon]}"
+        style="aspect-ratio: 1; background: var(--surface-2); border: 1px solid ${icon === iconInput.value ? accent : 'var(--surface-border)'}; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: ${icon === iconInput.value ? accent : 'var(--text-secondary)'}; cursor: pointer;">
+        ${getGoalSVG(icon, 'currentColor')}
+      </button>
+    `).join('');
+    iconGrid.querySelectorAll('.goal-icon-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        iconInput.value = btn.getAttribute('data-icon');
+        renderIconGrid();
+      });
+    });
+  };
+
   const applyTipoUI = () => {
     const dominio = document.getElementById('goal-dominio').value;
     const esEntreno = dominio === 'entreno';
@@ -121,12 +151,14 @@ export function initGoalForm(refreshCallback) {
     document.getElementById('goal-unidad-container').style.display = esEntreno ? 'block' : 'none';
     document.getElementById('goal-target-label').textContent = esEntreno ? 'Cantidad objetivo' : 'Monto objetivo';
     document.getElementById('goal-initial-label').textContent = esEntreno ? 'Progreso inicial (opcional)' : 'Monto inicial (opcional)';
+    if (nameInput) nameInput.placeholder = esEntreno ? 'Ej. Levantar 100kg en sentadilla' : 'Ej. Fondo de emergencia';
     const esSesiones = esEntreno && tipoSelect.value === 'sesiones';
     document.getElementById('goal-initial-container').style.display = esSesiones ? 'none' : 'block';
     // Entreno admite decimales (ej. "5.5" km) y no se enmascara con puntos
     // de miles — solo dinero pasa por digitsToMiles().
     targetInput.setAttribute('inputmode', esEntreno ? 'decimal' : 'numeric');
     initialInput.setAttribute('inputmode', esEntreno ? 'decimal' : 'numeric');
+    renderIconGrid();
   };
   if (tipoSelect) {
     tipoSelect.addEventListener('change', () => {
@@ -232,7 +264,7 @@ export function initGoalForm(refreshCallback) {
       document.getElementById('goal-target').value = dominio === 'entreno'
         ? (goal.targetAmount || 0)
         : digitsToMiles(goal.targetAmount || 0);
-      document.getElementById('goal-icon').value = goal.icon || 'shield';
+      document.getElementById('goal-icon').value = goal.icon || (dominio === 'entreno' ? 'dumbbell' : 'shield');
       document.getElementById('goal-deadline').value = goal.deadline || '';
       if (tipoSelect) tipoSelect.value = goal.tipo || 'personalizado';
       document.getElementById('goal-unidad').value = goal.unidad || '';
@@ -245,7 +277,7 @@ export function initGoalForm(refreshCallback) {
       document.getElementById('goal-target').value = '';
       document.getElementById('goal-initial').value = '0';
       document.getElementById('goal-deadline').value = '';
-      document.getElementById('goal-icon').value = defaults.icon || 'shield';
+      document.getElementById('goal-icon').value = defaults.icon || (dominio === 'entreno' ? 'dumbbell' : 'shield');
       if (tipoSelect) tipoSelect.value = defaults.tipo || 'sesiones';
       document.getElementById('goal-unidad').value = defaults.unidad || '';
       document.getElementById('modal-goal-title').textContent = 'Nueva Meta';
