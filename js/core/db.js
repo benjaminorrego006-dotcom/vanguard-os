@@ -990,6 +990,17 @@ export const db = {
     await logEvent({ modulo: 'entreno', tipo: 'rutina_creada', entidadId: newRutina.id, payload: newRutina });
     return newRutina;
   },
+  // Un evento por CADA generación del generador de rutinas (spec-generador-
+  // rutinas.md, Paso 10) — distinto de 'rutina_creada', que se dispara por
+  // cada día que el usuario efectivamente guarda desde el preview. Este
+  // registra la generación en sí (incluso si el usuario después descarta el
+  // preview sin usarlo), para poder auditar más adelante qué le propuso el
+  // generador en cada momento.
+  async registrarRutinaGenerada({ categoria, diasPorSemana, resumenPatrones }) {
+    const id = generateId();
+    await logEvent({ modulo: 'entreno', tipo: 'rutina_generada', entidadId: id, payload: { categoria, diasPorSemana, resumenPatrones } });
+    return id;
+  },
   async eliminarRutina(id) {
     let rutinas = await idbGetArray('rutinas');
     rutinas = rutinas.filter(r => r.id !== id);

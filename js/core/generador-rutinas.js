@@ -707,6 +707,8 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
     if (!avisos.includes(aviso)) avisos.push(aviso);
   };
 
+  const resumenPatrones = Object.fromEntries(Object.entries(nivelPorRama).map(([rama, info]) => [rama, info.nivel]));
+
   if (categoria === 'hiit') {
     const splits = elegirSplitHiit(diasSemana);
     const dias = splits.map(diaDef => {
@@ -718,6 +720,7 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
         hiitSettings: { mode: 'free', workSecs: 30, restSecs: 15, totalRounds: Math.max(4, elegidos.length * 3) }
       };
     });
+    await db.registrarRutinaGenerada({ categoria, diasPorSemana: diasSemana, resumenPatrones });
     return { dias, avisos, nivelPorRama };
   }
 
@@ -738,5 +741,6 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
   }
 
   chequearVolumenSemanal(dias, avisos);
+  await db.registrarRutinaGenerada({ categoria, diasPorSemana: diasSemana, resumenPatrones });
   return { dias, avisos, nivelPorRama };
 }

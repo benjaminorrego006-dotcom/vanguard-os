@@ -32,7 +32,7 @@ export function renderGeneradorConfigForm() {
           <div class="input-group">
             <label for="generador-dias-semana">Días por semana</label>
             <select id="generador-dias-semana">
-              ${[2, 3, 4, 5, 6].map(n => `<option value="${n}">${n} días</option>`).join('')}
+              ${[1, 2, 3, 4, 5, 6, 7].map(n => `<option value="${n}">${n} día${n === 1 ? '' : 's'}</option>`).join('')}
             </select>
           </div>
           <div class="input-group">
