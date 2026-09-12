@@ -134,9 +134,11 @@ export function mountListeners() {
 
   const inputCat = document.getElementById('cat-nueva');
   bindQuickCaptureForm(document.getElementById('cat-nueva-form'), async () => {
+    console.log('[DEBUG-TEMP] cat-nueva onSubmit callback running, value=', inputCat.value);
     const nombre = inputCat.value.trim();
-    if (!nombre) return;
+    if (!nombre) { console.log('[DEBUG-TEMP] nombre vacio, return'); return; }
     await db.crearCategoriaNota(nombre);
+    console.log('[DEBUG-TEMP] crearCategoriaNota completado');
     refresh();
   });
 
