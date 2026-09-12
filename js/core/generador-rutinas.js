@@ -585,6 +585,13 @@ function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido) {
 function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, ratioMultiarticular) {
   const elegidosHoy = [];
   const agotados = new Set();
+  // Cuántas veces ya se usó cada patrón HOY — el motivo de nivel/progreso
+  // ("tu nivel en X es Y" / "todavía no registraste nada en X") solo tiene
+  // sentido una vez por patrón por día: repetirlo verbatim en cada
+  // ejercicio adicional del mismo patrón (compuesto extra o accesorio) lee
+  // como si cada uno fuera "el" representante del patrón, incluso cuando
+  // ya hay uno real más arriba en el mismo día.
+  const vecesPorPatronHoy = {};
 
   function fase(preferirTipo, tope) {
     agotados.clear();
@@ -616,11 +623,15 @@ function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, 
 
       const elegido = elegirDeCandidatos(noUsadosHoy, historialPorNombre, usadosEstaSemana, nivelInfo.frontierNombre);
       usadosEstaSemana.add(elegido.id);
+      const esPrimeraDelPatronHoy = !vecesPorPatronHoy[patron];
+      vecesPorPatronHoy[patron] = (vecesPorPatronHoy[patron] || 0) + 1;
       elegidosHoy.push({
         ejercicioId: elegido.id,
         nombre: elegido.nombre,
         series: categoria === 'hiit' ? null : seriesDesdeObjetivo(elegido),
-        motivo: motivoPara(patron, nivelInfo, relajado, nivelUsado, elegido.nombre)
+        motivo: esPrimeraDelPatronHoy
+          ? motivoPara(patron, nivelInfo, relajado, nivelUsado, elegido.nombre)
+          : `Suma volumen a ${RAMA_LABELS[patron]} junto al ejercicio principal de hoy para ese patrón.`
       });
       vueltasSinExito = 0;
     }
