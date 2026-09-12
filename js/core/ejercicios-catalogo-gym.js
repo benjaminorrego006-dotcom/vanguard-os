@@ -1052,6 +1052,185 @@ export const CATALOGO_GYM = {
     patronMovimiento: "traccion-horizontal",
     tipoMovimiento: "aislamiento"
   },
+  'curl con barra': {
+    id: 'curl con barra',
+    nombre: 'Curl con Barra',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'traccion',
+    musculoSecundario: 'antebrazos',
+    // Cubre tanto barra recta como barra Z (EZ bar) — la Z es más cómoda
+    // para la muñeca pero el movimiento y el músculo trabajado son los
+    // mismos, no amerita una entrada de catálogo aparte.
+    posturaInicial: 'De pie, agarre pronado en la barra (recta o Z) al ancho de hombros, codos pegados al torso.',
+    pasosEjecucion: [
+      'Flexiona los codos llevando la barra hacia el pecho, sin mover los codos hacia adelante.',
+      'Baja controladamente hasta extensión completa.'
+    ],
+    erroresComunes: [
+      'Balancear el torso para generar impulso.',
+      'Mover los codos hacia adelante durante el movimiento.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'curl concentrado': {
+    id: 'curl concentrado',
+    nombre: 'Curl Concentrado',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'traccion',
+    musculoSecundario: 'antebrazos',
+    posturaInicial: 'Sentado, codo apoyado contra la cara interna del muslo, mancuerna colgando.',
+    pasosEjecucion: [
+      'Flexiona el codo llevando la mancuerna hacia el hombro, sin mover el brazo del muslo.',
+      'Baja controladamente hasta extensión completa.'
+    ],
+    erroresComunes: [
+      'Despegar el codo del muslo para generar impulso.',
+      'Rango de movimiento incompleto.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'curl en banco scott': {
+    id: 'curl en banco scott',
+    nombre: 'Curl en Banco Scott (Predicador)',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'traccion',
+    musculoSecundario: 'antebrazos',
+    posturaInicial: 'Brazos apoyados sobre el banco inclinado, axilas cerca del borde superior, agarre en barra o mancuernas.',
+    pasosEjecucion: [
+      'Flexiona los codos sin despegar los brazos del banco.',
+      'Baja controladamente hasta extensión casi completa, sin trabar el codo.'
+    ],
+    erroresComunes: [
+      'Despegar los brazos del banco para generar impulso.',
+      'Extender el codo del todo y trabarlo abajo.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "banco",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'curl en polea baja': {
+    id: 'curl en polea baja',
+    nombre: 'Curl en Polea Baja',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'traccion',
+    musculoSecundario: 'antebrazos',
+    posturaInicial: 'De pie frente a la polea baja, agarre en barra recta, cuerda o barra EZ, codos pegados al torso.',
+    pasosEjecucion: [
+      'Flexiona los codos llevando el agarre hacia el pecho, sin mover los codos.',
+      'Regresa controladamente manteniendo la tensión del cable.'
+    ],
+    erroresComunes: [
+      'Balancear el torso para generar impulso.',
+      'Perder la tensión del cable al extender.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'curl 21s': {
+    id: 'curl 21s',
+    nombre: 'Curl 21s',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'traccion',
+    musculoSecundario: 'antebrazos',
+    posturaInicial: 'De pie, agarre pronado en la barra al ancho de hombros.',
+    pasosEjecucion: [
+      '7 repeticiones de la mitad inferior del recorrido (de abajo hasta la mitad).',
+      '7 repeticiones de la mitad superior (de la mitad hasta arriba).',
+      '7 repeticiones de recorrido completo, sin descanso entre los tres bloques.'
+    ],
+    erroresComunes: [
+      'Usar tanto peso que ninguno de los tres tramos se hace con buena forma.',
+      'Balancear el torso para compensar la fatiga.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["curl con barra"],
+    progresionDe: "curl con barra",
+    criterioAvance: {"tipo":"reps","valor":1,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'curl spider': {
+    id: 'curl spider',
+    nombre: 'Curl Spider',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'traccion',
+    musculoSecundario: 'antebrazos',
+    posturaInicial: 'Boca abajo sobre un banco inclinado, brazos colgando al frente, mancuernas en cada mano.',
+    pasosEjecucion: [
+      'Flexiona los codos llevando las mancuernas hacia los hombros.',
+      'Baja controladamente hasta extensión completa, sintiendo el estiramiento.'
+    ],
+    erroresComunes: [
+      'Despegar los hombros del banco para generar impulso.',
+      'Rango de movimiento incompleto.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "banco",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'curl inverso': {
+    id: 'curl inverso',
+    nombre: 'Curl Inverso',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'traccion',
+    musculoSecundario: 'antebrazos',
+    posturaInicial: 'De pie, agarre pronado (palmas hacia abajo) en la barra al ancho de hombros.',
+    pasosEjecucion: [
+      'Flexiona los codos llevando la barra hacia el pecho sin rotar las muñecas.',
+      'Baja controladamente hasta extensión completa.'
+    ],
+    erroresComunes: [
+      'Rotar las muñecas hacia un curl normal a mitad de camino.',
+      'Balancear el torso para generar impulso.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
   'extensión de tríceps': {
     id: 'extensión de tríceps',
     nombre: 'Extensión de Tríceps',
@@ -1076,6 +1255,131 @@ export const CATALOGO_GYM = {
     equipo: "maquina",
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "aislamiento"
+  },
+  'press francés': {
+    id: 'press francés',
+    nombre: 'Press Francés',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'empuje',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'Acostado en banco plano, barra Z sostenida con brazos extendidos sobre el pecho.',
+    pasosEjecucion: [
+      'Flexiona los codos bajando la barra hacia la frente, manteniendo los brazos fijos verticales.',
+      'Extiende los codos de vuelta sin mover los hombros.'
+    ],
+    erroresComunes: [
+      'Mover los codos hacia afuera o adelante.',
+      'Bajar la barra demasiado rápido.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'press francés con mancuernas': {
+    id: 'press francés con mancuernas',
+    nombre: 'Press Francés con Mancuernas',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'empuje',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'Acostado en banco plano o inclinado, una mancuerna en cada mano sobre el pecho, codos apuntando al techo.',
+    pasosEjecucion: [
+      'Flexiona los codos bajando las mancuernas hacia las sienes.',
+      'Extiende los codos de vuelta sin mover los hombros.'
+    ],
+    erroresComunes: [
+      'Mover los codos hacia afuera.',
+      'Bajar las mancuernas demasiado rápido.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'extensión overhead con mancuerna': {
+    id: 'extensión overhead con mancuerna',
+    nombre: 'Extensión Overhead con Mancuerna',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'empuje',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'Sentado o de pie, una mancuerna sostenida con ambas manos por encima de la cabeza, codos apuntando al frente.',
+    pasosEjecucion: [
+      'Flexiona los codos bajando la mancuerna detrás de la cabeza.',
+      'Extiende los codos de vuelta sin abrirlos hacia los lados.'
+    ],
+    erroresComunes: [
+      'Abrir los codos hacia los lados.',
+      'Arquear la espalda baja para compensar.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'patada de tríceps': {
+    id: 'patada de tríceps',
+    nombre: 'Patada de Tríceps',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'empuje',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'Torso inclinado ~45° apoyado en un banco con una mano, mancuerna en la otra, codo pegado al torso a 90°.',
+    pasosEjecucion: [
+      'Extiende el codo hacia atrás hasta que el brazo quede recto.',
+      'Regresa controladamente sin mover el hombro.'
+    ],
+    erroresComunes: [
+      'Mover el hombro en vez de solo el codo.',
+      'Usar impulso en vez de control.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'press cerrado en máquina smith': {
+    id: 'press cerrado en máquina smith',
+    nombre: 'Press Cerrado en Máquina Smith',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps',
+    posturaInicial: 'Acostado en banco plano bajo la barra fija de la máquina Smith, agarre más cerrado que el ancho de hombros.',
+    pasosEjecucion: [
+      'Baja la barra controladamente hacia la parte baja del pecho, codos pegados al cuerpo.',
+      'Empuja en línea recta hasta extender los codos, enfocando el esfuerzo en el tríceps.'
+    ],
+    erroresComunes: [
+      'Agarre tan cerrado que fuerza la muñeca.',
+      'Abrir los codos hacia afuera (pierde el énfasis en tríceps).'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
   },
   'elevaciones laterales': {
     id: 'elevaciones laterales',
@@ -1435,6 +1739,63 @@ export const CATALOGO_GYM = {
     equipo: "ninguno",
     patronMovimiento: "core",
     tipoMovimiento: "aislamiento"
+  },
+  'curl de muñeca': {
+    id: 'curl de muñeca',
+    nombre: 'Curl de Muñeca',
+    categoria: 'gym',
+    grupoMuscular: 'brazos',
+    patron: 'traccion',
+    musculoSecundario: 'ninguno',
+    // Prioridad baja para el generador (spec-catalogo-gym.md, sección 4):
+    // no representa ningún patrón principal, es puro relleno ocasional de
+    // antebrazo — cubre tanto palma arriba (flexores) como palma abajo
+    // (extensores) según cómo se sostenga la barra.
+    posturaInicial: 'Sentado, antebrazos apoyados en los muslos o un banco, muñecas colgando del borde, barra o mancuernas en las manos.',
+    pasosEjecucion: [
+      'Flexiona las muñecas hacia arriba (palma arriba) o hacia atrás (palma abajo) según la variante.',
+      'Baja controladamente hasta el estiramiento completo.'
+    ],
+    erroresComunes: [
+      'Usar demasiado peso y perder el rango de movimiento.',
+      'Mover el antebrazo en vez de solo la muñeca.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'farmer\'s walk': {
+    id: 'farmer\'s walk',
+    nombre: "Farmer's Walk",
+    categoria: 'gym',
+    grupoMuscular: 'core',
+    patron: 'core',
+    musculoSecundario: 'antebrazos, trapecio',
+    // Híbrido agarre/core: es carga cargada de pie, no aislación de
+    // antebrazo pura — tageado como core (anti-flexión lateral) siguiendo
+    // la sugerencia explícita del spec, no como accesorio de brazo.
+    posturaInicial: 'De pie, una mancuerna o kettlebell pesada en cada mano, hombros hacia atrás, core apretado.',
+    pasosEjecucion: [
+      'Camina en línea recta manteniendo el torso erguido, sin balancear las cargas.',
+      'Mantén el agarre firme durante todo el recorrido.'
+    ],
+    erroresComunes: [
+      'Encorvar los hombros hacia adelante.',
+      'Caminar demasiado rápido y perder el control del torso.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"segundos","valor":30,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "core",
+    tipoMovimiento: "compuesto"
   },
   'crunch en banco declinado': {
     id: 'crunch en banco declinado',

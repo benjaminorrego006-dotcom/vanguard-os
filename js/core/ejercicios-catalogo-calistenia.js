@@ -352,7 +352,7 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
-    tambienEn: [],
+    tambienEn: ["gym"],
     equipo: "banco",
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "compuesto"
