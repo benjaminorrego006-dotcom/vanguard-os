@@ -8,10 +8,8 @@
 // Finanzas, "Anota algo" de Inicio) comparte este mismo wiring en vez de
 // reimplementar su propio listener.
 export function bindQuickCaptureForm(form, onSubmit) {
-  console.log('[DEBUG-TEMP] bindQuickCaptureForm called, form=', form ? form.id : null);
   if (!form) return;
   form.addEventListener('submit', (e) => {
-    console.log('[DEBUG-TEMP] submit event received on form', form.id);
     e.preventDefault();
     onSubmit();
   });
