@@ -436,6 +436,7 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
   const nivelesAIntentar = nivelesAIntentarPara(nivelRama);
 
   let sinEquipoNiPrereq = [];
+  let primerPoolNoVacio = null;
   for (const nivelIntento of nivelesAIntentar) {
     const baseFiltro = e =>
       e.patronMovimiento === patron &&
@@ -447,14 +448,33 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
       baseFiltro(e) && ((e.prerequisitos || []).length === 0 || estaDesbloqueado(e.id, historialPorNombre))
     );
     if (pool.length > 0) {
-      // "Prioriza", no "elimina": si en este patrón/nivel solo hay del
-      // otro tipo, se usa igual antes que dejar el patrón sin cubrir.
-      const preferidos = preferirTipo ? pool.filter(e => e.tipoMovimiento === preferirTipo) : [];
-      const poolFinal = preferidos.length > 0 ? preferidos : pool;
-      return { pool: poolFinal, relajado: nivelIntento !== nivelRama, nivelUsado: nivelIntento, razon: null };
+      if (!primerPoolNoVacio) primerPoolNoVacio = { pool, nivelIntento };
+      if (preferirTipo) {
+        // No conformarse con el primer nivel no vacío si es del tipo
+        // equivocado: varios patrones tienen accesorios de aislación con
+        // nivel:'todos' (ej. Curl de Bíceps/Curl Martillo bajo Tracción
+        // Horizontal, pensados para el slot de "accesorio de brazo" de un
+        // día Pull) que matchean en CUALQUIER nivel intentado — sin este
+        // chequeo, esos accesorios "tapan" el hueco antes de que el bucle
+        // llegue al nivel donde vive el compuesto real (ej. Remo con Barra,
+        // nivel intermedio), dejando el día sin ningún ejercicio compuesto
+        // de ese patrón aunque exista con el equipo declarado. Solo si
+        // NINGÚN nivel tiene el tipo preferido nos conformamos (más abajo)
+        // con el primer pool no vacío que haya, del tipo que sea.
+        const preferidos = pool.filter(e => e.tipoMovimiento === preferirTipo);
+        if (preferidos.length > 0) {
+          return { pool: preferidos, relajado: nivelIntento !== nivelRama, nivelUsado: nivelIntento, razon: null };
+        }
+        continue;
+      }
+      return { pool, relajado: nivelIntento !== nivelRama, nivelUsado: nivelIntento, razon: null };
     }
 
     if (sinEquipoNiPrereq.length === 0) sinEquipoNiPrereq = Object.values(CATALOGO_EJERCICIOS).filter(baseFiltro);
+  }
+
+  if (primerPoolNoVacio) {
+    return { pool: primerPoolNoVacio.pool, relajado: primerPoolNoVacio.nivelIntento !== nivelRama, nivelUsado: primerPoolNoVacio.nivelIntento, razon: null };
   }
   return { pool: [], relajado: false, nivelUsado: null, razon: sinEquipoNiPrereq.length > 0 ? 'bloqueado-prerrequisitos' : 'sin-equipo' };
 }
@@ -647,21 +667,25 @@ const UMBRAL_DIA7_LIGERO = 6;
 // como movilidad si ya no hace falta apuntar a nada en particular.
 function diaLigero(diasPrevios, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso) {
   const acumulado = sumarSeriesPorPatron(diasPrevios);
-  const [patronRezagado, total] = Object.entries(acumulado).sort((a, b) => a[1] - b[1])[0];
+  const ordenados = Object.entries(acumulado).sort((a, b) => a[1] - b[1]);
 
-  if (total >= UMBRAL_DIA7_LIGERO) {
+  if (ordenados[0][1] >= UMBRAL_DIA7_LIGERO) {
     return { nombre: 'Día 7 · Movilidad', ejercicios: [] };
   }
 
-  const elegidos = elegirEjerciciosDelDia([patronRezagado], 3, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, null);
-  if (elegidos.length === 0) {
-    // El patrón más rezagado no tiene NADA disponible esta semana (ya
-    // quedó su propio aviso de "no se pudo incluir" al armar los otros
-    // días) — no tiene sentido nombrar un día liviano vacío.
-    return { nombre: 'Día 7 · Movilidad', ejercicios: [] };
+  // El más rezagado puede estar bloqueado del todo esta semana (ej. sin
+  // historial, y sin equipo alternativo — ver candidatosPara), en cuyo caso
+  // no tiene sentido rendirse: se prueba con el siguiente patrón más
+  // rezagado que SÍ tenga algo disponible, en vez de dejar el día 7 vacío
+  // pudiendo llenarlo con otra cosa.
+  for (const [patron] of ordenados) {
+    const elegidos = elegirEjerciciosDelDia([patron], 3, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, null);
+    if (elegidos.length > 0) {
+      elegidos.forEach(e => { if (e.series) e.series = e.series.slice(0, 2); });
+      return { nombre: `Día 7 · ${RAMA_LABELS[patron]} (liviano)`, ejercicios: elegidos };
+    }
   }
-  elegidos.forEach(e => { if (e.series) e.series = e.series.slice(0, 2); });
-  return { nombre: `Día 7 · ${RAMA_LABELS[patronRezagado]} (liviano)`, ejercicios: elegidos };
+  return { nombre: 'Día 7 · Movilidad', ejercicios: [] };
 }
 
 // Paso 6: avisa (no bloquea) cuando un patrón queda muy por fuera del rango

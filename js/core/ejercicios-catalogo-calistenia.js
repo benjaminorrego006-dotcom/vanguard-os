@@ -475,7 +475,16 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
-    tambienEn: [],
+    // Se necesita una barra baja fija (rack, Smith) — algo que cualquier
+    // gimnasio tiene — así que también sirve como entrada de Tracción
+    // Horizontal para GYM: es el único compuesto de ese patrón en GYM sin
+    // prerrequisito (Remo con Barra requiere haber progresado antes en Remo
+    // en Máquina), así que sin esto un usuario de GYM con barra/mancuernas
+    // pero sin máquina no tenía NINGÚN compuesto real de Tracción Horizontal
+    // alcanzable — el generador terminaba llenando el día Pull solo con
+    // Curl de Bíceps/Curl Martillo (aislación, mal etiquetados como
+    // sustitutos por compartir el mismo patronMovimiento).
+    tambienEn: ["gym"],
     equipo: "ninguno",
     patronMovimiento: "traccion-horizontal",
     tipoMovimiento: "compuesto"
