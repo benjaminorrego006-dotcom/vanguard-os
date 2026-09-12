@@ -326,27 +326,27 @@ export async function calcularNivelPorRama(historialPorNombre) {
 }
 
 // --- Split según días por semana ------------------------------------------
+// Reemplazo completo según spec-generador-rutinas.md, Paso 1: Full Body
+// queda excluido del generador para siempre, sin importar nivel, categoría
+// ni cantidad de días — el peso corporal cubre Upper/Lower igual que las
+// pesas (ver candidatosPara: un ejercicio con equipo:'ninguno' siempre
+// entra en el pool, así que "sin equipo" nunca fue una razón real para
+// aislar todo en una sola sesión).
 
 const EMPUJE = ['empuje-horizontal', 'empuje-vertical'];
 const TRACCION = ['traccion-horizontal', 'traccion-vertical'];
 const PIERNA = ['rodilla', 'cadera'];
+const UPPER = [...EMPUJE, ...TRACCION];
+const LOWER = [...PIERNA, 'core'];
+const PATRONES_FUERZA = [...EMPUJE, ...TRACCION, ...PIERNA, 'core'];
 
-// Orden alternado empuje/tracción primero (regla dura: "equilibrio
-// empuje/tracción, es el error clásico de las rutinas autogeneradas") y
-// pierna antes que core, para que un presupuesto de ejercicios ajustado
-// (sesión corta) siga cubriendo lo esencial antes que lo accesorio.
-const PATRONES_FULL_BODY = ['empuje-horizontal', 'traccion-horizontal', 'empuje-vertical', 'traccion-vertical', 'rodilla', 'cadera', 'core'];
-
-// Push (pecho/tríceps) - Pull (espalda/bíceps) - Legs (pierna): el único
-// split que GYM genera, sin importar cuántos días declare el usuario —
-// pedido explícito para no mezclar patrones de empuje y tracción en la
-// misma sesión (el problema del Full Body/Upper-Lower) cuando hay pesas de
-// por medio. Rota en round-robin y numera la vuelta (Push 2, Pull 2...)
-// una vez que diasSemana supera 3.
+// Push (pecho/tríceps) - Pull (espalda/bíceps) - Legs (pierna). Rota en
+// round-robin y numera la vuelta (Push 2, Pull 2...) una vez que el split
+// necesita más de 3 días (6 días = PPL x2).
 const SPLIT_PPL = [
   { nombre: 'Push', patrones: EMPUJE },
   { nombre: 'Pull', patrones: TRACCION },
-  { nombre: 'Legs', patrones: [...PIERNA, 'core'] }
+  { nombre: 'Legs', patrones: LOWER }
 ];
 
 function elegirSplitPPL(diasSemana) {
@@ -357,27 +357,44 @@ function elegirSplitPPL(diasSemana) {
   });
 }
 
-// categoria: GYM siempre usa Push/Pull/Legs (ver elegirSplitPPL) — nunca
-// Full Body ni Upper/Lower. Calistenia conserva el split original (Full
-// Body para 1-3 días, Upper/Lower para 4, Push/Pull/Legs desde 5).
-function elegirSplit(diasSemana, categoria) {
-  if (categoria === 'gym') return elegirSplitPPL(diasSemana);
+// Caso especial de 1 día/semana (Paso 1): una sola sesión no puede cubrir
+// bien todo el cuerpo, así que el generador rota el énfasis semana a
+// semana en vez de intentarlo todo junto. Lee cuál fue el énfasis de la
+// última rutina generada para esta categoría (por nombre) y alterna —
+// nunca el mismo dos semanas seguidas. Sin historial previo, arranca en
+// Upper (decisión arbitraria pero estable: no afecta la alternancia futura).
+async function elegirEnfasisRotacion(categoria) {
+  const rutinas = await db.getRutinas(categoria);
+  const ultima = rutinas[rutinas.length - 1];
+  if (!ultima) return 'Upper';
+  return /^lower/i.test(ultima.nombre || '') ? 'Upper' : 'Lower';
+}
 
-  if (diasSemana <= 3) {
-    return Array.from({ length: diasSemana }, (_, i) => ({
-      nombre: diasSemana === 1 ? 'Full Body' : `Full Body ${String.fromCharCode(65 + i)}`,
-      patrones: PATRONES_FULL_BODY
-    }));
+// dias 1-7 según la tabla de spec-generador-rutinas.md, Paso 1. El nivel del
+// usuario no cambia la estructura del split (mismo split para principiante,
+// intermedio o avanzado), solo qué ejercicios entran en cada bloque —eso
+// pasa en candidatosPara. GYM y calistenia comparten esta tabla; HIIT sigue
+// su propio split de circuito (ver elegirSplitHiit más abajo), que la spec
+// no cubre.
+async function elegirSplit(diasSemana, categoria) {
+  if (diasSemana === 1) {
+    const enfasis = await elegirEnfasisRotacion(categoria);
+    return [{ nombre: enfasis, patrones: enfasis === 'Upper' ? UPPER : LOWER }];
   }
+  if (diasSemana === 2) return [{ nombre: 'Upper', patrones: UPPER }, { nombre: 'Lower', patrones: LOWER }];
+  if (diasSemana === 3) return elegirSplitPPL(3);
   if (diasSemana === 4) {
     return [
-      { nombre: 'Upper A', patrones: [...EMPUJE, ...TRACCION] },
-      { nombre: 'Lower A', patrones: [...PIERNA, 'core'] },
+      { nombre: 'Upper A', patrones: UPPER },
+      { nombre: 'Lower A', patrones: LOWER },
       { nombre: 'Upper B', patrones: [...TRACCION, ...EMPUJE] },
       { nombre: 'Lower B', patrones: ['core', ...PIERNA] }
     ];
   }
-  return elegirSplitPPL(diasSemana);
+  if (diasSemana === 5) return [...elegirSplitPPL(3), { nombre: 'Upper', patrones: UPPER }, { nombre: 'Lower', patrones: LOWER }];
+  // 6 y 7 días: PPL x2 (6 sesiones duras). El día 7 se arma aparte en
+  // generarPlan() a partir de las series ya acumuladas en la semana (Paso 7).
+  return elegirSplitPPL(6);
 }
 
 // --- Selección de ejercicios -----------------------------------------------
@@ -407,7 +424,15 @@ function nivelesAIntentarPara(nivelRama) {
   return [nivelRama, ...resto];
 }
 
-function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historialPorNombre, priorizarCompuestos) {
+// preferirTipo: 'compuesto' | 'aislamiento' | null — a diferencia del viejo
+// booleano priorizarCompuestos (todo o nada para el día completo), esto se
+// llama una vez por slot para poder repartir el ratio multiarticular/
+// aislación de la Sección 5 dentro del mismo día. Nota sobre equipo: un
+// ejercicio con equipo:'ninguno' (peso corporal) ya entra siempre en el
+// pool sin importar qué declaró el usuario — la "degradación de equipo" del
+// Paso 3 de la spec ya está cubierta por esto, no hace falta un paso
+// aparte; lo único que de verdad hay que degradar acá es el nivel.
+function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historialPorNombre, preferirTipo) {
   const nivelesAIntentar = nivelesAIntentarPara(nivelRama);
 
   let sinEquipoNiPrereq = [];
@@ -422,12 +447,10 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
       baseFiltro(e) && ((e.prerequisitos || []).length === 0 || estaDesbloqueado(e.id, historialPorNombre))
     );
     if (pool.length > 0) {
-      // Sección c) del prompt: con pocos días (2-3) se prioriza compuesto
-      // sobre aislamiento — "prioriza", no "elimina": si en este
-      // patrón/nivel solo hay aislamiento, se usa igual antes que dejar el
-      // patrón sin cubrir.
-      const compuestos = priorizarCompuestos ? pool.filter(e => e.tipoMovimiento === 'compuesto') : [];
-      const poolFinal = compuestos.length > 0 ? compuestos : pool;
+      // "Prioriza", no "elimina": si en este patrón/nivel solo hay del
+      // otro tipo, se usa igual antes que dejar el patrón sin cubrir.
+      const preferidos = preferirTipo ? pool.filter(e => e.tipoMovimiento === preferirTipo) : [];
+      const poolFinal = preferidos.length > 0 ? preferidos : pool;
       return { pool: poolFinal, relajado: nivelIntento !== nivelRama, nivelUsado: nivelIntento, razon: null };
     }
 
@@ -436,23 +459,32 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
   return { pool: [], relajado: false, nivelUsado: null, razon: sinEquipoNiPrereq.length > 0 ? 'bloqueado-prerrequisitos' : 'sin-equipo' };
 }
 
-// Entre los candidatos válidos: preferir el que hace más días que no se
-// entrena (regla de "no repetir lo mismo") y, en empate, el que todavía no
-// se usó en este mismo plan semanal. Desempate final determinístico por id
-// para que el resultado sea reproducible.
-function elegirDeCandidatos(pool, historialPorNombre, usadosEstaSemana) {
+// Entre los candidatos válidos (Paso 5 de la spec): 1) preferir el próximo
+// paso de progresión pendiente de sugerir (frontierNombre, ya calculado por
+// calcularNivelPorRama), 2) preferir el que hace más días que no se entrena,
+// 3) no repetir el mismo ejercicio dentro del mismo plan semanal. Desempate
+// final: aleatorio entre los que queden empatados en todo lo anterior — a
+// propósito NO es determinístico por id: con "nunca entrenado" (diasDesde
+// Infinity) siendo el caso más común, un desempate fijo por id siempre
+// elegía el mismo ejercicio del catálogo primero, el sesgo por orden de
+// inserción que la spec pide evitar explícitamente (casos borde).
+function elegirDeCandidatos(pool, historialPorNombre, usadosEstaSemana, frontierNombre) {
   const conPrioridad = pool.map(e => {
     const hist = historialPorNombre[e.nombre] || [];
     const ultima = hist.length ? new Date(hist[hist.length - 1].fecha) : null;
     const diasDesde = ultima ? (Date.now() - ultima.getTime()) / 86400000 : Infinity;
-    return { e, diasDesde, yaUsado: usadosEstaSemana.has(e.id) };
+    return { e, diasDesde, yaUsado: usadosEstaSemana.has(e.id), esProgresionPendiente: e.nombre === frontierNombre };
   });
   conPrioridad.sort((a, b) => {
     if (a.yaUsado !== b.yaUsado) return a.yaUsado ? 1 : -1;
-    if (a.diasDesde !== b.diasDesde) return b.diasDesde - a.diasDesde;
-    return a.e.id.localeCompare(b.e.id);
+    if (a.esProgresionPendiente !== b.esProgresionPendiente) return a.esProgresionPendiente ? -1 : 1;
+    return b.diasDesde - a.diasDesde;
   });
-  return conPrioridad[0].e;
+  const mejor = conPrioridad[0];
+  const empatados = conPrioridad.filter(c =>
+    c.yaUsado === mejor.yaUsado && c.esProgresionPendiente === mejor.esProgresionPendiente && c.diasDesde === mejor.diasDesde
+  );
+  return empatados[Math.floor(Math.random() * empatados.length)].e;
 }
 
 function seriesDesdeObjetivo(entry) {
@@ -510,52 +542,138 @@ function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido) {
 }
 
 // Recorre `patrones` en ronda (round robin) tomando UN ejercicio nuevo por
-// vuelta de cada patrón todavía no agotado, hasta llenar `presupuesto` o
-// quedarse sin patrones con candidatos. Evita el problema de repartir slots
-// fijos por patrón de antemano: si un patrón se queda sin candidatos
-// distintos (pool chico), no repite el mismo ejercicio para rellenar su
-// cupo — cede el resto de su cupo a otros patrones que todavía tengan
-// opciones, y si TODOS se agotan, la sesión sale con menos ejercicios de
-// los presupuestados en vez de con líneas duplicadas.
-function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, priorizarCompuestos) {
+// vuelta de cada patrón todavía no agotado. A diferencia de la versión
+// anterior (todo o nada por día), ahora se llama en dos fases cuando hay
+// ratio multiarticular/aislación (Paso 4 de la spec): la fase 1 llena hasta
+// el cupo de multiarticular, la fase 2 completa el resto priorizando
+// aislación. `agotados` se reinicia entre fases porque un patrón puede
+// quedarse sin candidatos MULTIARTICULARES (agotado para la fase 1) y
+// todavía tener aislación disponible para la fase 2 — si no se reiniciara,
+// candidatosPara() nunca lo volvería a intentar.
+// ratioMultiarticular === null → una sola fase sin preferencia de tipo
+// (HIIT, y el día 7 dirigido a un único patrón rezagado).
+function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, ratioMultiarticular) {
   const elegidosHoy = [];
   const agotados = new Set();
-  let i = 0;
-  let vueltasSinExito = 0;
 
-  while (elegidosHoy.length < presupuesto && agotados.size < patrones.length && vueltasSinExito < patrones.length) {
-    const patron = patrones[i % patrones.length];
-    i++;
-    if (agotados.has(patron)) continue;
+  function fase(preferirTipo, tope) {
+    agotados.clear();
+    let i = 0;
+    let vueltasSinExito = 0;
+    while (elegidosHoy.length < tope && agotados.size < patrones.length && vueltasSinExito < patrones.length) {
+      const patron = patrones[i % patrones.length];
+      i++;
+      if (agotados.has(patron)) continue;
 
-    const nivelInfo = nivelPorRama[patron];
-    const { pool, relajado, nivelUsado, razon } = candidatosPara(patron, categoria, nivelInfo.nivel, equipoDisponible, historialPorNombre, priorizarCompuestos);
-    if (pool.length === 0) {
-      registrarAviso(patron, razon);
-      agotados.add(patron);
-      vueltasSinExito++;
-      continue;
+      const nivelInfo = nivelPorRama[patron];
+      const { pool, relajado, nivelUsado, razon } = candidatosPara(patron, categoria, nivelInfo.nivel, equipoDisponible, historialPorNombre, preferirTipo);
+      if (pool.length === 0) {
+        registrarAviso(patron, razon);
+        agotados.add(patron);
+        vueltasSinExito++;
+        continue;
+      }
+
+      const noUsadosHoy = pool.filter(e => !elegidosHoy.some(x => x.ejercicioId === e.id));
+      if (noUsadosHoy.length === 0) {
+        agotados.add(patron);
+        vueltasSinExito++;
+        continue;
+      }
+
+      const elegido = elegirDeCandidatos(noUsadosHoy, historialPorNombre, usadosEstaSemana, nivelInfo.frontierNombre);
+      usadosEstaSemana.add(elegido.id);
+      elegidosHoy.push({
+        ejercicioId: elegido.id,
+        nombre: elegido.nombre,
+        series: categoria === 'hiit' ? null : seriesDesdeObjetivo(elegido),
+        motivo: motivoPara(patron, nivelInfo, relajado, nivelUsado, elegido.nombre)
+      });
+      vueltasSinExito = 0;
     }
+  }
 
-    const noUsadosHoy = pool.filter(e => !elegidosHoy.some(x => x.ejercicioId === e.id));
-    if (noUsadosHoy.length === 0) {
-      agotados.add(patron);
-      vueltasSinExito++;
-      continue;
-    }
-
-    const elegido = elegirDeCandidatos(noUsadosHoy, historialPorNombre, usadosEstaSemana);
-    usadosEstaSemana.add(elegido.id);
-    elegidosHoy.push({
-      ejercicioId: elegido.id,
-      nombre: elegido.nombre,
-      series: categoria === 'hiit' ? null : seriesDesdeObjetivo(elegido),
-      motivo: motivoPara(patron, nivelInfo, relajado, nivelUsado, elegido.nombre)
-    });
-    vueltasSinExito = 0;
+  if (ratioMultiarticular == null) {
+    fase(null, presupuesto);
+  } else {
+    fase('compuesto', Math.round(presupuesto * ratioMultiarticular));
+    fase('aislamiento', presupuesto);
   }
 
   return elegidosHoy;
+}
+
+// Sección 5 de la spec: cuántos slots del presupuesto del día se llenan con
+// multiarticular antes de pasar a aislación. Menos días → más compuesto
+// (cada sesión debe maximizar retorno por ejercicio); más días → la
+// frecuencia por patrón ya está cubierta, hay margen para aislación
+// dirigida.
+function ratioMultiarticularPara(diasSemana) {
+  if (diasSemana <= 2) return 0.8;
+  if (diasSemana <= 4) return 0.65;
+  if (diasSemana <= 6) return 0.55;
+  return 0.5;
+}
+
+// Series acumuladas por patrón a lo largo de los días ya armados —se
+// recalcula a partir de ejercicioId en vez de llevar un contador aparte
+// durante la generación, porque tanto el día 7 (Paso 7) como el chequeo de
+// volumen semanal (Paso 6) lo necesitan una vez que la semana ya está
+// armada, no durante.
+function sumarSeriesPorPatron(dias) {
+  const acumulado = {};
+  PATRONES_FUERZA.forEach(p => { acumulado[p] = 0; });
+  dias.forEach(dia => {
+    (dia.ejercicios || []).forEach(ej => {
+      const entry = getEjercicioPorId(ej.ejercicioId);
+      if (!entry) return;
+      acumulado[entry.patronMovimiento] = (acumulado[entry.patronMovimiento] || 0) + (ej.series || []).length;
+    });
+  });
+  return acumulado;
+}
+
+// Series ya acumuladas en la semana a partir de las cuales un patrón se
+// considera "bien cubierto" y el día 7 pasa a ser movilidad en vez de
+// apuntar a un patrón puntual (Paso 7: "o se marca como movilidad/cardio
+// ligero si todos los patrones ya están bien cubiertos"). No hay un número
+// exacto en la spec; 6 series es un piso conservador dentro del rango de
+// 10-20/semana que ya usa chequearVolumenSemanal.
+const UMBRAL_DIA7_LIGERO = 6;
+
+// Día 7 (solo cuando diasSemana === 7): nunca es una sesión dura más — toma
+// el patrón con menos series acumuladas en la semana y arma una sesión
+// corta y liviana (2 series por ejercicio, tope de 3 ejercicios), o queda
+// como movilidad si ya no hace falta apuntar a nada en particular.
+function diaLigero(diasPrevios, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso) {
+  const acumulado = sumarSeriesPorPatron(diasPrevios);
+  const [patronRezagado, total] = Object.entries(acumulado).sort((a, b) => a[1] - b[1])[0];
+
+  if (total >= UMBRAL_DIA7_LIGERO) {
+    return { nombre: 'Día 7 · Movilidad', ejercicios: [] };
+  }
+
+  const elegidos = elegirEjerciciosDelDia([patronRezagado], 3, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, null);
+  if (elegidos.length === 0) {
+    // El patrón más rezagado no tiene NADA disponible esta semana (ya
+    // quedó su propio aviso de "no se pudo incluir" al armar los otros
+    // días) — no tiene sentido nombrar un día liviano vacío.
+    return { nombre: 'Día 7 · Movilidad', ejercicios: [] };
+  }
+  elegidos.forEach(e => { if (e.series) e.series = e.series.slice(0, 2); });
+  return { nombre: `Día 7 · ${RAMA_LABELS[patronRezagado]} (liviano)`, ejercicios: elegidos };
+}
+
+// Paso 6: avisa (no bloquea) cuando un patrón queda muy por fuera del rango
+// de 10-20 series duras/semana. Patrones en 0 ya tienen su propio aviso de
+// "no se pudo incluir" (registrarAviso), así que no se duplican acá.
+function chequearVolumenSemanal(dias, avisos) {
+  const acumulado = sumarSeriesPorPatron(dias);
+  Object.entries(acumulado).forEach(([patron, total]) => {
+    if (total === 0) return;
+    if (total < 8) avisos.push(`${RAMA_LABELS[patron]} queda con pocas series esta semana (${total}) — el rango recomendado es 10-20 series/semana.`);
+    else if (total > 22) avisos.push(`${RAMA_LABELS[patron]} acumula ${total} series esta semana — por arriba del rango recomendado de 10-20.`);
+  });
 }
 
 // --- Generación de HIIT (circuito, no series/reps) --------------------------
@@ -571,22 +689,16 @@ function elegirSplitHiit(diasSemana) {
 // categoria: 'gym' | 'calistenia' | 'hiit'. Devuelve { dias, avisos,
 // nivelPorRama } — dias ya tiene el shape que espera db.crearRutina (gym/
 // calistenia) o el de una plantilla HIIT (ejercicioIds + hiitSettings), así
-// que "usar" el plan generado es el mismo flujo que usar una plantilla.
+// que "usar" el plan generado es el mismo flujo que usar una plantilla (cada
+// día se guarda como una rutina independiente, editable por separado, sin
+// necesidad de un objeto "semana" nuevo).
 export async function generarPlan({ categoria, diasSemana, duracionSesionMin, equipoDisponible }) {
   const historialPorNombre = await barrerHistorialCompleto();
   const nivelPorRama = await calcularNivelPorRama(historialPorNombre);
   const avisos = [];
   const usadosEstaSemana = new Set();
   const exercisesPerSession = Math.max(3, Math.min(8, Math.round(duracionSesionMin / 9)));
-
-  const splits = categoria === 'hiit' ? elegirSplitHiit(diasSemana) : elegirSplit(diasSemana, categoria);
   const nombreCategoria = categoria === 'gym' ? 'GYM' : categoria === 'calistenia' ? 'calistenia' : 'HIIT';
-  // Sección c) del prompt: 2-3 días → casi todo compuesto (Full Body en
-  // calistenia, Push/Pull/Legs en GYM — el único split que arma
-  // elegirSplit() para ese rango en cada categoría). HIIT queda afuera: es
-  // circuito por tiempo, no series/reps de fuerza — el concepto
-  // compuesto/aislamiento no aplica ahí de la misma forma.
-  const priorizarCompuestos = categoria !== 'hiit' && diasSemana <= 3;
 
   const registrarAviso = (patron, razon) => {
     const aviso = razon === 'bloqueado-prerrequisitos'
@@ -595,19 +707,36 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
     if (!avisos.includes(aviso)) avisos.push(aviso);
   };
 
-  const dias = splits.map(diaDef => {
-    const elegidos = elegirEjerciciosDelDia(diaDef.patrones, exercisesPerSession, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, priorizarCompuestos);
-
-    if (categoria === 'hiit') {
+  if (categoria === 'hiit') {
+    const splits = elegirSplitHiit(diasSemana);
+    const dias = splits.map(diaDef => {
+      const elegidos = elegirEjerciciosDelDia(diaDef.patrones, exercisesPerSession, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, null);
       return {
         nombre: diaDef.nombre,
         ejercicioIds: elegidos.map(e => e.ejercicioId),
         motivos: elegidos,
         hiitSettings: { mode: 'free', workSecs: 30, restSecs: 15, totalRounds: Math.max(4, elegidos.length * 3) }
       };
-    }
+    });
+    return { dias, avisos, nivelPorRama };
+  }
+
+  // GYM y calistenia comparten el split de la Sección 2 (Full Body queda
+  // excluido para siempre — ver elegirSplit). El día 7, si aplica, no forma
+  // parte del split base: se arma aparte en base a lo ya acumulado.
+  const diasDelSplit = diasSemana === 7 ? 6 : diasSemana;
+  const splits = await elegirSplit(diasDelSplit, categoria);
+  const ratio = ratioMultiarticularPara(diasSemana);
+
+  const dias = splits.map(diaDef => {
+    const elegidos = elegirEjerciciosDelDia(diaDef.patrones, exercisesPerSession, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, ratio);
     return { nombre: diaDef.nombre, ejercicios: elegidos };
   });
 
+  if (diasSemana === 7) {
+    dias.push(diaLigero(dias, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso));
+  }
+
+  chequearVolumenSemanal(dias, avisos);
   return { dias, avisos, nivelPorRama };
 }
