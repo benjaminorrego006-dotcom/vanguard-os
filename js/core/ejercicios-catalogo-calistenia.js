@@ -23,7 +23,10 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: ["flexiones con rodillas"],
     progresionDe: "flexiones con rodillas",
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
-    tambienEn: [],
+    // También candidata de Empuje Horizontal en GYM (spec-catalogo-gym.md,
+    // sección 2) — cualquier gimnasio tiene piso, no hace falta duplicar
+    // el ejercicio para eso.
+    tambienEn: ["gym"],
     equipo: "ninguno",
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "compuesto"
@@ -48,7 +51,7 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: ["flexiones declinadas"],
     progresionDe: "flexiones declinadas",
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
-    tambienEn: [],
+    tambienEn: ["gym"],
     equipo: "ninguno",
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "compuesto"
@@ -99,7 +102,7 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: ["flexiones en pared"],
     progresionDe: "flexiones en pared",
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
-    tambienEn: [],
+    tambienEn: ["gym"],
     equipo: "ninguno",
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "compuesto"
@@ -149,7 +152,7 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: ["flexiones"],
     progresionDe: "flexiones",
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
-    tambienEn: [],
+    tambienEn: ["gym"],
     equipo: "ninguno",
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "compuesto"
@@ -199,8 +202,58 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: ["flexiones declinadas"],
     progresionDe: "flexiones declinadas",
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
-    tambienEn: [],
+    tambienEn: ["gym"],
     equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
+  },
+  'flexiones con lastre': {
+    id: 'flexiones con lastre',
+    nombre: 'Flexiones con Lastre',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, hombros',
+    posturaInicial: 'Posición de flexión estándar con un disco o chaleco lastrado sobre la espalda alta.',
+    pasosEjecucion: [
+      'Baja el pecho hacia el piso manteniendo el core apretado.',
+      'Empuja de vuelta hasta extensión completa de codos.'
+    ],
+    erroresComunes: [
+      'Elegir un lastre tan pesado que rompe la técnica.',
+      'Dejar caer la cadera por el peso extra.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["flexiones con palmada"],
+    progresionDe: "flexiones con palmada",
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: ["gym"],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
+  },
+  'flexiones en anillas': {
+    id: 'flexiones en anillas',
+    nombre: 'Flexiones en Anillas',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, hombros, core',
+    posturaInicial: 'Manos sujetando las anillas, colgadas cerca del piso, cuerpo en línea recta.',
+    pasosEjecucion: [
+      'Baja el pecho hacia las anillas controlando la inestabilidad, codos a unos 45°.',
+      'Empuja de vuelta hasta extensión completa, manteniendo las anillas estables.'
+    ],
+    erroresComunes: [
+      'Dejar que las anillas se abran o cierren sin control.',
+      'Dejar caer la cadera por la inestabilidad extra.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["flexiones declinadas"],
+    progresionDe: "flexiones declinadas",
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: ["gym"],
+    equipo: "anillas",
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "compuesto"
   },

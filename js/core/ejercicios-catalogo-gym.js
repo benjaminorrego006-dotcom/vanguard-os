@@ -324,6 +324,156 @@ export const CATALOGO_GYM = {
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "compuesto"
   },
+  'press inclinado con mancuernas': {
+    id: 'press inclinado con mancuernas',
+    nombre: 'Press Inclinado con Mancuernas',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, hombro anterior',
+    posturaInicial: 'Acostado en banco inclinado a 30-45°, una mancuerna en cada mano a la altura de la parte superior del pecho.',
+    pasosEjecucion: [
+      'Empuja las mancuernas hacia arriba y ligeramente hacia adentro hasta extender los codos.',
+      'Baja controladamente hasta sentir el estiramiento en la parte superior del pecho.'
+    ],
+    erroresComunes: [
+      'Inclinar demasiado el banco (se vuelve un press de hombro).',
+      'Dejar caer las mancuernas en la bajada en vez de controlarla.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
+  },
+  'press declinado': {
+    id: 'press declinado',
+    nombre: 'Press Declinado',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps',
+    posturaInicial: 'Acostado en banco declinado, pies fijados arriba, barra a la altura de la parte baja del pecho.',
+    pasosEjecucion: [
+      'Baja la barra controladamente hacia la parte baja del pecho.',
+      'Empuja en línea recta hasta extender los codos.'
+    ],
+    erroresComunes: [
+      'Rebotar la barra en el pecho.',
+      'Bajar la barra demasiado alto (se acerca a un press plano).'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["press de banca"],
+    progresionDe: "press de banca",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
+  },
+  'press declinado con mancuernas': {
+    id: 'press declinado con mancuernas',
+    nombre: 'Press Declinado con Mancuernas',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps',
+    posturaInicial: 'Acostado en banco declinado, pies fijados arriba, una mancuerna en cada mano a la altura de la parte baja del pecho.',
+    pasosEjecucion: [
+      'Empuja las mancuernas hacia arriba hasta extender los codos, sin juntarlas del todo.',
+      'Baja controladamente hasta sentir el estiramiento en la parte baja del pecho.'
+    ],
+    erroresComunes: [
+      'Dejar caer las mancuernas en la bajada en vez de controlarla.',
+      'Bajar las mancuernas demasiado alto (se acerca a un press plano).'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
+  },
+  'press cerrado en banca': {
+    id: 'press cerrado en banca',
+    nombre: 'Press Cerrado en Banca',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps',
+    posturaInicial: 'Acostado en banco plano, agarre en la barra más cerrado que el ancho de hombros.',
+    pasosEjecucion: [
+      'Baja la barra controladamente hacia la parte baja del pecho, codos pegados al cuerpo.',
+      'Empuja en línea recta hasta extender los codos, enfocando el esfuerzo en el tríceps.'
+    ],
+    erroresComunes: [
+      'Agarre tan cerrado que fuerza la muñeca.',
+      'Abrir los codos hacia afuera (pierde el énfasis en tríceps).'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["press de banca"],
+    progresionDe: "press de banca",
+    criterioAvance: {"tipo":"reps","valor":8,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
+  },
+  'press con banda elástica': {
+    id: 'press con banda elástica',
+    nombre: 'Press con Banda Elástica',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, hombros',
+    posturaInicial: 'De pie o de rodillas, banda anclada detrás a la altura del pecho, un extremo en cada mano.',
+    pasosEjecucion: [
+      'Empuja ambas manos hacia adelante hasta extender los codos.',
+      'Regresa controladamente sin perder la tensión de la banda.'
+    ],
+    erroresComunes: [
+      'Perder la tensión de la banda al final del recorrido.',
+      'Encorvar los hombros hacia adelante.'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "banda",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
+  },
+  'press en máquina': {
+    id: 'press en máquina',
+    nombre: 'Press en Máquina',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, hombros',
+    posturaInicial: 'Sentado en la máquina de press (plano o inclinado), agarraderas a la altura del pecho.',
+    pasosEjecucion: [
+      'Empuja las agarraderas hacia adelante hasta extender los codos.',
+      'Regresa controladamente sin dejar caer el peso.'
+    ],
+    erroresComunes: [
+      'Rebotar el peso en la posición inicial.',
+      'Extender los codos de golpe sin control.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
+  },
   'aperturas con mancuernas': {
     id: 'aperturas con mancuernas',
     nombre: 'Aperturas con Mancuernas',
@@ -339,6 +489,31 @@ export const CATALOGO_GYM = {
     erroresComunes: [
       'Doblar y extender el codo como si fuera un press (pierde el estiramiento del pecho).',
       'Bajar demasiado y forzar el hombro más allá de su rango cómodo.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'aperturas inclinadas con mancuernas': {
+    id: 'aperturas inclinadas con mancuernas',
+    nombre: 'Aperturas Inclinadas con Mancuernas',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'hombros',
+    posturaInicial: 'Acostado en banco inclinado a 30-45°, mancuernas extendidas sobre la parte superior del pecho con codos con flexión leve.',
+    pasosEjecucion: [
+      'Baja los brazos hacia los lados en arco, manteniendo la flexión leve del codo.',
+      'Junta las mancuernas de vuelta arriba en el mismo arco, enfocando la parte superior del pecho.'
+    ],
+    erroresComunes: [
+      'Doblar y extender el codo como si fuera un press (pierde el estiramiento del pecho).',
+      'Inclinar demasiado el banco (pasa a trabajar más el hombro).'
     ],
     nivel: "todos",
     prerequisitos: [],
@@ -371,6 +546,58 @@ export const CATALOGO_GYM = {
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
     tambienEn: [],
     equipo: "maquina",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'pec deck': {
+    id: 'pec deck',
+    nombre: 'Pec Deck (Máquina de Aperturas)',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'hombros',
+    posturaInicial: 'Sentado en la máquina, espalda apoyada, antebrazos o manos en las almohadillas a la altura del pecho.',
+    pasosEjecucion: [
+      'Junta las almohadillas al frente del pecho en un arco, sin usar impulso.',
+      'Regresa controladamente hasta sentir el estiramiento del pecho.'
+    ],
+    erroresComunes: [
+      'Usar impulso del torso para mover el peso.',
+      'Abrir demasiado y forzar el hombro más allá de su rango cómodo.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'pull-over con mancuerna': {
+    id: 'pull-over con mancuerna',
+    nombre: 'Pull-Over con Mancuerna',
+    categoria: 'gym',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'espalda, tríceps',
+    // Híbrido pecho/dorsal: tageado como accesorio de pecho (empuje-
+    // horizontal), no como slot de espalda — spec-catalogo-gym.md, sección 2.
+    posturaInicial: 'Acostado perpendicular a un banco (solo la parte alta de la espalda apoyada), mancuerna sostenida con ambas manos sobre el pecho.',
+    pasosEjecucion: [
+      'Con los codos ligeramente flexionados y fijos, baja la mancuerna en arco por detrás de la cabeza.',
+      'Sentí el estiramiento del pecho y el dorsal, luego regresa en el mismo arco.'
+    ],
+    erroresComunes: [
+      'Doblar y estirar los codos durante el movimiento.',
+      'Bajar demasiado la cadera en vez de mantenerla firme.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "mancuernas",
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "aislamiento"
   },
