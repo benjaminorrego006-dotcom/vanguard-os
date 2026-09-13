@@ -702,13 +702,23 @@ const finEmptyState = (eyebrow, title, desc) => `
 
 // Badge de alerta reutilizado en Presupuesto y como indicador en Resumen:
 // ámbar si la categoría superó el 80% de lo asignado, rojo si superó el 100%.
+// compact=true (leyenda de Resumen, junto al nombre de categoría) antes
+// renderizaba un puntito de color sin contenido — sin ícono, texto ni
+// aria-label, se veía como un elemento suelto en vez de una alerta. Ahora
+// lleva un "!" (cabe en un círculo chico) más title/aria-label, así que
+// comunica lo mismo que la versión completa de Presupuesto sin ocupar el
+// espacio de "Excedido"/"80%+" en una fila apretada.
 const alertBadgeHtml = (usoCatPct, compact = false) => {
   if (usoCatPct < 80) return '';
   const isOver = usoCatPct >= 100;
   const bg = isOver ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)';
   const color = isOver ? 'var(--state-high)' : 'var(--state-medium)';
-  const label = compact ? '' : (isOver ? 'Excedido' : '80%+');
-  return `<span style="display:inline-flex; align-items:center; gap:4px; background:${bg}; color:${color}; font-size:10px; font-weight:700; padding:${compact ? '0' : '2px 8px'}; border-radius:999px; ${compact ? `width:8px; height:8px;` : ''}">${compact ? '' : label}</span>`;
+  const mensaje = isOver ? 'Superaste el presupuesto de esta categoría' : 'Ya usaste el 80% o más del presupuesto de esta categoría';
+  if (compact) {
+    return `<span role="img" aria-label="${mensaje}" title="${mensaje}" style="display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:${bg}; color:${color}; font-size:10px; font-weight:800; line-height:1; flex-shrink:0;">!</span>`;
+  }
+  const label = isOver ? 'Excedido' : '80%+';
+  return `<span title="${mensaje}" style="display:inline-flex; align-items:center; gap:4px; background:${bg}; color:${color}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px;">${label}</span>`;
 };
 
 // Palabras que no aportan como pista de categoría en el gasto rápido.

@@ -387,8 +387,14 @@ async function renderLista() {
            Envueltos juntos en un solo wrapper (en vez de que cada uno
            cargue su propio padding-right/bottom) porque cuál de los dos
            termina siendo el último varía: sin datos de resumen todavía,
-           renderResumenHabitos() devuelve '' y la lista queda al final. -->
-      <div style="padding-right: 20px; padding-bottom: 110px;">
+           renderResumenHabitos() devuelve '' y la lista queda al final.
+           padding-bottom: 110px dejaba apenas ~60px de aire real bajo la
+           última card (el gráfico de tendencia semanal) antes del FAB
+           flotante — con poco contenido en la vista (ej. un solo hábito
+           marcado) ese margen era suficiente, pero medido en vivo el FAB
+           terminaba encima de la etiqueta del eje X del gráfico. Subido a
+           180px para dejar un colchón real. -->
+      <div style="padding-right: 20px; padding-bottom: 180px;">
         <div>
           ${habitos.length > 0
             ? habitos.map(renderFila).join('')
