@@ -137,18 +137,19 @@ export async function renderRutinasLista(categoria) {
   html += balanceHtml;
 
   let muscleMapHtml = '';
-  if (categoria === 'gym') {
+  if (categoria === 'gym' || categoria === 'calistenia') {
+    const mapPrefix = categoria === 'gym' ? 'gym' : 'calistenia';
     muscleMapHtml = `
       <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 24px; display: flex; flex-direction: column; align-items: center;">
         <div class="flex-between" style="width: 100%; margin-bottom: 12px;">
           <h3 style="font-size: 14px; font-weight: 600; margin: 0; color: var(--text-primary);">Mapa muscular (7 días)</h3>
-          <div class="mk3-muscle-map-controles" id="gym-muscle-map-controles">
+          <div class="mk3-muscle-map-controles" id="${mapPrefix}-muscle-map-controles">
             <button type="button" data-vista="frente" aria-pressed="true">Frente</button>
             <button type="button" data-vista="espalda" aria-pressed="false">Espalda</button>
           </div>
         </div>
-        <div id="gym-muscle-map"></div>
-        <div class="mk3-muscle-map-leyenda" id="gym-muscle-map-leyenda"></div>
+        <div id="${mapPrefix}-muscle-map"></div>
+        <div class="mk3-muscle-map-leyenda" id="${mapPrefix}-muscle-map-leyenda"></div>
         <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary); align-self: flex-start;">${infoSvg}Series completadas por grupo muscular esta semana.</div>
       </div>
     `;
@@ -413,6 +414,8 @@ export function initRutinasListaListeners(categoria, onNewRoutine, onStartSessio
 
   if (categoria === 'gym') {
     initMuscleMapPara('gym', { contenedorId: 'gym-muscle-map', controlesId: 'gym-muscle-map-controles', leyendaId: 'gym-muscle-map-leyenda' }, signal);
+  } else if (categoria === 'calistenia') {
+    initMuscleMapPara('calistenia', { contenedorId: 'calistenia-muscle-map', controlesId: 'calistenia-muscle-map-controles', leyendaId: 'calistenia-muscle-map-leyenda' }, signal);
   }
 }
 
