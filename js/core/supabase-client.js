@@ -8,12 +8,13 @@
 // Level Security en las tablas de Supabase, no el secreto de esta key.
 // La `service_role` key, en cambio, NUNCA debe vivir en este archivo ni
 // en ningún archivo que se sirva al cliente.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.116.0';
 
-// TODO Fase 2: reemplazar tras crear el proyecto en supabase.com
-// (Project Settings → API → Project URL / anon public key).
-const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
-const SUPABASE_ANON_KEY = 'TU-ANON-KEY';
+const SUPABASE_URL = 'https://dgnjoawfaizmbrekxauq.supabase.co';
+// Publishable key (formato nuevo de Supabase, reemplaza a la anon key JWT
+// pero cumple el mismo rol): pública a propósito, misma seguridad que la
+// anon key — la protección real la da Row Level Security en las tablas.
+const SUPABASE_ANON_KEY = 'sb_publishable_M0Zsy0vy3oZxG9Mqo1vH2g_fZjrUnuo';
 
 const CONFIGURED = !SUPABASE_URL.includes('TU-PROYECTO') && !SUPABASE_ANON_KEY.includes('TU-ANON-KEY');
 
