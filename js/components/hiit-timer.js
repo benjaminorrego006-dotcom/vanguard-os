@@ -30,6 +30,15 @@ export function renderHiitTimer(rutina) {
         <h2 style="font-size: 21px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.3px;">${escapeHtml(rutina.nombre)}</h2>
       </div>
 
+      ${rutina.ejercicios && rutina.ejercicios.length ? `
+        <div id="hiit-ejercicios-lista" style="background: var(--surface-2); border-radius: 14px; padding: 12px 14px; margin-bottom: 20px;">
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-secondary); margin-bottom: 8px;">Ejercicios de este circuito</div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            ${rutina.ejercicios.map((ej, i) => `<div class="hiit-ej-item" data-idx="${i}" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); padding: 7px 10px; border-radius: 8px; transition: background 0.2s, color 0.2s;">${escapeHtml(ej.nombre)}</div>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+
       <div id="hiit-setup-view" style="display: flex; flex-direction: column; flex: 1;">
         <div id="hiit-streak-container" style="display: flex; gap: 12px; margin-bottom: 24px; background: var(--surface-2); padding: 14px; border-radius: 16px; border: 1px solid var(--surface-border);">
           <div style="flex: 1; text-align: center;">
@@ -254,15 +263,33 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
     }, 1000);
   };
 
+  // El circuito recorre los ejercicios en round-robin: totalRounds suele
+  // ser un múltiplo de ejercicios.length a propósito (ej. 5 ejercicios x 3
+  // vueltas = 15 rondas), así que el índice tiene que envolver con módulo
+  // — sin esto, "Siguiente ejercicio" (y el resaltado de "actual" de abajo)
+  // dejaba de mostrar nada después de la primera vuelta completa, aunque
+  // el circuito siguiera. Solo aplica a los modos con rondas de
+  // trabajo/descanso discretas (free/tabata); EMOM y AMRAP no mapean 1:1
+  // ronda-ejercicio de la misma forma.
+  const enCircuitoDeEjercicios = () => (currentState.mode === 'free' || currentState.mode === 'tabata') && rutina.ejercicios && rutina.ejercicios.length > 0;
+
+  const highlightEjercicioActual = () => {
+    const listaEl = document.getElementById('hiit-ejercicios-lista');
+    if (!listaEl) return;
+    const activo = enCircuitoDeEjercicios();
+    const idx = activo ? (currentState.currentRound - 1) % rutina.ejercicios.length : -1;
+    listaEl.querySelectorAll('.hiit-ej-item').forEach(el => {
+      const esActual = activo && Number(el.dataset.idx) === idx;
+      el.style.background = esActual ? 'var(--accent-teal)' : 'transparent';
+      el.style.color = esActual ? '#000' : 'var(--text-secondary)';
+    });
+  };
+
   const updateNextExercise = () => {
-    if (rutina.hiitSettings && rutina.ejercicios && currentState.phase === 'rest') {
-      const idx = currentState.currentRound; // the next round index (since currentRound is updated after rest)
-      if (idx < rutina.ejercicios.length) {
-        nextExerciseLabel.innerText = `Siguiente: ${rutina.ejercicios[idx].nombre}`;
-        nextExerciseLabel.style.display = 'block';
-      } else {
-        nextExerciseLabel.style.display = 'none';
-      }
+    if (enCircuitoDeEjercicios() && currentState.phase === 'rest') {
+      const idx = currentState.currentRound % rutina.ejercicios.length;
+      nextExerciseLabel.innerText = `Siguiente: ${rutina.ejercicios[idx].nombre}`;
+      nextExerciseLabel.style.display = 'block';
     } else {
       nextExerciseLabel.style.display = 'none';
     }
@@ -288,7 +315,8 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
         phaseLabel.style.color = "var(--accent-teal)";
         timeDisplay.style.color = "var(--accent-teal)";
         nextExerciseLabel.style.display = 'none';
-        
+        highlightEjercicioActual();
+
         if (currentState.currentRound === currentState.totalRounds) {
           speakPhase("Última ronda, trabajo");
         } else {
@@ -379,6 +407,7 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
       phaseLabel.style.color = "var(--accent-teal)";
       timeDisplay.style.color = "var(--accent-teal)";
       speakPhase("Trabajo");
+      highlightEjercicioActual();
     } else if (currentState.mode === 'emom') {
       currentState.phase = 'work';
       currentState.timeRemaining = currentState.emomIntervalSecs;

@@ -726,7 +726,14 @@ function chequearVolumenSemanal(dias, avisos) {
 
 // --- Generación de HIIT (circuito, no series/reps) --------------------------
 
-const PATRONES_HIIT = ['locomocion', 'core', ...PIERNA, ...EMPUJE, ...TRACCION];
+// Solo los patrones que el catálogo de HIIT realmente cubre. EMPUJE/TRACCION
+// (empuje-horizontal, empuje-vertical, traccion-horizontal, traccion-
+// vertical) son patrones de fuerza tipo GYM/Calistenia — ningún ejercicio
+// de HIIT los usa, así que incluirlos acá no degradaba nada, solo generaba
+// 4 avisos de "no se pudo incluir" en CADA rutina de HIIT, sin importar el
+// equipo declarado — un aviso engañoso porque no había equipo que lo
+// resolviera.
+const PATRONES_HIIT = ['locomocion', 'core', ...PIERNA];
 
 function elegirSplitHiit(diasSemana) {
   return Array.from({ length: diasSemana }, (_, i) => ({ nombre: diasSemana === 1 ? 'Circuito' : `Circuito ${i + 1}`, patrones: PATRONES_HIIT }));
@@ -758,7 +765,13 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
   const resumenPatrones = Object.fromEntries(Object.entries(nivelPorRama).map(([rama, info]) => [rama, info.nivel]));
 
   if (categoria === 'hiit') {
-    const splits = elegirSplitHiit(diasSemana);
+    // Regla del día 7 (spec-generador-rutinas.md, Paso 1 y Paso 7): nunca
+    // es una sesión dura más. Los primeros 6 (o los 7 si diasSemana<=6)
+    // salen normales; el 7mo, cuando aplica, es un circuito aparte con
+    // menos ejercicios y ajustes de tiempo más livianos, igual que el día
+    // 7 de GYM/Calistenia ya hace con series/reps.
+    const diasCircuito = diasSemana === 7 ? 6 : diasSemana;
+    const splits = elegirSplitHiit(diasCircuito);
     const dias = splits.map(diaDef => {
       const elegidos = elegirEjerciciosDelDia(diaDef.patrones, exercisesPerSession, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, null);
       return {
@@ -768,6 +781,21 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
         hiitSettings: { mode: 'free', workSecs: 30, restSecs: 15, totalRounds: Math.max(4, elegidos.length * 3) }
       };
     });
+
+    if (diasSemana === 7) {
+      const presupuestoLiviano = Math.max(3, exercisesPerSession - 2);
+      const elegidosLivianos = elegirEjerciciosDelDia(PATRONES_HIIT, presupuestoLiviano, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, null);
+      dias.push({
+        nombre: 'Circuito 7 · Liviano',
+        ejercicioIds: elegidosLivianos.map(e => e.ejercicioId),
+        motivos: elegidosLivianos,
+        // Menos ejercicios, trabajo más corto y descanso más largo que un
+        // circuito normal (30s/15s) — la intensidad relativa baja aunque
+        // la estructura siga siendo un circuito.
+        hiitSettings: { mode: 'free', workSecs: 20, restSecs: 40, totalRounds: Math.max(3, elegidosLivianos.length * 2) }
+      });
+    }
+
     await db.registrarRutinaGenerada({ categoria, diasPorSemana: diasSemana, resumenPatrones });
     return { dias, avisos, nivelPorRama };
   }

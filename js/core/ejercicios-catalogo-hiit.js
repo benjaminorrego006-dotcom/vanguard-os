@@ -1,6 +1,31 @@
 // Ejercicios de HIIT/Cardio — ver ejercicios-catalogo-gym.js para la nota
 // completa sobre por qué está dividido así.
 export const CATALOGO_HIIT = {
+  'caminata': {
+    id: 'caminata',
+    nombre: 'Caminata Rápida',
+    categoria: 'hiit',
+    grupoMuscular: 'cardio',
+    patron: 'otro',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'Postura erguida, ritmo de paso rápido pero sostenible.',
+    pasosEjecucion: [
+      'Camina a un ritmo elevado, idealmente con inclinación si es en cinta.',
+      'Mantén el ritmo constante durante toda la duración indicada.'
+    ],
+    erroresComunes: [
+      'Encorvar la espalda.',
+      'Ritmo demasiado lento como para elevar la frecuencia cardíaca.'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"segundos","valor":1200,"series":1},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "locomocion",
+    tipoMovimiento: "compuesto"
+  },
   'jumping jacks': {
     id: 'jumping jacks',
     nombre: 'Jumping Jacks',
