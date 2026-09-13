@@ -4,8 +4,10 @@
  * Estilos del mapa muscular, siguiendo el sistema de diseño MK III:
  * - Chaflanes via clip-path (nunca border-radius)
  * - Tipografia monoespaciada para numeros/datos, sans-serif para copy
- * - Acento cian de Entreno para intensidad (nunca rojo: el rojo esta
- *   reservado a alertas reales)
+ * - Ambar intenso (--accent-muscular) para la fatiga entrenada, nunca
+ *   rojo (reservado a alertas reales) ni el cian general de Entreno
+ *   (--accent-teal sigue siendo el acento del resto del modulo — este
+ *   mapa es la unica pieza de Entreno en ambar, a pedido explicito)
  * - Sin sombras
  *
  * Ajusta los nombres de variable si en tu css/variables.css el acento
@@ -15,7 +17,7 @@
  */
 
 .mk3-muscle-map {
-  --mm-accent: var(--accent-teal); /* cian, acento exclusivo de Entreno en MK III */
+  --mm-accent: var(--accent-muscular); /* ambar intenso, exclusivo de este mapa — no --accent-teal (acento general de Entreno) ni --accent-orange (alerta/warning) */
   /* Tono de musculo "en reposo": visible a proposito (no casi-negro),
      para que el cuerpo se lea completo aunque no se haya entrenado
      nada todavia. Antes usaba el mismo tono que el fondo y por eso

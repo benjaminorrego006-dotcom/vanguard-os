@@ -64,7 +64,8 @@
   --accent-primary: #C9A24A;
   --accent-purple: #C9A24A; /* alias histórico, usado en varios lugares */
   --accent-teal: #06B6D4;
-  --accent-orange: #F59E0B;
+  --accent-orange: #F59E0B; /* = --state-medium: además de decorativo (racha, chip "calentamiento"), es la alerta semántica "medio/warning" en toda la app — no reusar para algo que no es una alerta */
+  --accent-muscular: #d9871f; /* ámbar intenso, EXCLUSIVO del mapa muscular de Entreno (fatiga por grupo) — deliberadamente un token propio y no --accent-orange, para no mezclar "fatiga entrenada" con la semántica de alerta/warning que ese token ya carga en el resto de la app */
   --accent-blue: #3B82F6; /* solo para distinguir categorías/datos (ej. "Deseos" en Finanzas, columna "En Progreso" en Tareas) — no es un acento de marca */
 
   /* --- Fase "vida" (Ritual, Planificador, Anotaciones): igual que
