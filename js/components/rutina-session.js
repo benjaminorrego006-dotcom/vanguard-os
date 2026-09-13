@@ -123,6 +123,21 @@ export async function renderRutinaSession(rutina) {
 
   const gruposMuscular = agruparPorGrupoMuscular(rutina.ejercicios, ej => getEjercicioMetadata(ej.nombre).grupoMuscular);
 
+  // Ejercicios que comparten grupoId (asignado al agrupar en superserie en
+  // Crear Rutina) se ejecutan sin descanso entre sí — ver el chip dentro de
+  // la tarjeta y el skip del timer en el handler del check de serie, más
+  // abajo. Solo el SEGUNDO+ de la corrida lleva el borde ámbar y el chip;
+  // el primero se ve como cualquier otro (mismo criterio visual que el
+  // mockup: "Press de Banca" normal, "Press Inclinado" marcado).
+  //
+  // Declarado FUERA del loop de secciones por grupo muscular a propósito:
+  // una superserie muy común empareja músculos distintos (ej. pecho +
+  // bíceps, cuádriceps + isquiotibiales) — si este Set se reiniciara por
+  // sección, el segundo ejercicio de esa superserie caería en una sección
+  // distinta a la del primero y nunca se reconocería como "segundo del
+  // grupo", perdiendo el chip y el corte de descanso silenciosamente.
+  const gruposYaMostrados = new Set();
+
   for (const seccion of gruposMuscular) {
     html += `
       <div style="display: flex; align-items: center; gap: 8px; margin: 4px 0 -6px 0;">
@@ -130,15 +145,6 @@ export async function renderRutinaSession(rutina) {
         <span style="font-size: 12px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent-teal);">${seccion.label}</span>
       </div>
     `;
-
-    // Ejercicios que comparten grupoId (asignado al agrupar en superserie
-    // en Crear Rutina) se ejecutan sin descanso entre sí — ver el chip
-    // dentro de la tarjeta y el skip del timer en el handler del check de
-    // serie, más abajo. Solo el SEGUNDO+ de la corrida lleva el borde
-    // ámbar y el chip; el primero se ve como cualquier otro (mismo
-    // criterio visual que el mockup: "Press de Banca" normal, "Press
-    // Inclinado" marcado).
-    const gruposYaMostrados = new Set();
 
     for (const ej of seccion.items) {
     const hist = currentHistorial[ej.nombre];
@@ -560,8 +566,19 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         // de la corrida (el siguiente bloque no comparte su grupoId, o no
         // hay siguiente). Un ejercicio suelto (sin grupoId) siempre dispara
         // el timer, como antes.
+        //
+        // nextElementSibling literal NO alcanza acá: los bloques están
+        // agrupados por grupo muscular arriba en el render, así que dos
+        // ejercicios de una misma superserie que caen en secciones
+        // distintas (ej. pecho + bíceps, un caso común de superserie) tienen
+        // el div de encabezado de sección de por medio — el "siguiente
+        // hermano" real sería ESE encabezado, no el próximo ejercicio, lo
+        // que disparaba el descanso después del primero igual. Se busca el
+        // siguiente .ejercicio-sesion-block en orden del documento en vez
+        // de en el árbol del DOM.
         const grupoId = ejContainer.dataset.grupoId;
-        const siguienteBloque = ejContainer.nextElementSibling;
+        const bloquesOrden = Array.from(document.querySelectorAll('.ejercicio-sesion-block'));
+        const siguienteBloque = bloquesOrden[bloquesOrden.indexOf(ejContainer) + 1] || null;
         const esUltimoDeLaSuperserie = !grupoId || !siguienteBloque || siguienteBloque.dataset.grupoId !== grupoId;
         if (esUltimoDeLaSuperserie) startRestTimer(currentRestTimerSecs);
         const pesoVal = parseFloat(pesoInput.value) || 0;
