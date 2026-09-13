@@ -4,7 +4,7 @@ import { getEjercicioPorId, agruparPorGrupoMuscular, grupoMuscularParaMapa } fro
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatDiaSemana } from '../utils/fecha.js';
-import { MuscleMap, expandirIntensidadPorMusculo } from './mk3-muscle-map.js';
+import { MuscleMap, calcularFatigaPorGrupo, expandirIntensidadPorMusculo } from './mk3-muscle-map.js';
 import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
 
 // Escala de dificultad para ordenar "Plantillas sugeridas" de menor a mayor.
@@ -142,7 +142,7 @@ export async function renderRutinasLista(categoria) {
     muscleMapHtml = `
       <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 24px; display: flex; flex-direction: column; align-items: center;">
         <div class="flex-between" style="width: 100%; margin-bottom: 12px;">
-          <h3 style="font-size: 14px; font-weight: 600; margin: 0; color: var(--text-primary);">Mapa muscular (7 días)</h3>
+          <h3 style="font-size: 14px; font-weight: 600; margin: 0; color: var(--text-primary);">Mapa muscular · fatiga actual</h3>
           <div class="mk3-muscle-map-controles" id="${mapPrefix}-muscle-map-controles">
             <button type="button" data-vista="frente" aria-pressed="true">Frente</button>
             <button type="button" data-vista="espalda" aria-pressed="false">Espalda</button>
@@ -150,7 +150,7 @@ export async function renderRutinasLista(categoria) {
         </div>
         <div id="${mapPrefix}-muscle-map"></div>
         <div class="mk3-muscle-map-leyenda" id="${mapPrefix}-muscle-map-leyenda"></div>
-        <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary); align-self: flex-start;">${infoSvg}Series completadas por grupo muscular esta semana.</div>
+        <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary); align-self: flex-start;">${infoSvg}Qué tan fatigado está cada grupo ahora mismo. Se recupera solo en 48h sin entrenarlo.</div>
       </div>
     `;
   }
@@ -419,40 +419,50 @@ export function initRutinasListaListeners(categoria, onNewRoutine, onStartSessio
   }
 }
 
-// Mapa muscular MK III (mk3-muscle-map.js): misma fuente de datos que ya
-// alimentaba la card de volumen por grupo que reemplaza (db.getVolumenPorGrupo,
-// "series completadas" por grupoMuscular de las últimas rangoDias) — no se
-// lee el store 'events' directo para no duplicar el cálculo de fecha/
-// categoría que esa función ya resuelve bien, y para garantizar que el mapa
-// muestre siempre los mismos números que el resto de la app.
+// Mapa muscular MK III (mk3-muscle-map.js): fatiga con recuperación de 48h,
+// no volumen fijo de una ventana de 7 días — un grupo entrenado va bajando
+// de intensidad linealmente hasta volver a neutro si no se lo vuelve a
+// entrenar. Se lee 'events' (vía db.getEventosEjercicioPorCategoria, a
+// granularidad de un ejercicio por entrada con su timestamp real) en vez
+// de reusar getVolumenPorGrupo porque ese agrega todo el rango con el mismo
+// peso y no expone el timestamp de cada aporte por separado, que es lo que
+// calcularFatigaPorGrupo necesita para el decaimiento.
+const obtenerGruposDelEvento = (entidadId, payload) => {
+  const clave = grupoMuscularParaMapa(payload.grupoMuscular);
+  return clave ? [clave] : [];
+};
+const obtenerVolumenDelEvento = (payload) => payload.series || 0;
+
+// Recalcular cada 5 min mientras la vista sigue abierta: la fatiga decae
+// solo con el paso del tiempo, sin que el usuario haga nada, así que si no
+// se refresca periódicamente alguien que deja la pestaña abierta ve un
+// número viejo que nunca se mueve solo.
+const INTERVALO_REFRESCO_FATIGA_MS = 5 * 60 * 1000;
+
 async function initMuscleMapPara(categoria, { contenedorId, controlesId, leyendaId }, signal) {
   const contenedor = document.getElementById(contenedorId);
   if (!contenedor) return;
-
-  const { volumen } = await db.getVolumenPorGrupo(7, categoria);
-  const porGrupoMapa = {};
-  for (const [grupoReal, series] of Object.entries(volumen)) {
-    const claveMapa = grupoMuscularParaMapa(grupoReal);
-    if (!claveMapa || series <= 0) continue;
-    porGrupoMapa[claveMapa] = (porGrupoMapa[claveMapa] || 0) + series;
-  }
-  const max = Math.max(1, ...Object.values(porGrupoMapa));
-  const intensidadPorGrupo = {};
-  for (const [grupoMapa, series] of Object.entries(porGrupoMapa)) {
-    intensidadPorGrupo[grupoMapa] = series / max;
-  }
-  const intensidadPorMusculo = expandirIntensidadPorMusculo(intensidadPorGrupo, GRUPOS_MUSCULARES);
 
   const leyenda = document.getElementById(leyendaId);
   const mostrarEnLeyenda = (info) => { if (leyenda) leyenda.textContent = info ? info.nombre : ''; };
 
   const mapa = new MuscleMap(contenedor, {
     vista: VISTA.FRENTE,
-    intensidades: intensidadPorMusculo,
+    intensidades: {},
     onMuscleHover: mostrarEnLeyenda,
     onMuscleClick: mostrarEnLeyenda,
   });
   if (signal) signal.addEventListener('abort', () => mapa.destroy());
+
+  const recalcular = async () => {
+    const eventos = await db.getEventosEjercicioPorCategoria(categoria);
+    const fatigaPorGrupo = calcularFatigaPorGrupo(eventos, obtenerGruposDelEvento, obtenerVolumenDelEvento);
+    mapa.setIntensidades(expandirIntensidadPorMusculo(fatigaPorGrupo, GRUPOS_MUSCULARES));
+  };
+  await recalcular();
+
+  const intervalId = setInterval(recalcular, INTERVALO_REFRESCO_FATIGA_MS);
+  if (signal) signal.addEventListener('abort', () => clearInterval(intervalId));
 
   const controles = document.getElementById(controlesId);
   if (controles) {

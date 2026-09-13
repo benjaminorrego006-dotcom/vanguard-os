@@ -275,44 +275,81 @@ function clamp01(n) {
 }
 
 // ---------------------------------------------------------------------
-// Utilidad opcional: derivar intensidad por grupo muscular desde el log
-// de eventos de Vanguard OS (events store). NO asume nombres de campo
-// reales del catalogo de ejercicios: hay que ajustar `obtenerGrupos`
-// a como el catalogo real relacione ejercicioId -> grupo(s) muscular(es)
-// (ver INTEGRACION.md para el detalle de esto).
+// Utilidades para derivar intensidad/fatiga por grupo muscular desde el
+// log de eventos de Vanguard OS (events store). NO asumen nombres de
+// campo reales del catalogo de ejercicios: `obtenerGrupos`/`obtenerVolumen`
+// los provee el caller (ver initMuscleMapPara en rutinas-lista.js, y el
+// mapa en vivo de rutina-session.js).
 // ---------------------------------------------------------------------
 
 /**
- * @param {Array<{modulo: string, tipo: string, entidadId: string, payload: any, fecha: string|number|Date}>} eventos
- *   Eventos del log central (modulo "entreno"), ya filtrados a la ventana de tiempo deseada.
+ * Suma el volumen de `eventos` por grupo muscular, pesando cada evento
+ * según qué tan reciente es respecto de `ahora`: un evento de hace 0h pesa
+ * 1, uno de `horasRecuperacion` o más pesa 0, decayendo linealmente entre
+ * medio. Modela la fatiga muscular con recuperación de 48h (por defecto):
+ * un grupo entrenado vuelve a neutro si no se lo vuelve a entrenar dentro
+ * de esa ventana.
+ *
+ * Devuelve el volumen ponderado CRUDO (sin normalizar a 0..1) — lo usa
+ * calcularFatigaPorGrupo (abajo) para las cards de resumen, y por separado
+ * la sesión en vivo (rutina-session.js) para poder sumarle encima el
+ * volumen de la sesión en curso (que todavía no es un evento guardado)
+ * antes de normalizar una sola vez.
+ *
+ * @param {Array<{ts: number, entidadId: string, payload: any}>} eventos
+ *   Eventos del log central (modulo "entreno", tipo "sesion_registrada"),
+ *   a granularidad de un ejercicio por entrada — `ts` es epoch ms (el
+ *   campo real del evento en IndexedDB; NO usar `payload.fecha`).
  * @param {(entidadId: string, payload: any) => string[]} obtenerGrupos
- *   Dado un evento de serie/ejercicio completado, devuelve los grupos musculares que trabaja
- *   (ej. a partir de ejercicioId -> catalogo -> patronMovimiento / grupo).
+ *   Dado un evento, devuelve los grupos musculares que trabaja (ya
+ *   traducidos a las claves de GRUPOS_MUSCULARES de mk3-muscle-map-data.js
+ *   — esa traducción es responsabilidad del caller, no de esta función).
  * @param {(payload: any) => number} obtenerVolumen
- *   Devuelve el "volumen" de ese evento (ej. series * reps, o series * reps * peso).
- * @returns {Record<string, number>} grupo muscular -> intensidad normalizada 0..1
+ *   Devuelve el "volumen" de ese evento (ej. series completadas).
+ * @param {number} [ahora] - epoch ms de referencia (parámetro, no
+ *   Date.now() hardcodeado adentro, para poder testear y recalcular en vivo).
+ * @param {number} [horasRecuperacion] - ventana de recuperación, default 48h.
+ * @returns {Record<string, number>} grupo muscular -> volumen ponderado crudo
  */
-export function calcularIntensidadPorGrupo(eventos, obtenerGrupos, obtenerVolumen) {
-  const volumenPorGrupo = {};
+export function sumarFatigaPorGrupo(eventos, obtenerGrupos, obtenerVolumen, ahora = Date.now(), horasRecuperacion = 48) {
+  const msRecuperacion = horasRecuperacion * 60 * 60 * 1000;
+  const fatigaPorGrupo = {};
 
   for (const evento of eventos) {
+    const antiguedadMs = ahora - evento.ts;
+    if (antiguedadMs < 0 || antiguedadMs >= msRecuperacion) continue;
+    const peso = 1 - (antiguedadMs / msRecuperacion);
+
     const grupos = obtenerGrupos(evento.entidadId, evento.payload) || [];
     const volumen = obtenerVolumen(evento.payload) || 0;
     if (volumen <= 0 || grupos.length === 0) continue;
+
     // Si un ejercicio trabaja varios grupos (ej. press banca -> pecho,
     // triceps, hombro anterior), se reparte el volumen entre ellos.
-    const parte = volumen / grupos.length;
+    const parte = (volumen * peso) / grupos.length;
     for (const g of grupos) {
-      volumenPorGrupo[g] = (volumenPorGrupo[g] || 0) + parte;
+      fatigaPorGrupo[g] = (fatigaPorGrupo[g] || 0) + parte;
     }
   }
 
-  const max = Math.max(1, ...Object.values(volumenPorGrupo));
-  const intensidad = {};
-  for (const [grupo, vol] of Object.entries(volumenPorGrupo)) {
-    intensidad[grupo] = vol / max;
+  return fatigaPorGrupo;
+}
+
+/**
+ * Igual que sumarFatigaPorGrupo, pero normalizado a 0..1 (el valor más alto
+ * entre los grupos presentes queda en 1). Es lo que consumen directamente
+ * las cards de resumen (GYM/Calistenia en rutinas-lista.js) vía
+ * expandirIntensidadPorMusculo.
+ * @returns {Record<string, number>} grupo muscular -> fatiga normalizada 0..1
+ */
+export function calcularFatigaPorGrupo(eventos, obtenerGrupos, obtenerVolumen, ahora = Date.now(), horasRecuperacion = 48) {
+  const fatigaPorGrupo = sumarFatigaPorGrupo(eventos, obtenerGrupos, obtenerVolumen, ahora, horasRecuperacion);
+  const max = Math.max(1, ...Object.values(fatigaPorGrupo));
+  const fatiga = {};
+  for (const [grupo, val] of Object.entries(fatigaPorGrupo)) {
+    fatiga[grupo] = val / max;
   }
-  return intensidad;
+  return fatiga;
 }
 
 /**

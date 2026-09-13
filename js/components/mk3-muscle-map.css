@@ -45,6 +45,15 @@
   filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
 }
 
+/* Instancia chica: mapa en vivo dentro de "En Sesión" (rutina-session.js),
+   donde no compite por espacio con una card dedicada como en las listas. */
+.mk3-muscle-map--sm {
+  padding: 0.6rem;
+}
+.mk3-muscle-map--sm .mk3-muscle-map__svg {
+  max-width: 150px;
+}
+
 /* Silueta de fondo borrosa: "glow" de cuerpo completo detras de las
    facetas, para que se perciba como un cuerpo y no como piezas. */
 .mk3-muscle-map__glow {

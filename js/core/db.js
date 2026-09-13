@@ -1708,6 +1708,40 @@ export const db = {
     return { volumen, balance };
   },
 
+  // A diferencia de getVolumenPorGrupo (agrega todo dentro de rangoDias con
+  // el mismo peso), esto devuelve un registro por EJERCICIO dentro de cada
+  // sesión con su timestamp real (`ts`, epoch ms — viene del evento del log,
+  // no de `sesion.fecha`) sin agregar nada: lo necesita el mapa muscular
+  // MK III para pesar cada aporte según qué tan reciente es (fatiga con
+  // recuperación de 48h, ver calcularFatigaPorGrupo en mk3-muscle-map.js).
+  async getEventosEjercicioPorCategoria(categoria) {
+    const eventosRaw = await idb.getAll('events');
+    const rutinas = await idbGetArray('rutinas');
+    const catMap = {};
+    rutinas.forEach(r => catMap[r.id] = r.categoria);
+
+    const salida = [];
+    eventosRaw.forEach(e => {
+      if (e.modulo !== 'entreno' || e.tipo !== 'sesion_registrada') return;
+      const sesion = e.payload || {};
+      let cat = catMap[sesion.rutinaId];
+      if (!cat && sesion.nombreRutina) {
+        const n = sesion.nombreRutina.toLowerCase();
+        if (n.includes('tabata') || n.includes('emom') || n.includes('amrap') || n.includes('hiit')) cat = 'hiit';
+      }
+      if (cat !== categoria) return;
+      (sesion.ejercicios || []).forEach(ej => {
+        const meta = resolverMetadataEjercicio(ej);
+        salida.push({
+          ts: e.ts,
+          entidadId: e.entidadId,
+          payload: { grupoMuscular: meta.grupoMuscular, series: (ej.series || []).length }
+        });
+      });
+    });
+    return salida;
+  },
+
   // Desglose de entrenamiento por grupo muscular en un rango de fechas
   // (pestaña Desglose de Análisis). A diferencia de getVolumenPorGrupo, que
   // solo cuenta series para el widget de balance de rutinas-lista.js, acá
@@ -2479,7 +2513,7 @@ export const db = {
 [
   'getBadges', 'getRachaGlobal', 'getRachaGeneral', 'getRachaTareas', 'getRachaHiit',
   'getMesesSinExceder', 'getCategoriasFueraDeRango', 'getTendenciaAhorro',
-  'getActividadPorDia', 'getDesgloseGrupoMuscular', 'getVolumenPorGrupo',
+  'getActividadPorDia', 'getDesgloseGrupoMuscular', 'getVolumenPorGrupo', 'getEventosEjercicioPorCategoria',
   'getTendenciaSemanal', 'getResumenEntrenoSemanal', 'detectarNecesidadDeload',
   'getTasaCumplimientoTareas', 'getTendenciaTareasCompletadas'
 ].forEach(name => { db[name] = memoize(db[name]); });

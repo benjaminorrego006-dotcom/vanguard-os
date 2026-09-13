@@ -3,10 +3,12 @@ import { playBeep } from '../core/audio.js';
 import { renderEjercicioDetalle, initEjercicioDetalleChart } from './ejercicio-detalle.js';
 import { calcularDiscos, renderPlateCalculatorPopover } from './plate-calculator.js';
 import { getProgressionLevel, RAMA_LABELS } from '../core/progresiones.js';
-import { getEjercicioMetadata, CATALOGO_EJERCICIOS, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
+import { getEjercicioMetadata, CATALOGO_EJERCICIOS, agruparPorGrupoMuscular, grupoMuscularParaMapa } from '../core/ejercicios-catalogo.js';
 import { ConfirmDialog, Toast } from '../utils/states.js';
 import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
 import { escapeHtml } from '../utils/escape.js';
+import { MuscleMap, sumarFatigaPorGrupo, expandirIntensidadPorMusculo } from './mk3-muscle-map.js';
+import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
 
 const trophySvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path></svg>`;
 const historySvg = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg>`;
@@ -117,6 +119,16 @@ export async function renderRutinaSession(rutina) {
         <div></div>
         <button id="btn-rest-timer-config" type="button" style="background: transparent; border: none; color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 0; display: flex; align-items: center; gap: 4px;">${clockSvg}Descanso: <span id="rest-timer-config-value" class="num">${currentRestTimerSecs}</span>s</button>
       </div>
+  `;
+
+  html += `
+    <div class="card" style="padding: 12px; border-radius: 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px;">
+      <div id="session-muscle-map" style="flex-shrink: 0;"></div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">Fatiga en vivo</div>
+        <div id="session-muscle-map-leyenda" class="mk3-muscle-map-leyenda" style="text-align: left; min-height: 1em;"></div>
+      </div>
+    </div>
   `;
 
   html += `<div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">`;
@@ -252,6 +264,65 @@ export async function renderRutinaSession(rutina) {
 
 export function initRutinaSessionListeners(rutina, onSuccess, signal) {
   startTime = new Date();
+
+  // Mapa muscular en vivo: parte de la fatiga ya acumulada por sesiones
+  // anteriores (calculada una sola vez al abrir esta vista — el decaimiento
+  // en una ventana de 48h no cambia de forma perceptible en el rato que dura
+  // una sesión) y le suma encima, sin esperar a "Finalizar Sesión", el
+  // volumen de las series que se van marcando ahora mismo. El estado de
+  // "serie marcada" durante una sesión en curso vive solo en el DOM
+  // (data-checked, ver wireSerieRow más abajo) — no se persiste serie por
+  // serie en el log de eventos (registrarSesion en db.js emite un único
+  // evento sesion_registrada al terminar), así que se lee de ahí en vez de
+  // inventar un evento nuevo solo para esto.
+  const sessionMuscleMapEl = document.getElementById('session-muscle-map');
+  let sessionMuscleMap = null;
+  let fatigaBasePorGrupo = {};
+  if (sessionMuscleMapEl) {
+    const leyendaEl = document.getElementById('session-muscle-map-leyenda');
+    const mostrarEnLeyenda = (info) => { if (leyendaEl) leyendaEl.textContent = info ? info.nombre : ''; };
+    sessionMuscleMap = new MuscleMap(sessionMuscleMapEl, {
+      vista: VISTA.FRENTE,
+      intensidades: {},
+      claseContenedor: 'mk3-muscle-map--sm',
+      onMuscleHover: mostrarEnLeyenda,
+      onMuscleClick: mostrarEnLeyenda,
+    });
+    if (signal) signal.addEventListener('abort', () => sessionMuscleMap.destroy());
+
+    db.getEventosEjercicioPorCategoria(rutina.categoria).then(eventos => {
+      fatigaBasePorGrupo = sumarFatigaPorGrupo(
+        eventos,
+        (entidadId, payload) => { const c = grupoMuscularParaMapa(payload.grupoMuscular); return c ? [c] : []; },
+        (payload) => payload.series || 0
+      );
+      recalcularMapaSesion();
+    });
+  }
+
+  function recalcularMapaSesion() {
+    if (!sessionMuscleMap) return;
+    const enVivoPorGrupo = {};
+    document.querySelectorAll('.ejercicio-sesion-block').forEach(bloque => {
+      const nombre = bloque.dataset.ejNombre;
+      if (!nombre) return;
+      const clave = grupoMuscularParaMapa(getEjercicioMetadata(nombre).grupoMuscular);
+      if (!clave) return;
+      const seriesMarcadas = bloque.querySelectorAll('.btn-check-serie[data-checked="true"]').length;
+      if (seriesMarcadas <= 0) return;
+      enVivoPorGrupo[clave] = (enVivoPorGrupo[clave] || 0) + seriesMarcadas;
+    });
+
+    const combinado = { ...fatigaBasePorGrupo };
+    for (const [grupo, series] of Object.entries(enVivoPorGrupo)) {
+      combinado[grupo] = (combinado[grupo] || 0) + series;
+    }
+    const max = Math.max(1, ...Object.values(combinado));
+    const fatigaNormalizada = {};
+    for (const [grupo, val] of Object.entries(combinado)) fatigaNormalizada[grupo] = val / max;
+
+    sessionMuscleMap.setIntensidades(expandirIntensidadPorMusculo(fatigaNormalizada, GRUPOS_MUSCULARES));
+  }
 
   const btnRestConfig = document.getElementById('btn-rest-timer-config');
   if (btnRestConfig) {
@@ -625,6 +696,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
           }
         }
       }
+      recalcularMapaSesion();
     });
   };
 
