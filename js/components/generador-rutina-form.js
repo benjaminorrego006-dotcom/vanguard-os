@@ -5,8 +5,24 @@ import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
 import { generarPlan } from '../core/generador-rutinas.js';
 import { EQUIPO_OPCIONES } from '../core/trainingConfig.js';
+import { CATALOGO_EJERCICIOS } from '../core/ejercicios-catalogo.js';
 
 const DURACIONES = [20, 30, 45, 60, 75, 90];
+
+// Qué valores de equipo tienen sentido mostrar para esta categoría —
+// calculado del catálogo real, no una lista fija, para que se mantenga
+// correcto solo si el catálogo crece. Sin esto, Calistenia mostraba las 9
+// casillas de GYM (Barra, Mancuernas, Máquina, Kettlebell, Cajón...)
+// aunque ningún ejercicio de Calistenia usa esos equipos — tildarlas no
+// hacía absolutamente nada, pura confusión.
+function equipoUsadoPorCategoria(categoria) {
+  const usados = new Set();
+  Object.values(CATALOGO_EJERCICIOS).forEach(e => {
+    const aplica = e.categoria === categoria || (e.tambienEn || []).includes(categoria);
+    if (aplica && e.equipo && e.equipo !== 'ninguno') usados.add(e.equipo);
+  });
+  return usados;
+}
 
 export function renderGeneradorConfigForm() {
   return `
@@ -19,7 +35,7 @@ export function renderGeneradorConfigForm() {
           <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Equipo disponible</div>
           <div id="generador-equipo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
             ${EQUIPO_OPCIONES.map(o => `
-              <label for="generador-equipo-${o.value}" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer;">
+              <label for="generador-equipo-${o.value}" data-equipo-opcion="${o.value}" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer;">
                 <input type="checkbox" id="generador-equipo-${o.value}" class="generador-equipo-check" value="${o.value}">
                 ${o.label}
               </label>
@@ -104,6 +120,16 @@ export async function openGeneradorConfigForm(categoria) {
   const modal = document.getElementById('generador-config-modal');
   if (!modal) return;
   modal.dataset.categoria = categoria;
+
+  // Solo ocultar (nunca destildar): el equipo guardado es un único set
+  // compartido entre categorías (db.saveGeneradorConfig no lo separa por
+  // categoria), así que una casilla oculta para Calistenia debe seguir
+  // marcada por dentro si el usuario la tildó viniendo de GYM — si no,
+  // volver a GYM la mostraría destildada sin que el usuario la tocara.
+  const equipoUsado = equipoUsadoPorCategoria(categoria);
+  document.querySelectorAll('[data-equipo-opcion]').forEach(label => {
+    label.style.display = equipoUsado.has(label.dataset.equipoOpcion) ? 'flex' : 'none';
+  });
 
   const config = await db.getGeneradorConfig();
   const equipoGuardado = new Set(config?.equipoDisponible || []);
