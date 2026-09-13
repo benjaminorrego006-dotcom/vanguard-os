@@ -335,19 +335,34 @@ export function sumarFatigaPorGrupo(eventos, obtenerGrupos, obtenerVolumen, ahor
   return fatigaPorGrupo;
 }
 
+// Series ponderadas que representan "100% de fatiga" para un grupo —
+// mismo criterio que ya usaban los chips originales de Alto/Medio/Bajo.
+// Es una escala FIJA a propósito: normalizar contra el máximo dinámico
+// entre grupos (como se hacía antes) hace que, si solo se entrenó un
+// grupo esa ventana, ese grupo se vea siempre "al máximo" durante toda la
+// recuperación de 48h y recién ahí salte de golpe a neutro, en vez de
+// apagarse gradual. Contra una referencia fija, un solo grupo entrenado sí
+// baja gradualmente con el tiempo. Ajustable si en la práctica casi nunca
+// se ve "lleno" (ej. si la mayoría de sesiones reales rondan 3-4 series
+// por grupo) o si satura demasiado rápido — afinar mirando datos reales.
+// Exportada para que el mapa en vivo de rutina-session.js (que combina esta
+// fatiga histórica con el volumen de la sesión en curso antes de normalizar)
+// use la misma escala en vez de duplicar el número.
+export const FATIGA_REFERENCIA = 6;
+
 /**
- * Igual que sumarFatigaPorGrupo, pero normalizado a 0..1 (el valor más alto
- * entre los grupos presentes queda en 1). Es lo que consumen directamente
- * las cards de resumen (GYM/Calistenia en rutinas-lista.js) vía
+ * Igual que sumarFatigaPorGrupo, pero normalizado a 0..1 contra
+ * FATIGA_REFERENCIA (una escala fija, no el máximo dinámico entre grupos —
+ * ver el comentario de esa constante). Es lo que consumen directamente las
+ * cards de resumen (GYM/Calistenia en rutinas-lista.js) vía
  * expandirIntensidadPorMusculo.
  * @returns {Record<string, number>} grupo muscular -> fatiga normalizada 0..1
  */
 export function calcularFatigaPorGrupo(eventos, obtenerGrupos, obtenerVolumen, ahora = Date.now(), horasRecuperacion = 48) {
   const fatigaPorGrupo = sumarFatigaPorGrupo(eventos, obtenerGrupos, obtenerVolumen, ahora, horasRecuperacion);
-  const max = Math.max(1, ...Object.values(fatigaPorGrupo));
   const fatiga = {};
   for (const [grupo, val] of Object.entries(fatigaPorGrupo)) {
-    fatiga[grupo] = val / max;
+    fatiga[grupo] = Math.min(1, val / FATIGA_REFERENCIA);
   }
   return fatiga;
 }

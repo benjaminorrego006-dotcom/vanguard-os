@@ -7,7 +7,7 @@ import { getEjercicioMetadata, CATALOGO_EJERCICIOS, agruparPorGrupoMuscular, gru
 import { ConfirmDialog, Toast } from '../utils/states.js';
 import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
 import { escapeHtml } from '../utils/escape.js';
-import { MuscleMap, sumarFatigaPorGrupo, expandirIntensidadPorMusculo } from './mk3-muscle-map.js';
+import { MuscleMap, sumarFatigaPorGrupo, expandirIntensidadPorMusculo, FATIGA_REFERENCIA } from './mk3-muscle-map.js';
 import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
 
 const trophySvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path></svg>`;
@@ -317,9 +317,11 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
     for (const [grupo, series] of Object.entries(enVivoPorGrupo)) {
       combinado[grupo] = (combinado[grupo] || 0) + series;
     }
-    const max = Math.max(1, ...Object.values(combinado));
+    // Misma escala fija que calcularFatigaPorGrupo (FATIGA_REFERENCIA), no
+    // el máximo dinámico entre grupos: si no, entrenar un solo grupo lo deja
+    // "al máximo" toda la ventana de 48h en vez de apagarse gradual.
     const fatigaNormalizada = {};
-    for (const [grupo, val] of Object.entries(combinado)) fatigaNormalizada[grupo] = val / max;
+    for (const [grupo, val] of Object.entries(combinado)) fatigaNormalizada[grupo] = Math.min(1, val / FATIGA_REFERENCIA);
 
     sessionMuscleMap.setIntensidades(expandirIntensidadPorMusculo(fatigaNormalizada, GRUPOS_MUSCULARES));
   }
