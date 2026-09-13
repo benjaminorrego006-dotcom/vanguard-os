@@ -133,9 +133,15 @@ export const GRUPOS_MUSCULARES = {
   "Brazos": ["biceps-left", "forearm-left", "biceps-right", "forearm-right", "elbow-right", "elbow-left", "triceps-long-left", "triceps-lateral-left", "forearm-flexors-left", "forearm-extensors-left", "triceps-long-right", "triceps-lateral-right", "forearm-flexors-right", "forearm-extensors-right"],
   "Pecho": ["chest-upper-left", "chest-lower-left", "chest-upper-right", "chest-lower-right"],
   "Abdomen": ["abs-upper-left", "serratus-anterior-left", "obliques-left", "abs-upper-right", "abs-lower-right", "abs-lower-left", "serratus-anterior-right", "obliques-right"],
-  "Piernas": ["hip-flexor-right", "hip-flexor-left", "quads-left", "adductors-left", "tibialis-anterior-left", "knee-left", "quads-right", "adductors-right", "tibialis-anterior-right", "knee-right", "knee-back-left", "knee-back-right", "calves-gastroc-medial-left", "calves-gastroc-lateral-left", "calves-soleus-left", "calves-gastroc-medial-right", "calves-gastroc-lateral-right", "calves-soleus-right", "hamstrings-medial-left", "hamstrings-lateral-left", "hamstrings-medial-right", "hamstrings-lateral-right"],
+  // Los 4 IDs de gluteo vivian por error en "Espalda" (abajo) — expandirIntensidadPorMusculo
+  // ilumina TODOS los musculos listados bajo la clave que recibio series, asi que
+  // cualquier ejercicio de espalda encendia gluteos junto con dorsales/lumbares.
+  // Movidos aca: coincide con como ya estan categorizados los ejercicios de
+  // gluteo (hip thrust, patada de gluteo, abduccion de cadera) en el catalogo
+  // real (grupoMuscular: 'piernas', ver ejercicios-catalogo-gym.js).
+  "Piernas": ["hip-flexor-right", "hip-flexor-left", "quads-left", "adductors-left", "tibialis-anterior-left", "knee-left", "quads-right", "adductors-right", "tibialis-anterior-right", "knee-right", "knee-back-left", "knee-back-right", "calves-gastroc-medial-left", "calves-gastroc-lateral-left", "calves-soleus-left", "calves-gastroc-medial-right", "calves-gastroc-lateral-right", "calves-soleus-right", "hamstrings-medial-left", "hamstrings-lateral-left", "hamstrings-medial-right", "hamstrings-lateral-right", "gluteus-medius-left", "gluteus-maximus-left", "gluteus-medius-right", "gluteus-maximus-right"],
   "Manos y pies": ["foot-left", "foot-right", "hand-right", "hand-left", "hand-back-left", "hand-back-right", "foot-back-left", "foot-back-right"],
-  "Espalda": ["lats-upper-left", "lats-mid-left", "lats-lower-left", "lats-upper-right", "lats-mid-right", "lats-lower-right", "spine", "lower-back-erectors-left", "lower-back-ql-left", "lower-back-erectors-right", "lower-back-ql-right", "gluteus-medius-left", "gluteus-maximus-left", "gluteus-medius-right", "gluteus-maximus-right"],
+  "Espalda": ["lats-upper-left", "lats-mid-left", "lats-lower-left", "lats-upper-right", "lats-mid-right", "lats-lower-right", "spine", "lower-back-erectors-left", "lower-back-ql-left", "lower-back-erectors-right", "lower-back-ql-right"],
 };
 
 export const VIEWBOX = {
