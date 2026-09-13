@@ -1,9 +1,11 @@
 import { db } from '../core/db.js';
 import { PLANTILLAS } from '../core/plantillas.js';
-import { getEjercicioPorId, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
+import { getEjercicioPorId, agruparPorGrupoMuscular, grupoMuscularParaMapa } from '../core/ejercicios-catalogo.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatDiaSemana } from '../utils/fecha.js';
+import { MuscleMap, expandirIntensidadPorMusculo } from './mk3-muscle-map.js';
+import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
 
 // Escala de dificultad para ordenar "Plantillas sugeridas" de menor a mayor.
 // 'Todos los niveles' se trata como accesible para principiantes (rango 1).
@@ -134,44 +136,24 @@ export async function renderRutinasLista(categoria) {
 
   html += balanceHtml;
 
-  let volumenGrupoHtml = '';
+  let muscleMapHtml = '';
   if (categoria === 'gym') {
-    const { volumen } = await db.getVolumenPorGrupo(7, 'gym');
-    const grupos = [
-      { key: 'pecho', label: 'Pecho', color: 'var(--accent-teal)' },
-      { key: 'espalda', label: 'Espalda', color: 'var(--cy2)' },
-      { key: 'piernas', label: 'Piernas', color: 'var(--cy3)' },
-      { key: 'hombros', label: 'Hombros', color: 'var(--cy4)' },
-      { key: 'brazos', label: 'Brazos', color: 'var(--cyb)' }
-    ];
-    const total = grupos.reduce((sum, g) => sum + (volumen[g.key] || 0), 0);
-
-    if (total > 0) {
-      const maxVal = Math.max(...grupos.map(g => volumen[g.key] || 0), 1);
-      volumenGrupoHtml = `
-        <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 24px;">
-          <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Volumen por grupo muscular (7 días)</h3>
-          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
-            ${grupos.map(g => {
-              const v = volumen[g.key] || 0;
-              const w = (v / maxVal) * 100;
-              return `
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <div style="width: 60px; color: var(--text-secondary);">${g.label}</div>
-                  <div style="flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden;">
-                    <div style="height: 100%; width: ${w}%; background: ${g.color};"></div>
-                  </div>
-                  <div style="width: 28px; text-align: right; color: var(--text-primary);">${v}</div>
-                </div>
-              `;
-            }).join('')}
+    muscleMapHtml = `
+      <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 24px; display: flex; flex-direction: column; align-items: center;">
+        <div class="flex-between" style="width: 100%; margin-bottom: 12px;">
+          <h3 style="font-size: 14px; font-weight: 600; margin: 0; color: var(--text-primary);">Mapa muscular (7 días)</h3>
+          <div class="mk3-muscle-map-controles" id="gym-muscle-map-controles">
+            <button type="button" data-vista="frente" aria-pressed="true">Frente</button>
+            <button type="button" data-vista="espalda" aria-pressed="false">Espalda</button>
           </div>
-          <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary);">${infoSvg}Series totales por grupo muscular esta semana.</div>
         </div>
-      `;
-    }
+        <div id="gym-muscle-map"></div>
+        <div class="mk3-muscle-map-leyenda" id="gym-muscle-map-leyenda"></div>
+        <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary); align-self: flex-start;">${infoSvg}Series completadas por grupo muscular esta semana.</div>
+      </div>
+    `;
   }
-  html += volumenGrupoHtml;
+  html += muscleMapHtml;
 
   let deloadHtml = '';
   if (categoria === 'gym' || categoria === 'calistenia') {
@@ -428,6 +410,56 @@ export function initRutinasListaListeners(categoria, onNewRoutine, onStartSessio
       }
     }, { signal });
   });
+
+  if (categoria === 'gym') {
+    initMuscleMapPara('gym', { contenedorId: 'gym-muscle-map', controlesId: 'gym-muscle-map-controles', leyendaId: 'gym-muscle-map-leyenda' }, signal);
+  }
+}
+
+// Mapa muscular MK III (mk3-muscle-map.js): misma fuente de datos que ya
+// alimentaba la card de volumen por grupo que reemplaza (db.getVolumenPorGrupo,
+// "series completadas" por grupoMuscular de las últimas rangoDias) — no se
+// lee el store 'events' directo para no duplicar el cálculo de fecha/
+// categoría que esa función ya resuelve bien, y para garantizar que el mapa
+// muestre siempre los mismos números que el resto de la app.
+async function initMuscleMapPara(categoria, { contenedorId, controlesId, leyendaId }, signal) {
+  const contenedor = document.getElementById(contenedorId);
+  if (!contenedor) return;
+
+  const { volumen } = await db.getVolumenPorGrupo(7, categoria);
+  const porGrupoMapa = {};
+  for (const [grupoReal, series] of Object.entries(volumen)) {
+    const claveMapa = grupoMuscularParaMapa(grupoReal);
+    if (!claveMapa || series <= 0) continue;
+    porGrupoMapa[claveMapa] = (porGrupoMapa[claveMapa] || 0) + series;
+  }
+  const max = Math.max(1, ...Object.values(porGrupoMapa));
+  const intensidadPorGrupo = {};
+  for (const [grupoMapa, series] of Object.entries(porGrupoMapa)) {
+    intensidadPorGrupo[grupoMapa] = series / max;
+  }
+  const intensidadPorMusculo = expandirIntensidadPorMusculo(intensidadPorGrupo, GRUPOS_MUSCULARES);
+
+  const leyenda = document.getElementById(leyendaId);
+  const mostrarEnLeyenda = (info) => { if (leyenda) leyenda.textContent = info ? info.nombre : ''; };
+
+  const mapa = new MuscleMap(contenedor, {
+    vista: VISTA.FRENTE,
+    intensidades: intensidadPorMusculo,
+    onMuscleHover: mostrarEnLeyenda,
+    onMuscleClick: mostrarEnLeyenda,
+  });
+  if (signal) signal.addEventListener('abort', () => mapa.destroy());
+
+  const controles = document.getElementById(controlesId);
+  if (controles) {
+    controles.querySelectorAll('button[data-vista]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        mapa.setVista(btn.dataset.vista === 'espalda' ? VISTA.ESPALDA : VISTA.FRENTE);
+        controles.querySelectorAll('button[data-vista]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+      }, { signal });
+    });
+  }
 }
 
 export function initPlantillaPreviewListeners(categoria, plantilla, onSuccess, signal) {

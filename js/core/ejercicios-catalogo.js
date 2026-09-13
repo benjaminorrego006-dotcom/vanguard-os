@@ -69,6 +69,29 @@ export const GRUPO_MUSCULAR_LABELS = {
   otro: 'Otros'
 };
 
+// grupoMuscular real del catálogo (gym/calistenia) -> clave que usa
+// GRUPOS_MUSCULARES del mapa muscular MK III (mk3-muscle-map-data.js).
+// Vive acá y no en el componente del mapa porque este archivo es el dueño
+// de la semántica de grupoMuscular — el mapa no debería depender del
+// catálogo, así que la normalización va en esta dirección. "cardio" no
+// tiene una zona clara del cuerpo (podría ser cualquier músculo según el
+// ejercicio) y "otro" es el cajón de sastre de getVolumenPorGrupo — ninguno
+// de los dos ilumina nada en el mapa. "Cabeza y cuello" y "Manos y pies"
+// del mapa quedan siempre neutras a propósito: ningún ejercicio de
+// GYM/Calistenia entrena esas zonas específicamente.
+export const GRUPO_MUSCULAR_A_MAPA = {
+  pecho: 'Pecho',
+  espalda: 'Espalda',
+  hombros: 'Hombros',
+  brazos: 'Brazos',
+  piernas: 'Piernas',
+  core: 'Abdomen',
+};
+
+export function grupoMuscularParaMapa(grupoMuscular) {
+  return GRUPO_MUSCULAR_A_MAPA[grupoMuscular] || null;
+}
+
 // Agrupa `items` por grupo muscular (según `getGrupo(item)`) preservando el
 // orden original DENTRO de cada grupo, y devuelve los grupos en el orden
 // lógico de entrenamiento (Piernas -> Espalda -> Pecho -> Hombros -> Brazos

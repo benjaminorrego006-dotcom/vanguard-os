@@ -1,0 +1,134 @@
+/**
+ * mk3-muscle-map.css
+ * -----------------------------------------------------------------
+ * Estilos del mapa muscular, siguiendo el sistema de diseño MK III:
+ * - Chaflanes via clip-path (nunca border-radius)
+ * - Tipografia monoespaciada para numeros/datos, sans-serif para copy
+ * - Acento cian de Entreno para intensidad (nunca rojo: el rojo esta
+ *   reservado a alertas reales)
+ * - Sin sombras
+ *
+ * Ajusta los nombres de variable si en tu css/variables.css el acento
+ * de Entreno y el fondo de superficie usan otro nombre (aqui se dejan
+ * fallbacks razonables por si aun no existen esos tokens).
+ * -----------------------------------------------------------------
+ */
+
+.mk3-muscle-map {
+  --mm-accent: var(--accent-teal); /* cian, acento exclusivo de Entreno en MK III */
+  /* Tono de musculo "en reposo": visible a proposito (no casi-negro),
+     para que el cuerpo se lea completo aunque no se haya entrenado
+     nada todavia. Antes usaba el mismo tono que el fondo y por eso
+     el resultado se veia como placas sueltas flotando en negro.
+     --text-secondary es el tono neutro-pero-visible mas cercano que
+     ya existe en el sistema; no hay un token "musculo" real. */
+  --mm-base: var(--text-secondary);
+  --mm-stroke: var(--surface-border);
+  --mm-bg: var(--surface-1);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--mm-bg);
+  /* chaflan MK III en vez de border-radius */
+  clip-path: polygon(
+    12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px
+  );
+}
+
+.mk3-muscle-map__svg {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+}
+
+/* Silueta de fondo borrosa: "glow" de cuerpo completo detras de las
+   facetas, para que se perciba como un cuerpo y no como piezas. */
+.mk3-muscle-map__glow {
+  filter: url(#mk3-blur-cuerpo);
+}
+.mk3-muscle-map__glow path {
+  fill: color-mix(in srgb, var(--mm-base) 70%, var(--mm-bg));
+  opacity: 0.9;
+}
+
+.mk3-muscle-map__musculo {
+  stroke: color-mix(in srgb, var(--mm-base) 45%, black);
+  stroke-width: 0.09;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  cursor: pointer;
+  outline: none;
+  transition: fill 160ms ease-out, stroke 160ms ease-out, filter 160ms ease-out;
+
+  /* Un solo tono (acento cian) que se satura con la intensidad.
+     0 = base visible y neutra, 1 = acento completo. Nunca rojo aqui. */
+  fill: color-mix(
+    in srgb,
+    var(--mm-accent) calc(var(--intensidad, 0) * 100%),
+    var(--mm-base)
+  );
+}
+
+.mk3-muscle-map__musculo.is-hover,
+.mk3-muscle-map__musculo:focus-visible {
+  stroke: var(--mm-accent);
+  stroke-width: 0.22;
+  filter: brightness(1.15);
+}
+
+.mk3-muscle-map__musculo.is-activo {
+  stroke: color-mix(in srgb, var(--mm-accent) 60%, var(--mm-stroke));
+}
+
+/* Capa de brillo/volumen: mismo trazado que cada musculo, pero con un
+   gradiente radial (objectBoundingBox: se re-centra solo por encima de
+   cada path) para sugerir curvatura, sin tocar la geometria original.
+   pointer-events:none para que los clicks sigan yendo al musculo real. */
+.mk3-muscle-map__shine-layer {
+  pointer-events: none;
+}
+.mk3-muscle-map__shine {
+  fill: url(#mk3-shine);
+  mix-blend-mode: overlay;
+  opacity: 0.85;
+}
+
+/* ---- Controles: toggle frente/espalda ---- */
+
+.mk3-muscle-map-controles {
+  display: flex;
+  gap: 0.5rem;
+  font-family: var(--font-mono-mk3);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mk3-muscle-map-controles button {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  border: 1px solid var(--mm-stroke);
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  clip-path: polygon(8px 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+}
+
+.mk3-muscle-map-controles button[aria-pressed="true"] {
+  background: var(--mm-accent);
+  color: #04141a;
+  border-color: var(--mm-accent);
+}
+
+/* ---- Leyenda opcional: nombre del musculo bajo el cursor/tap ---- */
+
+.mk3-muscle-map-leyenda {
+  min-height: 1.2em;
+  font-family: var(--font-mono-mk3);
+  font-size: 0.8rem;
+  color: var(--mm-accent);
+  text-align: center;
+}
