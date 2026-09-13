@@ -47,6 +47,19 @@
   filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
 }
 
+/* El viewBox (0 0 35 93, cuerpo completo) es ~1:2.66 alto/ancho, y con
+   height:auto el alto queda atado al ancho — a 280px de ancho da ~744px de
+   alto fijo, sin importar el tamaño de pantalla. En desktop pasa
+   desapercibido; en mobile domina la pantalla entera (medido: SVG de 720px
+   de alto = 89% de un viewport de 812px) y obliga a scrollear solo para
+   ver el mapa. No se toca .mk3-muscle-map--sm (mini-mapa de "En Sesión"),
+   que ya resuelve esto con su propio max-width chico. */
+@media (max-width: 480px) {
+  .mk3-muscle-map__svg {
+    max-width: 170px; /* ~450px de alto con este viewBox, ~55% de un viewport de 812px en vez del 89% actual */
+  }
+}
+
 /* Instancia chica: mapa en vivo dentro de "En Sesión" (rutina-session.js),
    donde no compite por espacio con una card dedicada como en las listas. */
 .mk3-muscle-map--sm {
