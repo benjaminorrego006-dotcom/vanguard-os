@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v142';
+const CACHE_NAME = 'vanguard-os-v143';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const PRECACHE_URLS = [
   './js/core/db.js',
   './js/core/idb.js',
   './js/core/lock.js',
+  './js/core/supabase-client.js',
   './js/core/history.js',
   './js/core/audio.js',
   './js/core/ejercicios-catalogo.js',
@@ -53,6 +54,7 @@ const PRECACHE_URLS = [
   './js/views/mas.js',
   './js/views/configuracion.js',
   './js/components/pin-security.js',
+  './js/components/auth-section.js',
   './js/components/activity-heatmap.js',
   './js/components/arbol-progresion.js',
   './js/components/estandares-fuerza.js',

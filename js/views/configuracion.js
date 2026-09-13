@@ -11,6 +11,7 @@ import { escapeHtml } from '../utils/escape.js';
 import { renderProfileForm, setupProfileForm, openProfileForm } from '../components/profile-form.js';
 import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardingForm } from '../components/nivel-onboarding-form.js';
 import { renderPinSecuritySection, attachPinSecurityListeners } from '../components/pin-security.js';
+import { getAuthSession, renderAuthSection, attachAuthListeners } from '../components/auth-section.js';
 import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 
 const NIVEL_LABELS = { 'menos-1': 'Menos de 1 año', '1-3': '1 a 3 años', 'mas-3': 'Más de 3 años' };
@@ -27,13 +28,14 @@ function seccion(titulo, subtitulo, contenidoHtml) {
 const btnSecundario = (id, texto) => `<button id="${id}" type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border);">${escapeHtml(texto)}</button>`;
 
 export async function render() {
-  const [profile, nivel, restTimerSecs, rule, diasDesdeBackup, estadoAlmacenamiento] = await Promise.all([
+  const [profile, nivel, restTimerSecs, rule, diasDesdeBackup, estadoAlmacenamiento, authSession] = await Promise.all([
     db.getProfile(),
     db.getNivelEntrenamiento(),
     db.getRestTimerSecs(),
     db.getAllocationRule(),
     getDiasDesdeUltimoBackup(),
-    db.getEstadoAlmacenamiento()
+    db.getEstadoAlmacenamiento(),
+    getAuthSession()
   ]);
 
   const perfilResumen = profile
@@ -77,6 +79,10 @@ export async function render() {
         <h1 style="font-size: 30px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.5px;">Configuración</h1>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Perfil, seguridad, respaldos y preferencias.</div>
       </div>
+
+      ${seccion('Cuenta', 'Sincronizá tus datos entre dispositivos con email y contraseña. Es opcional — la app sigue funcionando 100% offline sin esto.', `
+        <div id="cfg-auth-container">${renderAuthSection(authSession)}</div>
+      `)}
 
       ${seccion('Perfil', escapeHtml(perfilResumen), btnSecundario('btn-cfg-perfil', 'Editar perfil'))}
 
@@ -148,6 +154,7 @@ export function mountListeners() {
   setupProfileForm(refresh);
   setupNivelOnboardingForm(refresh);
   attachPinSecurityListeners('cfg-pin-container');
+  attachAuthListeners('cfg-auth-container');
 
   document.getElementById('btn-cfg-perfil')?.addEventListener('click', () => openProfileForm());
   document.getElementById('btn-cfg-nivel')?.addEventListener('click', () => openNivelOnboardingForm());
