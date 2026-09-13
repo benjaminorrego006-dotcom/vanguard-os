@@ -1,12 +1,14 @@
 // js/components/auth-section.js
 // Sección "Cuenta" en Configuración — login/signup/logout contra Supabase
-// Auth. Esto es Fase 2 del plan de sincronización entre dispositivos:
-// solo la sesión de auth, todavía sin sincronizar ningún dato (eso es
-// Fase 3, sobre la tabla `events`). La app sigue funcionando 100% offline
-// sin cuenta — esta sección es opcional.
+// Auth, más un botón de sync manual. La sincronización real (subir/bajar
+// `events`) vive en core/sync.js y corre sola en segundo plano (al
+// loguearse, al recuperar conexión, y evento por evento en tiempo real) —
+// el botón de acá es solo para forzarla a demanda. La app sigue
+// funcionando 100% offline sin cuenta — esta sección es opcional.
 import { Toast } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { getSupabase, isSupabaseConfigured } from '../core/supabase-client.js';
+import { runFullSync } from '../core/sync.js';
 
 export async function getAuthSession() {
   if (!isSupabaseConfigured()) return null;
@@ -25,7 +27,10 @@ export function renderAuthSection(session) {
         <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--state-success); flex-shrink: 0;"></span>
         Sesión iniciada: ${escapeHtml(session.user.email)}
       </div>
-      <button id="btn-auth-logout" type="button" class="tappable" style="width: 100%; padding: 12px; border-radius: 12px; background: transparent; color: var(--state-high); border: 1px solid var(--state-high); font-weight: 600; cursor: pointer;">Cerrar sesión</button>
+      <div style="display: flex; gap: 10px;">
+        <button id="btn-auth-sync" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-weight: 600; cursor: pointer;">Sincronizar ahora</button>
+        <button id="btn-auth-logout" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: transparent; color: var(--state-high); border: 1px solid var(--state-high); font-weight: 600; cursor: pointer;">Cerrar sesión</button>
+      </div>
     `;
   }
 
@@ -89,5 +94,19 @@ export function attachAuthListeners(containerId) {
     await getSupabase().auth.signOut();
     Toast('Sesión cerrada', 'success');
     refresh();
+  });
+
+  document.getElementById('btn-auth-sync')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = 'Sincronizando…';
+    try {
+      const { push, pull } = await runFullSync();
+      if (push.error || pull.error) Toast('Sync con errores — ver consola', 'error');
+      else Toast(`Sincronizado: ${push.pushed} subidos, ${pull.pulled} bajados`, 'success');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sincronizar ahora';
+    }
   });
 }

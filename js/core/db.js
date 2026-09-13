@@ -252,6 +252,11 @@ async function logEvent({ modulo, tipo, entidadId = null, payload = {}, ts = nul
   try { await idb.put('events', event); }
   catch (e) { console.error('[Vanguard OS] Error registrando evento', tipo, e); }
   memoCache.clear(); // ver nota sobre memoize() más abajo: un evento nuevo invalida todo lo cacheado.
+  // Sync (js/core/sync.js) escucha este evento para subir el evento a
+  // Supabase en el momento si hay sesión y conexión — db.js no importa
+  // sync.js directamente (se mantiene funcional 100% offline y sin saber
+  // que sync existe), mismo patrón desacoplado que _triggerUpdate().
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('vg-event-logged', { detail: event }));
   return event;
 }
 
@@ -2457,10 +2462,15 @@ export const db = {
   async getCategoriasNota() {
     const cats = sortByCreatedAt(await idbGetArray('notas_categorias'));
     if (cats.length) return cats;
-    // Semilla en la primera lectura, mismo criterio que DEFAULT_ENVELOPES.
+    // Semilla en la primera lectura, mismo criterio que DEFAULT_ENVELOPES —
+    // ids FIJOS (no generateId()) a propósito: esto se siembra localmente
+    // en cada dispositivo por separado (sin logEvent), así que un id
+    // random rompería la sincronización — una nota creada en un
+    // dispositivo con catId de SU "Personal" quedaría huérfana en otro
+    // dispositivo que sembró su propio "Personal" con un id distinto.
     const base = [
-      { id: generateId(), nombre: 'Personal', createdAt: new Date().toISOString() },
-      { id: generateId(), nombre: 'Ideas', createdAt: new Date().toISOString() }
+      { id: 'cat_personal', nombre: 'Personal', createdAt: new Date().toISOString() },
+      { id: 'cat_ideas', nombre: 'Ideas', createdAt: new Date().toISOString() }
     ];
     await idbSetArray('notas_categorias', base);
     return base;

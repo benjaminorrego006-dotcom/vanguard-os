@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v143';
+const CACHE_NAME = 'vanguard-os-v145';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -18,6 +18,7 @@ const PRECACHE_URLS = [
   './js/core/idb.js',
   './js/core/lock.js',
   './js/core/supabase-client.js',
+  './js/core/sync.js',
   './js/core/history.js',
   './js/core/audio.js',
   './js/core/ejercicios-catalogo.js',

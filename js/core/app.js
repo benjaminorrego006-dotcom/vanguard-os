@@ -3,6 +3,7 @@ import { mountLockScreen, startInactivityWatch, isLocked } from './lock.js';
 import { initModalHistory, forgetOpenModals, initSheetDragToDismiss } from './history.js';
 import { mountOnboardingInicial } from '../components/onboarding-inicial.js';
 import { escapeHtml } from '../utils/escape.js';
+import { initSync } from './sync.js';
 
 const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'mas', 'configuracion'];
 
@@ -197,6 +198,11 @@ class Router {
     db.init()
       .catch(err => console.error('Error inicializando la base de datos', err))
       .then(() => this.init());
+
+    // Sync (Fase 3, ver js/core/sync.js): no bloquea el arranque ni el
+    // primer render — corre en paralelo, y si no hay sesión guardada no
+    // hace nada.
+    initSync().catch(err => console.error('Error inicializando sync', err));
   }
 
   injectIcons() {
