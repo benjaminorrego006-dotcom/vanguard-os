@@ -1613,4 +1613,181 @@ export const CATALOGO_CALISTENIA = {
     patronMovimiento: "rodilla",
     tipoMovimiento: "compuesto"
   },
+  'flexiones manos abiertas': {
+    id: 'flexiones manos abiertas',
+    nombre: 'Flexiones Manos Abiertas',
+    categoria: 'calistenia',
+    grupoMuscular: 'pecho',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, hombros',
+    posturaInicial: 'Manos apoyadas notablemente más separadas que el ancho de hombros, cuerpo en línea recta.',
+    pasosEjecucion: [
+      'Baja el pecho hacia el piso, codos abriéndose más que en una flexión estándar.',
+      'Empuja de vuelta hasta extensión completa.'
+    ],
+    erroresComunes: [
+      'Dejar caer la cadera.',
+      'Agarre tan ancho que fuerza el hombro.'
+    ],
+    nivel: "principiante",
+    prerequisitos: ["flexiones con rodillas"],
+    progresionDe: "flexiones con rodillas",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "compuesto"
+  },
+  'dominada comando': {
+    id: 'dominada comando',
+    nombre: 'Dominada Comando',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'bíceps',
+    posturaInicial: 'Colgado de la barra con agarre neutro, una mano delante de la otra en el mismo eje.',
+    pasosEjecucion: [
+      'Tira del cuerpo hacia arriba llevando la cabeza a un costado de la barra.',
+      'Baja controladamente y alterna el lado en la siguiente repetición.'
+    ],
+    erroresComunes: [
+      'Usar impulso en vez de fuerza controlada.',
+      'No alternar de lado entre repeticiones.'
+    ],
+    // prerequisitos cruza a GYM ("Dominadas"), igual que Dominada de
+    // Arquero — mismo punto de partida, dificultad similar/paralela.
+    nivel: "avanzado",
+    prerequisitos: ["dominadas"],
+    progresionDe: "dominadas",
+    criterioAvance: {"tipo":"reps","valor":5,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-vertical",
+    tipoMovimiento: "compuesto"
+  },
+  'buenos días sin peso': {
+    id: 'buenos días sin peso',
+    nombre: 'Buenos Días Sin Peso',
+    categoria: 'calistenia',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'espalda baja',
+    posturaInicial: 'De pie, pies al ancho de hombros, manos detrás de la cabeza o cruzadas sobre el pecho.',
+    pasosEjecucion: [
+      'Empuja la cadera hacia atrás inclinando el torso hacia adelante, espalda recta, rodillas con flexión leve.',
+      'Extiende la cadera hacia adelante para volver a la posición inicial.'
+    ],
+    erroresComunes: [
+      'Redondear la espalda baja.',
+      'Doblar las rodillas de más (se acerca a una sentadilla).'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "cadera",
+    tipoMovimiento: "compuesto"
+  },
+  'extensión de tríceps invertida': {
+    id: 'extensión de tríceps invertida',
+    nombre: 'Extensión de Tríceps Invertida en el Suelo',
+    categoria: 'calistenia',
+    grupoMuscular: 'brazos',
+    patron: 'empuje',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'Sentado, manos apoyadas en el piso detrás de la cadera con los dedos hacia el cuerpo, piernas extendidas al frente.',
+    pasosEjecucion: [
+      'Flexiona los codos bajando la cadera hacia el piso sin sentarte del todo.',
+      'Extiende los codos para volver a subir.'
+    ],
+    erroresComunes: [
+      'Bajar tan rápido que se pierde el control del hombro.',
+      'Alejar demasiado los pies (cambia el énfasis a pecho/hombro).'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":12,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'curl de bíceps con banda': {
+    id: 'curl de bíceps con banda',
+    nombre: 'Curl de Bíceps con Banda',
+    categoria: 'calistenia',
+    grupoMuscular: 'brazos',
+    patron: 'traccion',
+    musculoSecundario: 'antebrazos',
+    posturaInicial: 'De pie sobre el centro de la banda, un extremo en cada mano, codos pegados al torso.',
+    pasosEjecucion: [
+      'Flexiona los codos llevando las manos hacia los hombros.',
+      'Baja controladamente sin perder la tensión de la banda.'
+    ],
+    erroresComunes: [
+      'Perder la tensión de la banda al bajar.',
+      'Balancear el torso para generar impulso.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":15,"series":3},
+    tambienEn: [],
+    equipo: "banda",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "aislamiento"
+  },
+  'zancada lateral': {
+    id: 'zancada lateral',
+    nombre: 'Zancada Lateral',
+    categoria: 'calistenia',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'glúteos, aductores',
+    posturaInicial: 'De pie, pies juntos.',
+    pasosEjecucion: [
+      'Da un paso amplio hacia un lado, flexionando esa rodilla mientras la otra pierna queda extendida.',
+      'Empuja con la pierna flexionada para volver al centro y alterna de lado.'
+    ],
+    erroresComunes: [
+      'Dejar que la rodilla de apoyo colapse hacia adentro.',
+      'Paso tan corto que no involucra bien la cadera.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["zancadas"],
+    progresionDe: "zancadas",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "compuesto"
+  },
+  'elevación de talones peso corporal': {
+    id: 'elevación de talones peso corporal',
+    nombre: 'Elevación de Talones (Peso Corporal)',
+    categoria: 'calistenia',
+    grupoMuscular: 'piernas',
+    patron: 'piernas',
+    musculoSecundario: 'ninguno',
+    posturaInicial: 'De pie, pies al ancho de cadera, apoyado en algo fijo para el equilibrio si hace falta.',
+    pasosEjecucion: [
+      'Eleva los talones lo más alto posible.',
+      'Baja controladamente hasta el estiramiento completo de la pantorrilla.'
+    ],
+    erroresComunes: [
+      'Rango de movimiento parcial.',
+      'Rebotar en vez de controlar la bajada.'
+    ],
+    nivel: "todos",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":20,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "rodilla",
+    tipoMovimiento: "aislamiento"
+  },
 };

@@ -207,7 +207,9 @@ export const CATALOGO_GYM = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
-    tambienEn: [],
+    // Compartido con Calistenia: peso corporal + banco, nada específico
+    // de GYM.
+    tambienEn: ["calistenia"],
     equipo: "banco",
     patronMovimiento: "rodilla",
     tipoMovimiento: "compuesto"
@@ -419,7 +421,9 @@ export const CATALOGO_GYM = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
-    tambienEn: [],
+    // Compartido con Calistenia (spec-calistenia-implementacion.md): mismo
+    // ejercicio, peso corporal puro, no amerita una entrada duplicada.
+    tambienEn: ["calistenia"],
     equipo: "ninguno",
     patronMovimiento: "cadera",
     tipoMovimiento: "aislamiento"
@@ -1043,7 +1047,9 @@ export const CATALOGO_GYM = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":6,"series":3},
-    tambienEn: [],
+    // Compartido con Calistenia: mismo ejercicio, solo requiere barra de
+    // dominadas.
+    tambienEn: ["calistenia"],
     equipo: "barra-dominadas",
     patronMovimiento: "traccion-vertical",
     tipoMovimiento: "compuesto"
@@ -1071,7 +1077,7 @@ export const CATALOGO_GYM = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":6,"series":3},
-    tambienEn: [],
+    tambienEn: ["calistenia"],
     equipo: "barra-dominadas",
     patronMovimiento: "traccion-vertical",
     tipoMovimiento: "compuesto"
@@ -1757,7 +1763,9 @@ export const CATALOGO_GYM = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":5,"series":3},
-    tambienEn: [],
+    // Compartido con Calistenia: peso corporal puro, es el mismo "Nordic
+    // Curl" que pide ese catálogo.
+    tambienEn: ["calistenia"],
     equipo: "ninguno",
     patronMovimiento: "cadera",
     tipoMovimiento: "compuesto"
