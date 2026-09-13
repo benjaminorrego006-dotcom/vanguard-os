@@ -663,6 +663,7 @@ export const db = {
     let envelopes = await this.getEnvelopes();
     let updated = false;
     const generatedTxs = [];
+    const recurrentesProcesados = [];
 
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -696,6 +697,7 @@ export const db = {
 
         req.lastProcessed = nextTarget.toISOString();
         updated = true;
+        recurrentesProcesados.push({ id: req.id, lastProcessed: req.lastProcessed, txId: newTx.id });
         nextTarget.setMonth(nextTarget.getMonth() + 1);
       }
     });
@@ -705,6 +707,11 @@ export const db = {
       await idbSetArray('transacciones', txs); this._triggerUpdate();
       for (const tx of generatedTxs) {
         await logEvent({ modulo: 'finanzas', tipo: 'movimiento_registrado', entidadId: tx.id, payload: tx, ts: new Date(tx.date).getTime() });
+      }
+      // Deja lastProcessed reconstruible por replay: sin este evento, ese
+      // campo del store 'recurrentes' no viene de ningún evento.
+      for (const r of recurrentesProcesados) {
+        await logEvent({ modulo: 'finanzas', tipo: 'recurrente_procesado', entidadId: r.id, payload: { lastProcessed: r.lastProcessed, txId: r.txId } });
       }
       return true;
     }
@@ -2075,14 +2082,18 @@ export const db = {
   },
 
   // Renombra preservando id/createdAt/marcas — a diferencia de borrar y
-  // recrear, que perdería el historial y reiniciaría la racha. Sin
-  // logEvent propio: no es un cambio de estado que deba contar para racha.
+  // recrear, que perdería el historial y reiniciaría la racha. El evento
+  // usa un tipo propio ('habito_renombrado') que getRachaGlobal no cuenta
+  // (solo mira 'habito_marcado'), así que no afecta la racha — pero queda
+  // registrado para que un replay de `events` reconstruya el nombre actual.
   async renombrarHabito(id, nombre) {
     const habitos = await idbGetArray('habitos');
     const idx = habitos.findIndex(h => h.id === id);
     if (idx === -1) return null;
-    habitos[idx] = { ...habitos[idx], nombre: String(nombre).trim() };
+    const nombreNuevo = String(nombre).trim();
+    habitos[idx] = { ...habitos[idx], nombre: nombreNuevo };
     await idbSetArray('habitos', habitos); this._triggerUpdate();
+    await logEvent({ modulo: 'habitos', tipo: 'habito_renombrado', entidadId: id, payload: { nombre: nombreNuevo } });
     return habitos[idx];
   },
 
@@ -2492,7 +2503,7 @@ export const db = {
     const nueva = { id: generateId(), catId, titulo: t, texto: x, createdAt: new Date().toISOString() };
     notas.push(nueva);
     await idbSetArray('notas', notas); this._triggerUpdate();
-    await logEvent({ modulo: 'anotaciones', tipo: 'nota_creada', entidadId: nueva.id, payload: { catId, titulo: t } });
+    await logEvent({ modulo: 'anotaciones', tipo: 'nota_creada', entidadId: nueva.id, payload: { catId, titulo: t, texto: x } });
     return nueva;
   },
 
