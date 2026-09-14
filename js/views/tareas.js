@@ -273,8 +273,31 @@ export async function render() {
         ${renderBoardContent(cols)}
       </div>
 
-      <!-- Mapa de actividad — debajo del tablero (Por Hacer/En Curso/Hecho). -->
-      <div class="card" style="margin-right: 20px; margin-bottom: 24px; padding: 18px 20px;">
+      <!-- Mapa de actividad — debajo del tablero (Por Hacer/En Curso/Hecho).
+           margin-bottom grande (no 24px) a propósito: reserva el espacio que
+           el formulario de captura rápida necesita para "soltarse" de su
+           posición sticky (bottom:100px) sin quedar superpuesto arriba de
+           esta tarjeta. Con el margen chico, en vistas con poco contenido
+           (tablero vacío, mes con menos filas) el rango total de scroll
+           podía ser menor al offset sticky (100px) — ahí el form quedaba
+           permanentemente "pegado" tapando el calendario, sin que scrollear
+           hasta el final alcanzara a despegarlo. Con este margen, al llegar
+           al final del scroll el form ya se despegó y la tarjeta queda
+           completamente libre (verificado en vivo, 375×812 y desktop,
+           tablero vacío y con tareas).
+
+           OJO — límite real de este fix: durante el tramo de scroll en que
+           la tarjeta todavía está entrando en pantalla, el form (fijo cerca
+           del borde inferior) roza brevemente su borde inferior mientras
+           pasa por detrás — es inherente a cualquier barra sticky con
+           contenido real deslizándose debajo (el FAB de acá abajo tiene el
+           mismo comportamiento) y NINGÚN margen/padding lo elimina, porque
+           la franja de pantalla donde el form queda fijo es constante y
+           cualquier contenido que empiece fuera de pantalla tiene que
+           cruzarla en algún punto del scroll. Lo que sí soluciona este
+           margen es que ese cruce sea breve y de paso (mientras se sigue
+           scrolleando) en vez de quedar trabado ahí para siempre. -->
+      <div class="card" style="margin-right: 20px; margin-bottom: 160px; padding: 18px 20px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
         ${heatmapHtml}
       </div>
