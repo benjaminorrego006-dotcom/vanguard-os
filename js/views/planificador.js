@@ -109,9 +109,10 @@ export function mountListeners() {
   document.querySelectorAll('.plan-delete').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
+      const id = e.currentTarget.getAttribute('data-id');
       const confirmed = await ConfirmDialog('¿Eliminar tarea?', 'Se borra del planificador. Esta acción no se puede deshacer.');
       if (!confirmed) return;
-      await db.eliminarTareaPlan(e.currentTarget.getAttribute('data-id'));
+      await db.eliminarTareaPlan(id);
       Toast('Tarea eliminada', 'success');
       refresh();
     });

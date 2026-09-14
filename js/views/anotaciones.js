@@ -124,9 +124,10 @@ export function mountListeners() {
   document.querySelectorAll('.cat-delete').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
+      const id = e.currentTarget.getAttribute('data-id');
       const confirmed = await ConfirmDialog('¿Eliminar categoría?', 'Se borra junto con todas sus notas. Esta acción no se puede deshacer.');
       if (!confirmed) return;
-      await db.eliminarCategoriaNota(e.currentTarget.getAttribute('data-id'));
+      await db.eliminarCategoriaNota(id);
       Toast('Categoría eliminada', 'success');
       refresh();
     });
@@ -157,9 +158,10 @@ export function mountListeners() {
 
   document.querySelectorAll('.nota-delete').forEach(btn => {
     btn.addEventListener('click', async (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
       const confirmed = await ConfirmDialog('¿Eliminar nota?', 'Esta acción no se puede deshacer.');
       if (!confirmed) return;
-      await db.eliminarNota(e.currentTarget.getAttribute('data-id'));
+      await db.eliminarNota(id);
       Toast('Nota eliminada', 'success');
       refresh();
     });

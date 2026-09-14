@@ -28,7 +28,16 @@ const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanza
 // puede importar nada (es justamente lo que carga este archivo), así que
 // no hay forma de compartir el código. Cualquier cambio acá hay que
 // replicarlo también allá, o quedan desincronizadas.
-const blobUrlCache = new Map(); // url absoluta -> blob url ya construido
+//
+// blobUrlCache SÍ se comparte con esa copia (vía window.__vgBlobUrlCache,
+// no reimportando nada) — si no, un archivo que index.html ya bajó y
+// blob-ificó como parte del grafo estático de este mismo archivo (ej.
+// sync.js -> supabase-client.js) se vuelve a blob-ificar OTRA VEZ acá
+// apenas el Router carga la primera vista que también lo importe: dos
+// instancias de módulo independientes del mismo archivo. Confirmado en
+// vivo con el cliente de Supabase (dos GoTrueClient, warning de la
+// librería) antes de este fix.
+const blobUrlCache = window.__vgBlobUrlCache || (window.__vgBlobUrlCache = new Map()); // url absoluta -> blob url ya construido
 
 async function fetchTextWithRetry(url, attempts = 5) {
   let lastErr;

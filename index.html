@@ -252,7 +252,16 @@
       })(entryUrl);
 
       const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const blobUrls = new Map();
+      // Map compartida con la copia de esta función en js/core/app.js (ver
+      // su comentario "OJO... DUPLICADA"): sin esto, un archivo que ya
+      // se bajó y blob-ificó acá (todo lo que import.js/core/app.js de
+      // forma estática, ej. sync.js -> supabase-client.js) se vuelve a
+      // blob-ificar DE NUEVO ahí cuando el Router carga la primera vista
+      // que también lo importe — dos instancias de módulo independientes
+      // del mismo archivo (visto en vivo: dos GoTrueClient del cliente de
+      // Supabase, uno por cada copia). window.__vgBlobUrlCache es el punto
+      // de encuentro entre ambas copias.
+      const blobUrls = window.__vgBlobUrlCache || (window.__vgBlobUrlCache = new Map());
       for (const url of order) {
         let text = texts.get(url);
         for (const d of deps.get(url) || []) {
