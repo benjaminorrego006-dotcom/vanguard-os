@@ -8,11 +8,57 @@ import { formatFechaCorta, formatMes } from '../utils/fecha.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 
 let tasksDonutInstance = null;
+let quickAddOverlapCleanup = null;
 
 // Llamado por el router (app.js) antes de desmontar esta vista — evita que
 // la instancia de Chart.js siga viva con su canvas ya fuera del DOM.
 export function cleanup() {
   if (tasksDonutInstance) { tasksDonutInstance.destroy(); tasksDonutInstance = null; }
+  if (quickAddOverlapCleanup) { quickAddOverlapCleanup(); quickAddOverlapCleanup = null; }
+}
+
+// El form de captura rápida es sticky (bottom:100px, ver el comentario junto
+// a #task-quick-add-form en render()) y no hay margen/padding que evite que
+// se superponga con la tarjeta del calendario mientras cruza esa franja fija
+// de la pantalla — así que se resuelve detectando el solape real cuadro a
+// cuadro. rAF-throttled en vez de IntersectionObserver: un IO necesitaría
+// adivinar el rootMargin exacto (depende del padding interno del propio
+// contenedor de scroll, que no es un valor estable/documentado), mientras
+// que comparar los dos getBoundingClientRect() en cada scroll es exacto por
+// construcción y no depende de ninguna constante mágica.
+function setupQuickAddOverlapGuard() {
+  // mountListeners() se vuelve a llamar en cada refresh() (agregar/editar
+  // una tarea, sin salir de la vista) — sin este cleanup previo, cada
+  // refresh apilaría un listener de scroll nuevo sin sacar el anterior.
+  if (quickAddOverlapCleanup) { quickAddOverlapCleanup(); quickAddOverlapCleanup = null; }
+
+  const main = document.querySelector('main.mk3-tareas');
+  const form = document.getElementById('task-quick-add-form');
+  const calendarCard = document.getElementById('tareas-calendar-card');
+  if (!main || !form || !calendarCard) return;
+
+  let ticking = false;
+  const check = () => {
+    ticking = false;
+    const fr = form.getBoundingClientRect();
+    const cr = calendarCard.getBoundingClientRect();
+    const overlapping = fr.top < cr.bottom && fr.bottom > cr.top;
+    form.style.opacity = overlapping ? '0' : '';
+    form.style.pointerEvents = overlapping ? 'none' : '';
+  };
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(check);
+  };
+
+  check();
+  main.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  quickAddOverlapCleanup = () => {
+    main.removeEventListener('scroll', onScroll);
+    window.removeEventListener('resize', onScroll);
+  };
 }
 
 // Estado del tablero (qué columna está activa) — vive en el módulo, no en
@@ -274,30 +320,13 @@ export async function render() {
       </div>
 
       <!-- Mapa de actividad — debajo del tablero (Por Hacer/En Curso/Hecho).
-           margin-bottom grande (no 24px) a propósito: reserva el espacio que
-           el formulario de captura rápida necesita para "soltarse" de su
-           posición sticky (bottom:100px) sin quedar superpuesto arriba de
-           esta tarjeta. Con el margen chico, en vistas con poco contenido
-           (tablero vacío, mes con menos filas) el rango total de scroll
-           podía ser menor al offset sticky (100px) — ahí el form quedaba
-           permanentemente "pegado" tapando el calendario, sin que scrollear
-           hasta el final alcanzara a despegarlo. Con este margen, al llegar
-           al final del scroll el form ya se despegó y la tarjeta queda
-           completamente libre (verificado en vivo, 375×812 y desktop,
-           tablero vacío y con tareas).
-
-           OJO — límite real de este fix: durante el tramo de scroll en que
-           la tarjeta todavía está entrando en pantalla, el form (fijo cerca
-           del borde inferior) roza brevemente su borde inferior mientras
-           pasa por detrás — es inherente a cualquier barra sticky con
-           contenido real deslizándose debajo (el FAB de acá abajo tiene el
-           mismo comportamiento) y NINGÚN margen/padding lo elimina, porque
-           la franja de pantalla donde el form queda fijo es constante y
-           cualquier contenido que empiece fuera de pantalla tiene que
-           cruzarla en algún punto del scroll. Lo que sí soluciona este
-           margen es que ese cruce sea breve y de paso (mientras se sigue
-           scrolleando) en vez de quedar trabado ahí para siempre. -->
-      <div class="card" style="margin-right: 20px; margin-bottom: 160px; padding: 18px 20px;">
+           margin-bottom grande (no 24px): sin esto, con tablero corto el
+           form de captura rápida (ver comentario ahí abajo) nunca llega a
+           "soltarse" de su posición sticky — se queda escondido para
+           siempre (el guard de solapamiento lo oculta) en vez de reaparecer
+           una vez que termina el calendario. Este margen le da lugar para
+           asentarse en flujo normal más abajo. -->
+      <div id="tareas-calendar-card" class="card" style="margin-right: 20px; margin-bottom: 160px; padding: 18px 20px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
         ${heatmapHtml}
       </div>
@@ -307,8 +336,21 @@ export async function render() {
            justo detrás del nav inferior fixed (mismo z-index-stacking bug que
            el FAB de abajo ya resuelve con position:sticky). Sin sticky, todo
            el ancho del input quedaba tapado por el nav y cada click
-           navegaba al tab que cayera en esa franja horizontal. -->
-      <form id="task-quick-add-form" class="list-row" onsubmit="return false;" style="position: sticky; bottom: 100px; z-index: 1001; margin-right: 20px; margin-bottom: 24px; display: flex; align-items: stretch; border: 1.5px solid var(--vib); overflow: hidden; background: var(--bg-base);">
+           navegaba al tab que cayera en esa franja horizontal.
+
+           Ningún margen/padding puede evitar que este form se superponga
+           con la tarjeta de arriba mientras cruza la franja donde queda
+           "pegado" (bottom:100px) — esa franja es un tramo fijo de la
+           pantalla (depende del viewport y del offset, no del contenido),
+           y la tarjeta del calendario (~339px) es más alta que el hueco
+           disponible, así que en algún punto del scroll van a coincidir
+           sí o sí (medido en vivo: con margin-bottom de hasta 500px en el
+           contenedor la ventana de superposición no se movió ni un
+           píxel). setupQuickAddOverlapGuard() (mountListeners, abajo) lo
+           resuelve en JS: atenúa este form exactamente mientras su rect
+           se solapa con el de #tareas-calendar-card, y lo restaura apenas
+           dejan de tocarse — sin tocar el mecanismo sticky en sí. -->
+      <form id="task-quick-add-form" class="list-row" onsubmit="return false;" style="position: sticky; bottom: 100px; z-index: 1001; margin-right: 20px; margin-bottom: 24px; display: flex; align-items: stretch; border: 1.5px solid var(--vib); overflow: hidden; background: var(--bg-base); transition: opacity 0.12s ease;">
         <input type="text" id="task-quick-add" placeholder="Nueva tarea rápida..." enterkeyhint="go" style="flex: 1; background: transparent; border: none; padding: 14px 16px; color: var(--text-primary); font-size: 16px; outline: none;">
         <button type="submit" id="btn-quick-add" class="tappable" style="background: var(--vib); border: none; color: var(--text-primary); padding: 0 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -365,6 +407,7 @@ export function mountListeners() {
     refresh();
   };
   bindQuickCaptureForm(document.getElementById('task-quick-add-form'), quickAdd);
+  setupQuickAddOverlapGuard();
 
   // Abrir detalle de tarea (edición completa, con bitácora)
   document.querySelectorAll('.btn-edit-task').forEach(el => {
