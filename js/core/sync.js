@@ -384,7 +384,15 @@ async function mirrorEvent(event) {
       row = await idb.getOne(target.store, target.id);
       if (!row) return; // ya no existe localmente (se borró después) -- nada que reflejar
     }
-    const { error } = await supabase.from(target.store).upsert({ id: target.id, user_id: uid, data: row, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    // onConflict por (user_id, id) y no solo 'id': varios stores locales
+    // reusan a propósito el MISMO id lógico para cualquier usuario
+    // (envelopes por defecto env_1..env_6, categorías cat_personal/
+    // cat_ideas, las claves fijas de singletons, la fecha de ritual) -- con
+    // 'id' solo, el upsert de un usuario choca con la fila que ya dejó
+    // OTRO usuario con ese mismo id y la policy de UPDATE lo rechaza (403
+    // "violates row-level security policy"). Requiere que la tabla en
+    // Supabase tenga su PRIMARY KEY en (user_id, id), no solo en id.
+    const { error } = await supabase.from(target.store).upsert({ id: target.id, user_id: uid, data: row, updated_at: new Date().toISOString() }, { onConflict: 'user_id,id' });
     if (error) console.error('[sync] Error reflejando en tabla espejo', target.store, error);
   } catch (e) {
     console.error('[sync] Error reflejando en tabla espejo', target.store, e);
@@ -404,10 +412,14 @@ async function backfillMirrorTables() {
   const uid = session.user.id;
   const now = new Date().toISOString();
 
+  // onConflict por (user_id, id) -- ver el mismo comentario en mirrorEvent()
+  // más arriba: varios stores locales reusan a propósito el mismo id
+  // lógico para cualquier usuario, y con 'id' solo el upsert de este
+  // dispositivo choca con la fila que dejó otro usuario con ese id.
   const upsertChunked = async (store, upserts) => {
     for (let i = 0; i < upserts.length; i += 500) {
       const chunk = upserts.slice(i, i + 500);
-      const { error } = await supabase.from(store).upsert(chunk, { onConflict: 'id' });
+      const { error } = await supabase.from(store).upsert(chunk, { onConflict: 'user_id,id' });
       if (error) console.error('[sync] Error en backfill de', store, error);
     }
   };
