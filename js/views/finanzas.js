@@ -579,7 +579,7 @@ const renderRecurringHTML = (b) => {
   const addBtnHtml = `<button id="btn-add-recurring" class="tappable" style="margin-top: 12px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; cursor: pointer; font-weight: 600; width: 100%;">+ Nuevo pago</button>`;
 
   if (!b.recurring || b.recurring.length === 0) {
-    return finEmptyState('Sin coincidencias', 'Sin pagos fijos todavía', 'Automatiza tus suscripciones y arriendos para que se descuenten solos.') + addBtnHtml;
+    return finEmptyState('Pagos fijos', 'Sin pagos fijos todavía', 'Automatiza tus suscripciones y arriendos para que se descuenten solos.') + addBtnHtml;
   }
 
   const total = b.recurring.reduce((s, r) => s + (Number(r.amount) || 0), 0);
