@@ -348,7 +348,18 @@ class Router {
     // abajo, ANTES de que ese hashchange (asíncrono) pueda relanzar una
     // segunda vez la misma navegación (ver el guard en el listener de
     // init()), así que no hay doble montaje.
-    if (location.hash.slice(1) !== viewId) location.hash = viewId;
+    //
+    // EXCEPCIÓN: si el hash actual es un callback de Supabase Auth (el link
+    // de confirmación de email lo manda como #access_token=...&type=signup,
+    // o en variantes más nuevas #token_hash=...&type=signup), NO lo
+    // pisamos. El cliente de Supabase (ver core/sync.js initSync, que se
+    // dispara en paralelo a esto mismo desde el constructor) todavía no
+    // tuvo la oportunidad de leerlo — si lo reemplazamos por "#dashboard"
+    // antes de que llegue a hacerlo, la confirmación se pierde: el usuario
+    // toca el link del mail y la cuenta nunca termina de confirmarse en la
+    // app, aunque Supabase ya la haya marcado confirmada de su lado.
+    const esCallbackDeAuth = /access_token=|refresh_token=|token_hash=|type=(signup|recovery|invite|magiclink|email_change)/.test(location.hash.slice(1));
+    if (!esCallbackDeAuth && location.hash.slice(1) !== viewId) location.hash = viewId;
 
     this.currentView = viewId;
 

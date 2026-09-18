@@ -69,7 +69,19 @@ export function attachAuthListeners(containerId) {
   document.getElementById('btn-auth-signup')?.addEventListener('click', async () => {
     const { email, password } = readCreds();
     if (!email || !password) return Toast('Completá email y contraseña', 'warning');
-    const { data, error } = await getSupabase().auth.signUp({ email, password });
+    // emailRedirectTo explícito (en vez de dejar que Supabase caiga al
+    // "Site URL" configurado en su dashboard, que en un proyecto nuevo
+    // apunta a localhost por default): el link de confirmación del mail
+    // tiene que volver a ESTA URL exacta para que el cliente de Supabase
+    // de esta misma pestaña la procese. Sigue siendo responsabilidad del
+    // usuario agregar esta URL a la lista de "Redirect URLs" permitidas en
+    // Authentication → URL Configuration del dashboard de Supabase, o el
+    // link de confirmación rebota igual antes de llegar acá.
+    const { data, error } = await getSupabase().auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin + window.location.pathname }
+    });
     if (error) return Toast(error.message, 'error');
     // Con "Confirm email" activado (default en proyectos nuevos de Supabase),
     // signUp no deja sesión iniciada hasta que se confirma por mail.
