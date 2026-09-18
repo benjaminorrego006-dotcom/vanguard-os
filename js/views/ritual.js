@@ -1,7 +1,33 @@
 import { db } from '../core/db.js';
-import { Toast } from '../utils/states.js';
+import { Toast, hayModalAbierto } from '../utils/states.js';
 import { diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
+
+// 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
+// cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
+// cambio hecho en otro dispositivo queda guardado en IndexedDB pero esta
+// vista no se repinta sola hasta que se sale y se vuelve a entrar. Se
+// engancha una sola vez: mountListeners() se vuelve a llamar en cada
+// refresh() local, así que sin el guard se acumularía un listener nuevo
+// por cada campo guardado, no solo por cada sync.
+let syncEnganchado = false;
+async function onSyncActualizado() {
+  if (hayModalAbierto()) return;
+  // Los campos de texto se guardan al perder el foco (ver el comentario en
+  // mountListeners) — si el usuario está a mitad de escribir uno, un
+  // remount ahora le pisaría lo no guardado todavía.
+  const activo = document.activeElement;
+  if (activo && activo.classList && activo.classList.contains('ritual-campo')) return;
+  const root = document.getElementById('view-root');
+  root.innerHTML = await render();
+  mountListeners();
+}
+
+// Llamado por el router (app.js) antes de desmontar esta vista.
+export function cleanup() {
+  window.removeEventListener('budget-updated', onSyncActualizado);
+  syncEnganchado = false;
+}
 
 const CAMPOS = [
   { k: 'mision',   t: 'Tu misión de hoy',       ph: 'Si el día sirviera para una sola cosa, ¿cuál sería?' },
@@ -77,6 +103,11 @@ export async function render() {
 }
 
 export function mountListeners() {
+  if (!syncEnganchado) {
+    syncEnganchado = true;
+    window.addEventListener('budget-updated', onSyncActualizado);
+  }
+
   const refresh = async () => {
     const root = document.getElementById('view-root');
     root.innerHTML = await render();

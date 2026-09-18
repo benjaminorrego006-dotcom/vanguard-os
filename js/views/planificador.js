@@ -1,8 +1,34 @@
 import { db } from '../core/db.js';
-import { Toast, ConfirmDialog } from '../utils/states.js';
+import { Toast, ConfirmDialog, hayModalAbierto } from '../utils/states.js';
 import { diaKeyDe, formatFechaCorta } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
+
+// 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
+// cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
+// cambio hecho en otro dispositivo queda guardado en IndexedDB pero esta
+// vista no se repinta sola hasta que se sale y se vuelve a entrar. Se
+// engancha una sola vez: mountListeners() se vuelve a llamar en cada
+// refresh() local, así que sin el guard se acumularía un listener nuevo
+// por cada tarea tocada, no solo por cada sync.
+let syncEnganchado = false;
+async function onSyncActualizado() {
+  if (hayModalAbierto()) return;
+  // No pisar una tarea nueva que el usuario esté a mitad de escribir en
+  // cualquiera de las tarjetas de día (se guarda recién al enviar el form).
+  const hayBorrador = Array.from(document.querySelectorAll('.plan-nueva'))
+    .some(inp => document.activeElement === inp || inp.value.trim());
+  if (hayBorrador) return;
+  const root = document.getElementById('view-root');
+  root.innerHTML = await render();
+  mountListeners();
+}
+
+// Llamado por el router (app.js) antes de desmontar esta vista.
+export function cleanup() {
+  window.removeEventListener('budget-updated', onSyncActualizado);
+  syncEnganchado = false;
+}
 
 const DOW = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -89,6 +115,11 @@ export async function render() {
 }
 
 export function mountListeners() {
+  if (!syncEnganchado) {
+    syncEnganchado = true;
+    window.addEventListener('budget-updated', onSyncActualizado);
+  }
+
   const refresh = async () => {
     const root = document.getElementById('view-root');
     root.innerHTML = await render();

@@ -26,6 +26,11 @@ let activeFinTab = 'resumen';
 let dailyBalanceChartInstance = null;
 let monthCompareChartInstance = null;
 let currentMonth = mesKeyDe(new Date());
+// Referencia al refresh() de la mount actual, para poder desenganchar
+// exactamente ese listener de 'budget-updated' en cleanup() — sin esto,
+// entrar y salir de Finanzas varias veces acumulaba un listener nuevo por
+// cada visita (cada uno disparando su propio refresh() de más).
+let currentRefresh = null;
 
 const ICON_PATHS = {
   'Ingreso': '<polyline points="5 12 12 5 19 12"></polyline><line x1="12" y1="19" x2="12" y2="5"></line>',
@@ -87,6 +92,7 @@ export function cleanup() {
   destroyAllDonuts();
   if (dailyBalanceChartInstance) { dailyBalanceChartInstance.destroy(); dailyBalanceChartInstance = null; }
   if (monthCompareChartInstance) { monthCompareChartInstance.destroy(); monthCompareChartInstance = null; }
+  if (currentRefresh) { window.removeEventListener('budget-updated', currentRefresh); currentRefresh = null; }
 }
 
 export async function init() {
@@ -187,6 +193,7 @@ export async function init() {
     // que una fila editada/eliminada quede "pegada" con datos viejos).
     renderHistoryList();
   };
+  currentRefresh = refresh;
 
   let currentTypeFilter = 'All';
 

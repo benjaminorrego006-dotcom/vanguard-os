@@ -14,7 +14,7 @@ import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
 import { formatFechaCorta } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { detectarSugerenciaPendiente } from '../core/sugerencias-nivel.js';
-import { Toast } from '../utils/states.js';
+import { Toast, hayModalAbierto } from '../utils/states.js';
 import { renderProgreso, initProgresoListeners, setContextoCategoria, cleanup as cleanupProgreso } from '../components/entreno-progreso.js';
 import { renderMiniChart } from '../components/mini-chart.js';
 
@@ -42,6 +42,20 @@ let currentViewController = null;
 let entrenoHistorialEmpujado = false;
 let entrenoPopstateEnganchado = false;
 let entrenoRespondiendoAPopstate = false;
+
+// 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
+// cambio remoto (ver runFullSync en core/sync.js). Solo tiene sentido
+// repintar si estamos en el dashboard principal ('main') — si el usuario
+// está a mitad de una sesión/timer, en un formulario, o viendo su
+// progreso, forzar un remount ahí se lo llevaría puesto. Se engancha una
+// sola vez, igual que entrenoPopstateEnganchado arriba.
+let entrenoSyncEnganchado = false;
+async function onSyncActualizadoEntreno() {
+  if (viewState !== 'main' || hayModalAbierto()) return;
+  const root = document.getElementById('view-root');
+  root.innerHTML = await render();
+  mountListeners();
+}
 
 const NIVEL_SUGERIDO_LABEL = { intermedio: 'Intermedio', avanzado: 'Avanzado' };
 
@@ -101,6 +115,8 @@ export function cleanup() {
 
   window.removeEventListener('popstate', onPopStateEntrenamiento);
   entrenoPopstateEnganchado = false;
+  window.removeEventListener('budget-updated', onSyncActualizadoEntreno);
+  entrenoSyncEnganchado = false;
   // Si había una sub-vista abierta con su entrada de historial empujada,
   // su nodo va a desaparecer con el innerHTML de la vista nueva sin pasar
   // por goToMain() — hay que soltar esa entrada (mismo criterio que
@@ -336,6 +352,11 @@ export async function render() {
 }
 
 mountListeners = () => {
+  if (!entrenoSyncEnganchado) {
+    entrenoSyncEnganchado = true;
+    window.addEventListener('budget-updated', onSyncActualizadoEntreno);
+  }
+
   const mainView = document.getElementById('entrenamiento-main-view');
   const subView = document.getElementById('entrenamiento-sub-view');
   const subContent = document.getElementById('entrenamiento-sub-content');

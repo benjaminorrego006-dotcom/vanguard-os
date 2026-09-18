@@ -1,6 +1,6 @@
 import { db } from '../core/db.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
-import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
+import { Toast, ConfirmDialog, EmptyState, hayModalAbierto } from '../utils/states.js';
 import { ensureChartJs, appPalette, baseChartOptions, hdPixelRatio } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { escapeHtml } from '../utils/escape.js';
@@ -9,10 +9,31 @@ import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 
 let tasksDonutInstance = null;
 
+// 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
+// cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
+// cambio hecho en otro dispositivo queda guardado en IndexedDB pero esta
+// vista no se repinta sola hasta que se sale y se vuelve a entrar. Se
+// engancha una sola vez (no en cada mountListeners(), que acá se vuelve a
+// llamar en cada refresh() local — enganchar sin este guard acumularía un
+// listener nuevo por cada tarea creada/movida, no solo por cada sync).
+let syncEnganchado = false;
+async function onSyncActualizado() {
+  // No pisar el formulario de detalle/edición si está abierto, ni el
+  // borrador de la captura rápida si el usuario está a mitad de escribir.
+  if (hayModalAbierto()) return;
+  const quickInput = document.getElementById('task-quick-add');
+  if (quickInput && (document.activeElement === quickInput || quickInput.value.trim())) return;
+  const root = document.getElementById('view-root');
+  root.innerHTML = await render();
+  mountListeners();
+}
+
 // Llamado por el router (app.js) antes de desmontar esta vista — evita que
 // la instancia de Chart.js siga viva con su canvas ya fuera del DOM.
 export function cleanup() {
   if (tasksDonutInstance) { tasksDonutInstance.destroy(); tasksDonutInstance = null; }
+  window.removeEventListener('budget-updated', onSyncActualizado);
+  syncEnganchado = false;
 }
 
 // Estado del tablero (qué columna está activa) — vive en el módulo, no en
@@ -322,6 +343,11 @@ export async function render() {
 }
 
 export function mountListeners() {
+  if (!syncEnganchado) {
+    syncEnganchado = true;
+    window.addEventListener('budget-updated', onSyncActualizado);
+  }
+
   const refresh = async () => {
     const root = document.getElementById('view-root');
     root.innerHTML = await render();

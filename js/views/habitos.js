@@ -2,7 +2,7 @@ import { db } from '../core/db.js';
 import { renderHabitoForm, setupHabitoForm, openHabitoForm } from '../components/habito-form.js';
 import { renderDonutChart, renderDonutLegend, destroyAllDonuts } from '../components/donut-chart.js';
 import { ensureChartJs, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, lineValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
-import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
+import { Toast, ConfirmDialog, EmptyState, hayModalAbierto } from '../utils/states.js';
 import { diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
@@ -136,6 +136,22 @@ function setupProgresoModal(onSaveCallback) {
 let vista = 'lista';
 let habitoDetalleId = null;
 let popstateEnganchado = false;
+
+// 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
+// cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
+// hábito marcado en otro dispositivo queda guardado en IndexedDB pero esta
+// vista no se repinta sola hasta que se sale y se vuelve a entrar. Se
+// engancha una sola vez, igual que popstateEnganchado arriba: mountListeners()
+// se vuelve a llamar en cada refresh() local (crear/editar/marcar un
+// hábito), así que sin el guard se acumularía un listener nuevo por cada
+// uno de esos, no solo por cada sync.
+let syncEnganchado = false;
+async function onSyncActualizado() {
+  if (hayModalAbierto()) return; // no pisar el modal de alta/edición o de progreso si está abierto
+  const root = document.getElementById('view-root');
+  root.innerHTML = await render();
+  mountListeners();
+}
 
 // Entries de la dona de "cumplimiento por hábito" del resumen de Hábitos
 // (ver renderResumenHabitos) — igual que lastTareasDonutEntries en
@@ -585,6 +601,11 @@ function initHabitosCharts() {
 }
 
 export function mountListeners() {
+  if (!syncEnganchado) {
+    syncEnganchado = true;
+    window.addEventListener('budget-updated', onSyncActualizado);
+  }
+
   const refresh = async () => {
     const root = document.getElementById('view-root');
     root.innerHTML = await render();
@@ -743,6 +764,8 @@ export function mountListeners() {
 export function cleanup() {
   window.removeEventListener('popstate', onPopStateHabitos);
   popstateEnganchado = false;
+  window.removeEventListener('budget-updated', onSyncActualizado);
+  syncEnganchado = false;
   if (vista === 'detalle' && history.state && history.state.habitoDetalle) {
     history.back();
   }

@@ -36,6 +36,18 @@ export function EmptyState(title, subtitle = '') {
   `;
 }
 
+// Antes de repintar la vista activa por un evento que no vino de una
+// acción del usuario (ej. sync.js aplicando un cambio llegado de otro
+// dispositivo -- ver 'budget-updated' en core/sync.js), hay que evitar
+// pisar un modal que el usuario tiene abierto en ese momento: un remontaje
+// completo de la vista (patrón `root.innerHTML = await render()`, usado
+// por la mayoría de las vistas para su propio refresh() local) se lo
+// llevaría puesto junto con lo que sea que estuviera escribiendo sin
+// guardar todavía.
+export function hayModalAbierto() {
+  return !!document.querySelector('.modal-overlay.open');
+}
+
 export function Toast(message, type = 'info', duration = 2500) {
   const container = document.getElementById('toast-container');
   if (!container) return;

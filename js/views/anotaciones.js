@@ -1,5 +1,5 @@
 import { db } from '../core/db.js';
-import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
+import { Toast, ConfirmDialog, EmptyState, hayModalAbierto } from '../utils/states.js';
 import { formatFechaLarga } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
@@ -7,6 +7,27 @@ import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 // Categoría abierta. null = pantalla de categorías. Vive fuera de render()
 // para sobrevivir a los refresh, igual que el offset del planificador.
 let categoriaAbierta = null;
+
+// 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
+// cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
+// cambio hecho en otro dispositivo queda guardado en IndexedDB pero esta
+// vista no se repinta sola hasta que se sale y se vuelve a entrar. Se
+// engancha una sola vez: mountListeners() se vuelve a llamar en cada
+// refresh() local, así que sin el guard se acumularía un listener nuevo
+// por cada nota tocada, no solo por cada sync.
+let syncEnganchado = false;
+async function onSyncActualizado() {
+  if (hayModalAbierto()) return;
+  // No pisar un título/texto de nota que el usuario esté a mitad de
+  // escribir sin guardar todavía (se guarda recién al tocar "Guardar nota").
+  const titulo = document.getElementById('nota-titulo');
+  const texto = document.getElementById('nota-texto');
+  const hayBorrador = [titulo, texto].some(el => el && (document.activeElement === el || el.value.trim()));
+  if (hayBorrador) return;
+  const root = document.getElementById('view-root');
+  root.innerHTML = await render();
+  mountListeners();
+}
 
 function fechaCorta(isoStr) {
   try { return formatFechaLarga(isoStr); }
@@ -104,6 +125,11 @@ export async function render() {
 }
 
 export function mountListeners() {
+  if (!syncEnganchado) {
+    syncEnganchado = true;
+    window.addEventListener('budget-updated', onSyncActualizado);
+  }
+
   const refresh = async () => {
     const root = document.getElementById('view-root');
     root.innerHTML = await render();
@@ -172,5 +198,7 @@ export function mountListeners() {
 // resetea su vista interna: sin esto, volver a entrar a Anotaciones desde
 // el nav dejaría la categoría anterior abierta en vez de la lista.
 export function cleanup() {
+  window.removeEventListener('budget-updated', onSyncActualizado);
+  syncEnganchado = false;
   categoriaAbierta = null;
 }
