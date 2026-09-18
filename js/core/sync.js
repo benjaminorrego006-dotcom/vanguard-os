@@ -195,13 +195,16 @@ export async function applyRemoteEvent(event) {
 
       // --- Hábitos ---
       case 'habito_creado': {
-        // El payload solo trae `nombre` (ver comentario en db.js) — createdAt
-        // se reconstruye desde el ts del evento, que es efectivamente cuándo
-        // se creó.
+        // createdAt se reconstruye desde el ts del evento (efectivamente
+        // cuándo se creó). frecuencia/meta llegan en el payload desde que
+        // se agregó frecuencia + meta numérica — un evento viejo de antes
+        // de ese cambio no las trae, por eso el fallback a 'diario'/null.
         const existing = await idb.getOne('habitos', entidadId);
         await idb.put('habitos', {
           id: entidadId,
           nombre: payload.nombre,
+          frecuencia: payload.frecuencia || existing?.frecuencia || { tipo: 'diario' },
+          meta: payload.meta || existing?.meta || null,
           createdAt: existing?.createdAt || new Date(ts).toISOString(),
           marcas: existing?.marcas || {}
         });
@@ -209,6 +212,9 @@ export async function applyRemoteEvent(event) {
       }
       case 'habito_renombrado':
         await mergeRow('habitos', entidadId, { nombre: payload.nombre });
+        break;
+      case 'habito_config_actualizada':
+        await mergeRow('habitos', entidadId, { frecuencia: payload.frecuencia, meta: payload.meta });
         break;
       case 'habito_eliminado':
         await idb.remove('habitos', entidadId);
@@ -221,6 +227,16 @@ export async function applyRemoteEvent(event) {
         if (tipo === 'habito_marcado') marcas[payload.fecha] = true;
         else delete marcas[payload.fecha];
         await idb.put('habitos', { ...row, marcas });
+        break;
+      }
+      case 'habito_progreso_registrado': {
+        // A diferencia de habito_marcado (booleano true), este guarda la
+        // CANTIDAD real registrada ese día — necesario para hábitos con
+        // meta numérica, donde "cumplido" depende de si esa cantidad llega
+        // a la meta, no de si hay o no una marca.
+        const row = await idb.getOne('habitos', entidadId);
+        if (!row) break;
+        await idb.put('habitos', { ...row, marcas: { ...(row.marcas || {}), [payload.fecha]: payload.cantidad } });
         break;
       }
 
@@ -319,7 +335,8 @@ function mirrorTargetFor(event) {
       return { store: 'planificador', id: entidadId };
     case 'tarea_eliminada':
       return { store: modulo === 'planificador' ? 'planificador' : 'tareas', id: entidadId, deleted: true };
-    case 'habito_creado': case 'habito_renombrado': case 'habito_marcado': case 'habito_desmarcado':
+    case 'habito_creado': case 'habito_renombrado': case 'habito_config_actualizada':
+    case 'habito_marcado': case 'habito_desmarcado': case 'habito_progreso_registrado':
       return { store: 'habitos', id: entidadId };
     case 'habito_eliminado':
       return { store: 'habitos', id: entidadId, deleted: true };

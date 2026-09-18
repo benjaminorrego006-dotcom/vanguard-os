@@ -233,6 +233,134 @@ function diasUnicosDesdeFechas(fechas) {
   return Array.from(uniqueDays).sort((a, b) => b - a);
 }
 
+// --- Hábitos con frecuencia: helpers de "¿aplica/se cumplió este día?" ---
+// habito.frecuencia = { tipo: 'diario' } (default, todo día aplica) |
+// { tipo: 'dias', dias: [0..6] } (0=lunes..6=domingo, mismo orden que
+// DOW_SHORT en habitos.js) | { tipo: 'semanal', vecesObjetivo: N }.
+// habito.meta = { cantidad, unidad } opcional — si existe, marcas[fecha]
+// guarda la CANTIDAD registrada ese día (número), no un booleano, y
+// "cumplido" pasa a ser "llegó a la meta" en vez de "tiene una marca".
+function habitoDiaAplicable(habito, fechaIso) {
+  const frecuencia = habito.frecuencia || { tipo: 'diario' };
+  if (frecuencia.tipo !== 'dias') return true; // diario y semanal: no hay días "no aplicables" a nivel día individual
+  const d = new Date(fechaIso + 'T12:00:00');
+  const dow = (d.getDay() + 6) % 7; // reindexa domingo=0 a lunes=0
+  return (frecuencia.dias || []).includes(dow);
+}
+
+function habitoCumplidoEnFecha(habito, fechaIso) {
+  const valor = (habito.marcas || {})[fechaIso];
+  if (habito.meta && toSafeNumber(habito.meta.cantidad) > 0) {
+    // Una marca "true" (booleana) es de ANTES de que el hábito tuviera meta
+    // numérica -- el usuario lo dio por cumplido bajo esas reglas viejas, así
+    // que se sigue contando como completo en vez de compararla como si fuera
+    // un número (Number(true) da 1, lo que rompería la racha para cualquier
+    // meta real y además rompería el toggle en la UI).
+    if (valor === true) return true;
+    return toSafeNumber(valor) >= toSafeNumber(habito.meta.cantidad);
+  }
+  return !!valor;
+}
+
+// Ancla fija para numerar semanas (mismo criterio que el "knownMonday" de
+// getDashboardStats más abajo, pero exportado como helper porque hábitos
+// de tipo 'semanal' lo necesitan en dos lugares: racha y tendencia).
+const HABITO_SEMANA_EPOCH = new Date('2024-01-01T00:00:00Z'); // un lunes
+function weekIdDe(date) {
+  return Math.floor((date - HABITO_SEMANA_EPOCH) / (1000 * 60 * 60 * 24 * 7));
+}
+
+// Todos los días aplicables de un hábito 'dias' entre su creación y `hoy`,
+// timestamps de medianoche de más reciente a más antiguo — es la secuencia
+// sobre la que calcularRachaDiasAplicables cuenta pasos consecutivos (no
+// sobre el calendario continuo, que incluiría días que nunca iban a
+// marcarse).
+function generarDiasAplicables(habito, hoy) {
+  const frecuencia = habito.frecuencia || { tipo: 'diario' };
+  const dias = frecuencia.dias || [];
+  const inicio = new Date(habito.createdAt || hoy);
+  inicio.setHours(0, 0, 0, 0);
+  // La franja semanal de la vista (renderFranjaSemanal) muestra toda la
+  // semana calendario actual y deja marcar cualquier día no-futuro de esa
+  // semana, sin fijarse en cuándo se creó el hábito — así que puede haber
+  // marcas de ANTES de createdAt (ej. el hábito se creó un viernes pero la
+  // semana ya traía lunes y miércoles marcables). Si el límite de abajo
+  // fuera solo createdAt, esas marcas quedarían fuera de la secuencia de
+  // "días aplicables" y la racha las ignoraría por completo. Se extiende
+  // el inicio hacia atrás hasta la marca más vieja que exista, si hay
+  // alguna anterior a createdAt.
+  const fechasMarcadas = Object.keys(habito.marcas || {});
+  fechasMarcadas.forEach(f => {
+    const d = new Date(f + 'T00:00:00');
+    if (d < inicio) inicio.setTime(d.getTime());
+  });
+  const limiteHoy = new Date(hoy); limiteHoy.setHours(0, 0, 0, 0);
+  const resultado = [];
+  const cursor = new Date(limiteHoy);
+  while (cursor >= inicio) {
+    const dow = (cursor.getDay() + 6) % 7;
+    if (dias.includes(dow)) resultado.push(cursor.getTime());
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return resultado;
+}
+
+// Igual que calcularRachaDesdeDias, pero contando pasos consecutivos sobre
+// una secuencia de días YA FILTRADA a los que de verdad aplican (ej. solo
+// lunes/miércoles/viernes) en vez de días calendario continuos — el "paso"
+// entre dos marcas válidas de un hábito de días específicos no es
+// necesariamente de 24hs.
+function calcularRachaDiasAplicables(diasCumplidosSet, diasAplicablesDesc) {
+  if (diasAplicablesDesc.length === 0) return { actual: 0, mejor: 0 };
+
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  let startIdx = 0;
+  // Gracia: si el día aplicable más reciente es HOY y todavía no se marcó,
+  // no rompe la racha — se evalúa desde el aplicable anterior (mismo
+  // criterio que calcularRachaDesdeDias con "hoy o ayer").
+  if (diasAplicablesDesc[0] === hoy.getTime() && !diasCumplidosSet.has(diasAplicablesDesc[0])) {
+    startIdx = 1;
+  }
+
+  let actual = 0;
+  for (let i = startIdx; i < diasAplicablesDesc.length; i++) {
+    if (diasCumplidosSet.has(diasAplicablesDesc[i])) actual++;
+    else break;
+  }
+
+  let mejor = 0, temp = 0;
+  for (let i = diasAplicablesDesc.length - 1; i >= 0; i--) {
+    if (diasCumplidosSet.has(diasAplicablesDesc[i])) { temp++; if (temp > mejor) mejor = temp; }
+    else temp = 0;
+  }
+  if (actual > mejor) mejor = actual;
+
+  return { actual, mejor };
+}
+
+// Racha en SEMANAS (no días) para hábitos 'semanal': una semana "cuenta"
+// si tiene al menos `vecesObjetivo` marcas cumplidas adentro, sin importar
+// en qué días de esa semana cayeron. Mismo algoritmo que la racha semanal
+// de Entreno en getDashboardStats (weekId ancorado a HABITO_SEMANA_EPOCH,
+// un día de gracia en la semana en curso), reescrito acá para no depender
+// de esa función.
+function calcularRachaSemanal(weekIdsCumplidos, currentWeekId) {
+  let checkWeek = currentWeekId;
+  if (!weekIdsCumplidos.has(checkWeek) && weekIdsCumplidos.has(checkWeek - 1)) checkWeek--;
+  let actual = 0;
+  while (weekIdsCumplidos.has(checkWeek)) { actual++; checkWeek--; }
+
+  let mejor = 0, temp = 0, prev = null;
+  Array.from(weekIdsCumplidos).sort((a, b) => a - b).forEach(w => {
+    temp = (prev !== null && w === prev + 1) ? temp + 1 : 1;
+    if (temp > mejor) mejor = temp;
+    prev = w;
+  });
+  if (actual > mejor) mejor = actual;
+
+  return { actual, mejor };
+}
+
 // --- Log de eventos central --------------------------------------------
 // Cada mutación de cualquier módulo (entreno/finanzas/tareas) agrega acá
 // una fila inmutable: nunca se edita ni se borra un evento existente. Sirve
@@ -1355,16 +1483,19 @@ export const db = {
   },
 
   // Racha global: cuenta un día como "activo" si hubo cualquier evento en
-  // Tareas (tarea_completada), Hábitos (habito_marcado), Entreno
-  // (sesion_registrada) o Finanzas (movimiento_registrado). Distinta de
-  // getRachaGeneral(), que es específica de Entreno y se sigue usando
-  // ahí — esta es para la tarjeta de racha del Dashboard. Se deriva
+  // Tareas (tarea_completada), Hábitos (habito_marcado o
+  // habito_progreso_registrado — este último es el que dejan los hábitos
+  // con meta numérica al registrar una cantidad, ver
+  // registrarProgresoHabito), Entreno (sesion_registrada) o Finanzas
+  // (movimiento_registrado). Distinta de getRachaGeneral(), que es
+  // específica de Entreno y se sigue usando ahí — esta es para la tarjeta
+  // de racha del Dashboard. Se deriva
   // enteramente del log de eventos: no hay un campo "racha" guardado en
   // ningún lado.
   async getRachaGlobal() {
     const eventos = await idb.getAll('events');
     const relevantes = eventos.filter(e =>
-      e.tipo === 'sesion_registrada' || e.tipo === 'movimiento_registrado' || e.tipo === 'tarea_completada' || e.tipo === 'habito_marcado'
+      e.tipo === 'sesion_registrada' || e.tipo === 'movimiento_registrado' || e.tipo === 'tarea_completada' || e.tipo === 'habito_marcado' || e.tipo === 'habito_progreso_registrado'
     );
 
     const activityByDay = new Map(); // dayTime -> cantidad de eventos
@@ -2077,12 +2208,18 @@ export const db = {
     return sortByCreatedAt(await idbGetArray('habitos'));
   },
 
-  async crearHabito(nombre) {
+  // opciones: { frecuencia, meta } — frecuencia default 'diario' (todo
+  // hábito viejo sin este campo, más cualquiera nuevo que no la declare,
+  // se comporta exactamente como antes). meta es opcional (null = check
+  // simple, como siempre).
+  async crearHabito(nombre, opciones = {}) {
+    const frecuencia = opciones.frecuencia || { tipo: 'diario' };
+    const meta = opciones.meta || null;
     const habitos = await idbGetArray('habitos');
-    const nuevo = { id: generateId(), nombre: String(nombre).trim(), createdAt: new Date().toISOString(), marcas: {} };
+    const nuevo = { id: generateId(), nombre: String(nombre).trim(), createdAt: new Date().toISOString(), marcas: {}, frecuencia, meta };
     habitos.push(nuevo);
     await idbSetArray('habitos', habitos); this._triggerUpdate();
-    await logEvent({ modulo: 'habitos', tipo: 'habito_creado', entidadId: nuevo.id, payload: { nombre: nuevo.nombre } });
+    await logEvent({ modulo: 'habitos', tipo: 'habito_creado', entidadId: nuevo.id, payload: { nombre: nuevo.nombre, frecuencia, meta } });
     return nuevo;
   },
 
@@ -2102,6 +2239,21 @@ export const db = {
     return habitos[idx];
   },
 
+  // Cambia frecuencia y/o meta de un hábito ya creado — evento propio
+  // separado de habito_renombrado por el mismo motivo: son cambios de
+  // configuración, no algo que deba contar para ninguna racha por sí solo.
+  async actualizarConfigHabito(id, { frecuencia, meta }) {
+    const habitos = await idbGetArray('habitos');
+    const idx = habitos.findIndex(h => h.id === id);
+    if (idx === -1) return null;
+    const frecuenciaNueva = frecuencia || { tipo: 'diario' };
+    const metaNueva = meta || null;
+    habitos[idx] = { ...habitos[idx], frecuencia: frecuenciaNueva, meta: metaNueva };
+    await idbSetArray('habitos', habitos); this._triggerUpdate();
+    await logEvent({ modulo: 'habitos', tipo: 'habito_config_actualizada', entidadId: id, payload: { frecuencia: frecuenciaNueva, meta: metaNueva } });
+    return habitos[idx];
+  },
+
   async eliminarHabito(id) {
     let habitos = await idbGetArray('habitos');
     const habito = habitos.find(h => h.id === id);
@@ -2110,7 +2262,10 @@ export const db = {
     await logEvent({ modulo: 'habitos', tipo: 'habito_eliminado', entidadId: id, payload: habito || {} });
   },
 
-  // Marca/desmarca el día `fecha` ('YYYY-MM-DD') para el hábito `id`.
+  // Marca/desmarca el día `fecha` ('YYYY-MM-DD') para el hábito `id` — solo
+  // para hábitos SIN meta numérica (check simple). Para hábitos con meta,
+  // usar registrarProgresoHabito (necesitan guardar una cantidad, no un
+  // booleano).
   async toggleMarcaHabito(id, fecha) {
     const habitos = await idbGetArray('habitos');
     const idx = habitos.findIndex(h => h.id === id);
@@ -2124,52 +2279,134 @@ export const db = {
     return habitos[idx];
   },
 
-  // Racha (días consecutivos marcados) de un hábito puntual. Reutiliza
-  // calcularRachaDesdeDias (mismo algoritmo que getRachaHiit/
-  // getRachaGeneral) en vez de duplicarlo — solo convierte las fechas
-  // string a timestamps de día únicos y ordenados descendente, que es lo
-  // que ese helper espera.
+  // Registra la cantidad de HOY (o de `fecha`) para un hábito con meta
+  // numérica — ej. "6" vasos de agua. cantidad <= 0 borra la marca del día
+  // (equivalente a desmarcar). Evento propio con la cantidad en el payload
+  // para que el replay remoto (sync.js) reconstruya el valor real, no solo
+  // un booleano — a diferencia de habito_marcado/desmarcado, que alcanzan
+  // para hábitos de check simple pero perderían la cantidad acá.
+  async registrarProgresoHabito(id, fecha, cantidad) {
+    const habitos = await idbGetArray('habitos');
+    const idx = habitos.findIndex(h => h.id === id);
+    if (idx === -1) return null;
+    const marcas = { ...(habitos[idx].marcas || {}) };
+    const cant = Math.max(0, toSafeNumber(cantidad));
+    if (cant > 0) marcas[fecha] = cant; else delete marcas[fecha];
+    habitos[idx] = { ...habitos[idx], marcas };
+    await idbSetArray('habitos', habitos); this._triggerUpdate();
+    if (cant > 0) {
+      await logEvent({ modulo: 'habitos', tipo: 'habito_progreso_registrado', entidadId: id, payload: { fecha, cantidad: cant } });
+    } else {
+      await logEvent({ modulo: 'habitos', tipo: 'habito_desmarcado', entidadId: id, payload: { fecha } });
+    }
+    return habitos[idx];
+  },
+
+  // Racha de un hábito puntual — se bifurca según su frecuencia:
+  // - 'diario' (default): calcularRachaDesdeDias de siempre, sobre días
+  //   calendario continuos.
+  // - 'dias' (días específicos, ej. lun/mié/vie): calcularRachaDiasAplicables,
+  //   que cuenta pasos consecutivos solo sobre los días que de verdad
+  //   aplican — un martes no marcado no rompe la racha de un hábito que
+  //   nunca pretendió hacerse los martes.
+  // - 'semanal' (X veces por semana): calcularRachaSemanal, que mide
+  //   semanas cumplidas (>= vecesObjetivo marcas esa semana) en vez de
+  //   días — "racha" para este tipo es "semanas seguidas cumpliendo la
+  //   meta", no días seguidos.
+  // En todos los casos, "cumplido" usa habitoCumplidoEnFecha (respeta meta
+  // numérica si el hábito tiene una).
   async getRachaHabito(id) {
     const habitos = await idbGetArray('habitos');
     const habito = habitos.find(h => h.id === id);
     if (!habito) return { actual: 0, mejor: 0 };
-    return calcularRachaDesdeDias(diasUnicosDesdeFechas(Object.keys(habito.marcas || {})));
+    const frecuencia = habito.frecuencia || { tipo: 'diario' };
+    const fechasCumplidas = Object.keys(habito.marcas || {}).filter(f => habitoCumplidoEnFecha(habito, f));
+
+    if (frecuencia.tipo === 'semanal') {
+      const conteoPorSemana = {};
+      fechasCumplidas.forEach(f => {
+        const w = weekIdDe(new Date(f + 'T12:00:00'));
+        conteoPorSemana[w] = (conteoPorSemana[w] || 0) + 1;
+      });
+      const vecesObjetivo = frecuencia.vecesObjetivo || 1;
+      const semanasCumplidas = new Set(Object.keys(conteoPorSemana).map(Number).filter(w => conteoPorSemana[w] >= vecesObjetivo));
+      return calcularRachaSemanal(semanasCumplidas, weekIdDe(new Date()));
+    }
+
+    if (frecuencia.tipo === 'dias') {
+      const diasAplicables = generarDiasAplicables(habito, new Date());
+      const cumplidosSet = new Set(fechasCumplidas.map(f => { const d = new Date(f + 'T12:00:00'); d.setHours(0, 0, 0, 0); return d.getTime(); }));
+      return calcularRachaDiasAplicables(cumplidosSet, diasAplicables);
+    }
+
+    return calcularRachaDesdeDias(diasUnicosDesdeFechas(fechasCumplidas));
   },
 
   // Racha "día perfecto": cuenta un día como cumplido solo si TODOS los
-  // hábitos activos quedaron marcados ese día. Con cero hábitos, no hay
-  // racha que mostrar (evita el caso raro de "racha infinita" con 0/0).
+  // hábitos APLICABLES ese día quedaron cumplidos. Dos exclusiones sobre
+  // el criterio original:
+  // - hábitos 'semanal' se excluyen del cálculo entero: no tienen una
+  //   obligación diaria, así que no tiene sentido que puedan "romper" (ni
+  //   completar) un día perfecto.
+  // - hábitos 'dias' solo cuentan en SUS días aplicables — un día donde a
+  //   ningún hábito activo le tocaba, no es ni perfecto ni fallado, se
+  //   omite (mismo espíritu que "sin hábitos, no hay racha que mostrar").
   async getRachaHabitosGlobal() {
     const habitos = await idbGetArray('habitos');
-    if (!habitos.length) return { actual: 0, mejor: 0 };
-    const conteoPorDia = {};
-    habitos.forEach(h => {
-      Object.keys(h.marcas || {}).forEach(fecha => {
-        conteoPorDia[fecha] = (conteoPorDia[fecha] || 0) + 1;
+    const relevantes = habitos.filter(h => (h.frecuencia?.tipo || 'diario') !== 'semanal');
+    if (!relevantes.length) return { actual: 0, mejor: 0 };
+
+    // Ojo con usar calcularRachaDesdeDias (continuidad de CALENDARIO) acá:
+    // si todos los hábitos relevantes son 'dias' con el mismo horario (ej.
+    // lun/mié/vie), los "días perfectos" NUNCA son calendario-consecutivos
+    // (siempre hay un martes/jueves de por medio) y la racha global
+    // quedaría en 1 para siempre aunque el usuario cumpla perfecto cada
+    // vez que le toca. En vez de eso, se construye la secuencia real de
+    // "días con al menos un hábito aplicable" (salteando los días donde
+    // ningún hábito relevante aplicaba, que no deberían ni sumar ni cortar
+    // la racha) y se cuenta con calcularRachaDiasAplicables sobre esa
+    // secuencia, igual que getRachaHabito hace por hábito individual.
+    let inicio = new Date();
+    relevantes.forEach(h => {
+      const creado = new Date(h.createdAt || inicio);
+      if (creado < inicio) inicio = creado;
+      Object.keys(h.marcas || {}).forEach(f => {
+        const d = new Date(f + 'T00:00:00');
+        if (d < inicio) inicio = d;
       });
     });
-    const diasPerfectos = Object.keys(conteoPorDia).filter(f => conteoPorDia[f] === habitos.length);
-    return calcularRachaDesdeDias(diasUnicosDesdeFechas(diasPerfectos));
+    inicio.setHours(0, 0, 0, 0);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+
+    const diasConAplicable = [];
+    const diasPerfectosSet = new Set();
+    const cursor = new Date(hoy);
+    while (cursor >= inicio) {
+      const iso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+      const aplicables = relevantes.filter(h => habitoDiaAplicable(h, iso));
+      if (aplicables.length > 0) {
+        diasConAplicable.push(cursor.getTime());
+        if (aplicables.every(h => habitoCumplidoEnFecha(h, iso))) diasPerfectosSet.add(cursor.getTime());
+      }
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    return calcularRachaDiasAplicables(diasPerfectosSet, diasConAplicable);
   },
 
   // Tendencia de cumplimiento de hábitos por semana, últimas `semanas`
-  // semanas — mismo dato base que getRachaHabitosGlobal (conteo de hábitos
-  // marcados por día), pero acá se promedia el % de hábitos cumplidos por
-  // día dentro de cada semana en vez de exigir el 100% ("día perfecto"):
-  // una racha exige el 100% para no rompirse, pero una serie donde casi
-  // toda semana da 0% (por no llegar nunca al 100% justo) no serviría para
-  // ver progreso parcial. Orden cronológico (antiguo -> reciente), mismo
-  // criterio que getTendenciaSemanal/getTendenciaTareasCompletadas.
+  // semanas — mismo dato base que getRachaHabitosGlobal (día por día,
+  // hábitos 'semanal' excluidos, 'dias' solo en sus días aplicables), pero
+  // acá se promedia el % de hábitos cumplidos por día dentro de cada
+  // semana en vez de exigir el 100% ("día perfecto"): una racha exige el
+  // 100% para no romperse, pero una serie donde casi toda semana da 0%
+  // (por no llegar nunca al 100% justo) no serviría para ver progreso
+  // parcial. Orden cronológico (antiguo -> reciente), mismo criterio que
+  // getTendenciaSemanal/getTendenciaTareasCompletadas.
   async getTendenciaCumplimientoHabitos(semanas = 8) {
     const habitos = await idbGetArray('habitos');
-    if (!habitos.length) return Array.from({ length: semanas }, () => 0);
-
-    const conteoPorDia = {};
-    habitos.forEach(h => {
-      Object.keys(h.marcas || {}).forEach(fecha => {
-        conteoPorDia[fecha] = (conteoPorDia[fecha] || 0) + 1;
-      });
-    });
+    const relevantes = habitos.filter(h => (h.frecuencia?.tipo || 'diario') !== 'semanal');
+    if (!relevantes.length) return Array.from({ length: semanas }, () => 0);
 
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const porSemana = Array.from({ length: semanas }, () => ({ suma: 0, dias: 0 }));
@@ -2180,8 +2417,10 @@ export const db = {
       const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const weekIdx = semanas - 1 - Math.floor(i / 7);
       if (weekIdx < 0 || weekIdx >= semanas) continue;
-      const pct = ((conteoPorDia[iso] || 0) / habitos.length) * 100;
-      porSemana[weekIdx].suma += pct;
+      const aplicables = relevantes.filter(h => habitoDiaAplicable(h, iso));
+      if (aplicables.length === 0) continue;
+      const cumplidos = aplicables.filter(h => habitoCumplidoEnFecha(h, iso)).length;
+      porSemana[weekIdx].suma += (cumplidos / aplicables.length) * 100;
       porSemana[weekIdx].dias++;
     }
 
@@ -2189,20 +2428,14 @@ export const db = {
   },
 
   // Mismo cálculo que getTendenciaCumplimientoHabitos (% de hábitos
-  // marcados sobre el total, por día), pero sin promediar por semana —
-  // usada por el gráfico de barras del Laboratorio, que quiere el avance
-  // día a día en vez de un número por semana. Orden cronológico (antiguo
-  // -> reciente).
+  // cumplidos sobre los aplicables, por día), pero sin promediar por
+  // semana — usada por el gráfico de barras del Laboratorio, que quiere el
+  // avance día a día en vez de un número por semana. Orden cronológico
+  // (antiguo -> reciente).
   async getCumplimientoDiarioHabitos(dias = 30) {
     const habitos = await idbGetArray('habitos');
-    if (!habitos.length) return Array.from({ length: dias }, () => 0);
-
-    const conteoPorDia = {};
-    habitos.forEach(h => {
-      Object.keys(h.marcas || {}).forEach(fecha => {
-        conteoPorDia[fecha] = (conteoPorDia[fecha] || 0) + 1;
-      });
-    });
+    const relevantes = habitos.filter(h => (h.frecuencia?.tipo || 'diario') !== 'semanal');
+    if (!relevantes.length) return Array.from({ length: dias }, () => 0);
 
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const serie = [];
@@ -2210,7 +2443,9 @@ export const db = {
       const d = new Date(hoy);
       d.setDate(d.getDate() - i);
       const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      serie.push(Math.round(((conteoPorDia[iso] || 0) / habitos.length) * 100));
+      const aplicables = relevantes.filter(h => habitoDiaAplicable(h, iso));
+      const cumplidos = aplicables.filter(h => habitoCumplidoEnFecha(h, iso)).length;
+      serie.push(aplicables.length > 0 ? Math.round((cumplidos / aplicables.length) * 100) : 0);
     }
     return serie;
   },

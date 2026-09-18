@@ -5,6 +5,7 @@ import { ensureChartJs, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio,
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
+import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 
 // Lunes primero (convención es-CL) — a diferencia de la franja rodante
 // anterior (últimos 7 días terminando hoy), esta es la semana calendario
@@ -17,6 +18,115 @@ const DOW_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const iconoFuego = (size = 15, color = 'currentColor') =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" style="flex-shrink: 0;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`;
 const DOW_LARGO = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+
+// Frecuencia + meta numérica (ver db.js para la forma completa de estos
+// campos) — helpers de solo lectura para la vista, misma lógica que
+// habitoDiaAplicable/habitoCumplidoEnFecha en db.js pero duplicada acá
+// porque esas son funciones privadas del módulo, no exportadas por `db`.
+function esDiaAplicable(habito, fechaIso) {
+  const frecuencia = habito.frecuencia || { tipo: 'diario' };
+  if (frecuencia.tipo !== 'dias') return true;
+  const d = new Date(fechaIso + 'T12:00:00');
+  const dow = (d.getDay() + 6) % 7; // 0=lunes..6=domingo
+  return (frecuencia.dias || []).includes(dow);
+}
+function valorEnFecha(habito, fechaIso) {
+  return (habito.marcas || {})[fechaIso];
+}
+// Igual que habitoCumplidoEnFecha en db.js -- una marca "true" (booleana) es
+// de antes de que el hábito tuviera meta numérica y se sigue contando como
+// completa, en vez de compararla como número (Number(true) da 1 y rompería
+// la racha para cualquier meta real).
+function estaCumplido(habito, fechaIso) {
+  const valor = valorEnFecha(habito, fechaIso);
+  if (habito.meta && Number(habito.meta.cantidad) > 0) {
+    if (valor === true) return true;
+    return Number(valor || 0) >= Number(habito.meta.cantidad);
+  }
+  return !!valor;
+}
+// Para MOSTRAR un valor numérico en la UI: una marca "true" heredada se
+// traduce a la meta completa (así se ve "45" en vez del string literal
+// "true") -- ver estaCumplido arriba para el mismo criterio en el cálculo.
+function valorMostrado(habito, fechaIso) {
+  const valor = valorEnFecha(habito, fechaIso);
+  if (habito.meta && valor === true) return habito.meta.cantidad;
+  return valor;
+}
+function esHabitoSemanal(habito) {
+  return (habito.frecuencia || {}).tipo === 'semanal';
+}
+function marcasEstaSemanaCount(habito) {
+  const dias7 = semanaActual();
+  return dias7.filter(d => estaCumplido(habito, diaKeyDe(d))).length;
+}
+function labelFrecuencia(habito) {
+  const f = habito.frecuencia || { tipo: 'diario' };
+  if (f.tipo === 'dias') return (f.dias || []).slice().sort().map(i => DOW_SHORT[i]).join(', ');
+  if (f.tipo === 'semanal') return `${f.vecesObjetivo || 1}x por semana`;
+  return 'Diario';
+}
+
+// Mini-modal para registrar la cantidad del día en hábitos con meta
+// numérica (ej. "6" de "8 vasos") — un tap simple no alcanza para un
+// hábito que mide cantidad, a diferencia del check de los hábitos
+// simples. Se incluye una vez por render (lista y detalle) igual que
+// renderHabitoForm().
+function renderProgresoModal() {
+  return `
+    <div id="progreso-modal" class="modal-overlay sheet-overlay">
+      <div class="sheet-content" style="max-width: 360px;">
+        <h2 id="progreso-modal-title" style="margin-top: 0; font-size: 18px; font-weight: 700;">Registrar progreso</h2>
+        <input type="hidden" id="progreso-habito-id">
+        <input type="hidden" id="progreso-fecha">
+        <form id="progreso-form" onsubmit="return false;">
+          <div class="input-group">
+            <label for="progreso-cantidad" id="progreso-unidad-label">Cantidad</label>
+            <input type="number" id="progreso-cantidad" min="0" inputmode="numeric" enterkeyhint="done">
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <button type="button" id="btn-cancel-progreso" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Cancelar</button>
+            <button type="submit" id="btn-save-progreso" class="btn-primary" style="background: var(--accent-purple); color: #000; flex: 1;">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+function abrirProgresoModal(habito, fecha) {
+  const modal = document.getElementById('progreso-modal');
+  if (!modal) return;
+  document.getElementById('progreso-modal-title').innerText = habito.nombre;
+  document.getElementById('progreso-habito-id').value = habito.id;
+  document.getElementById('progreso-fecha').value = fecha;
+  const unidad = (habito.meta && habito.meta.unidad) || 'veces';
+  document.getElementById('progreso-unidad-label').innerText = `Cantidad (${unidad})`;
+  const input = document.getElementById('progreso-cantidad');
+  input.value = valorMostrado(habito, fecha) || '';
+  modal.style.display = 'flex';
+  setTimeout(() => { modal.classList.add('open'); input.focus(); }, 10);
+}
+
+function setupProgresoModal(onSaveCallback) {
+  const modal = document.getElementById('progreso-modal');
+  if (!modal) return;
+  const close = () => {
+    modal.classList.remove('open');
+    setTimeout(() => modal.style.display = 'none', 300);
+  };
+  document.getElementById('btn-cancel-progreso').addEventListener('click', close);
+
+  const save = async () => {
+    const id = document.getElementById('progreso-habito-id').value;
+    const fecha = document.getElementById('progreso-fecha').value;
+    const cantidad = parseFloat(document.getElementById('progreso-cantidad').value) || 0;
+    await db.registrarProgresoHabito(id, fecha, cantidad);
+    close();
+    if (onSaveCallback) setTimeout(onSaveCallback, 300);
+  };
+  bindQuickCaptureForm(document.getElementById('progreso-form'), save);
+}
 
 // Vista local (lista | detalle) — mismo patrón que activeFinTab en
 // finanzas.js, pero además empuja una entrada de historial al entrar al
@@ -67,15 +177,20 @@ function semanaActual() {
 // Franja semanal reutilizada por la vista de detalle. Los días futuros de
 // la semana calendario (ej. si hoy es miércoles, jueves en adelante) se
 // muestran pero no son tocables — no tiene sentido marcar un hábito por
-// adelantado.
+// adelantado. Los días NO aplicables (frecuencia 'dias' que no incluye esa
+// fecha) reciben el mismo tratamiento visual que un futuro: no hay nada
+// que marcar ahí, así que no se distingue de "todavía no llega".
 function renderFranjaSemanal(habito, hoyIso) {
-  const marcas = habito.marcas || {};
+  const tieneMeta = !!habito.meta;
   const dias7 = semanaActual();
   return dias7.map(d => {
     const iso = diaKeyDe(d);
-    const marcado = !!marcas[iso];
+    const marcado = estaCumplido(habito, iso);
+    const valor = valorMostrado(habito, iso);
     const esHoy = iso === hoyIso;
     const esFuturo = iso > hoyIso;
+    const aplicable = esDiaAplicable(habito, iso);
+    const inactivo = esFuturo || !aplicable;
     const diaLabel = `${DOW_LARGO[d.getDay() === 0 ? 6 : d.getDay() - 1]} ${d.getDate()}`;
     const accion = marcado ? 'Desmarcar' : 'Marcar';
     // Un solo tratamiento de borde para todo lo "sin marcar" (hoy incluido)
@@ -85,15 +200,17 @@ function renderFranjaSemanal(habito, hoyIso) {
     // una caja con borde especial — la caja en sí queda uniforme.
     const labelColor = esHoy ? 'var(--accent-purple)' : 'var(--text-disabled)';
     const labelWeight = esHoy ? '800' : '700';
+    const claseBoton = tieneMeta ? 'day-progreso' : 'day-toggle';
+    const etiquetaInactivo = esFuturo ? 'todavía no llega' : 'no aplica este día';
     return `
-      <button class="day-toggle tappable" data-id="${habito.id}" data-fecha="${iso}"
-        ${esFuturo ? 'disabled' : ''}
-        aria-label="${esFuturo ? `${escapeHtml(habito.nombre)} el ${diaLabel} (todavía no llega)` : `${accion} ${escapeHtml(habito.nombre)} el ${diaLabel}`}"
+      <button class="${claseBoton} tappable" data-id="${habito.id}" data-fecha="${iso}"
+        ${inactivo ? 'disabled' : ''}
+        aria-label="${inactivo ? `${escapeHtml(habito.nombre)} el ${diaLabel} (${etiquetaInactivo})` : `${accion} ${escapeHtml(habito.nombre)} el ${diaLabel}`}"
         aria-pressed="${marcado}"
-        style="flex: 1; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; background: transparent; border: none; cursor: ${esFuturo ? 'default' : 'pointer'}; padding: 0; opacity: ${esFuturo ? '0.4' : '1'};">
+        style="flex: 1; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; background: transparent; border: none; cursor: ${inactivo ? 'default' : 'pointer'}; padding: 0; opacity: ${inactivo ? '0.4' : '1'};">
         <span aria-hidden="true" style="font-size: 11px; font-weight: ${labelWeight}; color: ${labelColor}; letter-spacing: 0.4px;">${DOW_SHORT[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span>
-        <span aria-hidden="true" class="day-toggle-circle" data-check-size="8" style="width: 50%; aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : 'var(--surface-border)'}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; transition: background 0.15s ease, border-color 0.15s ease;">
-          ${marcado ? '<svg width="8" height="8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+        <span aria-hidden="true" class="day-toggle-circle" data-check-size="8" style="width: 50%; aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : 'var(--surface-border)'}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; transition: background 0.15s ease, border-color 0.15s ease; font-size: 8px; font-weight: 800; color: #fff;">
+          ${tieneMeta && valor ? escapeHtml(String(valor)) : (marcado ? '<svg width="8" height="8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '')}
         </span>
       </button>
     `;
@@ -117,19 +234,37 @@ function renderFranjaSemanal(habito, hoyIso) {
 // tipografía — se resuelve con un borde con tinte rojizo en vez de uno
 // gris neutro.
 function renderMiniSemana(habito, hoyIso) {
-  const marcas = habito.marcas || {};
+  // Hábitos 'semanal' (X veces por semana) no tienen una obligación por
+  // día puntual — la grilla de 7 celdas fallado/pendiente no aplica.
+  // Muestra en cambio el conteo de la semana en curso contra el objetivo.
+  if (esHabitoSemanal(habito)) {
+    const hechas = marcasEstaSemanaCount(habito);
+    const objetivo = (habito.frecuencia || {}).vecesObjetivo || 1;
+    const completo = hechas >= objetivo;
+    return `
+      <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px;">
+        <div style="flex: 1; height: 6px; border-radius: 3px; background: var(--surface-border); overflow: hidden;">
+          <div style="height: 100%; width: ${Math.min(100, (hechas / objetivo) * 100)}%; background: ${completo ? 'var(--state-success)' : 'var(--accent-purple)'};"></div>
+        </div>
+        <span class="num" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); flex-shrink: 0;">${hechas}/${objetivo} esta sem.</span>
+      </div>`;
+  }
+
   const dias7 = semanaActual();
   const celdas = dias7.map(d => {
     const iso = diaKeyDe(d);
-    const marcado = !!marcas[iso];
+    const marcado = estaCumplido(habito, iso);
     const esHoy = iso === hoyIso;
     const esFuturo = iso > hoyIso;
-    const fallado = !marcado && !esHoy && !esFuturo;
+    const aplicable = esDiaAplicable(habito, iso);
+    // "Fallado" (borde rojizo) solo tiene sentido en un día que de verdad
+    // aplicaba — un día fuera de la frecuencia declarada no es una falla.
+    const fallado = !marcado && !esHoy && !esFuturo && aplicable;
     const borderColor = fallado
       ? 'color-mix(in srgb, var(--state-high) 45%, var(--surface-border))'
       : 'var(--surface-border)';
     const ring = esHoy ? 'box-shadow: 0 0 0 1.5px var(--accent-purple) inset;' : '';
-    const dim = esFuturo ? 'opacity: 0.4;' : '';
+    const dim = (esFuturo || !aplicable) ? 'opacity: 0.4;' : '';
     return `
       <div aria-hidden="true" style="flex: 1; display: flex; align-items: center; justify-content: center;">
         <div style="width: 50%; aspect-ratio: 1; border-radius: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : borderColor}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; ${ring} ${dim}">
@@ -153,8 +288,7 @@ async function renderResumenHabitos(habitos, hoyIso) {
     return diaKeyDe(d);
   });
   const entries = habitos.map((h, i) => {
-    const marcas = h.marcas || {};
-    const marcados = hace7Dias.filter(iso => marcas[iso]).length;
+    const marcados = hace7Dias.filter(iso => estaCumplido(h, iso)).length;
     return { label: escapeHtml(h.nombre), valor: marcados, color: VIOLET_SHADES_RESUMEN[i % VIOLET_SHADES_RESUMEN.length] };
   }).filter(e => e.valor > 0);
   lastHabitosDonutEntries = entries;
@@ -171,7 +305,7 @@ async function renderResumenHabitos(habitos, hoyIso) {
   // ya lo cubre la tarjeta de racha global de arriba.
   let riesgoHtml = '';
   if (habitos.length >= 2) {
-    const sinMarcarHoy = habitos.filter(h => !(h.marcas || {})[hoyIso]);
+    const sinMarcarHoy = habitos.filter(h => esDiaAplicable(h, hoyIso) && !estaCumplido(h, hoyIso));
     if (sinMarcarHoy.length > 0) {
       const masFlojo = [...sinMarcarHoy].sort((a, b) => (a._racha?.actual || 0) - (b._racha?.actual || 0))[0];
       const rachaTxt = masFlojo._racha && masFlojo._racha.actual > 0
@@ -286,6 +420,7 @@ async function renderDetalle(id) {
   const hoyIso = diaKeyDe(new Date());
   const racha = await db.getRachaHabito(id);
   const diasRegistrados = Object.keys(habito.marcas || {}).length;
+  const unidadRachaDetalle = esHabitoSemanal(habito) ? 'semana' : 'día';
 
   return `
     <div style="padding: 20px; font-family: var(--font-body); padding-bottom: 110px;">
@@ -296,11 +431,16 @@ async function renderDetalle(id) {
         <h1 style="font-size: 22px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.4px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(habito.nombre)}</h1>
       </div>
 
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
+        <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary); background: var(--surface-2); border: 1px solid var(--surface-border); padding: 4px 10px; border-radius: 100px;">${escapeHtml(labelFrecuencia(habito))}</span>
+        ${habito.meta ? `<span style="font-size: 11px; font-weight: 700; color: var(--text-secondary); background: var(--surface-2); border: 1px solid var(--surface-border); padding: 4px 10px; border-radius: 100px;">Meta: ${habito.meta.cantidad} ${escapeHtml(habito.meta.unidad || '')}</span>` : ''}
+      </div>
+
       <div class="card card-hero" style="padding: 1.25rem; margin-bottom: 20px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
           <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600;">
             ${racha.actual > 0
-              ? `<span class="num">${racha.actual}</span> ${racha.actual === 1 ? 'día seguido' : 'días seguidos'} · Mejor: <span class="num">${racha.mejor}</span> ${racha.mejor === 1 ? 'día' : 'días'}`
+              ? `<span class="num">${racha.actual}</span> ${racha.actual === 1 ? `${unidadRachaDetalle} seguid${unidadRachaDetalle === 'día' ? 'o' : 'a'}` : `${unidadRachaDetalle}s seguid${unidadRachaDetalle === 'día' ? 'os' : 'as'}`} · Mejor: <span class="num">${racha.mejor}</span> ${racha.mejor === 1 ? unidadRachaDetalle : `${unidadRachaDetalle}s`}`
               : 'Sin racha — márcalo hoy'}
           </div>
           ${racha.actual > 0 ? iconoFuego(18, 'var(--accent-purple)') : ''}
@@ -318,6 +458,7 @@ async function renderDetalle(id) {
       </div>
 
       ${renderHabitoForm()}
+      ${renderProgresoModal()}
     </div>
   `;
 }
@@ -336,22 +477,31 @@ async function renderLista() {
   // El área táctil de la fila entera lleva a la vista de detalle; el
   // checkbox tiene su propio manejador y no propaga el click a la fila.
   const renderFila = (habito) => {
-    const marcadoHoy = !!(habito.marcas || {})[hoyIso];
+    const marcadoHoy = estaCumplido(habito, hoyIso);
+    const hoyAplica = esDiaAplicable(habito, hoyIso);
+    const tieneMeta = !!habito.meta;
     const racha = habito._racha || { actual: 0, mejor: 0 };
+    const unidadRacha = esHabitoSemanal(habito) ? 'semana' : 'día';
+    const rachaTexto = racha.actual > 0
+      ? `🔥 <span class="num">${racha.actual}</span> ${racha.actual === 1 ? `${unidadRacha} seguid${unidadRacha === 'día' ? 'o' : 'a'}` : `${unidadRacha}s seguid${unidadRacha === 'día' ? 'os' : 'as'}`}`
+      : 'Sin racha todavía';
+    const claseToggle = tieneMeta ? 'day-progreso-hoy' : 'day-toggle-hoy';
+    const valorHoy = valorMostrado(habito, hoyIso);
     return `
       <div class="list-row habito-row tappable" data-id="${habito.id}" style="display: flex; flex-direction: column; padding: 10px 12px; min-height: 44px; cursor: pointer; margin-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 12px;">
           <div style="flex: 1; min-width: 0;">
             <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(habito.nombre)}</div>
-            <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">
-              ${racha.actual > 0 ? `🔥 <span class="num">${racha.actual}</span> ${racha.actual === 1 ? 'día seguido' : 'días seguidos'}` : 'Sin racha todavía'}
-            </div>
+            <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">${rachaTexto}</div>
           </div>
-          <button class="day-toggle-hoy tappable" data-id="${habito.id}" data-fecha="${hoyIso}" aria-label="${marcadoHoy ? 'Desmarcar' : 'Marcar'} ${escapeHtml(habito.nombre)} hoy" aria-pressed="${marcadoHoy}" style="flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;">
-            <span aria-hidden="true" class="day-toggle-circle" data-check-size="16" data-borde-marca="1" style="width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${marcadoHoy ? 'transparent' : 'var(--surface-border)'}; background: ${marcadoHoy ? 'var(--accent-purple)' : 'var(--surface-2)'};">
-              ${marcadoHoy ? '<svg width="16" height="16" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
-            </span>
-          </button>
+          ${!hoyAplica
+            ? `<div aria-hidden="true" style="flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-disabled); text-align: center; line-height: 1.1;">No<br>aplica</div>`
+            : `<button class="${claseToggle} tappable" data-id="${habito.id}" data-fecha="${hoyIso}" aria-label="${marcadoHoy ? 'Editar' : 'Marcar'} ${escapeHtml(habito.nombre)} hoy" aria-pressed="${marcadoHoy}" style="flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;">
+                <span aria-hidden="true" class="day-toggle-circle" data-check-size="16" data-borde-marca="1" style="width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${marcadoHoy ? 'transparent' : 'var(--surface-border)'}; background: ${marcadoHoy ? 'var(--accent-purple)' : 'var(--surface-2)'}; font-size: 12px; font-weight: 800; color: #000;">
+                  ${tieneMeta ? (valorHoy ? escapeHtml(String(valorHoy)) : '+') : (marcadoHoy ? '<svg width="16" height="16" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '')}
+                </span>
+              </button>`
+          }
           <svg aria-hidden="true" width="16" height="16" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24" style="flex-shrink: 0;"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </div>
         ${renderMiniSemana(habito, hoyIso)}
@@ -414,6 +564,7 @@ async function renderLista() {
       </div>
 
       ${renderHabitoForm()}
+      ${renderProgresoModal()}
     </div>
   `;
 }
@@ -442,6 +593,7 @@ export function mountListeners() {
 
   initHabitosCharts();
   setupHabitoForm(refresh);
+  setupProgresoModal(refresh);
 
   if (!popstateEnganchado) {
     popstateEnganchado = true;
@@ -470,7 +622,7 @@ export function mountListeners() {
 
   document.querySelectorAll('.habito-row').forEach(row => {
     row.addEventListener('click', (e) => {
-      if (e.target.closest('.day-toggle-hoy')) return;
+      if (e.target.closest('.day-toggle-hoy') || e.target.closest('.day-progreso-hoy')) return;
       abrirDetalle(row.getAttribute('data-id'));
     });
   });
@@ -502,6 +654,20 @@ export function mountListeners() {
       ? `<svg width="${size}" height="${size}" fill="none" stroke="${checkColor}" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`
       : '';
   };
+
+  // Hábitos con meta numérica: un tap abre el mini-modal de cantidad en
+  // vez de togglear un booleano — necesitan un valor, no un check.
+  document.querySelectorAll('.day-progreso-hoy, .day-progreso').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const el = e.currentTarget;
+      const id = el.getAttribute('data-id');
+      const fecha = el.getAttribute('data-fecha');
+      const habitos = await db.getHabitos();
+      const habito = habitos.find(h => h.id === id);
+      if (habito) abrirProgresoModal(habito, fecha);
+    });
+  });
 
   document.querySelectorAll('.day-toggle-hoy, .day-toggle').forEach(btn => {
     btn.addEventListener('click', async (e) => {
