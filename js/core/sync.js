@@ -267,6 +267,148 @@ export async function applyRemoteEvent(event) {
   }
 }
 
+// --- Tablas espejo: una copia de LECTURA del estado actual de cada store
+// local, para poder mirarlas en el Table Editor de Supabase. `events` sigue
+// siendo la única fuente de verdad para sync entre dispositivos — estas
+// tablas nunca se leen para reconstruir nada, si se desincronizaran se
+// regeneran solas (backfillMirrorTables) sin perder información porque
+// siempre se derivan de events + los stores locales, nunca al revés.
+//
+// mirrorTargetFor(event) reutiliza el mismo catálogo tipo->store que
+// applyRemoteEvent (ver ahí arriba si hace falta comparar), pero en vez de
+// aplicar la mutación devuelve DÓNDE quedó — mirrorEvent() lee ese store
+// DESPUÉS de que la mutación (local o remota) ya se aplicó, y sube tal cual
+// quedó. Evita mantener dos catálogos idénticos por separado.
+//
+// NOTA: 'tareas_recurrentes' no es un store real de IndexedDB (no existe en
+// STORE_DEFS de idb.js, es un nombre que quedó de un plan viejo) — no hay
+// ningún evento que lo toque, así que nunca se escribe ahí. La tabla queda
+// creada en Supabase pero vacía; no rompe nada, es un remanente inocuo.
+const MIRROR_STORES = ['envelopes', 'goals', 'habitos', 'notas', 'notas_categorias', 'planificador', 'recurrentes', 'ritual', 'rutinas', 'sesiones', 'tareas', 'transacciones'];
+
+function mirrorTargetFor(event) {
+  const { modulo, tipo, entidadId } = event;
+  switch (tipo) {
+    case 'sobre_creado': case 'sobre_actualizado': return { store: 'envelopes', id: entidadId };
+    case 'sobre_eliminado': return { store: 'envelopes', id: entidadId, deleted: true };
+    case 'recurrente_creado': case 'recurrente_procesado': return { store: 'recurrentes', id: entidadId };
+    case 'recurrente_eliminado': return { store: 'recurrentes', id: entidadId, deleted: true };
+    case 'movimiento_registrado': case 'movimiento_actualizado': return { store: 'transacciones', id: entidadId };
+    case 'movimiento_eliminado': return { store: 'transacciones', id: entidadId, deleted: true };
+    case 'meta_creada': case 'meta_actualizada': case 'meta_progreso_agregado': return { store: 'goals', id: entidadId };
+    case 'meta_eliminada': return { store: 'goals', id: entidadId, deleted: true };
+    case 'rutina_creada': return { store: 'rutinas', id: entidadId };
+    case 'rutina_eliminada': return { store: 'rutinas', id: entidadId, deleted: true };
+    case 'sesion_registrada': return { store: 'sesiones', id: entidadId };
+    case 'perfil_actualizado': return { store: 'singletons', id: 'profile' };
+    case 'generador_config_actualizada': return { store: 'singletons', id: 'entrenoGeneradorConfig' };
+    case 'nivel_entrenamiento_actualizado':
+    case 'sugerencia_nivel_confirmada':
+    case 'sugerencia_nivel_descartada':
+      return { store: 'singletons', id: 'nivelEntrenamiento' };
+    case 'pr_favorito_toggled': return { store: 'singletons', id: 'prFavoritos' };
+    case 'configuracion_actualizada': return { store: 'singletons', id: 'settings' };
+    case 'onboarding_inicial_completado': return { store: 'singletons', id: 'onboardingInicialCompletado' };
+    case 'tarea_creada':
+      return { store: modulo === 'planificador' ? 'planificador' : 'tareas', id: entidadId };
+    case 'tarea_actualizada':
+      return { store: 'tareas', id: entidadId };
+    case 'tarea_completada':
+      return { store: modulo === 'planificador' ? 'planificador' : 'tareas', id: entidadId };
+    case 'tarea_descompletada':
+      return { store: 'planificador', id: entidadId };
+    case 'tarea_eliminada':
+      return { store: modulo === 'planificador' ? 'planificador' : 'tareas', id: entidadId, deleted: true };
+    case 'habito_creado': case 'habito_renombrado': case 'habito_marcado': case 'habito_desmarcado':
+      return { store: 'habitos', id: entidadId };
+    case 'habito_eliminado':
+      return { store: 'habitos', id: entidadId, deleted: true };
+    case 'ritual_iniciado': case 'ritual_actualizado':
+      return { store: 'ritual', id: entidadId };
+    case 'categoria_creada':
+      return { store: 'notas_categorias', id: entidadId };
+    case 'categoria_eliminada':
+      // Cascada: deleteCategoriaNota() también borra localmente las notas de
+      // esa categoría (ver applyRemoteEvent) — hay que reflejar esa cascada
+      // en la tabla espejo de 'notas' o quedarían huérfanas allá.
+      return { store: 'notas_categorias', id: entidadId, deleted: true, cascadeNotasCatId: entidadId };
+    case 'nota_creada':
+      return { store: 'notas', id: entidadId };
+    case 'nota_eliminada':
+      return { store: 'notas', id: entidadId, deleted: true };
+    default:
+      return null; // rutina_generada y demás eventos de solo-auditoría: ningún store que reflejar
+  }
+}
+
+async function mirrorEvent(event) {
+  if (!isSupabaseConfigured() || !navigator.onLine) return;
+  const target = mirrorTargetFor(event);
+  if (!target) return;
+  const supabase = getSupabase();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  const uid = session.user.id;
+
+  try {
+    if (target.deleted) {
+      await supabase.from(target.store).delete().eq('id', target.id).eq('user_id', uid);
+      if (target.cascadeNotasCatId) {
+        await supabase.from('notas').delete().eq('user_id', uid).eq('data->>catId', target.cascadeNotasCatId);
+      }
+      return;
+    }
+    let row;
+    if (target.store === 'singletons') {
+      const s = await idb.getOne('singletons', target.id);
+      if (!s) return;
+      row = s.value;
+    } else {
+      row = await idb.getOne(target.store, target.id);
+      if (!row) return; // ya no existe localmente (se borró después) -- nada que reflejar
+    }
+    const { error } = await supabase.from(target.store).upsert({ id: target.id, user_id: uid, data: row, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) console.error('[sync] Error reflejando en tabla espejo', target.store, error);
+  } catch (e) {
+    console.error('[sync] Error reflejando en tabla espejo', target.store, e);
+  }
+}
+
+// Sube el contenido ACTUAL de los 13 stores locales reales (ya reconstruidos
+// por pullRemoteEvents al momento de llamar esto) a sus tablas espejo — solo
+// hace falta una vez por dispositivo, para que el primer login deje todo
+// poblado y no sólo lo que se genere de ahí en adelante (ver bandera
+// mirrorBackfillDone en syncMeta).
+async function backfillMirrorTables() {
+  if (!isSupabaseConfigured() || !navigator.onLine) return;
+  const supabase = getSupabase();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  const uid = session.user.id;
+  const now = new Date().toISOString();
+
+  const upsertChunked = async (store, upserts) => {
+    for (let i = 0; i < upserts.length; i += 500) {
+      const chunk = upserts.slice(i, i + 500);
+      const { error } = await supabase.from(store).upsert(chunk, { onConflict: 'id' });
+      if (error) console.error('[sync] Error en backfill de', store, error);
+    }
+  };
+
+  for (const store of MIRROR_STORES) {
+    const rows = await idb.getAll(store);
+    if (rows.length === 0) continue;
+    const idField = store === 'ritual' ? 'fecha' : 'id';
+    await upsertChunked(store, rows.map(r => ({ id: r[idField], user_id: uid, data: r, updated_at: now })));
+  }
+
+  const singletonRows = await idb.getAll('singletons');
+  const singletonUpserts = singletonRows
+    .filter(r => r.key !== SYNC_META_KEY) // no reflejar el estado interno del propio sync
+    .map(r => ({ id: r.key, user_id: uid, data: r.value, updated_at: now }));
+  if (singletonUpserts.length > 0) await upsertChunked('singletons', singletonUpserts);
+}
+
 // --- Orquestación: subir eventos locales que falten, bajar eventos
 // remotos que falten. No se llama nunca sin sesión ni sin Supabase
 // configurado.
@@ -324,6 +466,7 @@ export async function pullRemoteEvents() {
     const event = rowToEvent(row);
     await idb.put('events', event);
     await applyRemoteEvent(event);
+    await mirrorEvent(event);
     pulled++;
   }
   await setSyncMeta({ ...meta, lastPulledTs: maxTs });
@@ -333,6 +476,16 @@ export async function pullRemoteEvents() {
 export async function runFullSync() {
   const push = await pushLocalEvents();
   const pull = await pullRemoteEvents();
+
+  // Backfill de las tablas espejo: una sola vez por dispositivo, después de
+  // que pullRemoteEvents ya reconstruyó los stores locales con lo que
+  // faltaba. Sin la bandera, cada sync re-subiría los 13 stores enteros.
+  const meta = await getSyncMeta();
+  if (!meta.mirrorBackfillDone && isSupabaseConfigured() && navigator.onLine) {
+    await backfillMirrorTables();
+    await setSyncMeta({ ...meta, mirrorBackfillDone: true });
+  }
+
   if ((push.pushed > 0 || pull.pulled > 0) && typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('budget-updated'));
     window.dispatchEvent(new CustomEvent('vg-synced', { detail: { push, pull } }));
@@ -349,6 +502,7 @@ async function pushSingleEvent(event) {
   if (error) { console.error('[sync] Error subiendo evento en tiempo real', error); return; }
   const meta = await getSyncMeta();
   if (event.ts > meta.lastPushedTs) await setSyncMeta({ ...meta, lastPushedTs: event.ts });
+  await mirrorEvent(event);
 }
 
 let initialized = false;
