@@ -41,6 +41,11 @@
   
   <!-- Icon & PWA -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  <!-- Safari/iOS ignora los `icons` del manifest al "Agregar a pantalla de
+       inicio" y busca este link puntual; sin él usa una captura de pantalla.
+       El PNG tiene fondo opaco a propósito: iOS rellena la transparencia con
+       negro. -->
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
   <!-- debe coincidir con --bg de variables.css -->
   <meta name="theme-color" content="#05070A">
   <meta name="apple-mobile-web-app-capable" content="yes">

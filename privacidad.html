@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Política de privacidad — Vanguard OS</title>
+  <meta name="theme-color" content="#05070A">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="stylesheet" href="css/variables.css">
+  <style>
+    body {
+      margin: 0;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-body, system-ui, sans-serif);
+      line-height: 1.6;
+      padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+    }
+    main { max-width: 680px; margin: 0 auto; }
+    a { color: var(--accent-primary, #C9A24A); }
+    .volver { display: inline-block; margin-bottom: 20px; font-weight: 600; text-decoration: none; }
+    h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.5px; }
+    h2 { font-size: 17px; margin: 28px 0 8px; }
+    p, li { font-size: 15px; color: var(--text-secondary); margin: 0 0 10px; }
+    ul { padding-left: 20px; margin: 0 0 10px; }
+    strong { color: var(--text-primary); }
+    .fecha { font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="volver" href="./">← Volver a Vanguard OS</a>
+
+    <h1>Política de privacidad</h1>
+    <p class="fecha">Última actualización: 19 de septiembre de 2026</p>
+
+    <h2>Qué es esta app</h2>
+    <p>Vanguard OS es una aplicación personal, en fase beta, hecha y mantenida por una sola persona. Se ofrece tal cual, sin garantías de disponibilidad ni de conservación de los datos: exportá un respaldo de vez en cuando.</p>
+
+    <h2>Si no creás una cuenta</h2>
+    <p>Todo lo que cargás (tareas, hábitos, finanzas, entrenamientos, notas, etc.) se guarda <strong>únicamente en este dispositivo</strong>, en el almacenamiento del navegador. Nada se envía a ningún servidor.</p>
+
+    <h2>Si creás una cuenta (opcional)</h2>
+    <p>La cuenta sirve para sincronizar tus datos entre tus dispositivos. Al usarla se guardan en la nube:</p>
+    <ul>
+      <li>Tu <strong>email</strong> y tu <strong>contraseña</strong> (la contraseña la almacena el servicio de autenticación de forma cifrada; el autor de la app no puede verla).</li>
+      <li>Una <strong>copia de tus datos</strong>: tareas, hábitos, movimientos, sobres, metas y pagos recurrentes de finanzas, rutinas y sesiones de entrenamiento, notas y categorías, ritual diario, planificador y tus ajustes.</li>
+      <li>Tu <strong>perfil</strong>, si lo completaste: peso, estatura, edad, sexo, nivel de actividad y meta. Son datos de salud y de finanzas personales, así que cargalos solo si te sentís cómodo con eso.</li>
+    </ul>
+
+    <h2>Dónde se guardan y quién los ve</h2>
+    <p>Los datos de la cuenta se guardan en <strong>Supabase</strong> (base de datos y autenticación), y viajan cifrados por HTTPS. Cada cuenta puede leer y modificar únicamente sus propias filas, y las demás personas que usen la app no pueden ver las tuyas. Como quien administra el proyecto, el autor tiene acceso técnico a la base de datos.</p>
+    <p>Los datos no se venden, no se comparten con terceros con fines comerciales, y la app no tiene publicidad ni analítica de uso.</p>
+
+    <h2>Otros servicios que intervienen</h2>
+    <ul>
+      <li><strong>GitHub Pages</strong>: aloja los archivos de la app.</li>
+      <li><strong>esm.sh</strong>: entrega la librería de Supabase que la app descarga al iniciar.</li>
+      <li><strong>Supabase</strong>: autenticación y base de datos, como se explicó arriba.</li>
+    </ul>
+    <p>Como en cualquier sitio web, estos servicios pueden ver tu dirección IP al conectarte. La app no usa cookies: la sesión y los datos se guardan en el almacenamiento local del navegador.</p>
+
+    <h2>Tus datos, bajo tu control</h2>
+    <ul>
+      <li><strong>Llevártelos</strong>: en Configuración → Respaldos podés exportar todo en un archivo JSON.</li>
+      <li><strong>Borrar lo local</strong>: en Configuración → Datos, «Borrar todos los datos» elimina todo lo guardado en este dispositivo.</li>
+      <li><strong>Borrar tu cuenta y lo guardado en la nube</strong>: por ahora no hay un botón para esto en la app; pedilo contactando al autor (ver abajo) y se elimina tu cuenta junto con todos sus datos.</li>
+    </ul>
+
+    <h2>Contacto</h2>
+    <p>Para cualquier consulta o pedido de borrado, contactá al autor a través de su <a href="https://github.com/benjaminorrego006-dotcom" target="_blank" rel="noopener">perfil de GitHub</a>.</p>
+
+    <h2>Cambios a esta política</h2>
+    <p>Si algo de esto cambia, se actualiza esta página y la fecha de arriba.</p>
+  </main>
+</body>
+</html>

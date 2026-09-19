@@ -16,6 +16,11 @@ export async function getAuthSession() {
   return session;
 }
 
+// Página estática aparte (privacidad.html en la raíz, no una vista del
+// router). "Volver a Vanguard OS" en esa página cubre la PWA instalada, que
+// no tiene botón atrás del navegador.
+const PRIVACIDAD_LINK = `<p style="font-size: 12px; color: var(--text-secondary); margin: 14px 0 0;">Al usar una cuenta se guarda una copia de tus datos en la nube. <a href="privacidad.html" style="color: var(--accent-primary);">Política de privacidad</a></p>`;
+
 export function renderAuthSection(session) {
   if (!isSupabaseConfigured()) {
     return `<p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Todavía no está configurado el proyecto de Supabase — completá SUPABASE_URL y SUPABASE_ANON_KEY en js/core/supabase-client.js.</p>`;
@@ -31,6 +36,7 @@ export function renderAuthSection(session) {
         <button id="btn-auth-sync" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-weight: 600; cursor: pointer;">Sincronizar ahora</button>
         <button id="btn-auth-logout" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: transparent; color: var(--state-high); border: 1px solid var(--state-high); font-weight: 600; cursor: pointer;">Cerrar sesión</button>
       </div>
+      ${PRIVACIDAD_LINK}
     `;
   }
 
@@ -47,6 +53,7 @@ export function renderAuthSection(session) {
       <button id="btn-auth-signup" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-weight: 600; cursor: pointer;">Crear cuenta</button>
       <button id="btn-auth-login" type="button" class="btn-primary tappable" style="flex: 1; background: var(--accent-primary); color: #000;">Iniciar sesión</button>
     </div>
+    ${PRIVACIDAD_LINK}
   `;
 }
 

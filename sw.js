@@ -1,7 +1,8 @@
-const CACHE_NAME = 'vanguard-os-v155';
+const CACHE_NAME = 'vanguard-os-v156';
 const PRECACHE_URLS = [
   './',
   './index.html',
+  './privacidad.html',
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
