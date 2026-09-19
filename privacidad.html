@@ -40,7 +40,7 @@
     <p>Vanguard OS es una aplicación personal, en fase beta, hecha y mantenida por una sola persona. Se ofrece tal cual, sin garantías de disponibilidad ni de conservación de los datos: exportá un respaldo de vez en cuando.</p>
 
     <h2>Si no creás una cuenta</h2>
-    <p>Todo lo que cargás (tareas, hábitos, finanzas, entrenamientos, notas, etc.) se guarda <strong>únicamente en este dispositivo</strong>, en el almacenamiento del navegador. Nada se envía a ningún servidor.</p>
+    <p>Todo lo que cargás (tareas, hábitos, finanzas, entrenamientos, notas, etc.) se guarda <strong>únicamente en este dispositivo</strong>, en el almacenamiento del navegador. Nada de eso se envía a ningún servidor. La única excepción son los reportes de errores automáticos (ver más abajo), que podés desactivar.</p>
 
     <h2>Si creás una cuenta (opcional)</h2>
     <p>La cuenta sirve para sincronizar tus datos entre tus dispositivos. Al usarla se guardan en la nube:</p>
@@ -54,11 +54,16 @@
     <p>Los datos de la cuenta se guardan en <strong>Supabase</strong> (base de datos y autenticación), y viajan cifrados por HTTPS. Cada cuenta puede leer y modificar únicamente sus propias filas, y las demás personas que usen la app no pueden ver las tuyas. Como quien administra el proyecto, el autor tiene acceso técnico a la base de datos.</p>
     <p>Los datos no se venden, no se comparten con terceros con fines comerciales, y la app no tiene publicidad ni analítica de uso.</p>
 
+    <h2>Reportes de errores</h2>
+    <p>Si la app falla, puede enviar un aviso técnico automático a <strong>Sentry</strong> para que el autor pueda arreglar el problema. El aviso incluye el mensaje del error, el detalle técnico de qué parte del código falló, y el tipo de dispositivo, sistema y navegador. La dirección de la página se envía sin lo que viene después del «#», y <strong>a propósito no se incluyen el contenido de tus datos (tareas, notas, finanzas, perfil) ni tu email</strong>. Se limita la cantidad de avisos por sesión y no se registran acciones ni pantallas visitadas.</p>
+    <p>Podés desactivarlo en Configuración → Reportes de errores; esa opción aparece cuando el envío está habilitado en la app.</p>
+
     <h2>Otros servicios que intervienen</h2>
     <ul>
       <li><strong>GitHub Pages</strong>: aloja los archivos de la app.</li>
       <li><strong>esm.sh</strong>: entrega la librería de Supabase que la app descarga al iniciar.</li>
       <li><strong>Supabase</strong>: autenticación y base de datos, como se explicó arriba.</li>
+      <li><strong>Sentry</strong> (sentry.io): recibe los reportes de errores descritos arriba. Su librería se descarga de <strong>browser.sentry-cdn.com</strong> solo cuando el envío está activo.</li>
     </ul>
     <p>Como en cualquier sitio web, estos servicios pueden ver tu dirección IP al conectarte. La app no usa cookies: la sesión y los datos se guardan en el almacenamiento local del navegador.</p>
 

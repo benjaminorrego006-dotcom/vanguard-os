@@ -4,6 +4,7 @@ import { initModalHistory, forgetOpenModals, initSheetDragToDismiss } from './hi
 import { mountOnboardingInicial } from '../components/onboarding-inicial.js';
 import { escapeHtml } from '../utils/escape.js';
 import { initSync } from './sync.js';
+import { initErrorTracking, reportError } from './error-tracking.js';
 
 const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'mas', 'configuracion'];
 
@@ -212,6 +213,10 @@ class Router {
     // primer render — corre en paralelo, y si no hay sesión guardada no
     // hace nada.
     initSync().catch(err => console.error('Error inicializando sync', err));
+
+    // Reporte de errores (ver js/core/error-tracking.js): también en
+    // paralelo y sin bloquear nada; inerte si no hay DSN configurado.
+    initErrorTracking().catch(err => console.error('Error inicializando el reporte de errores', err));
   }
 
   injectIcons() {
@@ -433,6 +438,7 @@ class Router {
       // detalle crudo colapsado detrás de "Ver detalle" para quien lo
       // necesite (soporte, o el propio desarrollo).
       console.error('Error al cargar la vista:', err);
+      reportError(err, `vista:${viewId}`);
       const detalle = escapeHtml(String((err && (err.stack || err.message)) || err));
       this.root.innerHTML = `
         <div style="padding: 48px 24px 24px; text-align: center;">

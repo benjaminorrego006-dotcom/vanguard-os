@@ -31,11 +31,24 @@
     // movedizo (puede dispararse muchas veces, por cosas no fatales). El
     // caso puntual que sí tiene su propia pantalla de error es el de
     // montar una vista (ver Router.navigate en js/core/app.js).
+    //
+    // Reporte a Sentry (ver js/core/error-tracking.js): el SDK se carga
+    // tarde y sin bloquear el arranque, así que los errores que ocurran
+    // antes de que esté listo esperan en esta cola (error-tracking.js la
+    // vacía al inicializar y la pone en null; si el reporte está apagado o
+    // sin configurar, también la pone en null y acá deja de acumular).
+    window.__vgEarlyErrors = [];
+    const encolarError = (error) => {
+      const q = window.__vgEarlyErrors;
+      if (Array.isArray(q) && q.length < 20) q.push({ error, tag: 'global' });
+    };
     window.addEventListener('error', (e) => {
       console.error('[Vanguard OS] Error no capturado:', e.error || e.message);
+      encolarError(e.error || e.message);
     });
     window.addEventListener('unhandledrejection', (e) => {
       console.error('[Vanguard OS] Promesa rechazada sin manejar:', e.reason);
+      encolarError(e.reason);
     });
   </script>
   

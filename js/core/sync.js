@@ -16,6 +16,7 @@
 // saldo.
 import * as idb from './idb.js';
 import { getSupabase, isSupabaseConfigured } from './supabase-client.js';
+import { reportError } from './error-tracking.js';
 
 const SYNC_META_KEY = 'syncMeta';
 
@@ -280,6 +281,7 @@ export async function applyRemoteEvent(event) {
     }
   } catch (e) {
     console.error('[sync] Error aplicando evento remoto', tipo, e);
+    reportError(e, `sync:aplicar:${tipo}`);
   }
 }
 
@@ -393,9 +395,10 @@ async function mirrorEvent(event) {
     // "violates row-level security policy"). Requiere que la tabla en
     // Supabase tenga su PRIMARY KEY en (user_id, id), no solo en id.
     const { error } = await supabase.from(target.store).upsert({ id: target.id, user_id: uid, data: row, updated_at: new Date().toISOString() }, { onConflict: 'user_id,id' });
-    if (error) console.error('[sync] Error reflejando en tabla espejo', target.store, error);
+    if (error) { console.error('[sync] Error reflejando en tabla espejo', target.store, error); reportError(error, `sync:espejo:${target.store}`); }
   } catch (e) {
     console.error('[sync] Error reflejando en tabla espejo', target.store, e);
+    reportError(e, `sync:espejo:${target.store}`);
   }
 }
 
@@ -420,7 +423,7 @@ async function backfillMirrorTables() {
     for (let i = 0; i < upserts.length; i += 500) {
       const chunk = upserts.slice(i, i + 500);
       const { error } = await supabase.from(store).upsert(chunk, { onConflict: 'user_id,id' });
-      if (error) console.error('[sync] Error en backfill de', store, error);
+      if (error) { console.error('[sync] Error en backfill de', store, error); reportError(error, `sync:backfill:${store}`); }
     }
   };
 
@@ -464,7 +467,7 @@ export async function pushLocalEvents() {
   for (let i = 0; i < pending.length; i += BATCH) {
     const chunk = pending.slice(i, i + BATCH).map(e => eventToRow(e, session.user.id));
     const { error } = await supabase.from('events').upsert(chunk, { onConflict: 'id', ignoreDuplicates: true });
-    if (error) { console.error('[sync] Error subiendo eventos', error); await setSyncMeta({ ...meta, lastPushedTs: maxTs }); return { pushed, error }; }
+    if (error) { console.error('[sync] Error subiendo eventos', error); reportError(error, 'sync:subir'); await setSyncMeta({ ...meta, lastPushedTs: maxTs }); return { pushed, error }; }
     pushed += chunk.length;
     maxTs = Math.max(maxTs, ...chunk.map(r => r.ts));
   }
@@ -484,7 +487,7 @@ export async function pullRemoteEvents() {
     .select('id, ts, modulo, tipo, entidad_id, payload, schema_version')
     .gte('ts', meta.lastPulledTs)
     .order('ts', { ascending: true });
-  if (error) { console.error('[sync] Error bajando eventos remotos', error); return { pulled: 0, error }; }
+  if (error) { console.error('[sync] Error bajando eventos remotos', error); reportError(error, 'sync:bajar'); return { pulled: 0, error }; }
 
   let pulled = 0;
   let maxTs = meta.lastPulledTs;
@@ -528,7 +531,7 @@ async function pushSingleEvent(event) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
   const { error } = await supabase.from('events').upsert([eventToRow(event, session.user.id)], { onConflict: 'id', ignoreDuplicates: true });
-  if (error) { console.error('[sync] Error subiendo evento en tiempo real', error); return; }
+  if (error) { console.error('[sync] Error subiendo evento en tiempo real', error); reportError(error, 'sync:subir-en-vivo'); return; }
   const meta = await getSyncMeta();
   if (event.ts > meta.lastPushedTs) await setSyncMeta({ ...meta, lastPushedTs: event.ts });
   await mirrorEvent(event);

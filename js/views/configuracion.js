@@ -13,6 +13,7 @@ import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardin
 import { renderPinSecuritySection, attachPinSecurityListeners } from '../components/pin-security.js';
 import { getAuthSession, renderAuthSection, attachAuthListeners } from '../components/auth-section.js';
 import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
+import { isErrorTrackingConfigured, isErrorReportingEnabled, setErrorReportingEnabled } from '../core/error-tracking.js';
 
 const NIVEL_LABELS = { 'menos-1': 'Menos de 1 año', '1-3': '1 a 3 años', 'mas-3': 'Más de 3 años' };
 
@@ -128,6 +129,13 @@ export async function render() {
         </div>
       `)}
 
+      ${isErrorTrackingConfigured() ? seccion('Reportes de errores', 'Si la app falla, envía un aviso técnico automático (el mensaje del error y el tipo de dispositivo y navegador) para poder arreglarlo. A propósito no incluye el contenido de tus datos ni tu email. <a href="privacidad.html" style="color: var(--accent-primary);">Más info</a>', `
+        <label for="cfg-error-reporting" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; color: var(--text-primary);">
+          <input type="checkbox" id="cfg-error-reporting" ${isErrorReportingEnabled() ? 'checked' : ''} style="width: 20px; height: 20px; flex-shrink: 0;">
+          Enviar reportes de errores
+        </label>
+      `) : ''}
+
       ${seccion('Datos', 'Elimina todo lo guardado en este dispositivo. Esta acción no se puede deshacer — exporta un respaldo antes si no estás seguro.', `
         <button id="btn-cfg-wipe" type="button" class="tappable" style="width: 100%; padding: 12px; background: transparent; border: 1px solid var(--state-high); color: var(--state-high); font-weight: 700; cursor: pointer;">Borrar todos los datos</button>
       `)}
@@ -175,6 +183,11 @@ export function mountListeners() {
     }
     await db.setAllocationRule({ needs: n / 100, wants: w / 100, savings: s / 100 });
     Toast('Regla actualizada', 'success');
+  });
+
+  document.getElementById('cfg-error-reporting')?.addEventListener('change', (e) => {
+    setErrorReportingEnabled(e.target.checked);
+    Toast(e.target.checked ? 'Reportes de errores activados' : 'Reportes de errores desactivados', 'success');
   });
 
   document.getElementById('btn-cfg-export')?.addEventListener('click', () => exportAllData());
