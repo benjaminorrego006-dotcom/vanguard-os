@@ -215,7 +215,8 @@ function renderHeroicRow({ id, color, label, value }) {
 }
 
 // Tarjeta contextual: un solo espacio con prioridad Ritual pendiente (solo
-// antes de las 12:00) > aviso de respaldo > "Hoy toca" de Entreno. "Después"
+// antes de las 12:00) > aviso de respaldo > avances de nivel listos > "Hoy
+// toca" de Entreno. "Después"
 // oculta esa tarjeta hasta mañana (ver ocultarHoy) y deja pasar a la
 // siguiente en la prioridad.
 async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesiones }) {
@@ -258,6 +259,30 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesion
       detalle: 'Tus datos viven solo en este teléfono. Sin respaldo, se pierden si borras la app o cambias de equipo.',
       accion: 'Exportar respaldo'
     });
+  }
+
+  // Avances de nivel listos en Entreno (detectarSugerencias). Se importa
+  // bajo demanda: arrastra el catálogo de ejercicios, que Inicio no necesita
+  // para nada más.
+  if (!ocultaHoy('avances')) {
+    try {
+      const { detectarSugerencias } = await window.appRouter.importar('js/core/sugerencias-nivel.js');
+      const avances = await detectarSugerencias();
+      if (avances.length > 0) {
+        const n = avances.length;
+        const primero = avances[0];
+        return tarjeta({
+          tipo: 'avances',
+          color: 'var(--cy)',
+          eyebrow: 'Entreno',
+          titulo: `${n} ${n === 1 ? 'avance listo' : 'avances listos'} en Entreno`,
+          detalle: `${escapeHtml(primero.ramaLabel)}: ${escapeHtml(primero.ejercicioActual.nombre)} → ${escapeHtml(primero.ejercicioSiguiente.nombre)}${n > 1 ? ` y ${n - 1} más` : ''}`,
+          accion: 'Ver avances'
+        });
+      }
+    } catch (err) {
+      console.error('No se pudieron calcular los avances de nivel:', err);
+    }
   }
 
   if (!ocultaHoy('hoytoca')) {

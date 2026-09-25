@@ -303,6 +303,15 @@ class Router {
     }
   }
 
+  // Importa un módulo (y su grafo) bajo demanda usando el mismo cargador y
+  // caché de Blob URL que las vistas — un import() dinámico relativo no
+  // funciona desde un Blob URL. Lo usa Hoy para no arrastrar el catálogo de
+  // ejercicios al arranque solo por avisar de avances.
+  async importar(ruta) {
+    const blobUrl = await loadModuleGraph(new URL(ruta, location.href).href);
+    return import(blobUrl);
+  }
+
   syncMenuActivo(viewId) {
     document.querySelectorAll('.menu-item').forEach(a => {
       a.classList.toggle('active', a.getAttribute('data-menu-view') === viewId);

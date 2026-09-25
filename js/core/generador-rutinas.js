@@ -557,10 +557,16 @@ function seriesDesdeObjetivo(entry) {
 // usuario "próximo paso: X" cuando en realidad le estamos prescribiendo Y
 // es la caja negra que la Etapa 4a pidió evitar. Solo se nombra el nodo
 // frontera cuando de verdad es el mismo ejercicio elegido.
-function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido) {
+function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido, motivoRelajado) {
   const ramaLabel = RAMA_LABELS[patron];
   if (relajado) {
-    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel}, pero no hay opciones a ese nivel con el equipo que declaraste — un paso ${nivelUsado} en su lugar.`;
+    // Dos casos distintos (ver candidatosPara): bajó de nivel porque el de la
+    // rama no tenía opciones con tu equipo, o SUBIÓ porque ni ese nivel ni
+    // los inferiores tenían nada.
+    if (motivoRelajado === 'sin-candidatos-inferiores') {
+      return `Subió de nivel por falta de ejercicios: en ${ramaLabel} tu nivel es ${nivelInfo.nivel}, pero no hay opciones de ese nivel ni inferiores con el equipo que declaraste — usamos un paso ${nivelUsado}, más exigente que tu nivel.`;
+    }
+    return `Bajó de nivel: en ${ramaLabel} tu nivel es ${nivelInfo.nivel}, pero no hay opciones de ese nivel con el equipo que declaraste — usamos un paso ${nivelUsado}.`;
   }
   if (nivelInfo.bajadoPorInactividad) {
     return `Hace ${nivelInfo.diasSinEntrenar} días que no entrenas ${ramaLabel} — bajamos la exigencia un escalón para retomar con cuidado.`;
@@ -627,7 +633,7 @@ function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, 
       if (agotados.has(patron)) continue;
 
       const nivelInfo = nivelPorRama[patron];
-      const { pool, relajado, nivelUsado, razon } = candidatosPara(patron, categoria, nivelInfo.nivel, equipoDisponible, historialPorNombre, preferirTipo);
+      const { pool, relajado, nivelUsado, razon, motivoRelajado } = candidatosPara(patron, categoria, nivelInfo.nivel, equipoDisponible, historialPorNombre, preferirTipo);
       if (pool.length === 0) {
         // razon null: no había del tipo pedido en esta fase, pero sí de
         // otro — no es un hueco real, la otra fase lo cubre, así que no
@@ -654,7 +660,7 @@ function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, 
         nombre: elegido.nombre,
         series: categoria === 'hiit' ? null : seriesDesdeObjetivo(elegido),
         motivo: esPrimeraDelPatronHoy
-          ? motivoPara(patron, nivelInfo, relajado, nivelUsado, elegido.nombre)
+          ? motivoPara(patron, nivelInfo, relajado, nivelUsado, elegido.nombre, motivoRelajado)
           : `Suma volumen a ${RAMA_LABELS[patron]} junto al ejercicio principal de hoy para ese patrón.`
       });
       vueltasSinExito = 0;

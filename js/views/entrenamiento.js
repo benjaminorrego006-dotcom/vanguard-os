@@ -13,7 +13,7 @@ import { calcularIMC } from '../utils/bodyMetrics.js';
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
 import { formatFechaCorta } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
-import { detectarSugerenciaPendiente } from '../core/sugerencias-nivel.js';
+import { detectarSugerencias } from '../core/sugerencias-nivel.js';
 import { Toast, hayModalAbierto } from '../utils/states.js';
 import { renderProgreso, initProgresoListeners, setContextoCategoria, cleanup as cleanupProgreso } from '../components/entreno-progreso.js';
 import { renderMiniChart } from '../components/mini-chart.js';
@@ -60,44 +60,63 @@ async function onSyncActualizadoEntreno() {
 
 const NIVEL_SUGERIDO_LABEL = { intermedio: 'Intermedio', avanzado: 'Avanzado' };
 
-// Banner "sugerencia de avance de nivel" (PROMPT-NIVEL-FILTRADO.md, paso
-// 4/e): se calcula después de insertar el DOM, no durante render(), porque
-// depende de una lectura de IndexedDB (historial + PRs) que no tiene
-// sentido bloquear el primer pintado del dashboard. Nunca sube el nivel
-// sola — solo arma la sugerencia con evidencia concreta; subir o descartar
-// es una acción explícita del usuario.
+// Tarjetas "listo para avanzar" (PROMPT-NIVEL-FILTRADO.md, paso 4/e): se
+// calculan después de insertar el DOM, no durante render(), porque dependen
+// de una lectura de IndexedDB (historial) que no tiene sentido bloquear el
+// primer pintado del dashboard. Nunca suben el nivel solas — solo arman la
+// sugerencia con evidencia concreta; subir o descartar es una acción
+// explícita del usuario. Una tarjeta por rama con sugerencia (máx. 3
+// visibles, el resto detrás de "Ver N más"); chaflán MK III (.card-hero),
+// sin radios ni sombras.
+const SUGERENCIAS_VISIBLES = 3;
+let sugerenciasExpandido = false;
+
 async function renderSugerenciaNivelBanner() {
   const contenedor = document.getElementById('sugerencia-nivel-banner');
   if (!contenedor) return;
 
-  const sugerencia = await detectarSugerenciaPendiente();
-  if (!sugerencia) { contenedor.innerHTML = ''; return; }
+  const sugerencias = await detectarSugerencias();
+  if (sugerencias.length === 0) { contenedor.innerHTML = ''; return; }
 
-  contenedor.innerHTML = `
-    <div class="card" style="padding: 16px 18px; margin-bottom: 20px; border-radius: 18px; border: 1px solid var(--surface-border);">
-      <div style="display: flex; gap: 12px; align-items: flex-start;">
-        <svg width="20" height="20" fill="none" stroke="var(--text-secondary)" stroke-width="2.3" viewBox="0 0 24 24" style="flex-shrink: 0; margin-top: 1px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-        <div style="flex: 1;">
-          <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Tu progreso en ${sugerencia.ramaLabel} ya es ${NIVEL_SUGERIDO_LABEL[sugerencia.nivelSugerido]}</div>
-          <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; font-weight: 500;">${sugerencia.detalle}</div>
-          <div style="display: flex; gap: 10px; margin-top: 12px;">
-            <button id="btn-sugerencia-nivel-confirmar" class="tappable" style="background: var(--accent-teal); color: #000; border: none; padding: 9px 16px; font-weight: 700; font-size: 12.5px; cursor: pointer;">Sí, subir de nivel</button>
-            <button id="btn-sugerencia-nivel-descartar" class="tappable" style="background: transparent; color: var(--text-secondary); border: 1px solid var(--surface-border); padding: 9px 16px; font-weight: 600; font-size: 12.5px; cursor: pointer;">Ahora no</button>
-          </div>
-        </div>
+  const visibles = sugerenciasExpandido ? sugerencias : sugerencias.slice(0, SUGERENCIAS_VISIBLES);
+  const tarjeta = (s) => `
+    <div class="card card-hero sugerencia-nivel" data-rama="${s.rama}" style="padding: 14px 16px; margin-bottom: 12px; border-left: 3px solid var(--accent-teal);">
+      <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Listo para avanzar · ${NIVEL_SUGERIDO_LABEL[s.nivelSugerido]}</div>
+      <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1.3;">${escapeHtml(s.ramaLabel)}: ${escapeHtml(s.ejercicioActual.nombre)} → ${escapeHtml(s.ejercicioSiguiente.nombre)}</div>
+      <div title="${escapeHtml(s.evidencia)}" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(s.evidencia)}</div>
+      <div style="display: flex; gap: 10px; margin-top: 12px;">
+        <button class="btn-sugerencia-subir btn-primary tappable" data-rama="${s.rama}" data-nivel="${s.nivelSugerido}" style="background: var(--accent-teal); color: #000; width: auto; padding: 9px 16px; font-size: 12.5px;">Subir de nivel</button>
+        <button class="btn-sugerencia-ahora-no tappable" data-rama="${s.rama}" data-nivel="${s.nivelSugerido}" style="background: transparent; color: var(--text-secondary); border: 1px solid var(--surface-border); padding: 9px 16px; font-weight: 600; font-size: 12.5px; cursor: pointer;">Ahora no</button>
       </div>
-    </div>
-  `;
+    </div>`;
+  const verMas = sugerencias.length > SUGERENCIAS_VISIBLES
+    ? `<button id="btn-sugerencias-ver-mas" class="tappable" style="background: transparent; border: none; color: var(--accent-teal); font-size: 12.5px; font-weight: 700; padding: 4px 0 16px; cursor: pointer;">${sugerenciasExpandido ? 'Ver menos' : `Ver ${sugerencias.length - SUGERENCIAS_VISIBLES} más`}</button>`
+    : '';
+  contenedor.innerHTML = visibles.map(tarjeta).join('') + verMas;
 
-  document.getElementById('btn-sugerencia-nivel-confirmar').addEventListener('click', async () => {
-    await db.confirmarSugerenciaNivel(sugerencia.rama, sugerencia.nivelSugerido);
-    Toast(`Subiste a ${NIVEL_SUGERIDO_LABEL[sugerencia.nivelSugerido]} en ${sugerencia.ramaLabel}`, 'success');
-    renderSugerenciaNivelBanner();
+  // Tras cada innerHTML, los listeners se reasignan.
+  const porRama = (rama) => sugerencias.find(x => x.rama === rama);
+  contenedor.querySelectorAll('.btn-sugerencia-subir').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const s = porRama(btn.dataset.rama);
+      if (!s) return;
+      btn.disabled = true;
+      await db.confirmarSugerenciaNivel(s.rama, s.nivelSugerido);
+      Toast(`Subiste a ${NIVEL_SUGERIDO_LABEL[s.nivelSugerido]} en ${s.ramaLabel}`, 'success');
+      renderSugerenciaNivelBanner();
+    });
   });
-  document.getElementById('btn-sugerencia-nivel-descartar').addEventListener('click', async () => {
-    await db.descartarSugerenciaNivel(sugerencia.rama, sugerencia.nivelSugerido);
-    renderSugerenciaNivelBanner();
+  contenedor.querySelectorAll('.btn-sugerencia-ahora-no').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const s = porRama(btn.dataset.rama);
+      if (!s) return;
+      btn.disabled = true;
+      await db.descartarSugerenciaNivel(s.rama, s.nivelSugerido);
+      renderSugerenciaNivelBanner();
+    });
   });
+  const btnVerMas = document.getElementById('btn-sugerencias-ver-mas');
+  if (btnVerMas) btnVerMas.addEventListener('click', () => { sugerenciasExpandido = !sugerenciasExpandido; renderSugerenciaNivelBanner(); });
 }
 
 export let mountListeners;
