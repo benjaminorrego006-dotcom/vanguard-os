@@ -8,7 +8,7 @@ import { renderHiitTimer, initHiitTimerListeners, cleanupHiitTimer } from '../co
 import { renderProgressRing } from '../utils/progressRing.js';
 import { WEEKLY_GOALS, CATEGORY_COLORS } from '../core/trainingConfig.js';
 import { renderProfileForm, setupProfileForm, openProfileForm, perfilPospuestoHoy } from '../components/profile-form.js';
-import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardingForm } from '../components/nivel-onboarding-form.js';
+import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardingForm, nivelPospuestoHoy } from '../components/nivel-onboarding-form.js';
 import { calcularIMC } from '../utils/bodyMetrics.js';
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
 import { formatFechaCorta } from '../utils/fecha.js';
@@ -368,7 +368,7 @@ mountListeners = () => {
   db.getProfile().then(profile => {
     if (!profile) { if (!perfilPospuestoHoy()) openProfileForm(); return; }
     db.getNivelEntrenamiento().then(nivel => {
-      if (!nivel) openNivelOnboardingForm();
+      if (!nivel && !nivelPospuestoHoy()) openNivelOnboardingForm();
     });
   });
 

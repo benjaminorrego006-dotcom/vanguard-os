@@ -11,6 +11,7 @@
 // calórico) y Estándares de Fuerza lo lee de ahí directamente.
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
+import { diaKeyDe } from '../utils/fecha.js';
 import { EQUIPO_OPCIONES } from '../core/trainingConfig.js';
 
 const TIEMPO_OPCIONES = [
@@ -46,6 +47,21 @@ function mostrarPaso(n) {
   if (dots) dots.innerHTML = renderDots();
 }
 
+// "Ahora no": oculta la apertura automática al entrar a Entreno hasta mañana
+// (fecha por diaKeyDe en localStorage: preferencia de UI, no dato de la
+// app). No afecta a la apertura manual desde el ícono de nivel.
+const NIVEL_AHORA_NO_KEY = 'vg-nivel-ahora-no';
+
+export function nivelPospuestoHoy() {
+  try { return localStorage.getItem(NIVEL_AHORA_NO_KEY) === diaKeyDe(new Date()); }
+  catch (e) { return false; /* modo privado — mostrar el modal igual */ }
+}
+
+function posponerNivelHoy() {
+  try { localStorage.setItem(NIVEL_AHORA_NO_KEY, diaKeyDe(new Date())); }
+  catch (e) { /* modo privado */ }
+}
+
 export function renderNivelOnboardingForm() {
   return `
     <div id="nivel-onboarding-modal" class="modal-overlay">
@@ -63,6 +79,7 @@ export function renderNivelOnboardingForm() {
               </button>
             `).join('')}
           </div>
+          <button id="btn-nivel-onboarding-ahora-no" class="tappable" style="margin-top: 14px; width: 100%; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 12px; font-size: 13px; font-weight: 600; cursor: pointer;">Ahora no</button>
         </div>
 
         <div id="nivel-onboarding-paso-2" class="nivel-onboarding-paso" style="display: none;">
@@ -120,6 +137,14 @@ export function setupNivelOnboardingForm(onFinalizado) {
     });
   });
 
+  // Sin nivel guardado es "Ahora no" (pospone el día); con nivel guardado
+  // (corrección manual) es solo "Cancelar".
+  const btnAhoraNo = document.getElementById('btn-nivel-onboarding-ahora-no');
+  btnAhoraNo.addEventListener('click', () => {
+    if (btnAhoraNo.dataset.modo === 'onboarding') posponerNivelHoy();
+    close();
+  });
+
   document.getElementById('btn-nivel-onboarding-atras-2').addEventListener('click', () => mostrarPaso(1));
   document.getElementById('btn-nivel-onboarding-atras-3').addEventListener('click', () => mostrarPaso(2));
 
@@ -166,6 +191,10 @@ export async function openNivelOnboardingForm() {
   modal.querySelectorAll('.nivel-onboarding-equipo-check').forEach(el => {
     el.checked = equipoGuardado.has(el.value);
   });
+
+  const btnAhoraNo = document.getElementById('btn-nivel-onboarding-ahora-no');
+  btnAhoraNo.textContent = nivel ? 'Cancelar' : 'Ahora no';
+  btnAhoraNo.dataset.modo = nivel ? '' : 'onboarding';
 
   mostrarPaso(1);
   modal.style.display = 'flex';
