@@ -350,6 +350,7 @@ class Router {
       if (base === 'mas') this.abrirMenu();
       raw = destino;
     }
+    if (raw === 'dashboard/ritual') return 'ritual';
     const view = raw.split('/')[0];
     return VALID_VIEWS.includes(view) ? view : 'dashboard';
   }
@@ -418,7 +419,13 @@ class Router {
     // toca el link del mail y la cuenta nunca termina de confirmarse en la
     // app, aunque Supabase ya la haya marcado confirmada de su lado.
     const esCallbackDeAuth = /access_token=|refresh_token=|token_hash=|type=(signup|recovery|invite|magiclink|email_change)/.test(location.hash.slice(1));
-    if (!esCallbackDeAuth && location.hash.slice(1).split('/')[0] !== viewId) location.hash = viewId;
+    // Ritual cuelga de Hoy (#dashboard/ritual); #ritual a secas es solo una
+    // ruta vieja que redirige (ver resolveViewFromHash). Tareas admite
+    // subrutas (#tareas/semana). El resto compara el hash completo.
+    const hashActual = location.hash.slice(1);
+    const hashDestino = viewId === 'ritual' ? 'dashboard/ritual' : viewId;
+    const yaEnDestino = viewId === 'tareas' ? hashActual.split('/')[0] === 'tareas' : hashActual === hashDestino;
+    if (!esCallbackDeAuth && !yaEnDestino) location.hash = hashDestino;
 
     this.currentView = viewId;
 

@@ -6,6 +6,7 @@ import { Toast, ConfirmDialog, EmptyState, hayModalAbierto } from '../utils/stat
 import { diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
+import { renderCabeceraRacha } from '../components/racha-reactor.js';
 
 // Lunes primero (convención es-CL) — a diferencia de la franja rodante
 // anterior (últimos 7 días terminando hoy), esta es la semana calendario
@@ -534,6 +535,9 @@ async function renderLista() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
         </div>
       </div>
+
+      <!-- Cabecera: anillo de racha grande + insignias (antes vivían en Inicio) -->
+      ${await renderCabeceraRacha()}
 
       ${habitos.length > 0 ? `
         <!-- Racha de días perfectos — tarjeta principal de Hábitos, lleva chaflán (ver .card-hero). -->

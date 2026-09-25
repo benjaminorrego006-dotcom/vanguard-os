@@ -1,6 +1,5 @@
 import { db } from '../core/db.js';
 import { formatCurrency } from '../utils/currency.js';
-import { WEEKLY_GOALS } from '../core/trainingConfig.js';
 import { Toast } from '../utils/states.js';
 import { parseQuickGasto } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
@@ -8,14 +7,21 @@ import { diaKeyDe } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import * as LabFinanzas from '../components/lab-finanzas.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
+import { calcularHoyToca } from '../utils/hoyToca.js';
 
 // Llamado por el router (app.js) antes de desmontar Inicio. El laboratorio
 // puede tener una instancia de Chart.js viva (el donut de "Distribución del
 // mes") que si no, queda con su canvas fuera del DOM pero corriendo — mismo
 // motivo que ya documentaba analisis.js.
 export function cleanup() {
+  if (labObserver) { labObserver.disconnect(); labObserver = null; }
   LabFinanzas.cleanup();
 }
+
+// Observer que dispara la carga diferida del Laboratorio (ver
+// mountListeners): así Chart.js no se descarga hasta que el usuario llega
+// con el scroll a esa sección.
+let labObserver = null;
 
 // El evento beforeinstallprompt lo captura index.html apenas carga la
 // página (antes de que este módulo exista) y lo guarda en
@@ -57,11 +63,9 @@ window.addEventListener('vg-install-available', () => {
 // datos de navegación o cambia de teléfono, se pierde todo. exportAllData()
 // hoy vivía escondida en Ajustes de Finanzas — este aviso la trae a Inicio,
 // que es lo primero que se ve, en vez de depender de que alguien entre por
-// su cuenta a esa pantalla. Se puede posponer 7 días (no cerrar para
-// siempre): mismo motivo que el snooze de instalación, timestamp en
-// localStorage porque es una preferencia de UI, no dato de la app.
-const BACKUP_SNOOZE_KEY = 'vg-backup-snoozed-at';
-const BACKUP_SNOOZE_DIAS = 7;
+// su cuenta a esa pantalla. "Después" lo oculta hasta mañana (no para
+// siempre): la fecha (diaKeyDe) queda en localStorage porque es una
+// preferencia de UI, no dato de la app.
 const BACKUP_AVISO_DIAS = 14;
 const BACKUP_ALERTA_ROJA_DIAS = 30;
 
@@ -69,28 +73,19 @@ function backupNecesitaAviso(diasDesdeBackup) {
   return diasDesdeBackup === null || diasDesdeBackup > BACKUP_AVISO_DIAS;
 }
 
-function avisoBackupPospuesto() {
-  try {
-    const snoozedAt = localStorage.getItem(BACKUP_SNOOZE_KEY);
-    if (!snoozedAt) return false;
-    const diasDesde = (Date.now() - Number(snoozedAt)) / (1000 * 60 * 60 * 24);
-    return diasDesde < BACKUP_SNOOZE_DIAS;
-  } catch (e) { return false; /* modo privado — mostrar el aviso igual */ }
+// "Después" de la tarjeta contextual (ritual / respaldo / hoy toca): guarda
+// el día en que se ocultó; vuelve a aparecer mañana.
+const OCULTA_PREFIX = 'vg-ctx-oculta-';
+
+function ocultaHoy(tipo) {
+  try { return localStorage.getItem(OCULTA_PREFIX + tipo) === diaKeyDe(new Date()); }
+  catch (e) { return false; /* modo privado — mostrar la tarjeta igual */ }
 }
 
-// Insignias sobrias: sin niveles, sin copy de videojuego. Bloqueada = ícono
-// de candado atenuado en gris; desbloqueada = ícono propio con el color de
-// acento del módulo al que pertenece (Vanguard MK III). racha_7 no
-// pertenece a ningún módulo en particular (es la racha global del
-// reactor), así que se queda con el naranja de "fuego" que ya tenía;
-// mes_sin_exceder se queda en el verde de éxito, que ya era un semántico
-// aparte del acento de marca.
-const BADGE_META = {
-  racha_7: { icon: `<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>`, color: 'var(--accent-orange)' },
-  primera_meta: { icon: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>`, color: 'var(--am)' },
-  mes_sin_exceder: { icon: `<circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline>`, color: 'var(--state-success)' },
-  diez_sesiones: { icon: `<path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><rect x="4" y="2" width="4" height="20" rx="1"></rect><rect x="16" y="2" width="4" height="20" rx="1"></rect>`, color: 'var(--cy)' }
-};
+function ocultarHoy(tipo) {
+  try { localStorage.setItem(OCULTA_PREFIX + tipo, diaKeyDe(new Date())); }
+  catch (e) { /* modo privado */ }
+}
 
 function saludoPorHora() {
   const h = new Date().getHours();
@@ -109,58 +104,6 @@ function colorAlerta(nivel) {
   return 'var(--state-low)';
 }
 
-// --- Reactor: tres anillos concéntricos de progreso (uno por módulo) más
-// un hexágono central de líneas finas con la racha global. Mismo principio
-// matemático que progressRing.js (círculo de fondo + arco vía
-// stroke-dasharray/dashoffset), pero con tres anillos en un mismo SVG y el
-// texto superpuesto en HTML encima (más simple que centrar dos líneas de
-// texto dentro del SVG). "Avance del día" se aproxima con la métrica de
-// progreso más cercana que ya calcula cada módulo: Entreno usa el avance
-// de la meta semanal de sesiones (no hay meta diaria en la app), Finanzas
-// usa el % del presupuesto del mes ya gastado, Hábitos usa el % de
-// hábitos marcados hoy sobre el total de hábitos activos (Tareas salió
-// del nav — ver TAREA 2 del prompt de retiro).
-function renderReactor({ cyPct, amPct, viPct, rachaGlobal }) {
-  const size = 220;
-  const c = 110;
-  const rings = [
-    { r: 96, sw: 10, pct: cyPct, color: 'var(--cy)', track: 'var(--cyb)' },
-    { r: 78, sw: 10, pct: amPct, color: 'var(--am)', track: 'var(--amb)' },
-    { r: 60, sw: 10, pct: viPct, color: 'var(--vi)', track: 'var(--vib)' }
-  ];
-
-  const ringsHtml = rings.map(ring => {
-    const circumference = 2 * Math.PI * ring.r;
-    const clamped = Math.max(0, Math.min(100, ring.pct));
-    const offset = circumference - (clamped / 100) * circumference;
-    return `
-      <circle cx="${c}" cy="${c}" r="${ring.r}" fill="none" stroke="${ring.track}" stroke-width="${ring.sw}"></circle>
-      <circle cx="${c}" cy="${c}" r="${ring.r}" fill="none" stroke="${ring.color}" stroke-width="${ring.sw}"
-        stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"
-        style="transition: stroke-dashoffset 0.6s ease;"></circle>
-    `;
-  }).join('');
-
-  const hexR = 44;
-  const hexPoints = Array.from({ length: 6 }, (_, i) => {
-    const angle = (-90 + i * 60) * Math.PI / 180;
-    return `${(c + hexR * Math.cos(angle)).toFixed(2)},${(c + hexR * Math.sin(angle)).toFixed(2)}`;
-  }).join(' ');
-
-  return `
-    <div style="position: relative; width: ${size}px; height: ${size}px; margin: 0 auto;">
-      <svg role="img" aria-label="Racha de ${rachaGlobal.actual} día${rachaGlobal.actual === 1 ? '' : 's'}" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform: rotate(-90deg);">
-        ${ringsHtml}
-        <polygon points="${hexPoints}" fill="none" stroke="var(--t3)" stroke-width="1.5"></polygon>
-      </svg>
-      <div aria-hidden="true" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none;">
-        <div class="num" style="font-size: 36px; font-weight: 800; color: var(--t1); line-height: 1;">${rachaGlobal.actual}</div>
-        <div style="font-size: 10px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: 2.5px; margin-top: 5px;">Racha</div>
-      </div>
-    </div>
-  `;
-}
-
 // Fila heroica compacta: barra de color lateral + una sola métrica grande,
 // nada más — reemplaza a las dos tarjetas grandes (círculo de progreso /
 // ícono de billetera) de la versión anterior.
@@ -176,45 +119,83 @@ function renderHeroicRow({ id, color, label, value }) {
   `;
 }
 
-// Insignia como celda de panal hexagonal (clase .mk3-hex, ver
-// components.css). Bloqueada = candado atenuado; desbloqueada = ícono
-// propio con el color de su módulo.
-function renderBadgeHex(b) {
-  const meta = BADGE_META[b.id];
-  const bg = b.unlocked ? `${meta.color}22` : 'var(--surface-2)';
-  const fg = b.unlocked ? meta.color : 'var(--text-disabled)';
-  const icon = b.unlocked
-    ? `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">${meta.icon}</svg>`
-    : `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="1"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`;
-  return `
-    <div title="${b.label}" style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 68px; text-align: center;">
-      <div class="mk3-hex" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: ${bg}; color: ${fg};">
-        ${icon}
+// Tarjeta contextual: un solo espacio con prioridad Ritual pendiente (solo
+// antes de las 12:00) > aviso de respaldo > "Hoy toca" de Entreno. "Después"
+// oculta esa tarjeta hasta mañana (ver ocultarHoy) y deja pasar a la
+// siguiente en la prioridad.
+async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesiones }) {
+  const hoy = diaKeyDe(new Date());
+
+  const tarjeta = ({ tipo, color, eyebrow, titulo, detalle, accion }) => `
+    <div id="ctx-card" data-tipo="${tipo}" class="card card-hero" style="padding: 14px 16px; margin-bottom: 14px;">
+      <div class="num" style="font-size: 10px; font-weight: 700; color: ${color}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">${eyebrow}</div>
+      <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${titulo}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4;">${detalle}</div>
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <button id="ctx-accion" class="tappable" style="flex: 1; background: ${color}; color: #000; border: none; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer;">${accion}</button>
+        <button id="ctx-despues" class="tappable" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer;" aria-label="Ocultar hasta mañana">Después</button>
       </div>
-      <div style="font-size: 9.5px; font-weight: 600; color: ${b.unlocked ? 'var(--text-secondary)' : 'var(--text-disabled)'}; line-height: 1.25;">${b.label}</div>
-    </div>
-  `;
+    </div>`;
+
+  if (new Date().getHours() < 12 && !ocultaHoy('ritual')) {
+    const p = await db.getProgresoRitual(hoy);
+    if (!p.completo) {
+      return tarjeta({
+        tipo: 'ritual',
+        color: 'var(--accent-ritual)',
+        eyebrow: 'Ritual de hoy',
+        titulo: 'Tu ritual está pendiente',
+        detalle: `${p.hechos} de ${p.total} campos completados. Empieza el día con intención.`,
+        accion: 'Hacer ritual'
+      });
+    }
+  }
+
+  if (hayDatosReales && backupNecesitaAviso(diasDesdeBackup) && !ocultaHoy('backup')) {
+    const esAlertaRoja = diasDesdeBackup !== null && diasDesdeBackup > BACKUP_ALERTA_ROJA_DIAS;
+    return tarjeta({
+      tipo: 'backup',
+      color: esAlertaRoja ? 'var(--state-high)' : 'var(--state-medium)',
+      eyebrow: 'Respaldo',
+      titulo: diasDesdeBackup === null
+        ? 'Nunca has exportado un respaldo'
+        : `Hace ${diasDesdeBackup} días sin respaldo`,
+      detalle: 'Tus datos viven solo en este teléfono. Sin respaldo, se pierden si borras la app o cambias de equipo.',
+      accion: 'Exportar respaldo'
+    });
+  }
+
+  if (!ocultaHoy('hoytoca')) {
+    const rutina = await calcularHoyToca(sesiones);
+    if (rutina) {
+      const catNames = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
+      return tarjeta({
+        tipo: 'hoytoca',
+        color: 'var(--cy)',
+        eyebrow: 'Hoy toca',
+        titulo: escapeHtml(rutina.nombre),
+        detalle: escapeHtml(catNames[rutina.categoria] || rutina.categoria),
+        accion: 'Ir a entrenar'
+      });
+    }
+  }
+
+  return '';
 }
 
 export async function render() {
-  const [budget, stats, sesiones, resumenSemanal, racha, rachaGlobal, badges, habitos, tareas] = await Promise.all([
+  const [budget, stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, alertasCaja, diasDesdeBackup] = await Promise.all([
     db.getBudget(),
     db.getDashboardStats(),
     db.getSesiones(),
-    db.getResumenEntrenoSemanal(),
-    db.getRachaGeneral(),
     db.getRachaGlobal(),
-    db.getBadges(),
     db.getHabitos(),
-    db.getTasks()
+    db.getTasks(),
+    db.getNotas(),
+    db.getCategoriasNota(),
+    db.getProyeccionRecurrentes(),
+    getDiasDesdeUltimoBackup()
   ]);
-
-  const sesionesSemanaTotal = Object.values(resumenSemanal).reduce((a, b2) => a + b2, 0);
-  const metaSemanaTotal = Object.values(WEEKLY_GOALS).reduce((a, b2) => a + b2, 0);
-
-  const ultimoEntreno = sesiones[0] || null;
-  const usado = budget.expenses + budget.savedThisMonth;
-  const alertasCaja = await db.getProyeccionRecurrentes();
 
   let alertasHtml = '';
   if (alertasCaja && alertasCaja.length > 0) {
@@ -231,51 +212,12 @@ export async function render() {
     `;
   }
 
-  const diasDesdeBackup = await getDiasDesdeUltimoBackup();
+
   // Sin esto, alguien que recién instaló la app y todavía no cargó nada
-  // ve el aviso más grande y llamativo de toda la pantalla — no hay nada
-  // real que valga la pena respaldar todavía. Reutiliza datos que este
-  // render() ya pidió arriba (sesiones/habitos/tareas/budget), sin
-  // consultas nuevas.
+  // ve el aviso de respaldo cuando no hay nada real que respaldar.
+  // Reutiliza datos que este render() ya pidió arriba, sin consultas nuevas.
   const hayDatosReales = sesiones.length > 0 || habitos.length > 0 || tareas.length > 0 || budget.breakdown.length > 0;
-  const backupReminderHtml = (backupNecesitaAviso(diasDesdeBackup) && !avisoBackupPospuesto()) ? (() => {
-    const esAlertaRoja = diasDesdeBackup !== null && diasDesdeBackup > BACKUP_ALERTA_ROJA_DIAS;
-    const color = esAlertaRoja ? 'var(--state-high)' : 'var(--state-medium)';
-    const mensaje = diasDesdeBackup === null
-      ? 'Nunca has exportado un respaldo'
-      : esAlertaRoja
-        ? `Hace más de ${BACKUP_ALERTA_ROJA_DIAS} días que no exportas un respaldo`
-        : `Hace ${diasDesdeBackup} días que no exportas un respaldo`;
-
-    if (!hayDatosReales) {
-      return `
-        <div id="backup-reminder" style="display: flex; align-items: center; gap: 6px; margin-bottom: 16px; padding: 0 2px;">
-          <svg width="13" height="13" fill="none" stroke="var(--text-disabled)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink: 0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          <span style="font-size: 11px; color: var(--text-disabled); flex: 1;">Todavía no exportaste un respaldo — te lo recordamos cuando tengas algo cargado.</span>
-          <button id="btn-backup-export-inicio" class="tappable" style="background: transparent; border: none; color: var(--text-secondary); font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline; flex-shrink: 0; padding: 2px;">Exportar</button>
-          <button id="btn-backup-snooze" class="tappable" style="display: none;" aria-label="Recordarme en 7 días">Después</button>
-        </div>
-      `;
-    }
-
-    return `
-      <div id="backup-reminder" class="card" style="padding: 14px 16px; margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-          <div class="icon-chip" style="width: 36px; height: 36px; background: ${color}22; color: ${color}; flex-shrink: 0;">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          </div>
-          <div style="flex: 1; min-width: 0;">
-            <div style="font-size: 13px; font-weight: 700; color: ${color};">${mensaje}</div>
-            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Tus datos viven solo en este teléfono. Sin respaldo, se pierden si borras la app o cambias de equipo.</div>
-          </div>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <button id="btn-backup-export-inicio" class="tappable" style="flex: 1; background: ${color}; color: #000; border: none; padding: 10px; font-size: 12px; font-weight: 700; cursor: pointer;">Exportar respaldo</button>
-          <button id="btn-backup-snooze" class="tappable" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 14px; font-size: 12px; font-weight: 600; cursor: pointer;" aria-label="Recordarme en 7 días">Después</button>
-        </div>
-      </div>
-    `;
-  })() : '';
+  const tarjetaContextualHtml = await renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesiones });
 
   const installBannerHtml = debeMostrarBannerInstalar() ? `
     <div id="install-banner" class="card" style="padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
@@ -293,82 +235,50 @@ export async function render() {
     </div>
   ` : '';
 
-  const pct = budget.budgeted > 0 ? Math.round((usado / budget.budgeted) * 100) : 0;
-  const pctBar = Math.min(pct, 100);
 
-  const cyPct = metaSemanaTotal > 0 ? Math.min(100, (sesionesSemanaTotal / metaSemanaTotal) * 100) : 0;
-  const amPct = pctBar;
   const hoyIso = diaKeyDe(new Date());
   const habitosMarcadosHoy = habitos.filter(h => h.marcas && h.marcas[hoyIso]).length;
-  // Sin hábitos creados no hay nada que marcar todavía — el anillo va en 0
-  // en vez de inventar un porcentaje (0/0 no es 100%).
-  const viPct = habitos.length > 0 ? (habitosMarcadosHoy / habitos.length) * 100 : 0;
   const tareasActivas = tareas.filter(t => t.status !== 'done').length;
 
-  const [notas, categoriasNota] = await Promise.all([
-    db.getNotas(),
-    db.getCategoriasNota()
-  ]);
+  const fechaLarga = new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+  const ultimaNota = notas[0] || null;
+  const catUltimaNota = ultimaNota ? categoriasNota.find(c => c.id === ultimaNota.catId) : null;
 
-  const rachaSubtitle = stats.rachaSemanas > 0
-    ? `${stats.rachaSemanas} semana${stats.rachaSemanas === 1 ? '' : 's'} de racha en Entreno`
-    : 'Empieza tu semana con una sesión';
+  const quickBtn = (id, color, label, iconSvg) => `
+    <button id="${id}" class="tappable card" style="flex: 1; padding: 12px; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
+      <div class="icon-chip" style="width: 26px; height: 26px; background: color-mix(in srgb, ${color} 15%, transparent); color: ${color}; flex-shrink: 0;">${iconSvg}</div>
+      ${label}
+    </button>`;
 
   return `
-    <div style="padding: 20px 20px 8px; color: var(--text-primary);">
+    <div style="padding: 16px 20px 8px; color: var(--text-primary);">
 
-      <!-- Greeting -->
-      <div style="margin-bottom: 20px;">
-        <h1 style="font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">${saludoPorHora()}, Benjamín</h1>
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 4px;">${rachaSubtitle}</div>
+      <!-- Encabezado compacto: saludo, fecha y chip de racha (el botón ☰ es
+           el del encabezado global de la app, ver index.html). -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px;">
+        <div style="min-width: 0;">
+          <h1 style="font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.4px;">${saludoPorHora()}, Benjamín</h1>
+          <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">${escapeHtml(fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1))}</div>
+        </div>
+        <button id="chip-racha" class="tappable" aria-label="Racha de ${rachaGlobal.actual} ${rachaGlobal.actual === 1 ? 'día' : 'días'}. Ver hábitos" style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 6px 12px 6px 10px; border-radius: 999px; cursor: pointer;">
+          🔥 <span class="num">${rachaGlobal.actual}</span>
+        </button>
+      </div>
+
+      ${tarjetaContextualHtml}
+
+      <!-- Accesos rápidos -->
+      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+        ${quickBtn('qa-gasto', 'var(--am)', 'Registrar gasto', '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>')}
+        ${quickBtn('qa-entreno', 'var(--cy)', 'Entrenar ahora', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>')}
       </div>
 
       ${alertasHtml}
-      ${backupReminderHtml}
-      ${installBannerHtml}
 
-      <!-- Reactor: tres anillos (Entreno/Finanzas/Hábitos) + racha global —
-           tarjeta principal de Inicio, lleva chaflán (ver .card-hero). -->
-      <div class="card card-hero" style="padding: 24px 18px; margin-bottom: 20px;">
-        ${renderReactor({ cyPct, amPct, viPct, rachaGlobal })}
-      </div>
-
-      <!-- Insignias: panal hexagonal -->
-      <div style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 2px;">
-        ${badges.map(renderBadgeHex).join('')}
-      </div>
-
-      <!-- Quick Actions -->
-      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-        <button id="qa-gasto" class="tappable card" style="flex: 1; padding: 14px; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
-          <div class="icon-chip" style="width: 26px; height: 26px; background: rgba(255, 182, 39, 0.15); color: var(--am); flex-shrink: 0;">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          </div>
-          Registrar gasto
-        </button>
-        <button id="qa-entreno" class="tappable card" style="flex: 1; padding: 14px; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
-          <div class="icon-chip" style="width: 26px; height: 26px; background: rgba(92, 225, 230, 0.15); color: var(--cy); flex-shrink: 0;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-          </div>
-          Entrenar ahora
-        </button>
-      </div>
-
-      <!-- Laboratorio: en Inicio solo el gráfico más destacado (distribución
-           de gasto del mes — Entreno ya tiene su propio espacio arriba, en
-           el reactor/CTA), no el selector de módulo+pestaña completo de
-           antes. La versión completa de los 4 módulos vive en Más >
-           Laboratorio (views/laboratorio.js). El contenido (datos +
-           Chart.js) se llena en mountListeners() — ver refreshLab() ahí. -->
-      <div style="margin-bottom: 20px;">
-        <div class="flex-between" style="margin: 0 0 4px 0;">
-          <h2 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-primary);">Laboratorio</h2>
-          <a href="#laboratorio" style="font-size: 12.5px; font-weight: 700; color: var(--cy); text-decoration: none;">Ver todo →</a>
-        </div>
-        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 14px 0;">Tu distribución de gasto del mes.</p>
-        <div id="lab-section-content">
-          <div class="card" style="padding: 40px 20px; text-align: center; color: var(--text-disabled); font-size: 12px;">Cargando…</div>
-        </div>
+      <!-- Agenda de hoy: placeholder, se llena en la fase siguiente. -->
+      <div id="hoy-agenda" class="card" style="padding: 14px 16px; margin-bottom: 20px;">
+        <div class="num" style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Agenda de hoy</div>
+        <div style="font-size: 12.5px; color: var(--text-disabled);">Aquí verás las tareas y los hábitos de hoy.</div>
       </div>
 
       <!-- Filas heroicas por módulo -->
@@ -409,6 +319,34 @@ export async function render() {
         })}
       </div>
 
+
+      <!-- Laboratorio: en Inicio solo el gráfico más destacado (distribución
+           de gasto del mes — Entreno ya tiene su propio espacio arriba, en
+           el reactor/CTA), no el selector de módulo+pestaña completo de
+           antes. La versión completa de los 4 módulos vive en Más >
+           Laboratorio (views/laboratorio.js). El contenido (datos +
+           Chart.js) se llena en mountListeners() — ver refreshLab() ahí. -->
+      <div style="margin-bottom: 20px;">
+        <div class="flex-between" style="margin: 0 0 4px 0;">
+          <h2 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-primary);">Laboratorio</h2>
+          <a href="#laboratorio" style="font-size: 12.5px; font-weight: 700; color: var(--cy); text-decoration: none;">Ver todo →</a>
+        </div>
+        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 14px 0;">Tu distribución de gasto del mes.</p>
+        <div id="lab-section-content">
+          <div class="card" style="padding: 40px 20px; text-align: center; color: var(--text-disabled); font-size: 12px;">Cargando…</div>
+        </div>
+      </div>
+
+
+      <!-- Última nota -->
+      ${ultimaNota ? `
+        <div id="ultima-nota" class="card tappable" style="padding: 14px 16px; margin-bottom: 20px; cursor: pointer;">
+          <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-notas); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Última nota${catUltimaNota ? ` · ${escapeHtml(catUltimaNota.nombre)}` : ''}</div>
+          <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">${escapeHtml(ultimaNota.titulo || 'Sin título')}</div>
+          ${ultimaNota.texto ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(ultimaNota.texto)}</div>` : ''}
+        </div>
+      ` : ''}
+
       <!-- Captura rápida global — <form> a propósito, no un div + keydown:
            ver commit 4396aa1 (mismo fix que "Agregar gasto rápido" de
            Finanzas). Un <input> solo dentro de un <form> ya dispara
@@ -423,6 +361,9 @@ export async function render() {
         <div id="quick-capture-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
         <div id="quick-capture-sobre-opciones" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
       </div>
+
+
+      ${installBannerHtml}
 
     </div>
   `;
@@ -455,23 +396,42 @@ export function mountListeners() {
       labContent.innerHTML = `<div class="card" style="padding: 24px 20px; text-align: center; color: var(--text-secondary); font-size: 12.5px;">No se pudo cargar el gráfico. Probá de nuevo desde Más &gt; Laboratorio.</div>`;
     }
   };
-  refreshLab();
+  // Carga diferida: recién cuando la sección entra en pantalla. Con el
+  // Laboratorio bajo la tarjeta contextual, los accesos y los resúmenes,
+  // cargarlo de entrada bajaba Chart.js sin que nadie lo viera. Sin
+  // IntersectionObserver (navegadores muy viejos) se carga directo.
+  const labContainer = document.getElementById('lab-section-content');
+  if (labContainer && 'IntersectionObserver' in window) {
+    labObserver = new IntersectionObserver((entries) => {
+      if (!entries.some(e => e.isIntersecting)) return;
+      labObserver.disconnect();
+      labObserver = null;
+      refreshLab();
+    });
+    labObserver.observe(labContainer);
+  } else {
+    refreshLab();
+  }
 
-  const btnBackupExport = document.getElementById('btn-backup-export-inicio');
-  const btnBackupSnooze = document.getElementById('btn-backup-snooze');
-  if (btnBackupExport) {
-    btnBackupExport.addEventListener('click', async () => {
-      await exportAllData();
-      refresh(); // diasDesdeUltimoBackup ya quedó en 0 — el aviso se saca solo al re-renderizar
+  // Tarjeta contextual: el botón principal depende del tipo; "Después" la
+  // oculta hasta mañana y el re-render deja pasar a la siguiente.
+  const ctx = document.getElementById('ctx-card');
+  if (ctx) {
+    const tipo = ctx.getAttribute('data-tipo');
+    document.getElementById('ctx-accion').addEventListener('click', async () => {
+      if (tipo === 'ritual') go('ritual');
+      else if (tipo === 'backup') { await exportAllData(); refresh(); } // diasDesdeUltimoBackup ya quedó en 0 — la tarjeta se saca sola al re-renderizar
+      else go('entrenamiento');
+    });
+    document.getElementById('ctx-despues').addEventListener('click', () => {
+      ocultarHoy(tipo);
+      refresh();
     });
   }
-  if (btnBackupSnooze) {
-    btnBackupSnooze.addEventListener('click', () => {
-      try { localStorage.setItem(BACKUP_SNOOZE_KEY, String(Date.now())); } catch (e) { /* modo privado */ }
-      const card = document.getElementById('backup-reminder');
-      if (card) card.remove();
-    });
-  }
+  const chipRacha = document.getElementById('chip-racha');
+  if (chipRacha) chipRacha.addEventListener('click', () => go('habitos'));
+  const ultimaNotaEl = document.getElementById('ultima-nota');
+  if (ultimaNotaEl) ultimaNotaEl.addEventListener('click', () => go('anotaciones'));
 
   const btnInstallApp = document.getElementById('btn-install-app');
   const btnDismissInstall = document.getElementById('btn-dismiss-install');
