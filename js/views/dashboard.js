@@ -20,6 +20,10 @@ export function cleanup() {
   LabFinanzas.cleanup();
 }
 
+// Si la fila "N atrasadas" está desplegada; vive acá (no en el DOM) para
+// sobrevivir a los repintados de la agenda.
+let atrasadasAbierta = false;
+
 async function repintar() {
   const root = document.getElementById('view-root');
   const scroll = root.scrollTop;
@@ -42,7 +46,8 @@ function habitoPendienteHoy(h, hoyIso) {
 
 // Agenda de hoy: tareas con fecha de hoy (Tareas y Semana) + hábitos que
 // tocan hoy y no están cumplidos. Cada fila lleva su checkbox en línea.
-function renderAgenda({ tareasHoy, planHoy, habitosPend, hoyIso }) {
+function renderAgenda({ tareasHoy, planHoy, habitosPend, atrasadas, hoyIso }) {
+  if (atrasadas.length === 0) atrasadasAbierta = false;
   const items = [
     ...tareasHoy.map(t => ({ tipo: 'tarea', id: t.id, texto: t.title, etiqueta: 'Tarea' })),
     ...planHoy.map(t => ({ tipo: 'plan', id: t.id, texto: t.texto, etiqueta: 'Semana' })),
@@ -69,9 +74,39 @@ function renderAgenda({ tareasHoy, planHoy, habitosPend, hoyIso }) {
         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 1px;">${it.etiqueta}</div>
       </div>
     </div>`;
+  // Tareas atrasadas (fecha anterior a hoy, comparada como texto YYYY-MM-DD
+  // local — diaKeyDe, nunca toISOString). Los días se cuentan con fechas
+  // locales a medianoche.
+  const diasAtras = (dueDate) => {
+    const [y, m, d] = dueDate.split('-').map(Number);
+    const [hy, hm, hd] = hoyIso.split('-').map(Number);
+    return Math.round((new Date(hy, hm - 1, hd) - new Date(y, m - 1, d)) / 86400000);
+  };
+  const haceTexto = (n) => (n === 1 ? 'ayer' : `hace ${n} días`);
+  const filaAtrasada = (t) => `
+    <div style="display: flex; align-items: center; gap: 4px;">
+      <button class="agenda-check tappable" data-tipo="tarea" data-id="${t.id}" data-nombre="${escapeHtml(t.title)}" aria-label="Marcar ${escapeHtml(t.title)}" style="width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;">
+        <span aria-hidden="true" style="display: block; width: 22px; height: 22px; border: 1.5px solid var(--state-high);"></span>
+      </button>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(t.title)}</div>
+        <div style="font-size: 11px; color: var(--state-high); margin-top: 1px;">${haceTexto(diasAtras(t.dueDate))}</div>
+      </div>
+      <button class="agenda-mover tappable" data-id="${t.id}" style="flex-shrink: 0; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 8px 10px; font-size: 12px; font-weight: 600; cursor: pointer;">Mover a hoy</button>
+    </div>`;
+  const atrasadasHtml = atrasadas.length === 0 ? '' : `
+      <button id="hoy-atrasadas-toggle" class="tappable" aria-expanded="${atrasadasAbierta}" aria-controls="hoy-atrasadas-lista" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: color-mix(in srgb, var(--state-high) 12%, transparent); border: 1px solid color-mix(in srgb, var(--state-high) 40%, transparent); color: var(--state-high); padding: 10px 12px; margin: 4px 0 6px; font-size: 13px; font-weight: 700; cursor: pointer;">
+        <span>${atrasadas.length} ${atrasadas.length === 1 ? 'atrasada' : 'atrasadas'}</span>
+        <svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition: transform 150ms ease; transform: rotate(${atrasadasAbierta ? 180 : 0}deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+      <div id="hoy-atrasadas-lista" ${atrasadasAbierta ? '' : 'hidden'} style="margin-bottom: 6px;">
+        ${atrasadas.map(filaAtrasada).join('')}
+      </div>`;
+
   return `
     <div id="hoy-agenda" class="card" style="padding: 14px 16px 10px; margin-bottom: 20px;">
       <div class="num" style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px;">Agenda de hoy${items.length ? ` · ${items.length}` : ''}</div>
+      ${atrasadasHtml}
       ${items.length
         ? items.map(fila).join('')
         : '<div style="font-size: 13px; color: var(--text-disabled); padding: 6px 0 8px;">Nada pendiente hoy</div>'}
@@ -309,6 +344,9 @@ export async function render() {
     tareasHoy: tareas.filter(t => t.status !== 'done' && t.dueDate === hoyIso),
     planHoy: planHoy.filter(t => !t.hecha),
     habitosPend: habitos.filter(h => habitoPendienteHoy(h, hoyIso)),
+    atrasadas: tareas
+      .filter(t => t.status !== 'done' && t.dueDate && t.dueDate < hoyIso)
+      .sort((a, b) => (a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0)),
     hoyIso
   });
 
@@ -560,6 +598,33 @@ export function mountListeners() {
         await repintar();
       } catch (err) {
         console.error('Error al marcar desde la agenda:', err);
+        Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // Atrasadas: la fila las despliega en línea (sin repintar); cada una se
+  // marca con el mismo checkbox de la agenda (.agenda-check, updateTaskStatus)
+  // o se pasa a hoy con saveTask({ id, dueDate }), que emite tarea_actualizada.
+  const atrasadasToggle = document.getElementById('hoy-atrasadas-toggle');
+  if (atrasadasToggle) {
+    atrasadasToggle.addEventListener('click', () => {
+      atrasadasAbierta = !atrasadasAbierta;
+      document.getElementById('hoy-atrasadas-lista').hidden = !atrasadasAbierta;
+      atrasadasToggle.setAttribute('aria-expanded', String(atrasadasAbierta));
+      atrasadasToggle.querySelector('svg').style.transform = `rotate(${atrasadasAbierta ? 180 : 0}deg)`;
+    });
+  }
+  document.querySelectorAll('.agenda-mover').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        await db.saveTask({ id: btn.getAttribute('data-id'), dueDate: diaKeyDe(new Date()) });
+        Toast('Tarea movida a hoy', 'success');
+        await repintar();
+      } catch (err) {
+        console.error('Error al mover la tarea a hoy:', err);
         Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
         btn.disabled = false;
       }
