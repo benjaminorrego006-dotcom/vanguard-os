@@ -2,27 +2,27 @@
 // (PROMPT-NIVEL-FILTRADO.md, paso 4/e). Compara el nivel DECLARADO por el
 // usuario para cada rama (lo que confirmó en el onboarding o en una
 // sugerencia previa — lo que se muestra como "tu perfil") contra evidencia
-// real de que ya lo superó:
-//   - Calistenia: reps máximas en una sola serie limpia (tipo 'normal', sin
-//     fallo/dropset/calentamiento) de los ejercicios ancla de cada rama.
-//   - GYM: los mismos Estándares de Fuerza que ya usa calcularNivelPorRama()
-//     en generador-rutinas.js para elegir dificultad — NO una tabla de
-//     umbrales propia. Tener dos tablas distintas para la misma pregunta
-//     sería inconsistente (decisión confirmada por el usuario).
+// real de que ya dominó el ejercicio con el que está entrenando esa rama,
+// medida con el `criterioAvance` del propio catálogo (ver detectarSugerencias).
 //
-// Esto es DISTINTO de calcularNivelPorRama(): esa función ya combina
-// Estándares de Fuerza en silencio para elegir qué ejercicio prescribir
-// dentro del generador, sin pedir confirmación (es una decisión de
-// dificultad, no un cambio de identidad). Este módulo, en cambio, decide
-// cuándo el "perfil" que el usuario ve y declaró (nivelEntrenamiento) debería
-// avanzar — y eso SIEMPRE requiere que el usuario lo confirme (ver e: "No
-// subirlo automáticamente. Sugerir.").
+// Esto es DISTINTO de calcularNivelPorRama() en generador-rutinas.js: esa
+// función ya combina Estándares de Fuerza en silencio para elegir qué
+// ejercicio prescribir dentro del generador, sin pedir confirmación (es una
+// decisión de dificultad, no un cambio de identidad). Este módulo, en
+// cambio, decide cuándo el "perfil" que el usuario ve y declaró
+// (nivelEntrenamiento) debería avanzar — y eso SIEMPRE requiere que el
+// usuario lo confirme (ver e: "No subirlo automáticamente. Sugerir.").
 import { db } from './db.js';
 import { getNivel } from './estandares-fuerza.js';
-import { getEjercicioPorId } from './ejercicios-catalogo.js';
-import { RAMA_ORDEN, RAMA_LABELS } from './progresiones.js';
+import { CATALOGO_EJERCICIOS, getEjercicioPorId, getEjercicioMetadata, getIdPorNombreExacto } from './ejercicios-catalogo.js';
+import { RAMA_ORDEN, RAMA_LABELS, profundidadNodo } from './progresiones.js';
 
 const NIVEL_RANGO = { principiante: 0, intermedio: 1, avanzado: 2 };
+const NIVEL_DESDE_RANGO = ['principiante', 'intermedio', 'avanzado'];
+
+// Rango de los niveles de Estándares de Fuerza (4, no 3): el criterio
+// 'ratio' del catálogo pide un nivel de esa escala ("intermedio").
+const RANGO_FUERZA = { principiante: 0, novato: 1, intermedio: 2, avanzado: 3 };
 
 // Mismo mapeo tiempo→nivel que TIEMPO_A_NIVEL_PISO en generador-rutinas.js.
 // Se repite acá (en vez de importarse) porque ahí es una constante interna
@@ -30,122 +30,185 @@ const NIVEL_RANGO = { principiante: 0, intermedio: 1, avanzado: 2 };
 // desincronizarse.
 const TIEMPO_A_NIVEL = { 'menos-1': 'principiante', '1-3': 'intermedio', 'mas-3': 'avanzado' };
 
-// Ejercicio ancla de calistenia por rama + umbrales de reps máximas en una
-// sola serie limpia para pasar a intermedio / avanzado. Solo 3 de las 8
-// ramas tienen un criterio de calistenia definido en el prompt.
-const UMBRALES_CALISTENIA = {
-  'empuje-horizontal': { nombre: 'Flexiones (Push-up)', intermedio: 15, avanzado: 25 },
-  'traccion-vertical': { nombre: 'Dominadas', intermedio: 5, avanzado: 10 }
-};
+const VENTANA_MS = 4 * 7 * 24 * 60 * 60 * 1000; // últimas 4 semanas
+const SESIONES_A_MIRAR = 3;
+const SESIONES_MINIMAS_QUE_CUMPLEN = 2;
 
-// Rodilla es un caso especial: el paso a intermedio es por reps (20
-// sentadillas con peso corporal en una serie), pero el paso a avanzado del
-// prompt ("negativas de pistol squat registradas") no es un umbral de reps
-// sino evidencia de que el usuario ya está entrenando ese movimiento. El
-// catálogo no tiene un nodo "Negativas de Pistol Squat"; el equivalente más
-// cercano registrable es Pistol Squat Asistida, así que cualquier serie
-// real registrada ahí cuenta como el disparador de avanzado.
-const RODILLA_NOMBRE_INTERMEDIO = 'Sentadilla con Peso Corporal';
-const RODILLA_REPS_INTERMEDIO = 20;
-const RODILLA_NOMBRE_AVANZADO = 'Pistol Squat Asistida';
-
-// Levantamiento de Estándares de Fuerza asociado a cada rama con umbral
-// GYM — mismo mapeo que LEVANTAMIENTO_POR_RAMA en generador-rutinas.js.
-const LEVANTAMIENTO_POR_RAMA = {
-  rodilla: 'sentadilla',
-  cadera: 'peso muerto',
-  'empuje-horizontal': 'press de banca',
-  'empuje-vertical': 'press militar'
-};
-
-function maxRepsEnUnaSerieLimpia(historial) {
-  let max = 0;
-  (historial || []).forEach(sesion => {
-    (sesion.seriesDetalle || []).forEach(serie => {
-      const esLimpia = !serie.tipo || serie.tipo === 'normal';
-      if (esLimpia && serie.reps > max) max = serie.reps;
-    });
-  });
-  return max;
+// Id de catálogo de una entrada de ejercicio de sesión: el ejercicioId
+// guardado; si es null (ejercicio escrito a mano), por nombre — exacto
+// primero y después el mismo fuzzy match que usa el mapa muscular
+// (getEjercicioMetadata). Sin match devuelve null.
+function idDeEntrada(ej) {
+  if (ej.ejercicioId) return ej.ejercicioId;
+  const exacto = getIdPorNombreExacto(ej.nombre);
+  if (exacto) return exacto;
+  return getEjercicioMetadata(ej.nombre).id || null;
 }
 
-function tieneAlgunaSerieRegistrada(historial) {
-  return (historial || []).some(sesion => (sesion.seriesDetalle || []).length > 0);
-}
-
-async function evidenciaCalistenia(rama) {
-  if (rama === 'rodilla') {
-    const [histAvanzado, histIntermedio] = await Promise.all([
-      db.getHistorialEjercicio(RODILLA_NOMBRE_AVANZADO),
-      db.getHistorialEjercicio(RODILLA_NOMBRE_INTERMEDIO)
-    ]);
-    if (tieneAlgunaSerieRegistrada(histAvanzado)) {
-      return { nivel: 'avanzado', detalle: `Registraste series de ${RODILLA_NOMBRE_AVANZADO}.` };
-    }
-    const reps = maxRepsEnUnaSerieLimpia(histIntermedio);
-    if (reps >= RODILLA_REPS_INTERMEDIO) {
-      return { nivel: 'intermedio', detalle: `Registraste ${reps} ${RODILLA_NOMBRE_INTERMEDIO.toLowerCase()} en una sola serie.` };
-    }
-    return null;
+// Nivel efectivo de un ejercicio del catálogo: 'todos' no clasifica
+// dificultad (la carga la define), así que se aproxima con el de su
+// predecesor en la cadena de progresión, o 'principiante' si no tiene.
+function nivelEfectivo(entry, visitados = new Set()) {
+  if (NIVEL_RANGO[entry.nivel] !== undefined) return entry.nivel;
+  if (entry.progresionDe && !visitados.has(entry.progresionDe)) {
+    visitados.add(entry.progresionDe);
+    const previo = getEjercicioPorId(entry.progresionDe);
+    if (previo) return nivelEfectivo(previo, visitados);
   }
-
-  const umbral = UMBRALES_CALISTENIA[rama];
-  if (!umbral) return null;
-  const historial = await db.getHistorialEjercicio(umbral.nombre);
-  const reps = maxRepsEnUnaSerieLimpia(historial);
-  if (reps >= umbral.avanzado) return { nivel: 'avanzado', detalle: `Registraste ${reps} ${umbral.nombre.toLowerCase()} en una sola serie.` };
-  if (reps >= umbral.intermedio) return { nivel: 'intermedio', detalle: `Registraste ${reps} ${umbral.nombre.toLowerCase()} en una sola serie.` };
-  return null;
+  return 'principiante';
 }
 
-// Reutiliza exactamente los mismos Estándares de Fuerza que
-// calcularNivelPorRama() (misma fuente, no una tabla propia).
-function evidenciaGym(rama, prs, pesoKg, sexo) {
-  const liftId = LEVANTAMIENTO_POR_RAMA[rama];
-  if (!liftId || pesoKg <= 0) return null;
-  const pr = prs[getEjercicioPorId(liftId).nombre.toLowerCase().trim()];
+function repsDe(serie) {
+  const m = String(serie.reps).match(/\d+/);
+  return m ? parseInt(m[0], 10) : 0;
+}
+
+// Serie "limpia": tipo normal (una sesión vieja sin `tipo` cuenta como
+// normal) y marcada como hecha.
+function serieValida(serie) {
+  return (!serie.tipo || serie.tipo === 'normal') && serie.checked === true;
+}
+
+// Sesiones (de más reciente a más antigua) donde apareció el ejercicio, con
+// sus series. `sesiones` viene ordenado desc por db.getSesiones().
+function sesionesDelEjercicio(sesiones, ejercicioId) {
+  const salida = [];
+  sesiones.forEach(s => {
+    const entradas = (s.ejercicios || []).filter(ej => idDeEntrada(ej) === ejercicioId);
+    if (entradas.length === 0) return;
+    salida.push({ fecha: s.fecha, series: entradas.flatMap(ej => ej.series || []) });
+  });
+  return salida;
+}
+
+// 'reps' / 'segundos' (los segundos se registran en el campo reps): en al
+// menos 2 de las últimas 3 sesiones del ejercicio hubo >= `series` series
+// limpias con >= `valor`. Devuelve la evidencia (texto) o null.
+function evaluarPorSeries(entry, sesiones) {
+  const { tipo, valor, series } = entry.criterioAvance;
+  const ultimas = sesionesDelEjercicio(sesiones, entry.id).slice(0, SESIONES_A_MIRAR);
+  const cumplen = ultimas.filter(s => s.series.filter(sr => serieValida(sr) && repsDe(sr) >= valor).length >= series);
+  if (cumplen.length < SESIONES_MINIMAS_QUE_CUMPLEN) return null;
+  const unidad = tipo === 'segundos' ? ' s' : '';
+  return `${cumplen.length} de tus últimas ${ultimas.length} sesiones con ${series}×${valor}${unidad} de ${entry.nombre.toLowerCase()}.`;
+}
+
+// 'ratio': Estándares de Fuerza existentes (mismo cálculo que
+// calcularNivelPorRama). Cumplido si el nivel de fuerza calculado >= valor.
+function evaluarPorRatio(entry, prs, pesoKg, sexo) {
+  if (pesoKg <= 0) return null;
+  const pr = prs[entry.nombre.toLowerCase().trim()];
   if (!pr || pr.pesoMax <= 0) return null;
-  const oneRM = db.estimar1RM(pr.pesoMax, pr.repsMax);
-  const ratio = oneRM / pesoKg;
-  const nivelInfo = getNivel(liftId, sexo, ratio);
+  const ratio = db.estimar1RM(pr.pesoMax, pr.repsMax) / pesoKg;
+  const nivelInfo = getNivel(entry.id, sexo, ratio);
   if (!nivelInfo) return null;
-  const nivel = nivelInfo.nivel === 'avanzado' ? 'avanzado' : nivelInfo.nivel === 'intermedio' ? 'intermedio' : null;
-  if (!nivel) return null;
-  return { nivel, detalle: `Tu ${getEjercicioPorId(liftId).nombre.toLowerCase()} está en ${nivelInfo.label} (${ratio.toFixed(2)}× tu peso corporal).` };
+  if (RANGO_FUERZA[nivelInfo.nivel] < RANGO_FUERZA[entry.criterioAvance.valor]) return null;
+  return `Tu ${entry.nombre.toLowerCase()} está en ${nivelInfo.label} (${ratio.toFixed(2)}× tu peso corporal).`;
 }
 
-// Punto de entrada único: evalúa las 8 ramas y devuelve como mucho UNA
-// sugerencia pendiente — la primera en RAMA_ORDEN que supera el nivel
-// declarado y no fue descartada a ese mismo nivel o uno mayor — o null si
-// no hay ninguna. Se llama al entrar a la vista de Entrenamiento, no en
-// cada render: es lectura de IndexedDB, no algo para recalcular en cada
-// repintado.
-export async function detectarSugerenciaPendiente() {
-  const [nivelDeclarado, prs, profile] = await Promise.all([
+// Siguiente ejercicio de la cadena: algún hijo por progresionDe. Si hay
+// varios, el de la misma categoría y con equipo disponible primero.
+function elegirSiguiente(actual, equipoDisponible) {
+  const hijos = Object.values(CATALOGO_EJERCICIOS).filter(e => e.progresionDe === actual.id);
+  if (hijos.length === 0) return null;
+  const conEquipo = e => e.equipo === 'ninguno' || equipoDisponible.includes(e.equipo);
+  const puntaje = e => (e.categoria === actual.categoria ? 2 : 0) + (conEquipo(e) ? 1 : 0);
+  // sort estable: a igual puntaje se mantiene el orden del catálogo
+  return [...hijos].sort((a, b) => puntaje(b) - puntaje(a))[0];
+}
+
+// Todas las ramas (patronMovimiento) con evidencia de que el usuario ya
+// dominó el ejercicio de mayor nivel que entrenó en las últimas 4 semanas,
+// según su criterioAvance. Cada elemento:
+//   { rama, ramaLabel, nivelActual, nivelSugerido, ejercicioActual,
+//     ejercicioSiguiente, evidencia, detalle }
+// (`detalle` = `evidencia`, el nombre que ya lee la UI actual.)
+//
+// Solo propone lo accionable: nivelActual es el nivel DECLARADO de la rama
+// (override confirmado o piso por tiempo entrenando), la sugerencia es el
+// siguiente, y se descarta si (a) el ejercicio de mayor nivel que entrena
+// está por debajo de ese nivel, (b) no tiene un siguiente en la cadena de
+// progresión (un accesorio suelto que cumple su criterio no es señal de
+// avance), o (c) el usuario ya dijo "Ahora no" a ese nivel o a uno mayor.
+export async function detectarSugerencias() {
+  const [nivelDeclarado, config, prs, profile, sesiones] = await Promise.all([
     db.getNivelEntrenamiento(),
+    db.getGeneradorConfig(),
     db.getPRs(),
-    db.getProfile()
+    db.getProfile(),
+    db.getSesiones()
   ]);
   const pesoKg = Number(profile?.pesoKg) || 0;
   const sexo = profile?.sexo === 'F' ? 'F' : 'M';
+  const equipoDisponible = config?.equipoDisponible || [];
   const pisoDeclarado = TIEMPO_A_NIVEL[nivelDeclarado?.tiempoEntrenando] || 'principiante';
   const overrides = nivelDeclarado?.overridesPorRama || {};
   const descartadas = nivelDeclarado?.sugerenciasDescartadas || {};
 
-  for (const rama of RAMA_ORDEN) {
-    const calistenia = await evidenciaCalistenia(rama);
-    const gym = evidenciaGym(rama, prs, pesoKg, sexo);
-    let mejor = null;
-    [calistenia, gym].forEach(ev => {
-      if (ev && (!mejor || NIVEL_RANGO[ev.nivel] > NIVEL_RANGO[mejor.nivel])) mejor = ev;
+  // Ejercicios entrenados en las últimas 4 semanas, con la fecha de la más
+  // reciente, agrupados por rama.
+  const desde = Date.now() - VENTANA_MS;
+  const recientes = new Map(); // ejercicioId -> ts de su sesión más reciente
+  sesiones.forEach(s => {
+    const ts = new Date(s.fecha).getTime();
+    if (isNaN(ts) || ts < desde) return;
+    (s.ejercicios || []).forEach(ej => {
+      const id = idDeEntrada(ej);
+      if (!id || !getEjercicioPorId(id)) return;
+      if (!recientes.has(id) || ts > recientes.get(id)) recientes.set(id, ts);
     });
-    if (!mejor) continue;
+  });
 
-    const nivelDeclaradoRama = overrides[rama] || pisoDeclarado;
-    const yaDescartada = descartadas[rama] && NIVEL_RANGO[descartadas[rama]] >= NIVEL_RANGO[mejor.nivel];
-    if (NIVEL_RANGO[mejor.nivel] > NIVEL_RANGO[nivelDeclaradoRama] && !yaDescartada) {
-      return { rama, ramaLabel: RAMA_LABELS[rama], nivelSugerido: mejor.nivel, detalle: mejor.detalle };
-    }
+  const sugerencias = [];
+  for (const rama of RAMA_ORDEN) {
+    const delaRama = [...recientes.entries()]
+      .map(([id, ts]) => ({ entry: getEjercicioPorId(id), ts }))
+      .filter(x => x.entry.patronMovimiento === rama);
+    if (delaRama.length === 0) continue;
+
+    // El de mayor nivel; a igual nivel el más profundo en la cadena de
+    // progresión, y después el más reciente.
+    delaRama.sort((a, b) =>
+      (NIVEL_RANGO[nivelEfectivo(b.entry)] - NIVEL_RANGO[nivelEfectivo(a.entry)]) ||
+      (profundidadNodo(b.entry.id) - profundidadNodo(a.entry.id)) ||
+      (b.ts - a.ts)
+    );
+    const actual = delaRama[0].entry;
+
+    const nivelActual = overrides[rama] && NIVEL_RANGO[overrides[rama]] > NIVEL_RANGO[pisoDeclarado] ? overrides[rama] : pisoDeclarado;
+    if (NIVEL_RANGO[nivelActual] >= NIVEL_DESDE_RANGO.length - 1) continue; // ya en el tope
+    if (NIVEL_RANGO[nivelEfectivo(actual)] < NIVEL_RANGO[nivelActual]) continue;
+
+    const evidencia = actual.criterioAvance.tipo === 'ratio'
+      ? evaluarPorRatio(actual, prs, pesoKg, sexo)
+      : evaluarPorSeries(actual, sesiones);
+    if (!evidencia) continue;
+
+    const siguiente = elegirSiguiente(actual, equipoDisponible);
+    if (!siguiente) continue;
+
+    const nivelSugerido = NIVEL_DESDE_RANGO[NIVEL_RANGO[nivelActual] + 1];
+    if (descartadas[rama] && NIVEL_RANGO[descartadas[rama]] >= NIVEL_RANGO[nivelSugerido]) continue;
+
+    sugerencias.push({
+      rama,
+      ramaLabel: RAMA_LABELS[rama],
+      nivelActual,
+      nivelSugerido,
+      ejercicioActual: { id: actual.id, nombre: actual.nombre },
+      ejercicioSiguiente: { id: siguiente.id, nombre: siguiente.nombre },
+      evidencia,
+      detalle: evidencia
+    });
   }
-  return null;
+  return sugerencias;
+}
+
+// Compatibilidad con la UI actual (banner de Entreno): devuelve la primera
+// sugerencia de detectarSugerencias() o null. Se llama al entrar a la vista
+// de Entrenamiento, no en cada render: es lectura de IndexedDB, no algo para
+// recalcular en cada repintado.
+export async function detectarSugerenciaPendiente() {
+  const sugerencias = await detectarSugerencias();
+  return sugerencias[0] || null;
 }
