@@ -1,5 +1,121 @@
 # Vanguard OS — Changelog
 
+## 25 sept 2026 — Nueva distribución: 5 pestañas, menú ☰, Hoy reordenado y riel responsive
+
+**`CACHE_NAME`: `vanguard-os-v158` → `vanguard-os-v166`** (una versión por
+commit; el commit de documentación no toca código y deja `v166`). Nueve
+commits entre `5ecda90` y `5b70f9e`, agrupados por tema (el número de versión
+indica el orden cronológico).
+
+### Navegación
+
+- **`dc5e2a4` (v158) — 5 pestañas y panel ☰.** La barra inferior pasa a
+  Hoy · Tareas · Hábitos · Entreno · Finanzas; "Más" desaparece (y con él
+  `views/mas.js`). Un encabezado global con botón ☰ abre un panel lateral
+  (`.modal-overlay` + `open`, así `history.js` lo engancha solo al botón
+  Atrás) con Anotaciones, Laboratorio y Configuración. Rutas antiguas:
+  `#mas` → `#dashboard` + panel abierto, `#planificador` →
+  `#tareas/semana`, `#ritual` → `#dashboard`. El router entiende
+  subrutas (`#tareas/semana`) y las redirecciones se reescriben con
+  `replaceState` para que Atrás no vuelva a la ruta vieja.
+- **`13a544c` (v159) — Tareas: sub-pestañas Lista · Semana.** Semana monta el
+  Planificador sin reescribirlo (solo repinta `#plan-host` si existe); la
+  sub-vista sale del hash, así que recargar en `#tareas/semana` cae en
+  Semana. Cambiar de sub-pestaña suelta los listeners de sync de la
+  saliente (verificado: el contador de listeners `budget-updated` se queda
+  en 1). El router avisa a la vista con `onSubrouteChange` cuando solo
+  cambia la subruta.
+- **`5c4626e` (v161) — Ritual en el panel ☰ + bug del historial.** Tras las
+  12:00 (o tras "Después") el Ritual quedaba sin acceso. Ahora es la primera
+  opción del panel (`#dashboard/ritual`, la misma ruta que la tarjeta
+  contextual) y muestra "Hecho" si el ritual de hoy está completo
+  (`db.getProgresoRitual`, sin flag aparte). **Bug corregido:** los links del
+  panel cerraban con `history.back()` y el cambio de hash competía con ese
+  retroceso — a veces la vista no cambiaba (con Ritual, siempre). Ahora se
+  cierra primero y se navega al `popstate`; de paso desaparece la entrada
+  fantasma que quedaba en el historial.
+
+### Hoy
+
+- **`42e0eac` (v160) — Hoy reordenado.** Encabezado compacto (saludo, fecha,
+  chip de racha); una sola tarjeta contextual con prioridad Ritual pendiente
+  (antes de las 12:00) > respaldo > "Hoy toca", y "Después" la oculta hasta
+  mañana (fecha en `localStorage` vía `diaKeyDe`); accesos rápidos, agenda,
+  resúmenes, Laboratorio y última nota. El Laboratorio pasa a **carga
+  diferida** con `IntersectionObserver` (antes se cargaba directo): Chart.js
+  no se descarga hasta llegar con el scroll. El anillo de racha grande y las
+  insignias se mudan a la cabecera de Hábitos
+  (`components/racha-reactor.js`, mismos valores desde el log de eventos).
+  `calcularHoyToca` sale a `utils/hoyToca.js` para compartirlo con Hoy sin
+  arrastrar el grafo de Entreno. Ritual se abre en `#dashboard/ritual` (`#ritual`
+  a secas sigue siendo solo una redirección).
+- **`48e4a75` (v162) — Agenda de hoy + accesos rápidos.** Lista las tareas con
+  fecha de hoy (Tareas y Semana) y los hábitos que tocan hoy y no están
+  cumplidos, con checkbox en línea que usa las mismas funciones de `db.js`
+  que el resto de la app (`updateTaskStatus`, `toggleTareaPlan`,
+  `toggleMarcaHabito`), cada una con su `logEvent`; repinta sin animación y
+  conserva el scroll. Vacío: "Nada pendiente hoy". Accesos rápidos: Gasto,
+  Entrenar, Tarea (abre el `task-form` existente) y Nota (abre Anotaciones
+  en la categoría de la última nota; `anotaciones.js` exporta
+  `abrirCategoria`).
+- **`29770b5` (v163) — Hábitos numéricos en la agenda.** Antes un toque
+  registraba la meta completa. Ahora abre un modal (`.modal-overlay` +
+  `open`) que **suma** la cantidad ingresada a lo ya registrado hoy y guarda
+  el total con `registrarProgresoHabito`: si llega a la meta sale de la
+  agenda, si no queda con el avance (ej. 5/20 min). Decisión: el evento
+  guarda el **total del día**, no el incremento — es el valor absoluto que ya
+  usa `registrarProgresoHabito` y es más seguro para sync.
+
+### Layout responsive y riel
+
+- **`e4194ab` (v164) — Tablet y PC.** 768–1023 px: riel de 72 px solo con
+  íconos (el texto queda para lectores de pantalla) y Hoy en 2 columnas.
+  ≥1024 px: riel de 220 px con texto, contenido centrado de hasta 1200 px
+  (reemplaza los máximos de 960/1120) y Hoy en grilla de 12 columnas (agenda
+  7 / resúmenes 5). <768 px sin cambios. Foco de teclado visible en el riel.
+- **`4dbf5d9` (v165) — Riel MK III.** El riel salía flotante y con esquinas
+  redondeadas (heredaba `left/right/bottom` de 16 px y el radio de 26 px de la
+  barra móvil). Ahora va pegado al borde izquierdo a toda la altura, con
+  borde de 1 px (`--line`), **chaflán con `clip-path`** en dos esquinas
+  opuestas (`--chaflan`, igual que las tarjetas MK III), sin radios ni
+  sombras (tampoco en los ítems). El ítem activo usa el acento del módulo
+  (dorado de marca en Hoy, cian Entreno, ámbar Finanzas, violeta Tareas) con
+  fondo tenue y filo de 2 px a la izquierda.
+- **`5b70f9e` (v166) — Reversión del token rosa.** `4dbf5d9` había agregado
+  `--pk` (rosa) para Hábitos en el riel; Hábitos en MK III es violeta.
+  Se elimina el token de `variables.css` y el ítem activo de Hábitos usa el
+  `--vi` existente (verificado a 1024 px: mismo color que el acento de la
+  vista). Se conservan el filo de 2 px y el borde con `--line`.
+
+### QA (Playwright, 375×812 y 1280×800)
+
+Recorrido completo sin cambios de código: las 5 pestañas (textos sin cortar),
+el panel ☰ (abre con el botón, cierra con el fondo y con Atrás; cada ítem
+navega y lo cierra), las tres rutas antiguas (ninguna deja pantalla vacía),
+Atrás sobre el panel y sobre un modal (cierra el modal sin salir de Hoy),
+marcar una tarea y un hábito desde la agenda (aparecen como hechos en
+Tareas y en Hábitos), grilla de Hoy sin scroll horizontal y **modo offline**
+(con el servidor local apagado y el service worker ya instalado — 96
+entradas en `vanguard-os-v166` — Hoy carga y las 5 pestañas, Laboratorio y
+`#planificador` navegan). Consola limpia, sin respuestas 4xx.
+
+### Notas
+
+- `core/sync.js`, `core/supabase-client.js`, `core/db.js` y `core/history.js`
+  no cambiaron en ninguno de los nueve commits; la sincronización con
+  Supabase no se pudo ejercitar en QA (no hay sesión de prueba), solo se
+  comprobó que el código de sync no se tocó.
+- Archivos nuevos (todos en `PRECACHE_URLS`): `js/components/racha-reactor.js`,
+  `js/utils/hoyToca.js`. Archivo eliminado: `js/views/mas.js`.
+- Comportamiento previo que el QA reconfirmó (no es un cambio de esta
+  tanda): la primera visita a Entreno abre el modal de perfil y tapa la
+  navegación hasta cerrarlo.
+- Las tareas de `Tareas` no tienen recurrencia (lo recurrente es de
+  Finanzas); la agenda solo lista las tareas con fecha exactamente de hoy,
+  sin atrasadas.
+
+---
+
 Resumen de los 20 commits entre `bb6c189` (3 sep 2026) y `b6a4519` (5 sep
 2026, HEAD de `worktree-dashboard-mk3` al momento de escribir esto). Agrupado
 por tema, no por orden cronológico — el orden cronológico exacto está en
