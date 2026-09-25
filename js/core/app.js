@@ -6,7 +6,7 @@ import { escapeHtml } from '../utils/escape.js';
 import { initSync } from './sync.js';
 import { initErrorTracking, reportError } from './error-tracking.js';
 
-const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'mas', 'configuracion'];
+const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'configuracion'];
 
 // El servidor local a veces omite el header Content-Type cuando recibe
 // varias peticiones en paralelo (medido: 0/52 fallos pidiendo los archivos
@@ -236,6 +236,7 @@ class Router {
     initModalHistory();
     initSheetDragToDismiss();
     initModalAccessibility();
+    this.initMenu();
 
     // Los <a href="#tareas"> del nav ya cambian el hash solos (no hay
     // preventDefault acá): este listener es el ÚNICO lugar que monta una
@@ -295,9 +296,56 @@ class Router {
     }
   }
 
+  syncMenuActivo(viewId) {
+    document.querySelectorAll('.menu-item').forEach(a => {
+      a.classList.toggle('active', a.getAttribute('data-menu-view') === viewId);
+    });
+  }
+
+  // Panel ☰: .modal-overlay + clase open. history.js lo engancha solo al
+  // botón atrás (pushState al abrir, popstate lo cierra antes de que
+  // cambie nada más). El display inline es porque history.js cierra con
+  // display:none y ese inline pisaría al .open del CSS al reabrir.
+  abrirMenu() {
+    const overlay = document.getElementById('menu-overlay');
+    if (!overlay || overlay.classList.contains('open')) return;
+    overlay.style.display = 'flex';
+    overlay.classList.add('open');
+  }
+
+  cerrarMenu() {
+    const overlay = document.getElementById('menu-overlay');
+    if (!overlay || !overlay.classList.contains('open')) return;
+    overlay.classList.remove('open');
+    overlay.style.display = 'none';
+  }
+
+  initMenu() {
+    const overlay = document.getElementById('menu-overlay');
+    const btn = document.getElementById('btn-menu');
+    if (!overlay || !btn) return;
+    btn.addEventListener('click', () => this.abrirMenu());
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay || e.target.closest('.menu-item')) this.cerrarMenu();
+    });
+  }
+
+  // Hash → vista. Soporta subrutas (#tareas/semana → vista 'tareas') y las
+  // redirecciones de las rutas que ya no existen como pantallas propias.
+  // Las reescribe con replaceState (sin entrada de historial nueva ni
+  // hashchange) para que "atrás" no vuelva a la ruta vieja.
   resolveViewFromHash() {
-    const raw = (location.hash || '').replace(/^#/, '');
-    return VALID_VIEWS.includes(raw) ? raw : 'dashboard';
+    let raw = (location.hash || '').replace(/^#/, '');
+    const base = raw.split('/')[0];
+    const REDIRECTS = { mas: 'dashboard', ritual: 'dashboard', planificador: 'tareas/semana' };
+    if (REDIRECTS[base]) {
+      const destino = REDIRECTS[base];
+      history.replaceState(history.state, '', '#' + destino);
+      if (base === 'mas') this.abrirMenu();
+      raw = destino;
+    }
+    const view = raw.split('/')[0];
+    return VALID_VIEWS.includes(view) ? view : 'dashboard';
   }
   
   setupSplashScreen() {
@@ -364,16 +412,16 @@ class Router {
     // toca el link del mail y la cuenta nunca termina de confirmarse en la
     // app, aunque Supabase ya la haya marcado confirmada de su lado.
     const esCallbackDeAuth = /access_token=|refresh_token=|token_hash=|type=(signup|recovery|invite|magiclink|email_change)/.test(location.hash.slice(1));
-    if (!esCallbackDeAuth && location.hash.slice(1) !== viewId) location.hash = viewId;
+    if (!esCallbackDeAuth && location.hash.slice(1).split('/')[0] !== viewId) location.hash = viewId;
 
     this.currentView = viewId;
 
-    // Ritual/Planificador/Anotaciones/Configuración no tienen pestaña
-    // propia en el nav — se llega a ellas desde el hub de "Más" (ver
-    // views/mas.js) — así que esa pestaña queda marcada activa mientras se
-    // esté en cualquiera de ellas, igual que un tab padre en un nav anidado.
-    const MAS_HIJOS = ['ritual', 'planificador', 'anotaciones', 'configuracion'];
-    const viewIdParaNav = MAS_HIJOS.includes(viewId) ? 'mas' : viewId;
+    // Ritual cuelga de Hoy; Planificador de Tareas. Anotaciones,
+    // Laboratorio y Configuración viven en el menú ☰ del encabezado y no
+    // marcan ninguna pestaña de la barra inferior.
+    const PADRE_NAV = { ritual: 'dashboard', planificador: 'tareas' };
+    const viewIdParaNav = PADRE_NAV[viewId] || viewId;
+    this.syncMenuActivo(viewId);
     this.navItems.forEach(item => {
       const isActive = item.getAttribute('data-view') === viewIdParaNav;
       item.classList.toggle('active', isActive);
@@ -399,7 +447,7 @@ class Router {
     // Más y Configuración son pantallas utilitarias sin identidad de
     // módulo propia — comparten la paleta neutra de Inicio en vez de sumar
     // un .mk3-mas/.mk3-configuracion que duplicaría el mismo bloque neutro.
-    this.root.classList.toggle('mk3-dashboard', viewId === 'dashboard' || viewId === 'mas' || viewId === 'configuracion');
+    this.root.classList.toggle('mk3-dashboard', viewId === 'dashboard' || viewId === 'configuracion');
     this.root.classList.toggle('mk3-ritual', viewId === 'ritual');
     this.root.classList.toggle('mk3-planificador', viewId === 'planificador');
     this.root.classList.toggle('mk3-anotaciones', viewId === 'anotaciones');
