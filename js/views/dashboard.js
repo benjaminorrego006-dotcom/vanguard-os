@@ -42,19 +42,27 @@ function habitoPendienteHoy(h, hoyIso) {
 
 // Agenda de hoy: tareas con fecha de hoy (Tareas y Semana) + hábitos que
 // tocan hoy y no están cumplidos. Cada fila lleva su checkbox en línea.
-function renderAgenda({ tareasHoy, planHoy, habitosPend }) {
+function renderAgenda({ tareasHoy, planHoy, habitosPend, hoyIso }) {
   const items = [
     ...tareasHoy.map(t => ({ tipo: 'tarea', id: t.id, texto: t.title, etiqueta: 'Tarea' })),
     ...planHoy.map(t => ({ tipo: 'plan', id: t.id, texto: t.texto, etiqueta: 'Semana' })),
-    ...habitosPend.map(h => ({
-      tipo: 'habito', id: h.id, texto: h.nombre,
-      etiqueta: h.meta && h.meta.cantidad ? `Hábito · meta ${escapeHtml(String(h.meta.cantidad))}${h.meta.unidad ? ' ' + escapeHtml(h.meta.unidad) : ''}` : 'Hábito'
-    }))
+    // Hábito con meta numérica ('habito-num'): no se cumple con un toque, se
+    // abre el modal de progreso y se muestra lo avanzado (ej. 5/20 min).
+    ...habitosPend.map(h => {
+      const conMeta = !!(h.meta && h.meta.cantidad);
+      const meta = conMeta ? Number(h.meta.cantidad) : 0;
+      const actual = conMeta ? (Number(h.marcas && h.marcas[hoyIso]) || 0) : 0;
+      const unidad = conMeta && h.meta.unidad ? String(h.meta.unidad) : '';
+      return {
+        tipo: conMeta ? 'habito-num' : 'habito', id: h.id, texto: h.nombre, actual, meta, unidad,
+        etiqueta: conMeta ? `Hábito · ${actual}/${meta}${unidad ? ' ' + escapeHtml(unidad) : ''}` : 'Hábito'
+      };
+    })
   ];
   const fila = (it) => `
     <div style="display: flex; align-items: center; gap: 4px;">
-      <button class="agenda-check tappable" data-tipo="${it.tipo}" data-id="${it.id}" aria-label="Marcar ${escapeHtml(it.texto)}" style="width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;">
-        <span aria-hidden="true" style="display: block; width: 22px; height: 22px; border: 1.5px solid var(--text-disabled);"></span>
+      <button class="agenda-check tappable" data-tipo="${it.tipo}" data-id="${it.id}" data-nombre="${escapeHtml(it.texto)}" data-actual="${it.actual || 0}" data-meta="${it.meta || 0}" data-unidad="${escapeHtml(it.unidad || '')}" aria-label="${it.tipo === 'habito-num' ? 'Registrar progreso de' : 'Marcar'} ${escapeHtml(it.texto)}" style="width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;">
+        <span aria-hidden="true" style="display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1.5px solid var(--text-disabled); color: var(--text-secondary);">${it.tipo === 'habito-num' ? '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>' : ''}</span>
       </button>
       <div style="flex: 1; min-width: 0;">
         <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(it.texto)}</div>
@@ -300,7 +308,8 @@ export async function render() {
   const agendaHtml = renderAgenda({
     tareasHoy: tareas.filter(t => t.status !== 'done' && t.dueDate === hoyIso),
     planHoy: planHoy.filter(t => !t.hecha),
-    habitosPend: habitos.filter(h => habitoPendienteHoy(h, hoyIso))
+    habitosPend: habitos.filter(h => habitoPendienteHoy(h, hoyIso)),
+    hoyIso
   });
 
   const quickBtn = (id, color, label, iconSvg, extra = '') => `
@@ -425,6 +434,21 @@ export async function render() {
 
       ${renderTaskForm()}
 
+      <!-- Progreso de un hábito numérico desde la agenda -->
+      <div id="hoy-progreso-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="hoy-prog-titulo">
+        <div class="modal-content">
+          <h2 id="hoy-prog-titulo" style="margin: 0 0 4px 0; font-size: 20px; font-weight: 800; color: var(--text-primary);">Registrar progreso</h2>
+          <div id="hoy-prog-detalle" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;"></div>
+          <form id="hoy-prog-form" onsubmit="return false;">
+            <input id="hoy-prog-cantidad" type="number" inputmode="decimal" min="0" step="any" placeholder="Cantidad a sumar" autocomplete="off" style="width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 14px; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none;">
+            <div style="display: flex; gap: 8px; margin-top: 14px;">
+              <button type="button" id="hoy-prog-cancelar" class="tappable" style="flex: 1; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">Cancelar</button>
+              <button type="submit" id="hoy-prog-guardar" class="tappable" style="flex: 1; background: var(--vi); color: #000; border: none; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer;">Sumar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
     </div>
   `;
 }
@@ -525,19 +549,14 @@ export function mountListeners() {
   // Tareas, Semana y Hábitos (cada una emite su logEvent).
   document.querySelectorAll('.agenda-check').forEach(btn => {
     btn.addEventListener('click', async () => {
-      btn.disabled = true;
       const tipo = btn.getAttribute('data-tipo');
       const id = btn.getAttribute('data-id');
+      if (tipo === 'habito-num') { abrirProgreso(btn); return; }
+      btn.disabled = true;
       try {
         if (tipo === 'tarea') await db.updateTaskStatus(id, 'done');
         else if (tipo === 'plan') await db.toggleTareaPlan(id);
-        else {
-          const hoy = diaKeyDe(new Date());
-          const h = (await db.getHabitos()).find(x => x.id === id);
-          if (!h) return;
-          if (h.meta && h.meta.cantidad) await db.registrarProgresoHabito(id, hoy, h.meta.cantidad);
-          else await db.toggleMarcaHabito(id, hoy);
-        }
+        else await db.toggleMarcaHabito(id, diaKeyDe(new Date()));
         await repintar();
       } catch (err) {
         console.error('Error al marcar desde la agenda:', err);
@@ -546,6 +565,59 @@ export function mountListeners() {
       }
     });
   });
+
+  // Hábito numérico: el modal suma la cantidad ingresada a lo que ya lleva
+  // hoy y guarda el total con registrarProgresoHabito (que emite su
+  // logEvent con la cantidad). Si el total llega a la meta, el hábito sale
+  // de la agenda al repintar; si no, queda con el avance (ej. 5/20).
+  const progModal = document.getElementById('hoy-progreso-modal');
+  const progInput = document.getElementById('hoy-prog-cantidad');
+  const progForm = document.getElementById('hoy-prog-form');
+  const progGuardar = document.getElementById('hoy-prog-guardar');
+  let progreso = null;
+
+  const cerrarProgreso = () => {
+    if (!progModal.classList.contains('open')) return;
+    progModal.classList.remove('open');
+    progModal.style.display = 'none';
+  };
+  function abrirProgreso(btn) {
+    progreso = {
+      id: btn.getAttribute('data-id'),
+      actual: Number(btn.getAttribute('data-actual')) || 0,
+      meta: Number(btn.getAttribute('data-meta')) || 0,
+      unidad: btn.getAttribute('data-unidad') || ''
+    };
+    const nombre = btn.getAttribute('data-nombre') || '';
+    document.getElementById('hoy-prog-detalle').textContent =
+      `${nombre} · llevas ${progreso.actual}/${progreso.meta}${progreso.unidad ? ' ' + progreso.unidad : ''}`;
+    progInput.value = '';
+    progGuardar.disabled = false;
+    progModal.style.display = 'flex';
+    progModal.classList.add('open');
+    setTimeout(() => progInput.focus(), 50);
+  }
+  if (progModal) {
+    progModal.addEventListener('click', (e) => { if (e.target === progModal) cerrarProgreso(); });
+    document.getElementById('hoy-prog-cancelar').addEventListener('click', cerrarProgreso);
+    progForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const cantidad = Number(String(progInput.value).replace(',', '.'));
+      if (!progreso || !(cantidad > 0)) { progInput.focus(); return; }
+      const total = progreso.actual + cantidad;
+      progGuardar.disabled = true;
+      try {
+        await db.registrarProgresoHabito(progreso.id, diaKeyDe(new Date()), total);
+        cerrarProgreso();
+        Toast(total >= progreso.meta ? 'Meta cumplida' : 'Progreso guardado', 'success');
+        await repintar();
+      } catch (err) {
+        console.error('Error al registrar progreso desde la agenda:', err);
+        Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
+        progGuardar.disabled = false;
+      }
+    });
+  }
 
   // Formulario de tarea existente (components/task-form.js), montado acá.
   setupTaskForm(repintar);
