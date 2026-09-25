@@ -136,6 +136,9 @@
   --am: #D98A3D; --am2: #97622F; --amd: #634221; --amb: #271F16; --amp: #100D0B;
   --vi: #737AB4; --vib: #393B4A; --vid: #2C2E37; --vip: #0C0C0F; --vis: #14151B;
   --rd: #C56056; --rdb: #442C2A; --rd2: #6D3B36;
+  /* Rosa de Hábitos en el riel lateral (>=768px). Mismo retinte apagado que
+     los demás acentos; 5.5:1 contra --panel (piso WCAG de 4.5:1). */
+  --pk: #C4709F;
 
   /* t3/t4/t5 aclarados (Fase 7, auditoría WCAG): fallaban 4.5:1 contra
      --panel (t3 2.56:1, t4 1.89:1) o lo pasaban raspando (t5 4.49:1) —
