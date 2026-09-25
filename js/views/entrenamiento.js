@@ -7,7 +7,7 @@ import { renderRutinaSession, initRutinaSessionListeners, cleanupSessionTimer } 
 import { renderHiitTimer, initHiitTimerListeners, cleanupHiitTimer } from '../components/hiit-timer.js';
 import { renderProgressRing } from '../utils/progressRing.js';
 import { WEEKLY_GOALS, CATEGORY_COLORS } from '../core/trainingConfig.js';
-import { renderProfileForm, setupProfileForm, openProfileForm } from '../components/profile-form.js';
+import { renderProfileForm, setupProfileForm, openProfileForm, perfilPospuestoHoy } from '../components/profile-form.js';
 import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardingForm } from '../components/nivel-onboarding-form.js';
 import { calcularIMC } from '../utils/bodyMetrics.js';
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
@@ -366,7 +366,7 @@ mountListeners = () => {
   // vez en la primera visita; si falta el perfil, el de nivel queda para la
   // próxima visita (el usuario también puede abrirlo a mano con su ícono).
   db.getProfile().then(profile => {
-    if (!profile) { openProfileForm(); return; }
+    if (!profile) { if (!perfilPospuestoHoy()) openProfileForm(); return; }
     db.getNivelEntrenamiento().then(nivel => {
       if (!nivel) openNivelOnboardingForm();
     });

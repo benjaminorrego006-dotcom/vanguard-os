@@ -31,6 +31,22 @@ body {
   width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
   background: transparent; border: none; color: var(--text-secondary); cursor: pointer;
 }
+/* Modal de perfil de Entreno (onboarding automático): deja libre la
+   navegación — barra inferior en móvil, riel en tablet/PC — para que se
+   pueda tocar otra pestaña con el modal abierto (navegar lo cierra, ver
+   forgetOpenModals en history.js). El overlay normal cubre toda la pantalla
+   con z-index 3000, por encima de la navegación (1000). */
+#profile-modal .modal-content { max-height: 100% !important; }
+@media (max-width: 767px) {
+  #profile-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); }
+}
+@media (min-width: 768px) {
+  #profile-modal { left: 72px; }
+}
+@media (min-width: 1024px) {
+  #profile-modal { left: 220px; }
+}
+
 /* Panel lateral: el overlay lo pega a la derecha; los ids ganan sobre los
    ajustes de .modal-content (hoja inferior en móvil, tarjeta en ≥640px). */
 #menu-overlay { align-items: stretch; justify-content: flex-end; padding: 0; }

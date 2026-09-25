@@ -1,5 +1,22 @@
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
+import { diaKeyDe } from '../utils/fecha.js';
+
+// "Ahora no" del onboarding de perfil: oculta la apertura automática al
+// entrar a Entreno hasta mañana. La fecha (diaKeyDe) va en localStorage
+// porque es una preferencia de UI, no dato de la app. No afecta a las
+// aperturas manuales (ícono de perfil, Configuración).
+const PERFIL_AHORA_NO_KEY = 'vg-perfil-ahora-no';
+
+export function perfilPospuestoHoy() {
+  try { return localStorage.getItem(PERFIL_AHORA_NO_KEY) === diaKeyDe(new Date()); }
+  catch (e) { return false; /* modo privado — mostrar el modal igual */ }
+}
+
+function posponerPerfilHoy() {
+  try { localStorage.setItem(PERFIL_AHORA_NO_KEY, diaKeyDe(new Date())); }
+  catch (e) { /* modo privado */ }
+}
 
 const NIVELES_ACTIVIDAD = [
   { value: 'sedentario', label: 'Sedentario (poco o nada de ejercicio)' },
@@ -84,7 +101,10 @@ export function setupProfileForm(onSaveCallback) {
     setTimeout(() => modal.style.display = 'none', 300);
   };
 
-  btnCancel.addEventListener('click', close);
+  btnCancel.addEventListener('click', () => {
+    if (btnCancel.dataset.modo === 'onboarding') posponerPerfilHoy();
+    close();
+  });
   if (btnCloseX) btnCloseX.addEventListener('click', close);
 
   btnSave.addEventListener('click', async () => {
@@ -118,8 +138,11 @@ export async function openProfileForm() {
 
   const profile = await db.getProfile();
   const titleEl = document.getElementById('profile-modal-title');
+  const btnCancel = document.getElementById('btn-cancel-profile');
 
   if (profile) {
+    btnCancel.textContent = 'Cancelar';
+    btnCancel.dataset.modo = '';
     titleEl.innerText = 'Tu Perfil';
     document.getElementById('profile-peso').value = profile.pesoKg || '';
     document.getElementById('profile-estatura').value = profile.estaturaCm || '';
@@ -128,6 +151,8 @@ export async function openProfileForm() {
     document.getElementById('profile-actividad').value = profile.nivelActividad || 'sedentario';
     document.getElementById('profile-meta').value = profile.meta || 'mantener';
   } else {
+    btnCancel.textContent = 'Ahora no';
+    btnCancel.dataset.modo = 'onboarding';
     titleEl.innerText = '¡Bienvenido! Cuéntanos de ti';
     document.getElementById('profile-peso').value = '';
     document.getElementById('profile-estatura').value = '';
