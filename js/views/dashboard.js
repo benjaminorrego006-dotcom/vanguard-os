@@ -8,6 +8,8 @@ import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import * as LabFinanzas from '../components/lab-finanzas.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
+import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
+import * as Anotaciones from './anotaciones.js';
 
 // Llamado por el router (app.js) antes de desmontar Inicio. El laboratorio
 // puede tener una instancia de Chart.js viva (el donut de "Distribución del
@@ -16,6 +18,56 @@ import { calcularHoyToca } from '../utils/hoyToca.js';
 export function cleanup() {
   if (labObserver) { labObserver.disconnect(); labObserver = null; }
   LabFinanzas.cleanup();
+}
+
+async function repintar() {
+  const root = document.getElementById('view-root');
+  const scroll = root.scrollTop;
+  cleanup();
+  root.innerHTML = await render();
+  mountListeners();
+  root.scrollTop = scroll;
+}
+
+// ¿Este hábito toca hoy y todavía no está cumplido? Mismo criterio que los
+// helpers de db.js (días de la semana con getDay() local; con meta numérica,
+// "cumplido" es llegar a la cantidad).
+function habitoPendienteHoy(h, hoyIso) {
+  const f = h.frecuencia || { tipo: 'diario' };
+  if (f.tipo === 'dias' && !(f.dias || []).includes((new Date().getDay() + 6) % 7)) return false;
+  const v = h.marcas && h.marcas[hoyIso];
+  if (h.meta && h.meta.cantidad) return !(Number(v) >= Number(h.meta.cantidad));
+  return !v;
+}
+
+// Agenda de hoy: tareas con fecha de hoy (Tareas y Semana) + hábitos que
+// tocan hoy y no están cumplidos. Cada fila lleva su checkbox en línea.
+function renderAgenda({ tareasHoy, planHoy, habitosPend }) {
+  const items = [
+    ...tareasHoy.map(t => ({ tipo: 'tarea', id: t.id, texto: t.title, etiqueta: 'Tarea' })),
+    ...planHoy.map(t => ({ tipo: 'plan', id: t.id, texto: t.texto, etiqueta: 'Semana' })),
+    ...habitosPend.map(h => ({
+      tipo: 'habito', id: h.id, texto: h.nombre,
+      etiqueta: h.meta && h.meta.cantidad ? `Hábito · meta ${escapeHtml(String(h.meta.cantidad))}${h.meta.unidad ? ' ' + escapeHtml(h.meta.unidad) : ''}` : 'Hábito'
+    }))
+  ];
+  const fila = (it) => `
+    <div style="display: flex; align-items: center; gap: 4px;">
+      <button class="agenda-check tappable" data-tipo="${it.tipo}" data-id="${it.id}" aria-label="Marcar ${escapeHtml(it.texto)}" style="width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;">
+        <span aria-hidden="true" style="display: block; width: 22px; height: 22px; border: 1.5px solid var(--text-disabled);"></span>
+      </button>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(it.texto)}</div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 1px;">${it.etiqueta}</div>
+      </div>
+    </div>`;
+  return `
+    <div id="hoy-agenda" class="card" style="padding: 14px 16px 10px; margin-bottom: 20px;">
+      <div class="num" style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px;">Agenda de hoy${items.length ? ` · ${items.length}` : ''}</div>
+      ${items.length
+        ? items.map(fila).join('')
+        : '<div style="font-size: 13px; color: var(--text-disabled); padding: 6px 0 8px;">Nada pendiente hoy</div>'}
+    </div>`;
 }
 
 // Observer que dispara la carga diferida del Laboratorio (ver
@@ -184,7 +236,8 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesion
 }
 
 export async function render() {
-  const [budget, stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, alertasCaja, diasDesdeBackup] = await Promise.all([
+  const hoyIso = diaKeyDe(new Date());
+  const [budget, stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, alertasCaja, diasDesdeBackup, planHoy] = await Promise.all([
     db.getBudget(),
     db.getDashboardStats(),
     db.getSesiones(),
@@ -194,7 +247,8 @@ export async function render() {
     db.getNotas(),
     db.getCategoriasNota(),
     db.getProyeccionRecurrentes(),
-    getDiasDesdeUltimoBackup()
+    getDiasDesdeUltimoBackup(),
+    db.getTareasPlan(hoyIso, hoyIso)
   ]);
 
   let alertasHtml = '';
@@ -236,7 +290,6 @@ export async function render() {
   ` : '';
 
 
-  const hoyIso = diaKeyDe(new Date());
   const habitosMarcadosHoy = habitos.filter(h => h.marcas && h.marcas[hoyIso]).length;
   const tareasActivas = tareas.filter(t => t.status !== 'done').length;
 
@@ -244,9 +297,15 @@ export async function render() {
   const ultimaNota = notas[0] || null;
   const catUltimaNota = ultimaNota ? categoriasNota.find(c => c.id === ultimaNota.catId) : null;
 
-  const quickBtn = (id, color, label, iconSvg) => `
-    <button id="${id}" class="tappable card" style="flex: 1; padding: 12px; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
-      <div class="icon-chip" style="width: 26px; height: 26px; background: color-mix(in srgb, ${color} 15%, transparent); color: ${color}; flex-shrink: 0;">${iconSvg}</div>
+  const agendaHtml = renderAgenda({
+    tareasHoy: tareas.filter(t => t.status !== 'done' && t.dueDate === hoyIso),
+    planHoy: planHoy.filter(t => !t.hecha),
+    habitosPend: habitos.filter(h => habitoPendienteHoy(h, hoyIso))
+  });
+
+  const quickBtn = (id, color, label, iconSvg, extra = '') => `
+    <button id="${id}" ${extra} class="tappable card" style="flex: 1; min-width: 0; padding: 10px 4px; font-size: 12px; font-weight: 700; color: var(--text-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; margin-bottom: 0;">
+      <div class="icon-chip" style="width: 28px; height: 28px; background: color-mix(in srgb, ${color} 15%, transparent); color: ${color}; flex-shrink: 0;">${iconSvg}</div>
       ${label}
     </button>`;
 
@@ -268,18 +327,17 @@ export async function render() {
       ${tarjetaContextualHtml}
 
       <!-- Accesos rápidos -->
-      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-        ${quickBtn('qa-gasto', 'var(--am)', 'Registrar gasto', '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>')}
-        ${quickBtn('qa-entreno', 'var(--cy)', 'Entrenar ahora', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>')}
+      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+        ${quickBtn('qa-gasto', 'var(--am)', 'Gasto', '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>')}
+        ${quickBtn('qa-entreno', 'var(--cy)', 'Entrenar', '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>')}
+        ${quickBtn('qa-tarea', 'var(--vi)', 'Tarea', '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>')}
+        ${quickBtn('qa-nota', 'var(--accent-notas)', 'Nota', '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path><path d="M14 4v6h6"></path></svg>', `data-cat="${ultimaNota ? ultimaNota.catId : ''}"`)}
       </div>
 
       ${alertasHtml}
 
-      <!-- Agenda de hoy: placeholder, se llena en la fase siguiente. -->
-      <div id="hoy-agenda" class="card" style="padding: 14px 16px; margin-bottom: 20px;">
-        <div class="num" style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Agenda de hoy</div>
-        <div style="font-size: 12.5px; color: var(--text-disabled);">Aquí verás las tareas y los hábitos de hoy.</div>
-      </div>
+      <!-- Agenda de hoy: tareas con fecha de hoy + hábitos pendientes -->
+      ${agendaHtml}
 
       <!-- Filas heroicas por módulo -->
       <div style="margin-bottom: 20px;">
@@ -364,6 +422,8 @@ export async function render() {
 
 
       ${installBannerHtml}
+
+      ${renderTaskForm()}
 
     </div>
   `;
@@ -458,6 +518,49 @@ export function mountListeners() {
       try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) { /* modo privado */ }
       const banner = document.getElementById('install-banner');
       if (banner) banner.remove();
+    });
+  }
+
+  // Agenda: marcar en línea con las mismas funciones de db.js que usan
+  // Tareas, Semana y Hábitos (cada una emite su logEvent).
+  document.querySelectorAll('.agenda-check').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      const tipo = btn.getAttribute('data-tipo');
+      const id = btn.getAttribute('data-id');
+      try {
+        if (tipo === 'tarea') await db.updateTaskStatus(id, 'done');
+        else if (tipo === 'plan') await db.toggleTareaPlan(id);
+        else {
+          const hoy = diaKeyDe(new Date());
+          const h = (await db.getHabitos()).find(x => x.id === id);
+          if (!h) return;
+          if (h.meta && h.meta.cantidad) await db.registrarProgresoHabito(id, hoy, h.meta.cantidad);
+          else await db.toggleMarcaHabito(id, hoy);
+        }
+        await repintar();
+      } catch (err) {
+        console.error('Error al marcar desde la agenda:', err);
+        Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // Formulario de tarea existente (components/task-form.js), montado acá.
+  setupTaskForm(repintar);
+  const qaTarea = document.getElementById('qa-tarea');
+  if (qaTarea) qaTarea.addEventListener('click', () => openTaskForm());
+
+  // "Nota": abre el formulario de nota nueva de Anotaciones, en la
+  // categoría de la última nota (o la primera).
+  const qaNota = document.getElementById('qa-nota');
+  if (qaNota) {
+    qaNota.addEventListener('click', async () => {
+      const cats = await db.getCategoriasNota();
+      const cat = cats.find(c => c.id === qaNota.getAttribute('data-cat')) || cats[0];
+      if (cat) Anotaciones.abrirCategoria(cat.id);
+      go('anotaciones');
     });
   }
 

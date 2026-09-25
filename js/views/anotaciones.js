@@ -194,6 +194,12 @@ export function mountListeners() {
   });
 }
 
+// Lo usa el acceso rápido "Nota" de Inicio: deja abierta una categoría (su
+// formulario de nota nueva ya está arriba) antes de navegar a esta vista.
+export function abrirCategoria(catId) {
+  categoriaAbierta = catId;
+}
+
 // Resetea a la pantalla de categorías al salir — igual que habitos.js
 // resetea su vista interna: sin esto, volver a entrar a Anotaciones desde
 // el nav dejaría la categoría anterior abierta en vez de la lista.
