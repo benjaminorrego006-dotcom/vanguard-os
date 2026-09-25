@@ -188,9 +188,9 @@ body {
   .nav-item[data-view="entrenamiento"].active { background-color: color-mix(in srgb, var(--cy) 12%, transparent); }
   .nav-item[data-view="finanzas"].active { background-color: color-mix(in srgb, var(--am) 12%, transparent); }
   .nav-item[data-view="tareas"].active { background-color: color-mix(in srgb, var(--vi) 12%, transparent); }
-  /* Hábitos: rosa solo en el riel; la barra inferior móvil conserva su
-     violeta (regla base, fuera de este media query). */
-  .nav-item[data-view="habitos"].active { color: var(--pk); background-color: color-mix(in srgb, var(--pk) 12%, transparent); }
+  /* Hábitos comparte el violeta de Tareas (MK III); el color del texto e
+     ícono ya viene de la regla base. */
+  .nav-item[data-view="habitos"].active { background-color: color-mix(in srgb, var(--vi) 12%, transparent); }
 
   .nav-item .icon {
     margin-bottom: 0;
