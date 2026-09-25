@@ -1285,9 +1285,12 @@ export const db = {
   // la app se lo sugirió, por rama — a diferencia de tiempoEntrenando (un
   // solo valor global), esto es por patrón de movimiento, y solo sube,
   // nunca baja (ver sugerencias-nivel.js).
-  // sugerenciasDescartadas: último nivel que el usuario rechazó por rama
-  // ("Ahora no") — no se le vuelve a mostrar ESE mismo nivel, pero sí uno
-  // más alto si su historial sigue mejorando.
+  // sugerenciasDescartadas: por rama, { nivel, fecha } — el nivel que el
+  // usuario rechazó ("Ahora no") y el día (diaKeyDe) en que lo hizo. No se
+  // le vuelve a mostrar ESE nivel (ni uno menor) durante 7 días; pasado ese
+  // plazo la sugerencia puede volver, y un nivel más alto puede aparecer
+  // antes si su historial sigue mejorando. Una entrada vieja, guardada como
+  // el texto del nivel sin fecha, se trata como ya vencida.
   async getNivelEntrenamiento() {
     return idbGetSingleton('nivelEntrenamiento', null);
   },
@@ -1319,15 +1322,16 @@ export const db = {
     return nivel;
   },
   async descartarSugerenciaNivel(rama, nivelSugerido) {
+    const fecha = diaKeyDe(new Date());
     const previo = await idbGetSingleton('nivelEntrenamiento', { tiempoEntrenando: 'menos-1', overridesPorRama: {}, sugerenciasDescartadas: {} });
     const nivel = {
       ...previo,
-      sugerenciasDescartadas: { ...previo.sugerenciasDescartadas, [rama]: nivelSugerido },
+      sugerenciasDescartadas: { ...previo.sugerenciasDescartadas, [rama]: { nivel: nivelSugerido, fecha } },
       actualizadoEn: new Date().toISOString()
     };
     await idbSetSingleton('nivelEntrenamiento', nivel);
     this._triggerUpdate();
-    await logEvent({ modulo: 'entreno', tipo: 'sugerencia_nivel_descartada', payload: { rama, nivelSugerido } });
+    await logEvent({ modulo: 'entreno', tipo: 'sugerencia_nivel_descartada', payload: { rama, nivelSugerido, fecha } });
     return nivel;
   },
 

@@ -16,6 +16,7 @@ import { db } from './db.js';
 import { getNivel } from './estandares-fuerza.js';
 import { CATALOGO_EJERCICIOS, getEjercicioPorId, getEjercicioMetadata, getIdPorNombreExacto } from './ejercicios-catalogo.js';
 import { RAMA_ORDEN, RAMA_LABELS, profundidadNodo } from './progresiones.js';
+import { diaKeyDe } from '../utils/fecha.js';
 
 const NIVEL_RANGO = { principiante: 0, intermedio: 1, avanzado: 2 };
 const NIVEL_DESDE_RANGO = ['principiante', 'intermedio', 'avanzado'];
@@ -33,6 +34,7 @@ const TIEMPO_A_NIVEL = { 'menos-1': 'principiante', '1-3': 'intermedio', 'mas-3'
 const VENTANA_MS = 4 * 7 * 24 * 60 * 60 * 1000; // últimas 4 semanas
 const SESIONES_A_MIRAR = 3;
 const SESIONES_MINIMAS_QUE_CUMPLEN = 2;
+const DIAS_AHORA_NO = 7; // cuánto dura un "Ahora no" antes de poder volver a sugerir
 
 // Id de catálogo de una entrada de ejercicio de sesión: el ejercicioId
 // guardado; si es null (ejercicio escrito a mano), por nombre — exacto
@@ -93,17 +95,49 @@ function evaluarPorSeries(entry, sesiones) {
   return `${cumplen.length} de tus últimas ${ultimas.length} sesiones con ${series}×${valor}${unidad} de ${entry.nombre.toLowerCase()}.`;
 }
 
+// Días de calendario entre dos claves diaKeyDe ('YYYY-MM-DD'), en hora local
+// (nunca toISOString: cruzaría el día por el huso horario).
+function diasEntre(claveDesde, claveHasta) {
+  const [ya, ma, da] = claveDesde.split('-').map(Number);
+  const [yb, mb, db_] = claveHasta.split('-').map(Number);
+  return Math.round((new Date(yb, mb - 1, db_) - new Date(ya, ma - 1, da)) / 86400000);
+}
+
+// ¿Sigue vigente el "Ahora no" de esta rama para el nivel sugerido? Vigente
+// = se rechazó ese nivel (o uno mayor) hace menos de DIAS_AHORA_NO días. Una
+// entrada vieja (texto sin fecha) cuenta como vencida.
+function ahoraNoVigente(entrada, nivelSugerido, hoyClave) {
+  if (!entrada) return false;
+  const nivel = typeof entrada === 'string' ? entrada : entrada.nivel;
+  const fecha = typeof entrada === 'string' ? null : entrada.fecha;
+  if (!fecha) return false;
+  if (NIVEL_RANGO[nivel] < NIVEL_RANGO[nivelSugerido]) return false;
+  return diasEntre(fecha, hoyClave) < DIAS_AHORA_NO;
+}
+
 // 'ratio': Estándares de Fuerza existentes (mismo cálculo que
-// calcularNivelPorRama). Cumplido si el nivel de fuerza calculado >= valor.
-function evaluarPorRatio(entry, prs, pesoKg, sexo) {
+// calcularNivelPorRama), pero con el mejor 1RM estimado de las series
+// limpias de las últimas 4 semanas, no con el PR histórico: un récord de
+// hace un año no dice nada del nivel de hoy. Cumplido si el nivel de fuerza
+// calculado >= valor.
+function evaluarPorRatio(entry, sesiones, desde, pesoKg, sexo) {
   if (pesoKg <= 0) return null;
-  const pr = prs[entry.nombre.toLowerCase().trim()];
-  if (!pr || pr.pesoMax <= 0) return null;
-  const ratio = db.estimar1RM(pr.pesoMax, pr.repsMax) / pesoKg;
+  let mejor1RM = 0;
+  sesionesDelEjercicio(sesiones, entry.id).forEach(s => {
+    const ts = new Date(s.fecha).getTime();
+    if (isNaN(ts) || ts < desde) return;
+    s.series.filter(serieValida).forEach(sr => {
+      const peso = Number(sr.peso) || 0;
+      const reps = repsDe(sr);
+      if (peso > 0 && reps > 0) mejor1RM = Math.max(mejor1RM, db.estimar1RM(peso, reps));
+    });
+  });
+  if (mejor1RM <= 0) return null;
+  const ratio = mejor1RM / pesoKg;
   const nivelInfo = getNivel(entry.id, sexo, ratio);
   if (!nivelInfo) return null;
   if (RANGO_FUERZA[nivelInfo.nivel] < RANGO_FUERZA[entry.criterioAvance.valor]) return null;
-  return `Tu ${entry.nombre.toLowerCase()} está en ${nivelInfo.label} (${ratio.toFixed(2)}× tu peso corporal).`;
+  return `Tu ${entry.nombre.toLowerCase()} está en ${nivelInfo.label} (${ratio.toFixed(2)}× tu peso corporal, en las últimas 4 semanas).`;
 }
 
 // Siguiente ejercicio de la cadena: algún hijo por progresionDe. Si hay
@@ -129,15 +163,16 @@ function elegirSiguiente(actual, equipoDisponible) {
 // siguiente, y se descarta si (a) el ejercicio de mayor nivel que entrena
 // está por debajo de ese nivel, (b) no tiene un siguiente en la cadena de
 // progresión (un accesorio suelto que cumple su criterio no es señal de
-// avance), o (c) el usuario ya dijo "Ahora no" a ese nivel o a uno mayor.
-export async function detectarSugerencias() {
-  const [nivelDeclarado, config, prs, profile, sesiones] = await Promise.all([
+// avance), o (c) el usuario dijo "Ahora no" a ese nivel (o a uno mayor)
+// hace menos de 7 días. `hoy` solo existe para poder simular la fecha.
+export async function detectarSugerencias({ hoy = new Date() } = {}) {
+  const [nivelDeclarado, config, profile, sesiones] = await Promise.all([
     db.getNivelEntrenamiento(),
     db.getGeneradorConfig(),
-    db.getPRs(),
     db.getProfile(),
     db.getSesiones()
   ]);
+  const hoyClave = diaKeyDe(hoy);
   const pesoKg = Number(profile?.pesoKg) || 0;
   const sexo = profile?.sexo === 'F' ? 'F' : 'M';
   const equipoDisponible = config?.equipoDisponible || [];
@@ -147,7 +182,7 @@ export async function detectarSugerencias() {
 
   // Ejercicios entrenados en las últimas 4 semanas, con la fecha de la más
   // reciente, agrupados por rama.
-  const desde = Date.now() - VENTANA_MS;
+  const desde = hoy.getTime() - VENTANA_MS;
   const recientes = new Map(); // ejercicioId -> ts de su sesión más reciente
   sesiones.forEach(s => {
     const ts = new Date(s.fecha).getTime();
@@ -180,7 +215,7 @@ export async function detectarSugerencias() {
     if (NIVEL_RANGO[nivelEfectivo(actual)] < NIVEL_RANGO[nivelActual]) continue;
 
     const evidencia = actual.criterioAvance.tipo === 'ratio'
-      ? evaluarPorRatio(actual, prs, pesoKg, sexo)
+      ? evaluarPorRatio(actual, sesiones, desde, pesoKg, sexo)
       : evaluarPorSeries(actual, sesiones);
     if (!evidencia) continue;
 
@@ -188,7 +223,7 @@ export async function detectarSugerencias() {
     if (!siguiente) continue;
 
     const nivelSugerido = NIVEL_DESDE_RANGO[NIVEL_RANGO[nivelActual] + 1];
-    if (descartadas[rama] && NIVEL_RANGO[descartadas[rama]] >= NIVEL_RANGO[nivelSugerido]) continue;
+    if (ahoraNoVigente(descartadas[rama], nivelSugerido, hoyClave)) continue;
 
     sugerencias.push({
       rama,

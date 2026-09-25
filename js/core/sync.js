@@ -161,7 +161,7 @@ export async function applyRemoteEvent(event) {
       case 'sugerencia_nivel_descartada': {
         const row = await idb.getOne('singletons', 'nivelEntrenamiento');
         const nivel = row?.value || { tiempoEntrenando: 'menos-1', overridesPorRama: {}, sugerenciasDescartadas: {} };
-        await idb.put('singletons', { key: 'nivelEntrenamiento', value: { ...nivel, sugerenciasDescartadas: { ...nivel.sugerenciasDescartadas, [payload.rama]: payload.nivelSugerido } } });
+        await idb.put('singletons', { key: 'nivelEntrenamiento', value: { ...nivel, sugerenciasDescartadas: { ...nivel.sugerenciasDescartadas, [payload.rama]: { nivel: payload.nivelSugerido, fecha: payload.fecha || null } } } });
         break;
       }
       case 'pr_favorito_toggled': {
