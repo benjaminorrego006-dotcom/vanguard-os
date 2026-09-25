@@ -249,7 +249,13 @@ class Router {
       // en la barra de direcciones estando bloqueado, se ignora.
       if (isLocked()) return;
       const viewId = this.resolveViewFromHash();
-      if (viewId === this.currentView) return; // ya está montada (navigate() directo ya la puso, o ya estábamos ahí)
+      if (viewId === this.currentView) {
+        // Misma vista, otra subruta (ej. #tareas -> #tareas/semana): la
+        // vista decide si repinta.
+        const mod = this.currentModule;
+        if (mod && typeof mod.onSubrouteChange === 'function') mod.onSubrouteChange();
+        return;
+      } // ya está montada (navigate() directo ya la puso, o ya estábamos ahí)
       this.navigate(viewId);
     });
 

@@ -6,6 +6,7 @@ import { renderActivityHeatmap, initActivityHeatmapListeners } from '../componen
 import { escapeHtml } from '../utils/escape.js';
 import { formatFechaCorta, formatMes } from '../utils/fecha.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
+import * as Planificador from './planificador.js';
 
 let tasksDonutInstance = null;
 
@@ -18,6 +19,7 @@ let tasksDonutInstance = null;
 // listener nuevo por cada tarea creada/movida, no solo por cada sync).
 let syncEnganchado = false;
 async function onSyncActualizado() {
+  if (subActual !== 'lista') return;
   // No pisar el formulario de detalle/edición si está abierto, ni el
   // borrador de la captura rápida si el usuario está a mitad de escribir.
   if (hayModalAbierto()) return;
@@ -34,6 +36,51 @@ export function cleanup() {
   if (tasksDonutInstance) { tasksDonutInstance.destroy(); tasksDonutInstance = null; }
   window.removeEventListener('budget-updated', onSyncActualizado);
   syncEnganchado = false;
+  Planificador.cleanup();
+}
+
+// Sub-pestañas "Lista · Semana". La sub-vista activa sale del hash
+// (#tareas / #tareas/semana), así que recargar o compartir el link cae en
+// la misma. "Semana" monta el Planificador tal cual (ver views/
+// planificador.js) dentro de #plan-host.
+let subActual = 'lista';
+
+function subDeHash() {
+  return (location.hash || '').replace(/^#/, '').split('/')[1] === 'semana' ? 'semana' : 'lista';
+}
+
+function renderSubTabs() {
+  const tab = (id, label) => {
+    const activa = subActual === id;
+    return `<button class="tareas-subtab tappable ${activa ? 'active' : ''}" data-sub="${id}" aria-pressed="${activa}" style="flex: 1; padding: 10px 14px; background: ${activa ? 'var(--surface-1)' : 'transparent'}; color: ${activa ? 'var(--text-primary)' : 'var(--text-secondary)'};">${label}</button>`;
+  };
+  return `
+    <div class="tareas-subtabs" style="padding: 16px 20px 0 20px;">
+      <div class="segmented-control">${tab('lista', 'Lista')}${tab('semana', 'Semana')}</div>
+    </div>`;
+}
+
+// Repinta la vista completa (tabs + sub-vista). cleanup() primero: suelta
+// el listener de sync y el gráfico de la sub-vista saliente, así cambiar de
+// pestaña no acumula listeners.
+async function repintar() {
+  cleanup();
+  const root = document.getElementById('view-root');
+  root.innerHTML = await render();
+  mountListeners();
+}
+
+async function cambiarSub(sub) {
+  if (sub === subActual) return;
+  history.replaceState(history.state, '', sub === 'semana' ? '#tareas/semana' : '#tareas');
+  await repintar();
+}
+
+// Lo llama el router cuando cambia solo la subruta del hash estando ya en
+// Tareas (ej. tocar la pestaña "Tareas" de la barra estando en Semana, o
+// la redirección de #planificador).
+export function onSubrouteChange() {
+  if (subDeHash() !== subActual) repintar();
 }
 
 // Estado del tablero (qué columna está activa) — vive en el módulo, no en
@@ -230,6 +277,14 @@ function renderBoardContent(cols) {
 }
 
 export async function render() {
+  subActual = subDeHash();
+  const inner = subActual === 'semana'
+    ? `<div id="plan-host">${await Planificador.render()}</div>`
+    : await renderLista();
+  return `<div class="tareas-host">${renderSubTabs()}${inner}</div>`;
+}
+
+async function renderLista() {
   const tasks = await db.getTasks();
 
   const cols = {
@@ -343,6 +398,15 @@ export async function render() {
 }
 
 export function mountListeners() {
+  document.querySelectorAll('.tareas-subtab').forEach(btn => {
+    btn.addEventListener('click', () => cambiarSub(btn.getAttribute('data-sub')));
+  });
+
+  if (subActual === 'semana') {
+    Planificador.mountListeners();
+    return;
+  }
+
   if (!syncEnganchado) {
     syncEnganchado = true;
     window.addEventListener('budget-updated', onSyncActualizado);

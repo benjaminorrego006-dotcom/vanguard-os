@@ -12,6 +12,10 @@ import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 // refresh() local, así que sin el guard se acumularía un listener nuevo
 // por cada tarea tocada, no solo por cada sync.
 let syncEnganchado = false;
+function contenedor() {
+  return document.getElementById('plan-host') || document.getElementById('view-root');
+}
+
 async function onSyncActualizado() {
   if (hayModalAbierto()) return;
   // No pisar una tarea nueva que el usuario esté a mitad de escribir en
@@ -19,7 +23,7 @@ async function onSyncActualizado() {
   const hayBorrador = Array.from(document.querySelectorAll('.plan-nueva'))
     .some(inp => document.activeElement === inp || inp.value.trim());
   if (hayBorrador) return;
-  const root = document.getElementById('view-root');
+  const root = contenedor();
   root.innerHTML = await render();
   mountListeners();
 }
@@ -121,7 +125,7 @@ export function mountListeners() {
   }
 
   const refresh = async () => {
-    const root = document.getElementById('view-root');
+    const root = contenedor();
     root.innerHTML = await render();
     mountListeners();
   };

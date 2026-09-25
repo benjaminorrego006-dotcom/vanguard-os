@@ -193,6 +193,15 @@ body {
    vacío a los costados en monitores anchos. Dos escalones más en vez de
    un solo valor fijo, para que la columna de contenido crezca con el
    monitor sin llegar a estirar las cards a un ancho incómodo de leer. */
+/* Tareas hospeda sub-pestañas + Lista/Semana: el padding de escritorio pasa
+   de la raíz de la vista a cada bloque hijo, igual que antes. */
+@media (min-width: 768px) {
+  #view-root > .tareas-host { padding: 0 !important; }
+  .tareas-host > div { padding: var(--space-5) !important; }
+  .tareas-host > .tareas-subtabs { padding: var(--space-5) var(--space-5) 0 !important; }
+  .tareas-host > #plan-host { padding: 0 !important; }
+  #plan-host > div { padding: var(--space-5) !important; }
+}
 @media (min-width: 1280px) {
   #view-root > div { max-width: 960px !important; }
 }
