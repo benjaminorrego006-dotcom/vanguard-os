@@ -105,16 +105,16 @@ body {
   /* Transformar la Bottom Nav en un Sidebar */
   #app-nav {
     position: relative;
-    width: 240px;
+    width: 72px; /* riel solo de íconos; en >=1024px pasa a 220px con texto */
     height: 100vh;
     height: 100dvh;
     border-top: none;
     border-right: 1px solid var(--surface-border);
     flex-direction: column;
     justify-content: flex-start;
-    padding: var(--space-4) var(--space-3) !important;
+    padding: var(--space-4) var(--space-2) !important;
     background-color: var(--surface-1);
-    align-items: flex-start;
+    align-items: center;
   }
 
   .header-brand { display: none; }
@@ -132,16 +132,22 @@ body {
     letter-spacing: 1px;
     color: var(--text-primary);
     margin-bottom: var(--space-5);
-    padding-left: var(--space-2);
+    /* En el riel angosto solo se ve la inicial: font-size 0 esconde el
+       texto y ::first-letter lo devuelve para la V. */
+    font-size: 0;
+    padding-left: 0;
+    text-align: center;
+    width: 100%;
   }
+  .nav-brand::first-letter { font-size: 20px; }
 
   .nav-item {
     flex: none;
     flex-direction: row;
     width: 100%;
     height: 48px;
-    justify-content: flex-start;
-    padding: 0 var(--space-3);
+    justify-content: center;
+    padding: 0;
     border-radius: var(--radius-md);
     margin-bottom: var(--space-2);
     transition: background 0.2s;
@@ -167,13 +173,37 @@ body {
 
   .nav-item .icon {
     margin-bottom: 0;
-    margin-right: var(--space-3);
+    margin-right: 0;
   }
 
+  /* Texto solo para lectores de pantalla mientras el riel es angosto. */
   .nav-item .label {
     font-size: 14px;
     font-weight: 600;
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
+
+  /* Foco de teclado visible en el riel (outline, sin sombras). */
+  .nav-item:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: -2px;
+  }
+
+  /* Hoy en 2 columnas: agenda a la izquierda, resúmenes a la derecha; el
+     resto de los bloques ocupa el ancho completo. */
+  .hoy-root {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-4);
+    align-items: start;
+  }
+  .hoy-root > * { grid-column: 1 / -1; }
+  .hoy-root > #hoy-agenda { grid-column: 1; }
+  .hoy-root > #hoy-resumenes { grid-column: 2; }
 
   /* Centrar y limitar el ancho del contenido principal */
   #view-root {
@@ -191,24 +221,37 @@ body {
   }
 }
 
-/* Pantallas grandes (PC de escritorio): 800px fijo deja demasiado espacio
-   vacío a los costados en monitores anchos. Dos escalones más en vez de
-   un solo valor fijo, para que la columna de contenido crezca con el
-   monitor sin llegar a estirar las cards a un ancho incómodo de leer. */
-/* Tareas hospeda sub-pestañas + Lista/Semana: el padding de escritorio pasa
-   de la raíz de la vista a cada bloque hijo, igual que antes. */
-@media (min-width: 768px) {
-  #view-root > .tareas-host { padding: 0 !important; }
-  .tareas-host > div { padding: var(--space-5) !important; }
-  .tareas-host > .tareas-subtabs { padding: var(--space-5) var(--space-5) 0 !important; }
-  .tareas-host > #plan-host { padding: 0 !important; }
-  #plan-host > div { padding: var(--space-5) !important; }
-}
-@media (min-width: 1280px) {
-  #view-root > div { max-width: 960px !important; }
-}
-@media (min-width: 1600px) {
-  #view-root > div { max-width: 1120px !important; }
+/* PC (>=1024px): riel de 220px con texto, contenido centrado de hasta
+   1200px y Hoy en grilla de 12 columnas (agenda 7 / resúmenes 5). */
+@media (min-width: 1024px) {
+  #app-nav {
+    width: 220px;
+    padding: var(--space-4) var(--space-3) !important;
+    align-items: flex-start;
+  }
+  .nav-brand {
+    font-size: 20px;
+    padding-left: var(--space-2);
+    text-align: left;
+  }
+  .nav-item {
+    justify-content: flex-start;
+    padding: 0 var(--space-3);
+  }
+  .nav-item .icon { margin-right: var(--space-3); }
+  .nav-item .label {
+    position: static;
+    width: auto; height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  #view-root > div { max-width: 1200px !important; }
+
+  .hoy-root { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .hoy-root > #hoy-agenda { grid-column: 1 / span 7; }
+  .hoy-root > #hoy-resumenes { grid-column: 8 / span 5; }
 }
 
 /* Efecto cristal para la barra inferior en móviles */

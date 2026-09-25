@@ -319,7 +319,7 @@ export async function render() {
     </button>`;
 
   return `
-    <div style="padding: 16px 20px 8px; color: var(--text-primary);">
+    <div class="hoy-root" style="padding: 16px 20px 8px; color: var(--text-primary);">
 
       <!-- Encabezado compacto: saludo, fecha y chip de racha (el botón ☰ es
            el del encabezado global de la app, ver index.html). -->
@@ -349,7 +349,7 @@ export async function render() {
       ${agendaHtml}
 
       <!-- Filas heroicas por módulo -->
-      <div style="margin-bottom: 20px;">
+      <div id="hoy-resumenes" style="margin-bottom: 20px;">
         ${renderHeroicRow({
           id: 'row-entreno',
           color: 'var(--cy)',
