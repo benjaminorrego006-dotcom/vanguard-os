@@ -4,6 +4,7 @@ import { initModalHistory, forgetOpenModals, initSheetDragToDismiss } from './hi
 import { mountOnboardingInicial } from '../components/onboarding-inicial.js';
 import { escapeHtml } from '../utils/escape.js';
 import { initSync } from './sync.js';
+import { diaKeyDe } from '../utils/fecha.js';
 import { initErrorTracking, reportError } from './error-tracking.js';
 
 const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'configuracion'];
@@ -317,6 +318,19 @@ class Router {
     if (!overlay || overlay.classList.contains('open')) return;
     overlay.style.display = 'flex';
     overlay.classList.add('open');
+    this.actualizarMenuRitual();
+  }
+
+  // "Hecho" junto a Ritual: se calcula al abrir el panel con la misma
+  // lectura que usa la tarjeta contextual (db.getProgresoRitual), sin
+  // guardar ningún flag aparte.
+  async actualizarMenuRitual() {
+    const marca = document.getElementById('menu-ritual-hecho');
+    if (!marca) return;
+    try {
+      const { completo } = await db.getProgresoRitual(diaKeyDe(new Date()));
+      marca.hidden = !completo;
+    } catch (e) { marca.hidden = true; }
   }
 
   cerrarMenu() {
@@ -332,7 +346,25 @@ class Router {
     if (!overlay || !btn) return;
     btn.addEventListener('click', () => this.abrirMenu());
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay || e.target.closest('.menu-item')) this.cerrarMenu();
+      const item = e.target.closest('.menu-item');
+      if (!item) {
+        if (e.target === overlay) this.cerrarMenu();
+        return;
+      }
+      // Cerrar primero y navegar después: cerrar el panel hace history.back()
+      // (ver history.js) y, si el cambio de hash del link ocurre antes de
+      // que ese retroceso termine, el retroceso se lo lleva puesto y la
+      // vista no cambia. Esperamos al popstate del cierre para navegar.
+      e.preventDefault();
+      const destino = item.getAttribute('href').replace(/^#/, '');
+      const ir = () => { location.hash = destino; };
+      if (history.state && history.state.modalId === 'menu-overlay') {
+        window.addEventListener('popstate', ir, { once: true });
+        this.cerrarMenu();
+      } else {
+        this.cerrarMenu();
+        ir();
+      }
     });
   }
 
