@@ -406,22 +406,23 @@ async function elegirSplit(diasSemana, categoria) {
 // (ej. Tracción Vertical en calistenia sin ningún historial: Dead Hang
 // requiere Remo Invertido antes, no es un problema de equipo). Son avisos
 // distintos y accionables de forma distinta.
-// Orden de niveles a probar, más cercano al nivel real primero, pero SIN
-// quedarse corto: antes esto solo bajaba (avanzado->intermedio->
-// principiante), así que un principiante con la rama en 'traccion-vertical'
-// nunca llegaba a ver Dominadas (nivel intermedio, solo pide una barra) si
-// el único ejercicio principiante del patrón (Jalón al Pecho) pedía una
-// máquina que no declaró — "no hay ejercicios con el equipo que declaraste"
-// aun cuando SÍ había uno, un nivel más arriba. Bug real, no solo de
-// Tracción Vertical: cualquier patrón donde el ejercicio del nivel de
-// arranque pida un equipo distinto al del siguiente nivel puede pisarlo.
+// Orden de niveles a probar. Primero SOLO hacia abajo: el nivel de la rama
+// y después los inferiores, de mayor a menor (un ejercicio de 'todos' vale
+// en cada intento). Los niveles superiores son el último recurso: solo se
+// miran si no hay ningún candidato en el nivel de la rama ni en los
+// inferiores, y lo que salga de ahí se marca relajado (ver candidatosPara).
+// Motivo de existir el último recurso: un principiante en 'traccion-vertical'
+// sin máquina no tiene Jalón al Pecho, y el siguiente paso real (Dominadas,
+// intermedio, solo pide una barra) es mejor que dejar el patrón vacío con un
+// "no hay ejercicios con el equipo que declaraste" que no es cierto.
 const ORDEN_NIVELES = ['principiante', 'intermedio', 'avanzado'];
 function nivelesAIntentarPara(nivelRama) {
   const idx = ORDEN_NIVELES.indexOf(nivelRama);
-  if (idx === -1) return ['principiante'];
-  const resto = ORDEN_NIVELES.filter((_, i) => i !== idx)
-    .sort((a, b) => Math.abs(ORDEN_NIVELES.indexOf(a) - idx) - Math.abs(ORDEN_NIVELES.indexOf(b) - idx));
-  return [nivelRama, ...resto];
+  if (idx === -1) return { abajo: ['principiante'], arriba: [] };
+  return {
+    abajo: ORDEN_NIVELES.slice(0, idx + 1).reverse(), // nivel de la rama -> inferiores, de mayor a menor
+    arriba: ORDEN_NIVELES.slice(idx + 1) // superior más cercano primero
+  };
 }
 
 // preferirTipo: 'compuesto' | 'aislamiento' | null — a diferencia del viejo
@@ -433,17 +434,23 @@ function nivelesAIntentarPara(nivelRama) {
 // Paso 3 de la spec ya está cubierta por esto, no hace falta un paso
 // aparte; lo único que de verdad hay que degradar acá es el nivel.
 function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historialPorNombre, preferirTipo) {
-  const nivelesAIntentar = nivelesAIntentarPara(nivelRama);
+  const { abajo, arriba } = nivelesAIntentarPara(nivelRama);
 
   let sinEquipoNiPrereq = [];
   let primerPoolNoVacio = null;
-  for (const nivelIntento of nivelesAIntentar) {
-    const baseFiltro = e =>
-      e.patronMovimiento === patron &&
-      (e.categoria === categoria || (e.tambienEn || []).includes(categoria)) &&
-      (e.equipo === 'ninguno' || equipoDisponible.includes(e.equipo)) &&
-      (e.nivel === 'todos' || e.nivel === nivelIntento);
 
+  const filtroDe = (nivelIntento) => e =>
+    e.patronMovimiento === patron &&
+    (e.categoria === categoria || (e.tambienEn || []).includes(categoria)) &&
+    (e.equipo === 'ninguno' || equipoDisponible.includes(e.equipo)) &&
+    (e.nivel === 'todos' || e.nivel === nivelIntento);
+
+  // Un intento en un nivel. Devuelve el resultado si hay candidatos que
+  // sirvan (del tipo pedido, si se pidió uno) o null para seguir con el
+  // siguiente nivel. Deja anotado en primerPoolNoVacio / sinEquipoNiPrereq
+  // lo que vio, para decidir el vacío al final.
+  const intentar = (nivelIntento) => {
+    const baseFiltro = filtroDe(nivelIntento);
     const pool = Object.values(CATALOGO_EJERCICIOS).filter(e =>
       baseFiltro(e) && ((e.prerequisitos || []).length === 0 || estaDesbloqueado(e.id, historialPorNombre))
     );
@@ -453,40 +460,57 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
         // No conformarse con el primer nivel no vacío si es del tipo
         // equivocado: varios patrones tienen accesorios de aislación con
         // nivel:'todos' (ej. Curl de Bíceps/Curl Martillo bajo Tracción
-        // Horizontal, pensados para el slot de "accesorio de brazo" de un
-        // día Pull) que matchean en CUALQUIER nivel intentado — sin este
-        // chequeo, esos accesorios "tapan" el hueco antes de que el bucle
-        // llegue al nivel donde vive el compuesto real (ej. Remo con Barra,
-        // nivel intermedio), dejando el día sin ningún ejercicio compuesto
-        // de ese patrón aunque exista con el equipo declarado. Solo si
-        // NINGÚN nivel tiene el tipo preferido nos conformamos (más abajo)
-        // con el primer pool no vacío que haya, del tipo que sea.
+        // Horizontal) que matchean en CUALQUIER nivel intentado y
+        // "taparían" el hueco antes de llegar al nivel donde vive el
+        // compuesto real (ej. Remo con Barra, intermedio).
         const preferidos = pool.filter(e => e.tipoMovimiento === preferirTipo);
-        if (preferidos.length > 0) {
-          return { pool: preferidos, relajado: nivelIntento !== nivelRama, nivelUsado: nivelIntento, razon: null };
-        }
-        continue;
+        return preferidos.length > 0 ? { pool: preferidos, nivelIntento } : null;
       }
-      return { pool, relajado: nivelIntento !== nivelRama, nivelUsado: nivelIntento, razon: null };
+      return { pool, nivelIntento };
     }
-
     if (sinEquipoNiPrereq.length === 0) sinEquipoNiPrereq = Object.values(CATALOGO_EJERCICIOS).filter(baseFiltro);
+    return null;
+  };
+
+  // Pasada 1: el nivel de la rama y los inferiores. Bajar de nivel también
+  // es relajar (relajado: true, motivo 'nivel-inferior'), como antes.
+  for (const nivelIntento of abajo) {
+    const r = intentar(nivelIntento);
+    if (r) {
+      const bajo = nivelIntento !== nivelRama;
+      return { pool: r.pool, relajado: bajo, nivelUsado: nivelIntento, razon: null, motivoRelajado: bajo ? 'nivel-inferior' : null };
+    }
   }
 
-  // Se pidió un tipo concreto (preferirTipo) y NINGÚN nivel lo tuvo, pero sí
-  // hubo pool de otro tipo en el camino (primerPoolNoVacio): esto NO es un
-  // "no se pudo incluir" real — es solo que esta fase (compuesto o
-  // aislación) no tiene nada para ofrecer todavía; la otra fase sí va a
-  // cubrir el patrón con lo que sí hay. Devolver vacío sin aviso, en vez de
-  // aceptar el tipo equivocado (que fue exactamente el bug: un accesorio
-  // como Curl de Bíceps o Encogimientos de Hombros terminaba representando
-  // el slot "compuesto" del patrón, incluso apareciendo como si fuera el
-  // ejercicio principal de Tracción Horizontal/Vertical) NI avisar un hueco
-  // que en realidad se va a llenar un instante después.
+  // Había candidatos en el nivel de la rama o en inferiores, pero no del
+  // tipo pedido (preferirTipo): no es un hueco real — la otra fase
+  // (compuesto o aislación) cubre el patrón con lo que sí hay — y NO se
+  // sube de nivel por eso. Vacío y sin aviso (el bug histórico era que un
+  // accesorio como Curl de Bíceps terminara representando el slot
+  // "compuesto" de Tracción Horizontal).
   if (preferirTipo && primerPoolNoVacio) {
-    return { pool: [], relajado: false, nivelUsado: null, razon: null };
+    return { pool: [], relajado: false, nivelUsado: null, razon: null, motivoRelajado: null };
   }
-  return { pool: [], relajado: false, nivelUsado: null, razon: sinEquipoNiPrereq.length > 0 ? 'bloqueado-prerrequisitos' : 'sin-equipo' };
+
+  // Pasada 2 (último recurso): ni el nivel de la rama ni los inferiores
+  // tienen nada. Se usa el nivel superior más cercano, marcado relajado.
+  for (const nivelIntento of arriba) {
+    const r = intentar(nivelIntento);
+    if (r) {
+      // Solo consola, sin UI: el aviso visible ya lo da el "motivo" del
+      // ejercicio (ver motivoPara).
+      console.warn('[generador] patrón relajado hacia arriba (sin-candidatos-inferiores):', { patron, nivelRama, nivelUsado: nivelIntento, categoria });
+      return { pool: r.pool, relajado: true, nivelUsado: nivelIntento, razon: null, motivoRelajado: 'sin-candidatos-inferiores' };
+    }
+  }
+
+  // Sin candidatos en ningún nivel. Si se pidió un tipo concreto y sí
+  // hubo pool de otro tipo en el camino, es solo que esta fase no tiene
+  // nada que ofrecer (la otra fase lo cubre): vacío sin aviso.
+  if (preferirTipo && primerPoolNoVacio) {
+    return { pool: [], relajado: false, nivelUsado: null, razon: null, motivoRelajado: null };
+  }
+  return { pool: [], relajado: false, nivelUsado: null, razon: sinEquipoNiPrereq.length > 0 ? 'bloqueado-prerrequisitos' : 'sin-equipo', motivoRelajado: null };
 }
 
 // Entre los candidatos válidos (Paso 5 de la spec): 1) preferir el próximo
