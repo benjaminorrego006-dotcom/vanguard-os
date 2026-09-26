@@ -206,6 +206,56 @@ function calcularRachaDesdeDias(diasDesc) {
   return { actual, mejor };
 }
 
+// Racha global con "vida extra" — función pura, todo derivado de los días
+// activos (nada se guarda). Recorre día por día (claves + sumarDias) desde
+// el primer día activo hasta hoy:
+// - Día activo: la racha suma 1 y la cuenta de "días activos reales
+//   seguidos" también; cada 7 de esa cuenta se gana 1 vida (máximo
+//   VIDAS_MAX; la cuenta vuelve a 0 igual al llegar a 7).
+// - Día sin actividad (solo días ya terminados, hasta ayer): si hay racha
+//   en curso y quedan vidas, se consume una automáticamente — el día queda
+//   protegido, la racha se mantiene pero no suma, y la cuenta de 7 se
+//   reinicia. Sin vidas, la racha se corta (y la cuenta también).
+// - Hoy sin actividad está pendiente: nunca consume vida.
+// Devuelve { actual, vidas, diasProtegidos (los de la racha en curso),
+// maxHistorica (la racha más larga alcanzada alguna vez),
+// ultimaVidaUsada (clave del último día protegido, o null) }.
+const VIDAS_MAX = 2;
+const DIAS_POR_VIDA = 7;
+function calcularRachaConVidas(diasActivos, hoyKey) {
+  const activos = diasActivos instanceof Set ? diasActivos : new Set(diasActivos);
+  const r = { actual: 0, vidas: 0, diasProtegidos: [], maxHistorica: 0, ultimaVidaUsada: null };
+  if (activos.size === 0) return r;
+  const primero = [...activos].sort()[0];
+  if (primero > hoyKey) return r;
+
+  let seguidos = 0; // días activos reales desde la última vida ganada/usada o el último corte
+  for (let dia = primero; dia <= hoyKey; dia = sumarDias(dia, 1)) {
+    if (activos.has(dia)) {
+      r.actual++;
+      seguidos++;
+      if (seguidos === DIAS_POR_VIDA) {
+        r.vidas = Math.min(VIDAS_MAX, r.vidas + 1);
+        seguidos = 0;
+      }
+      if (r.actual > r.maxHistorica) r.maxHistorica = r.actual;
+    } else if (dia === hoyKey) {
+      // Hoy todavía no termina: pendiente, no consume ni corta.
+    } else if (r.actual > 0 && r.vidas > 0) {
+      r.vidas--;
+      r.diasProtegidos.push(dia);
+      r.ultimaVidaUsada = dia;
+      seguidos = 0;
+    } else {
+      r.actual = 0;
+      r.vidas = 0;
+      r.diasProtegidos = [];
+      seguidos = 0;
+    }
+  }
+  return r;
+}
+
 // Claves de día únicas (una por día con al menos un evento), de más
 // reciente a más antigua — la forma que espera calcularRachaDesdeDias.
 // Las claves 'YYYY-MM-DD' ordenan bien como texto.
@@ -488,6 +538,15 @@ function memoize(fn) {
     return promise;
   };
 }
+
+// Una sola lectura del store `events` por render para los agregados que lo
+// recorren entero y se piden juntos (getRachaGlobal + getBadges al abrir
+// Hábitos): misma caché que memoize, así que un logEvent la invalida.
+// Devuelve el MISMO arreglo a todos: quien lo use no debe mutarlo (filter/
+// map sí, sort in place no).
+const leerEventosCompartido = memoize(async function leerEventosCompartido() {
+  return idb.getAll('events');
+});
 
 // Ordena por fecha de creación ascendente (más viejo primero), igual que el
 // orden de inserción que tenían los arrays de localStorage. IndexedDB
@@ -1625,23 +1684,22 @@ export const db = {
   // ningún lado. El conjunto de días activos lo arma actividadGlobalPorDia
   // (los hábitos cuentan en la fecha marcada, no en el ts del evento).
   async getRachaGlobal() {
-    const activityByDay = actividadGlobalPorDia(await idb.getAll('events'));
+    const activityByDay = actividadGlobalPorDia(await leerEventosCompartido());
+    const hoy = diaKeyDe(new Date());
 
-    // Racha de días consecutivos: el mismo algoritmo compartido que
-    // getRachaGeneral/getRachaTareas/getRachaHiit (antes era una copia del
-    // bucle, con la misma resta de ms que cortaba la racha en el cambio de
-    // horario).
-    const { actual } = calcularRachaDesdeDias(Array.from(activityByDay.keys()).sort().reverse());
+    // Racha con vida extra (calcularRachaConVidas): los días sin actividad
+    // se cubren con vidas mientras haya. `actual` y `last7` mantienen su
+    // forma de siempre para la UI existente; el resto es nuevo.
+    const { actual, vidas, diasProtegidos, maxHistorica, ultimaVidaUsada } = calcularRachaConVidas(new Set(activityByDay.keys()), hoy);
 
     // Últimos 7 días (incluye hoy) para el mini-gráfico de línea.
-    const hoy = diaKeyDe(new Date());
     const last7 = [];
     for (let i = 6; i >= 0; i--) {
       const dia = sumarDias(hoy, -i);
       last7.push({ date: dia, count: activityByDay.get(dia) || 0 });
     }
 
-    return { actual, last7 };
+    return { actual, last7, vidas, diasProtegidos, maxHistorica, ultimaVidaUsada };
   },
 
   // Actividad por día de un mes para un módulo+tipo de evento dado — la
@@ -1768,9 +1826,11 @@ export const db = {
   // Insignias simples por hito: se recalculan a partir de los datos
   // actuales cada vez que se piden (no se guarda un estado "desbloqueado"
   // aparte, para que nunca queden desincronizadas de los datos reales).
+  // Lee `events` con leerEventosCompartido: junto con getRachaGlobal (que
+  // se pide en el mismo render de Hábitos) es una sola lectura del store.
   async getBadges() {
-    const eventos = await idb.getAll('events');
-    const [racha, goals] = await Promise.all([
+    const [eventos, racha, goals] = await Promise.all([
+      leerEventosCompartido(),
       this.getRachaGlobal(),
       this.getGoals()
     ]);
@@ -1781,7 +1841,8 @@ export const db = {
     const mesSinExceder = (await this.getMesesSinExceder(6)).length > 0;
 
     return [
-      { id: 'racha_7', label: '7 días de racha', unlocked: racha.actual >= 7 },
+      // "Alguna vez llegó a 7": no se vuelve a bloquear al cortarse la racha.
+      { id: 'racha_7', label: '7 días de racha', unlocked: racha.maxHistorica >= 7 },
       { id: 'primera_meta', label: 'Primera meta cumplida', unlocked: primeraMetaCumplida },
       { id: 'mes_sin_exceder', label: 'Mes de presupuesto sin excederte', unlocked: mesSinExceder },
       { id: 'diez_sesiones', label: '10 sesiones de entrenamiento', unlocked: diezSesiones }

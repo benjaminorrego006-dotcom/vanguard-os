@@ -14,6 +14,13 @@
 // el revert de `movimiento_eliminado` aplican un DELTA sobre el saldo de
 // un sobre, no un valor absoluto — reaplicarlos dos veces corrompería el
 // saldo.
+//
+// EXCEPCIÓN DOCUMENTADA a la regla "solo db.js importa idb.js": este
+// archivo es el motor de replay — aplica eventos remotos directamente
+// sobre los stores (applyRemoteEvent), lee/escribe el cursor de sync y
+// refleja cada fila en el espejo remoto. Pasarlo por db.js obligaría a
+// exponer un acceso genérico por store que el resto de la app no debe
+// usar. Cualquier otro módulo que necesite datos va por db.js.
 import * as idb from './idb.js';
 import { getSupabase, isSupabaseConfigured } from './supabase-client.js';
 import { reportError } from './error-tracking.js';
