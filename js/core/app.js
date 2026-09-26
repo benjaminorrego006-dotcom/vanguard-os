@@ -6,6 +6,7 @@ import { escapeHtml } from '../utils/escape.js';
 import { initSync } from './sync.js';
 import { diaKeyDe } from '../utils/fecha.js';
 import { initErrorTracking, reportError } from './error-tracking.js';
+import { Toast, hayModalAbierto } from '../utils/states.js';
 
 const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'configuracion'];
 
@@ -193,6 +194,50 @@ function initModalAccessibility() {
   observer.observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
 }
 
+// Actualización del SW pendiente (ver 'controllerchange' en index.html):
+// la pestaña sigue con los módulos de la versión vieja y la próxima vista
+// vendría del caché nuevo. Se recarga al navegar, antes de importar la
+// vista, salvo con un modal abierto o una sesión de entreno en curso (ahí
+// se espera a la navegación siguiente). Tope: 1 recarga por activación —
+// la versión recargada queda en sessionStorage.
+const CLAVE_RECARGA_SW = 'vg-sw-recarga-version';
+let avisoActualizacionMostrado = false;
+
+function avisarActualizacionLista() {
+  if (avisoActualizacionMostrado || !window.__vgActualizacion?.pendiente) return;
+  avisoActualizacionMostrado = true;
+  Toast('Actualización lista, se aplicará al cambiar de sección', 'info', 4000);
+}
+
+function haySesionEntrenoActiva() {
+  return !!document.querySelector('#view-root #session-timer, #view-root #hiit-container');
+}
+
+// true si ya disparó la recarga (el llamador no debe seguir navegando).
+function recargarSiHayActualizacion(hashDestino, yaEnDestino) {
+  const act = window.__vgActualizacion;
+  if (!act?.pendiente) return false;
+  if (hayModalAbierto() || haySesionEntrenoActiva()) return false;
+  let yaRecargada = null;
+  try { yaRecargada = sessionStorage.getItem(CLAVE_RECARGA_SW); } catch { /* sin sessionStorage */ }
+  if (yaRecargada === act.version) {
+    act.pendiente = false;
+    return false;
+  }
+  try { sessionStorage.setItem(CLAVE_RECARGA_SW, act.version); } catch {
+    // Sin sessionStorage no hay cómo garantizar el tope: mejor no recargar.
+    act.pendiente = false;
+    return false;
+  }
+  act.pendiente = false;
+  // Navegación programática: el hash todavía es el de la vista saliente.
+  // pushState (no dispara hashchange) deja el destino en la URL y en el
+  // historial, así la recarga abre directo ahí.
+  if (!yaEnDestino) history.pushState(null, '', '#' + hashDestino);
+  location.reload();
+  return true;
+}
+
 class Router {
   constructor() {
     this.root = document.getElementById('view-root');
@@ -238,6 +283,11 @@ class Router {
     initSheetDragToDismiss();
     initModalAccessibility();
     this.initMenu();
+
+    // El SW nuevo puede haber tomado el control antes de que app.js
+    // terminara de cargar: se revisa el flag además de escuchar el evento.
+    window.addEventListener('vg-actualizacion-lista', avisarActualizacionLista);
+    avisarActualizacionLista();
 
     // Los <a href="#tareas"> del nav ya cambian el hash solos (no hay
     // preventDefault acá): este listener es el ÚNICO lugar que monta una
@@ -466,6 +516,9 @@ class Router {
     const hashActual = location.hash.slice(1);
     const hashDestino = viewId === 'ritual' ? 'dashboard/ritual' : viewId;
     const yaEnDestino = viewId === 'tareas' ? hashActual.split('/')[0] === 'tareas' : hashActual === hashDestino;
+    // Antes de importar nada de la vista nueva (ver recargarSiHayActualizacion).
+    if (!esCallbackDeAuth && this.currentView && viewId !== this.currentView
+        && recargarSiHayActualizacion(hashDestino, yaEnDestino)) return;
     if (!esCallbackDeAuth && !yaEnDestino) location.hash = hashDestino;
 
     this.currentView = viewId;

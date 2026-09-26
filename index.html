@@ -167,6 +167,39 @@
   <link rel="manifest" href="manifest.json">
     <script>
       if ('serviceWorker' in navigator) {
+        // Actualización del SW con la pestaña abierta: sw.js hace
+        // skipWaiting + clients.claim, así que el SW nuevo toma esta
+        // pestaña sin recargarla. Los módulos ya cargados (Blob URL, ver
+        // loadModuleGraph) son de la versión vieja y una vista cargada
+        // después vendría del caché nuevo — mezclar las dos rompe imports
+        // (ej. "does not provide an export named ..."). No recargamos acá
+        // (el usuario puede estar a mitad de algo): solo se marca la
+        // actualización como pendiente y el router (js/core/app.js)
+        // recarga en la próxima navegación segura. El listener vive en
+        // este script y no en app.js porque tiene que estar puesto antes
+        // de que termine de bajar el grafo de módulos.
+        //
+        // Sin controlador previo es la primera instalación (clients.claim
+        // también dispara controllerchange): ahí no hay nada que mezclar.
+        let controladorPrevio = navigator.serviceWorker.controller;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          const previo = controladorPrevio;
+          controladorPrevio = navigator.serviceWorker.controller;
+          if (!previo || !controladorPrevio) return;
+          let marcado = false;
+          const marcar = (version) => {
+            if (marcado) return;
+            marcado = true;
+            window.__vgActualizacion = { pendiente: true, version };
+            window.dispatchEvent(new Event('vg-actualizacion-lista'));
+          };
+          // La versión (CACHE_NAME del SW nuevo) identifica esta
+          // activación para el tope de 1 recarga por activación.
+          const canal = new MessageChannel();
+          const timeout = setTimeout(() => marcar('desconocida'), 1000);
+          canal.port1.onmessage = (e) => { clearTimeout(timeout); marcar(String(e.data)); };
+          controladorPrevio.postMessage({ type: 'GET_VERSION' }, [canal.port2]);
+        });
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('sw.js').then(reg => {
             console.log('SW registrado con exito', reg.scope);

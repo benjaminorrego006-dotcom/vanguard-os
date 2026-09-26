@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v185';
+const CACHE_NAME = 'vanguard-os-v186';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -132,6 +132,15 @@ self.addEventListener('activate', event => {
       );
     }).then(() => self.clients.claim())
   );
+});
+
+// La página pregunta la versión al SW que acaba de tomar el control (ver
+// 'controllerchange' en index.html) para no recargar más de una vez por
+// activación.
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'GET_VERSION' && event.ports[0]) {
+    event.ports[0].postMessage(CACHE_NAME);
+  }
 });
 
 self.addEventListener('fetch', event => {
