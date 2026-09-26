@@ -1,5 +1,138 @@
 # Vanguard OS — Changelog
 
+## 25 sept 2026 — Sistema de nivel de Entreno v2
+
+**`CACHE_NAME` final: `vanguard-os-v176`** (el commit de documentación no toca
+código y lo deja igual). Siete commits del sistema de nivel entre `4134499`
+(v170) y `b74fc99` (v176), más los dos fixes de modales de Entreno de esa misma
+jornada (v167 y v168, ver "Modales de Entreno"). Decisiones de partida (acordadas
+al cerrar la auditoría): **extender** lo que ya existía (`nivelEntrenamiento`,
+`overridesPorRama`, `calcularNivelPorRama`, `detectarSugerenciaPendiente`) en vez
+de crear un evento `nivel_patron_ajustado`; mantener los umbrales de tiempo del
+onboarding (< 1 año / 1–3 años / > 3 años → principiante / intermedio /
+avanzado); **mantener el ratio multiarticular actual** y los nombres de patrón del
+catálogo (`empuje-horizontal`, `traccion-vertical`…), no los del plan.
+
+### Generador
+
+- **`4134499` (v170) — la degradación de nivel va solo hacia abajo.**
+  `candidatosPara()` prueba el nivel de la rama y luego los inferiores (de mayor
+  a menor; `'todos'` vale en cada intento). Solo si no hay ningún candidato ahí
+  mira el nivel superior más cercano, marcado `relajado: true` con motivo
+  `'sin-candidatos-inferiores'` y un `console.warn`. Antes también probaba los
+  niveles superiores por cercanía. Splits, ratio y `calcularNivelPorRama` intactos.
+- **`afaa60e` (v173) — `motivoPara` distingue los dos casos.** "Bajó de nivel: …"
+  (motivo `nivel-inferior`) frente a "Subió de nivel por falta de ejercicios: …"
+  (motivo `sin-candidatos-inferiores`).
+
+**Proporción multiarticular (sin cambios, se mantiene la actual):** ≤ 2 días 80 %,
+3–4 días 65 %, 5–6 días 55 %, 7 días 50 %; los multiarticulares van primero en la
+sesión. Splits: 1 día rota Upper/Lower, 2 Upper/Lower, 3 Push/Pull/Legs, 4
+Upper A/Lower A/Upper B/Lower B, 5 PPL + Upper + Lower, 6 PPL ×2, 7 PPL ×2 + día
+liviano. Sin Full Body.
+
+### Sugerencias de avance
+
+- **`5411165` (v171) — sugerencias por `criterioAvance` en las 8 ramas.** Nueva
+  `detectarSugerencias()`: por rama toma el ejercicio de mayor nivel entrenado en
+  las últimas 4 semanas (match por `ejercicioId`, con fallback por nombre, igual
+  que el mapa muscular) y evalúa su `criterioAvance`: reps/segundos en al menos 2
+  de las últimas 3 sesiones con ≥ `series` series limpias; ratio con los Estándares
+  de Fuerza. Sugiere el nivel siguiente con `ejercicioSiguiente` = hijo por
+  `progresionDe` (misma categoría y equipo disponible primero). Se eliminan los
+  umbrales fijos (flexiones 15/25, dominadas 5/10…). `detectarSugerenciaPendiente()`
+  devuelve el primero.
+- **`0ce2743` (v172) — "Ahora no" caduca y el ratio usa datos recientes.**
+  `sugerenciasDescartadas[rama]` pasa a `{ nivel, fecha }` (`diaKeyDe`); el evento
+  `sugerencia_nivel_descartada` suma `fecha` (case de `sync.js` actualizado). Un
+  "Ahora no" oculta ese nivel (y menores) 7 días; una entrada vieja sin fecha cuenta
+  como vencida. El criterio `ratio` usa el mejor 1RM estimado de las series
+  limpias de las últimas 4 semanas, no el PR histórico.
+- **`3afeb37` (v175) — coherencia con el árbol.** Las sugerencias por
+  reps/segundos usan la misma definición de "serie limpia" que el árbol de
+  progresión (`contarSeriesLimpias`: tipo normal, reps suficientes, RPE ≤ 8 si hay
+  RPE) más `checked`; el criterio `ratio` no cambió.
+
+### Tarjetas, desbloqueo y garantía
+
+- **`afaa60e` (v173) — tarjetas MK III + aviso en Hoy.** En Entreno, una tarjeta por
+  rama sugerida (chaflán con `clip-path` sobre `.card-hero`, sin radios ni
+  sombras, acento cian; máx. 3 visibles y "Ver N más"): "Rama: ejercicio →
+  siguiente", evidencia en una línea, "Subir de nivel" y "Ahora no". En Hoy, la
+  tarjeta contextual suma "N avances listos en Entreno" con prioridad Ritual >
+  respaldo > avances > Hoy toca; el módulo de sugerencias se importa bajo demanda
+  (`Router.importar`) para no cargar el catálogo en el arranque.
+- **`428bca4` (v174) — "Subir de nivel" desbloquea el ejercicio siguiente.**
+  `confirmarSugerenciaNivel` guarda el siguiente en `desbloqueadosPorRama` (dentro
+  de `nivelEntrenamiento`) y `ejercicioSiguienteId` en el payload de
+  `sugerencia_nivel_confirmada` (replay de `sync.js` actualizado).
+  `estaDesbloqueado()` acepta un set de ids desbloqueados a mano y el generador los
+  deja pasar por prerrequisitos y los prioriza.
+- **`3afeb37` (v175)** — la vista del árbol recibe `desbloqueadosManuales` y los
+  muestra desbloqueados; el desbloqueado tiene 1 espacio garantizado por sesión de
+  su rama.
+- **`b74fc99` (v176) — garantía híbrida.** Cada desbloqueo lleva su fecha
+  (`{ id, fecha }`, también en el payload y en el replay). Durante 28 días desde esa
+  fecha, 1 espacio garantizado por sesión de su rama; pasado el plazo sigue
+  desbloqueado pero compite con el orden normal. Corrección incluida: los
+  desbloqueados se **suman** al pool de cualquier intento en vez de pasar el filtro
+  de nivel (así tapaban a los candidatos de niveles inferiores y la garantía
+  vencida no rotaba). `diasEntre` pasa a `utils/fecha.js`.
+
+### Modales de Entreno
+
+- **`c931176` (v167) — modal de perfil.** Ya no tapa la navegación (el overlay deja
+  libre la barra inferior y el riel), y "Ahora no" oculta la apertura automática el
+  resto del día (`diaKeyDe`).
+- **`4cdce7a` (v168) — modal de nivel.** Mismo patrón; el modal no tenía ningún
+  botón de salida y ahora lo tiene ("Ahora no" en el paso 1).
+
+### QA (Playwright; 375×812 y 1280×800, IndexedDB limpio)
+
+1. **Onboarding de nivel por la interfaz** (perfil → 3 pasos): con "< 1 año" todas
+   las ramas salen principiante (excepto `empuje-vertical`, intermedio: el
+   catálogo no tiene ejercicios principiante en ese patrón); con "1–3 años" todas
+   intermedio; con "> 3 años" todas avanzado. Ambos modales dejan la navegación
+   tocable en cada paso.
+2. **Generador:** 384 planes (3 niveles × gym/calistenia × 1/3/5/7 días × equipo
+   completo/sin equipo), 5.560 ejercicios: **0 sobre el nivel de su rama**, 0 días
+   Full Body, y con 1 día/semana la rotación alterna Upper/Lower en gym y calistenia.
+3. **Sugerencias:** una rama por reps (flexiones), una por segundos (dead hang), una
+   por ratio (sentadilla) y una cuarta (plancha); series a RPE 9 no cuentan, series
+   sin marcar no cuentan y un récord de ratio de hace 40 días no cuenta.
+4. **Tarjetas:** 3 visibles + "Ver 1 más"; "Subir de nivel" desbloquea el siguiente y
+   el árbol lo muestra desbloqueado; "Ahora no" la oculta 7 días (a +6 sigue oculta,
+   a +7 vuelve).
+5. **Garantía del desbloqueado** (tracción vertical, calistenia, 3 días, 30 planes):
+   30/30 sesiones el día 0 y el día 27; 9/30 el día 28 y 15/30 el día 29 (rota con
+   las demás variantes).
+6. **Hoy:** con hora simulada a las 09:00 el orden fue ritual → respaldo → avances
+   ("3 avances listos en Entreno") → Hoy toca.
+7. **Replay:** borrar el singleton y reproducir sus eventos
+   (`nivel_entrenamiento_actualizado`, `sugerencia_nivel_confirmada`,
+   `sugerencia_nivel_descartada`) da el mismo `nivelEntrenamiento` (overrides,
+   descartes con fecha, desbloqueados con fecha).
+8. **Offline:** con el servidor apagado y el service worker instalado, Entreno carga
+   con sus tarjetas, las 5 pestañas navegan y el generador produce planes. Consola
+   limpia en toda la tanda.
+
+### Observaciones (no bloqueantes; no se cambió código)
+
+- Hay días de plan sin ejercicios por diseño: GYM sin equipo declarado deja vacío el
+  día Push (no hay ejercicios de pecho de peso corporal en esa categoría) y el "Día
+  7 · Movilidad" no lista ejercicios.
+- La garantía de 28 días ocupa el único espacio de las ramas que tienen 1 espacio
+  por sesión (en calistenia, tracción vertical): ahí las otras variantes no
+  aparecen hasta que vence.
+- La sugerencia de ratio exige series `checked`, más estricta que el PR histórico
+  que se usaba antes.
+- El selector de categoría de la vista de progreso (`entreno-progreso.js`) sigue
+  con `border-radius: 10px`, anterior a esta tanda y fuera de su alcance.
+- La sincronización con Supabase no se pudo ejercitar con una sesión real; solo se
+  verificó el replay local de los eventos (`applyRemoteEvent`).
+
+---
+
 ## 25 sept 2026 — Nueva distribución: 5 pestañas, menú ☰, Hoy reordenado y riel responsive
 
 **`CACHE_NAME`: `vanguard-os-v158` → `vanguard-os-v166`** (una versión por
