@@ -332,7 +332,7 @@ input[type="date"] { color-scheme: dark; }
    sigue protegiendo los círculos genuinos que no son FAB (icon-chip,
    avatares, el +/- del timer de descanso). */
 .mk3-entreno .card:not(.card-hero), .mk3-entreno .list-row, .mk3-entreno .modal-content,
-.mk3-entreno button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
+.mk3-entreno button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab):not(.progreso-cat),
 .mk3-entreno input, .mk3-entreno select, .mk3-entreno textarea,
 .mk3-finanzas .card:not(.card-hero), .mk3-finanzas .list-row, .mk3-finanzas .modal-content,
 .mk3-finanzas button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
@@ -379,6 +379,42 @@ input[type="date"] { color-scheme: dark; }
 .mk3-dashboard .btn-primary:focus-visible, .mk3-dashboard .mk3-fab:focus-visible {
   outline: none;
   filter: drop-shadow(0 0 1.5px var(--accent-primary)) drop-shadow(0 0 4px var(--accent-primary));
+}
+
+/* Selector de categoría de Progreso (Entreno: GYM/Calistenia/HIIT, más
+   "Todos" en Tendencia). Antes llevaba border-radius: 10px inline, fuera
+   del lenguaje MK III; ahora el mismo chaflán de dos esquinas opuestas que
+   .card-hero, y la opción activa en el cian de Entreno (--cy sobre --cyb).
+   Excluido de la regla "recto" de arriba con :not(.progreso-cat). */
+.mk3-entreno .progreso-cat {
+  flex: 1;
+  padding: 9px 6px;
+  border: 1px solid var(--surface-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  clip-path: polygon(
+    var(--chaflan) 0, 100% 0,
+    100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%,
+    0 100%, 0 var(--chaflan)
+  );
+}
+.mk3-entreno .progreso-cat.active {
+  border-color: var(--cy);
+  background: var(--cyb);
+  color: var(--cy);
+}
+/* clip-path recorta el outline y también buena parte del drop-shadow (en
+   la práctica queda solo el brillo interior), así que el foco suma el
+   borde cian para que se distinga bien de una opción inactiva. */
+.mk3-entreno .progreso-cat:focus-visible {
+  outline: none;
+  border-color: var(--cy);
+  filter: drop-shadow(0 0 1.5px var(--cy)) drop-shadow(0 0 4px var(--cy));
 }
 
 /* Hoja inferior (bottom sheet) — Gasto/Ingreso/Ahorro/Transferir y el alta

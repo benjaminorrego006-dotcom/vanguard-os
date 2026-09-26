@@ -59,7 +59,7 @@ function renderCategoriaSelector(cats, activa, className) {
   return `
     <div style="display: flex; gap: 8px; margin-bottom: 16px;">
       ${cats.map(c => `
-        <button type="button" class="${className}" data-cat="${c.id}" style="flex: 1; padding: 9px 6px; border-radius: 10px; border: 1px solid ${activa === c.id ? 'var(--accent-teal)' : 'var(--surface-border)'}; background: ${activa === c.id ? 'color-mix(in srgb, var(--accent-teal) 15%, transparent)' : 'transparent'}; color: ${activa === c.id ? 'var(--accent-teal)' : 'var(--text-secondary)'}; font-weight: 700; font-size: 12px; cursor: pointer;">${c.label}</button>
+        <button type="button" class="${className} progreso-cat${activa === c.id ? ' active' : ''}" data-cat="${c.id}" aria-pressed="${activa === c.id}">${c.label}</button>
       `).join('')}
     </div>
   `;
