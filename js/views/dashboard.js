@@ -3,7 +3,7 @@ import { formatCurrency } from '../utils/currency.js';
 import { Toast } from '../utils/states.js';
 import { parseQuickGasto } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
-import { diaKeyDe, diasEntre } from '../utils/fecha.js';
+import { diaKeyDe, diasEntre, formatFechaCorta, fechaLocalDe } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import * as LabFinanzas from '../components/lab-finanzas.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
@@ -322,16 +322,24 @@ export async function render() {
 
   let alertasHtml = '';
   if (alertasCaja && alertasCaja.length > 0) {
+    // Alerta real (un cobro que no alcanza): rojo por tokens (--state-high
+    // con color-mix, igual que la fila de atrasadas), estilos en
+    // .alerta-caja (components.css). Una línea por cobro, máximo 3, bajo
+    // un solo título. Toda la tarjeta lleva a Finanzas (no hay ruta a un
+    // sobre puntual).
+    const visibles = alertasCaja.slice(0, 3);
+    const extra = alertasCaja.length - visibles.length;
     alertasHtml = `
-      <div class="card" style="padding: 16px; margin-bottom: 20px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; gap: 14px;">
-        <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.18); color: var(--state-high); flex-shrink: 0;">
+      <button id="alerta-caja" type="button" class="card tappable alerta-caja" aria-label="${alertasCaja.length === 1 ? 'Un cobro' : `${alertasCaja.length} cobros`} de los próximos 7 días sin saldo suficiente. Ver Finanzas">
+        <span class="icon-chip alerta-caja-icono" aria-hidden="true">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-        </div>
-        <div style="flex: 1;">
-          <div style="font-size: 12px; font-weight: 700; color: var(--state-high); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Alerta de flujo de caja (7 días)</div>
-          ${alertasCaja.map(a => `<div style="font-size: 12px; color: var(--text-primary); margin-top:4px; line-height: 1.4;">El pago <b>${escapeHtml(a.name)}</b> (${formatCurrency(a.amount)}) excederá el saldo del sobre <b>${escapeHtml(a.envelopeName)}</b>. Faltan ${formatCurrency(a.shortfall)}.</div>`).join('')}
-        </div>
-      </div>
+        </span>
+        <span class="alerta-caja-cuerpo">
+          <span class="alerta-caja-titulo">Cobros sin saldo · 7 días</span>
+          ${visibles.map(a => `<span class="alerta-caja-linea">El ${formatFechaCorta(fechaLocalDe(a.date))}, <b>${escapeHtml(a.name)}</b> (${formatCurrency(a.amount)}) excederá el saldo de <b>${escapeHtml(a.envelopeName)}</b>. Faltan ${formatCurrency(a.shortfall)}.</span>`).join('')}
+          ${extra > 0 ? `<span class="alerta-caja-linea alerta-caja-mas">y ${extra} más en Finanzas</span>` : ''}
+        </span>
+      </button>
     `;
   }
 
@@ -735,6 +743,9 @@ export function mountListeners() {
       go('anotaciones');
     });
   }
+
+  const alertaCaja = document.getElementById('alerta-caja');
+  if (alertaCaja) alertaCaja.addEventListener('click', () => go('finanzas'));
 
   const qaGasto = document.getElementById('qa-gasto');
   const qaEntreno = document.getElementById('qa-entreno');
