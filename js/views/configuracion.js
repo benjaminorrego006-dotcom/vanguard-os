@@ -136,6 +136,11 @@ export async function render() {
         </label>
       `) : ''}
 
+      ${seccion('Datos de prueba', 'Carga unos 60 días de datos de ejemplo en los 4 módulos para ver la app funcionando. Borra todo lo que haya en este dispositivo.', authSession?.user
+        // Con sesión de Supabase, los datos de ejemplo se subirían a la sync.
+        ? `<button id="btn-cfg-demo" type="button" class="btn-primary" disabled style="background: var(--surface-2); color: var(--text-disabled); border: 1px solid var(--surface-border); cursor: not-allowed;">Cierra sesión para usar datos de prueba</button>`
+        : btnSecundario('btn-cfg-demo', 'Cargar datos de demostración'))}
+
       ${seccion('Datos', 'Elimina todo lo guardado en este dispositivo. Esta acción no se puede deshacer — exporta un respaldo antes si no estás seguro.', `
         <button id="btn-cfg-wipe" type="button" class="tappable" style="width: 100%; padding: 12px; background: transparent; border: 1px solid var(--state-high); color: var(--state-high); font-weight: 700; cursor: pointer;">Borrar todos los datos</button>
       `)}
@@ -202,6 +207,35 @@ export function mountListeners() {
     }
     e.target.value = '';
   });
+
+  // Datos de demostración: solo al tocar el botón y confirmar. El módulo se
+  // importa recién acá (arrastra el generador y el catálogo de ejercicios).
+  const btnDemo = document.getElementById('btn-cfg-demo');
+  if (btnDemo && !btnDemo.disabled) {
+    btnDemo.addEventListener('click', async () => {
+      const confirmado = await ConfirmDialog(
+        'Cargar datos de demostración',
+        'Esto BORRA todos los datos de este dispositivo y carga datos de ejemplo. No se puede deshacer.',
+        { verb: 'Cargar datos', danger: true }
+      );
+      if (!confirmado) return;
+      // Revalida la sesión justo antes: con cuenta iniciada no se cargan.
+      if ((await getAuthSession())?.user) { Toast('Cierra sesión para usar datos de prueba', 'error'); return; }
+      btnDemo.disabled = true;
+      btnDemo.textContent = 'Cargando datos de ejemplo…';
+      try {
+        const { cargarDatosDemo } = await window.appRouter.importar('js/core/datos-demo.js');
+        await cargarDatosDemo();
+        Toast('Datos de demostración cargados', 'success');
+        setTimeout(() => window.location.reload(), 800);
+      } catch (err) {
+        console.error('No se pudieron cargar los datos de demostración:', err);
+        Toast('No se pudieron cargar los datos de demostración', 'error');
+        btnDemo.disabled = false;
+        btnDemo.textContent = 'Cargar datos de demostración';
+      }
+    });
+  }
 
   document.getElementById('btn-cfg-wipe')?.addEventListener('click', async () => {
     const confirmado = await ConfirmDialog(
