@@ -219,6 +219,42 @@ function diasUnicosDesdeFechas(fechas) {
   return Array.from(new Set(fechas)).sort().reverse();
 }
 
+// --- Días activos de la racha global -------------------------------------
+// Clave de día -> cantidad de actividad (la cantidad solo la usa el
+// mini-gráfico `last7`). Dos fuentes:
+// - Sesión, descanso activo, movimiento de Finanzas y tarea completada
+//   cuentan en el día de su `ts` (cuando pasaron).
+// - Los hábitos cuentan en la FECHA MARCADA (payload.fecha), no en el ts:
+//   marcar hoy el hábito de ayer rellena ayer y no suma a hoy. Se toma el
+//   estado NETO de cada par (hábito, fecha) recorriendo sus eventos en
+//   orden: habito_marcado / habito_progreso_registrado lo activan,
+//   habito_desmarcado lo apaga. Así, desmarcar solo le quita el día a la
+//   racha si ese día no queda otra actividad (otro hábito aún marcado, una
+//   sesión, una tarea...), sin guardar nada aparte del log. Un evento sin
+//   payload.fecha cae en el día de su ts, como antes.
+const TIPOS_ACTIVIDAD_POR_TS = new Set(['sesion_registrada', 'descanso_activo_completado', 'movimiento_registrado', 'tarea_completada']);
+const TIPOS_HABITO_MARCA = new Set(['habito_marcado', 'habito_progreso_registrado', 'habito_desmarcado']);
+
+function actividadGlobalPorDia(eventos) {
+  const porDia = new Map();
+  const sumar = (dia) => porDia.set(dia, (porDia.get(dia) || 0) + 1);
+
+  const marcasNetas = new Map(); // `${habitoId}|${fecha}` -> fecha, solo si sigue activa
+  eventos
+    .filter(e => TIPOS_HABITO_MARCA.has(e.tipo))
+    .sort((a, b) => a.ts - b.ts)
+    .forEach(e => {
+      const fecha = e.payload && e.payload.fecha ? claveDiaDe(e.payload.fecha) : diaKeyDe(new Date(e.ts));
+      const clave = `${e.entidadId}|${fecha}`;
+      if (e.tipo === 'habito_desmarcado') marcasNetas.delete(clave);
+      else marcasNetas.set(clave, fecha);
+    });
+  marcasNetas.forEach(sumar);
+
+  eventos.forEach(e => { if (TIPOS_ACTIVIDAD_POR_TS.has(e.tipo)) sumar(diaKeyDe(new Date(e.ts))); });
+  return porDia;
+}
+
 // --- Hábitos con frecuencia: helpers de "¿aplica/se cumplió este día?" ---
 // habito.frecuencia = { tipo: 'diario' } (default, todo día aplica) |
 // { tipo: 'dias', dias: [0..6] } (0=lunes..6=domingo, mismo orden que
@@ -1495,18 +1531,10 @@ export const db = {
   // específica de Entreno y se sigue usando ahí — esta es para la tarjeta
   // de racha del Dashboard. Se deriva
   // enteramente del log de eventos: no hay un campo "racha" guardado en
-  // ningún lado.
+  // ningún lado. El conjunto de días activos lo arma actividadGlobalPorDia
+  // (los hábitos cuentan en la fecha marcada, no en el ts del evento).
   async getRachaGlobal() {
-    const eventos = await idb.getAll('events');
-    const relevantes = eventos.filter(e =>
-      e.tipo === 'sesion_registrada' || e.tipo === 'descanso_activo_completado' || e.tipo === 'movimiento_registrado' || e.tipo === 'tarea_completada' || e.tipo === 'habito_marcado' || e.tipo === 'habito_progreso_registrado'
-    );
-
-    const activityByDay = new Map(); // clave de día -> cantidad de eventos
-    relevantes.forEach(e => {
-      const dia = diaKeyDe(new Date(e.ts));
-      activityByDay.set(dia, (activityByDay.get(dia) || 0) + 1);
-    });
+    const activityByDay = actividadGlobalPorDia(await idb.getAll('events'));
 
     // Racha de días consecutivos: el mismo algoritmo compartido que
     // getRachaGeneral/getRachaTareas/getRachaHiit (antes era una copia del
