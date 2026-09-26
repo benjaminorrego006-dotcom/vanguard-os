@@ -417,6 +417,32 @@ input[type="date"] { color-scheme: dark; }
   filter: drop-shadow(0 0 1.5px var(--cy)) drop-shadow(0 0 4px var(--cy));
 }
 
+/* Resto de Progreso y badges de Entreno: rectos, como todo lo que no es
+   jerarquía principal (ver la regla "recto" de arriba). Antes eran
+   border-radius inline (14px el contenedor de pestañas, 18px/8px la
+   tarjeta y la nota de Tendencia) o el 4px global de .badge. */
+.mk3-entreno .badge { border-radius: 0; }
+.mk3-entreno .progreso-tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-border);
+  border-radius: 0;
+  padding: 5px;
+  margin-bottom: 22px;
+  overflow-x: auto;
+}
+.mk3-entreno .progreso-tendencia-card { padding: 18px; }
+.mk3-entreno .progreso-tendencia-info {
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--surface-2);
+  border-radius: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
 /* Hoja inferior (bottom sheet) — Gasto/Ingreso/Ahorro/Transferir y el alta
    de hábito. Con el teclado abierto, un modal centrado queda partido a la
    mitad; una hoja que sube desde abajo deja el campo justo sobre el

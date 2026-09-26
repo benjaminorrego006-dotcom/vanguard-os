@@ -47,7 +47,7 @@ export function cleanup() {
 
 function renderTabSelector() {
   return `
-    <div style="display: flex; gap: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 14px; padding: 5px; margin-bottom: 22px; overflow-x: auto;">
+    <div class="progreso-tabs">
       ${TABS.map(t => `
         <button type="button" class="progreso-tab" data-tab="${t.id}" style="flex: 1; padding: 9px 6px; border-radius: 10px; border: none; cursor: pointer; font-size: 12.5px; font-weight: 700; white-space: nowrap; background: ${activeTab === t.id ? 'var(--accent-teal)' : 'transparent'}; color: ${activeTab === t.id ? 'var(--bg-base)' : 'var(--text-secondary)'};">${t.label}</button>
       `).join('')}
@@ -91,10 +91,10 @@ async function renderTendencia() {
   return `
     <div>
       ${renderCategoriaSelector(CATS_TENDENCIA, categoriaTendencia, 'progreso-cat-tendencia')}
-      <div class="card" style="padding: 18px; border-radius: 18px;">
+      <div class="card progreso-tendencia-card">
         <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">${esHiit ? 'Tendencia de constancia' : 'Tendencia de volumen'}</h3>
         ${chartHtml}
-        <div style="margin-top: 12px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.4;">${infoText}</div>
+        <div class="progreso-tendencia-info">${infoText}</div>
       </div>
     </div>
   `;
