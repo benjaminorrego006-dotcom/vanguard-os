@@ -2337,4 +2337,29 @@ export const CATALOGO_GYM = {
     patronMovimiento: "rodilla",
     tipoMovimiento: "aislamiento"
   },
+  'press de hombros en máquina': {
+    id: 'press de hombros en máquina',
+    nombre: 'Press de Hombros en Máquina',
+    categoria: 'gym',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps',
+    posturaInicial: 'Sentado con la espalda apoyada, empuñaduras a la altura de los hombros, pies firmes.',
+    pasosEjecucion: [
+      'Empuja las empuñaduras hacia arriba hasta casi extender los codos.',
+      'Baja lento hasta la altura de las orejas.'
+    ],
+    erroresComunes: [
+      'Encoger los hombros al subir.',
+      'Arquear la espalda baja.'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "maquina",
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "compuesto"
+  },
 };

@@ -450,8 +450,8 @@ export const CATALOGO_CALISTENIA = {
       'No bajar lo suficiente.'
     ],
     nivel: "intermedio",
-    prerequisitos: [],
-    progresionDe: null,
+    prerequisitos: ["flexión en pica con manos elevadas"],
+    progresionDe: "flexión en pica con manos elevadas",
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
     tambienEn: [],
     equipo: "ninguno",
@@ -1789,5 +1789,113 @@ export const CATALOGO_CALISTENIA = {
     equipo: "ninguno",
     patronMovimiento: "rodilla",
     tipoMovimiento: "aislamiento"
+  },
+  'remo invertido con pies elevados': {
+    id: 'remo invertido con pies elevados',
+    nombre: 'Remo Invertido con Pies Elevados',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'bíceps, core',
+    posturaInicial: 'Acostado bajo una barra baja, anillas (o TRX) o el borde de una mesa firme, agarre pronado al ancho de hombros, cuerpo recto de talones a cabeza con los pies sobre un banco o silla y los brazos extendidos.',
+    pasosEjecucion: [
+      'Aprieta glúteos y abdomen para mantener el cuerpo en una sola línea.',
+      'Tira del pecho hacia la barra juntando las escápulas.',
+      'Toca la barra con el pecho o el abdomen alto.',
+      'Baja controlando dos segundos hasta extender los brazos.'
+    ],
+    erroresComunes: [
+      'Dejar caer la cadera durante el tirón.',
+      'Encoger los hombros hacia las orejas.',
+      'No extender los brazos abajo.'
+    ],
+    nivel: "intermedio",
+    prerequisitos: ["remo invertido"],
+    progresionDe: "remo invertido",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: ["gym"],
+    equipo: "ninguno",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "compuesto"
+  },
+  'remo invertido a una mano': {
+    id: 'remo invertido a una mano',
+    nombre: 'Remo Invertido a Una Mano',
+    categoria: 'calistenia',
+    grupoMuscular: 'espalda',
+    patron: 'traccion',
+    musculoSecundario: 'bíceps, oblicuos',
+    posturaInicial: 'Bajo una barra baja, un brazo agarra la barra y el otro se sostiene sobre el pecho, pies apoyados, cuerpo recto.',
+    pasosEjecucion: [
+      'Bloquea el torso sin rotar.',
+      'Tira con un solo brazo hasta que el pecho roce la barra.',
+      'Baja lento hasta extender el brazo.',
+      'Repite y cambia de lado.'
+    ],
+    erroresComunes: [
+      'Rotar el torso hacia el brazo que trabaja.',
+      'Ayudarse con la mano libre.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["remo invertido con pies elevados"],
+    progresionDe: "remo invertido con pies elevados",
+    criterioAvance: {"tipo":"reps","valor":5,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
+    patronMovimiento: "traccion-horizontal",
+    tipoMovimiento: "compuesto"
+  },
+  'flexión en pica con manos elevadas': {
+    id: 'flexión en pica con manos elevadas',
+    nombre: 'Flexión en Pica con Manos Elevadas',
+    categoria: 'calistenia',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, core',
+    posturaInicial: 'Manos sobre un escalón o silla estable, pies en el suelo, caderas altas formando una V invertida.',
+    pasosEjecucion: [
+      'Flexiona los codos bajando la coronilla hacia el borde entre las manos.',
+      'Mantén las caderas altas.',
+      'Empuja hasta extender los brazos.'
+    ],
+    erroresComunes: [
+      'Dejar caer la cadera y convertirla en una flexión normal.',
+      'Abrir demasiado los codos.'
+    ],
+    nivel: "principiante",
+    prerequisitos: [],
+    progresionDe: null,
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "compuesto"
+  },
+  'flexión de pino contra la pared': {
+    id: 'flexión de pino contra la pared',
+    nombre: 'Flexión de Pino contra la Pared (HSPU)',
+    categoria: 'calistenia',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, core',
+    posturaInicial: 'En parada de manos contra la pared, cuerpo alineado, brazos extendidos.',
+    pasosEjecucion: [
+      'Flexiona los codos bajando la cabeza hacia una superficie acolchada.',
+      'Toca suavemente con la coronilla.',
+      'Empuja hasta extender los brazos sin arquear la espalda.'
+    ],
+    erroresComunes: [
+      'Arquear la zona lumbar.',
+      'Abrir demasiado los codos.',
+      'Rebotar con la cabeza.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["handstand contra pared"],
+    progresionDe: "handstand contra pared",
+    criterioAvance: {"tipo":"reps","valor":5,"series":3},
+    tambienEn: [],
+    equipo: "ninguno",
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "compuesto"
   },
 };
