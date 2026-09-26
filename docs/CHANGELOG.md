@@ -1,5 +1,99 @@
 # Vanguard OS — Changelog
 
+## 26 sept 2026 — Vida extra, fechas locales, Finanzas y respaldos
+
+**`CACHE_NAME` final: `vanguard-os-v198`.** Trece commits entre `da71068`
+(v186) y `a3a941f` (v198), cada uno con su propio bump de caché. QA final con
+Playwright en 375×812 y 1280×800, zona `America/Santiago` y reloj simulado.
+
+> **Pendiente (encontrado en el QA final, sin corregir):** `78fe15a` quitó la
+> variable `desde` de `detectarSugerencias` (`js/core/sugerencias-nivel.js`)
+> pero `evaluarPorRatio` todavía la recibe. Si el ejercicio más alto de una
+> rama en las últimas 4 semanas es uno de los 4 básicos de gym con criterio
+> `ratio` (sentadilla, peso muerto, press banca, press militar),
+> `detectarSugerencias` lanza `ReferenceError: desde is not defined`: en Hoy la
+> tarjeta de avances no aparece (el error se captura) y en Entreno el banner de
+> sugerencias falla con una promesa rechazada.
+
+### Vida extra de racha
+
+Proteger la racha global un día sin actividad. Todo se deriva del log de
+eventos; no se guarda ningún estado.
+
+Decisiones:
+- Solo la racha global (no días perfectos, rachas por hábito, ritual, Entreno ni Tareas).
+- 1 vida por cada 7 días activos **reales** seguidos; máximo 2. Un día protegido mantiene la racha sin sumar y reinicia la cuenta de 7.
+- Las vidas se consumen solas al terminar un día sin actividad (con 2 vidas y 2 días vacíos se usan ambas). Hoy sin actividad está pendiente y nunca consume.
+- La insignia `racha_7` significa "alguna vez llegó a 7" y no se vuelve a bloquear.
+- Un hábito cuenta en la **fecha marcada**, no en el momento en que se marcó; desmarcar quita el día solo si no quedó otra actividad ese día.
+
+| Fase | Commit | Caché | Qué cambia |
+|---|---|---|---|
+| 1 | `78fe15a` | v189 | Cambio de horario en todas las rachas (ver "Fechas locales"). |
+| 2 | `c69f8a2` | v190 | `actividadGlobalPorDia`: los hábitos cuentan en `payload.fecha` con estado neto por (hábito, fecha); el resto por el día de su `ts`. |
+| 3 | `51e01d3` | v197 | `calcularRachaConVidas` (función pura) → `getRachaGlobal` devuelve además `vidas`, `diasProtegidos`, `maxHistorica`, `ultimaVidaUsada`. `racha_7` por `maxHistorica`. `leerEventosCompartido`: abrir Hábitos pasa de 2 lecturas de `events` a 1. |
+| 4 | `a3a941f` | v198 | UI: chip de Hoy "🔥 N · [escudo] V" (atenuado con 0), escudos y texto de vidas bajo el reactor de Hábitos, tira de los últimos 7 días (activo / protegido / vacío / hoy), aviso "Usaste una vida extra el martes 8 — tu racha sigue en N" en la tarjeta contextual (Ritual > respaldo > vida usada > avances > Hoy toca; "Entendido" lo oculta para ese día) y toast "Ganaste una vida extra" una sola vez. `getRachaGlobal` suma `faltanParaVida`. |
+
+Nota: con estas reglas, tras usar una vida hacen falta 7 días reales nuevos para
+ganar la siguiente, así que la secuencia 7 activos → 1 vacío → 7 activos deja
+**1** vida (no 2).
+
+### Fechas locales y cambio de horario
+
+`78fe15a` (v189). Las rachas restaban 86 400 000 ms entre medianoches locales;
+con el cambio de horario hay días de 23 o 25 h (en Chile el 6/9 no tiene 00:00)
+y la racha se cortaba sola: 3–8 sept daba 2 en vez de 6, 2–6 abr 2027 daba 3 en
+vez de 5. Toda la aritmética de días pasa a claves `YYYY-MM-DD`.
+
+Helpers en `js/utils/fecha.js`:
+- `diasEntre` compara con `Date.UTC` (sin huso horario).
+- `sumarDias(clave, n)`: avanza por calendario.
+- `claveDiaDe(valor)`: clave del día local de una clave o de un ISO/timestamp (`new Date('YYYY-MM-DD')` es UTC y en Chile cae el día anterior).
+- `fechaLocalDe(valor)` y `compararFechas(a, b)` (agregados en el fix A de Finanzas).
+
+Lugares corregidos: `calcularRachaDesdeDias`, la copia del bucle en
+`getRachaGlobal` y su `last7`, `calcularRachaDiasAplicables`,
+`generarDiasAplicables`, `getRachaHabito`, `getRachaHabitosGlobal`,
+`getRachaRitual`, `getRachaHiit`, `weekIdDe` (hábitos semanales) y
+`rachaSemanas` de Entreno (las semanas empiezan el lunes 00:00 local; antes el
+domingo 21:00 en Chile), antigüedad del dinero, deload, `getTendenciaSemanal`,
+`getTendenciaTareasCompletadas`, atrasadas y banner de instalar (`dashboard.js`),
+días desde el último respaldo (`backup.js`), días restantes de una meta
+(`goal-card.js`), días sin entrenar una rama (`generador-rutinas.js:317`) y la
+ventana de 4 semanas de `sugerencias-nivel.js`. Queda a propósito
+`generador-rutinas.js:590` (ordena por recencia exacta, no cuenta días).
+
+### Finanzas
+
+| Fix | Commit | Caché | Qué cambia |
+|---|---|---|---|
+| A | `8f35248` | v191 | Claves `YYYY-MM-DD` leídas como día local: fecha visible de los movimientos (un gasto del 26/9 se veía "25 sept"), rango del desglose del Laboratorio (incluía el día anterior y excluía el último), orden de movimientos con claves e ISO mezclados, backfill de eventos. |
+| B | `68cf377` | v192 | Recurrentes guardan `tx.date` y `lastProcessed` como clave de día; `lastProcessed` se lee con `claveDiaDe` (acepta el ISO anterior, sin duplicar). Todos los filtros por mes/rango/día sobre `tx.date` usan el día local (una transferencia ISO de la noche caía en el mes siguiente). Sin migrar datos. |
+| C | `06bea2e` | v193 | La proyección de recurrentes a 7 días nunca funcionaba (`r.nextDate` inexistente, filtro por `r.type`, `r.name`, `env.spent`). `proximaFechaRecurrente` compartida con el procesamiento; saldo por `saldosDeSobres`; en Hoy la proyección se pide después de `getBudget`. |
+| D | `b99b847` | v194 | Id determinista `rec-${recurrente}-${día}` + `recurrenteId` para las transacciones recurrentes: dos dispositivos que procesan la misma recurrencia sin sincronizar quedan con una sola (el replay y el espejo ya hacían upsert por id). |
+| E | `2d5be2a` | v195 | Alerta de flujo de caja en MK III: tokens (`--state-high` con `color-mix`), título "Cobros sin saldo · 7 días", fecha del cobro en cada línea, máximo 3 líneas, toda la tarjeta lleva a Finanzas. |
+
+### Respaldos
+
+`d28f840` (v196, fix F): `backup.js` ya no importa `idb.js`; usa
+`db.exportarDatosRespaldo` / `restaurarDatosRespaldo` / `marcarRespaldoExportado`
+/ `getUltimoRespaldoTs`. El respaldo suma **ritual, planificador, notas y
+notas_categorias**, que faltaban desde la v4 de la base: los respaldos
+anteriores no incluyen el Ritual, la Semana ni las Anotaciones — **conviene
+exportar un respaldo nuevo**. El formato no cambia (`version: 2`): un respaldo
+anterior se importa igual y la versión anterior ignora las claves nuevas.
+
+`js/core/sync.js` queda como **excepción documentada** a "solo `db.js` importa
+`idb.js"` (es el motor de replay; comentario al inicio del archivo, en `51e01d3`).
+
+### Otros
+
+| Commit | Caché | Qué cambia |
+|---|---|---|
+| `da71068` | v186 | Service worker: tras una actualización, la pestaña recarga una vez en la próxima navegación segura (no con un modal abierto ni en una sesión de entreno) en vez de mezclar módulos de dos versiones; aviso "Actualización lista", máximo 1 recarga por activación. |
+| `8607344` | v188 | Hoy: los ítems del Planificador (Semana) con fecha pasada cuentan como atrasados, con etiqueta "Semana", checkbox y "Mover a hoy" (`moverTareaPlan`, evento `tarea_reprogramada`). |
+| `3e6066b` | v187 | Entreno MK III: `.badge` y los contenedores de Progreso sin `border-radius`. |
+
 ## 26 sept 2026 — Revisión del catálogo
 
 **`CACHE_NAME` final: `vanguard-os-v184`.** Ocho commits entre `b128826` (v177)
