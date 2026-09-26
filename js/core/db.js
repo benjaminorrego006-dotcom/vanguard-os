@@ -870,22 +870,37 @@ export const db = {
         const env = envelopes.find(e => e.id === req.envelopeId);
         const cat = env ? env.category : 'Needs';
 
-        const newTx = {
-          id: generateId(),
-          date: nextTarget, // clave del día local que corresponde (antes toISOString())
-          type: 'Gasto',
-          category: cat,
-          label: req.label + ' (Auto)',
-          amount: req.amount,
-          goalId: null,
-          envelopeId: req.envelopeId
-        };
-        txs.push(newTx);
-        generatedTxs.push(newTx);
+        // Id determinista por (recurrente, día): si otro dispositivo ya
+        // generó esta misma recurrencia y su evento llegó por sync, la
+        // transacción ya está en el store con este id y no se crea otra (el
+        // replay de movimiento_registrado hace upsert por id, así que dos
+        // eventos con el mismo entidadId dejan una sola fila). Las
+        // generadas antes de este cambio tienen id aleatorio y no traen
+        // recurrenteId: para ellas se compara por etiqueta + sobre + día.
+        const txId = `rec-${req.id}-${nextTarget}`;
+        const label = req.label + ' (Auto)';
+        const yaExiste = txs.some(t => t.id === txId
+          || (!t.recurrenteId && t.label === label && t.envelopeId === req.envelopeId && t.date && claveDiaDe(t.date) === nextTarget));
+
+        if (!yaExiste) {
+          const newTx = {
+            id: txId,
+            date: nextTarget, // clave del día local que corresponde (antes toISOString())
+            type: 'Gasto',
+            category: cat,
+            label,
+            amount: req.amount,
+            goalId: null,
+            envelopeId: req.envelopeId,
+            recurrenteId: req.id
+          };
+          txs.push(newTx);
+          generatedTxs.push(newTx);
+        }
 
         req.lastProcessed = nextTarget;
         updated = true;
-        recurrentesProcesados.push({ id: req.id, lastProcessed: req.lastProcessed, txId: newTx.id });
+        recurrentesProcesados.push({ id: req.id, lastProcessed: req.lastProcessed, txId });
         nextTarget = claveEnMes(nextTarget, 1, req.dayOfMonth);
       }
     });
