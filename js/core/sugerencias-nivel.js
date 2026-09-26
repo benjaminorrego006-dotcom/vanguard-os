@@ -122,12 +122,14 @@ function ahoraNoVigente(entrada, nivelSugerido, hoyClave) {
 // limpias de las últimas 4 semanas, no con el PR histórico: un récord de
 // hace un año no dice nada del nivel de hoy. Cumplido si el nivel de fuerza
 // calculado >= valor.
-function evaluarPorRatio(entry, sesiones, desde, pesoKg, sexo) {
+function evaluarPorRatio(entry, sesiones, hoyClave, pesoKg, sexo) {
   if (pesoKg <= 0) return null;
   let mejor1RM = 0;
   sesionesDelEjercicio(sesiones, entry.id).forEach(s => {
     const ts = new Date(s.fecha).getTime();
-    if (isNaN(ts) || ts < desde) return;
+    // Misma ventana que el resto de la detección: últimas 4 semanas en días
+    // de calendario (diasEntre), no en ms.
+    if (isNaN(ts) || diasEntre(claveDiaDe(s.fecha), hoyClave) >= VENTANA_DIAS) return;
     s.series.filter(serieValida).forEach(sr => {
       const peso = Number(sr.peso) || 0;
       const reps = repsDe(sr);
@@ -216,7 +218,7 @@ export async function detectarSugerencias({ hoy = new Date() } = {}) {
     if (NIVEL_RANGO[nivelEfectivo(actual)] < NIVEL_RANGO[nivelActual]) continue;
 
     const evidencia = actual.criterioAvance.tipo === 'ratio'
-      ? evaluarPorRatio(actual, sesiones, desde, pesoKg, sexo)
+      ? evaluarPorRatio(actual, sesiones, hoyClave, pesoKg, sexo)
       : evaluarPorSeries(actual, sesiones);
     if (!evidencia) continue;
 

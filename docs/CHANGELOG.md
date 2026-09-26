@@ -2,18 +2,24 @@
 
 ## 26 sept 2026 — Vida extra, fechas locales, Finanzas y respaldos
 
-**`CACHE_NAME` final: `vanguard-os-v198`.** Trece commits entre `da71068`
-(v186) y `a3a941f` (v198), cada uno con su propio bump de caché. QA final con
-Playwright en 375×812 y 1280×800, zona `America/Santiago` y reloj simulado.
+**`CACHE_NAME` final: `vanguard-os-v199`.** Catorce commits entre `da71068`
+(v186) y el fix de `desde` (v199), cada uno con su propio bump de caché. QA
+final con Playwright en 375×812 y 1280×800, zona `America/Santiago` y reloj
+simulado.
 
-> **Pendiente (encontrado en el QA final, sin corregir):** `78fe15a` quitó la
-> variable `desde` de `detectarSugerencias` (`js/core/sugerencias-nivel.js`)
-> pero `evaluarPorRatio` todavía la recibe. Si el ejercicio más alto de una
-> rama en las últimas 4 semanas es uno de los 4 básicos de gym con criterio
-> `ratio` (sentadilla, peso muerto, press banca, press militar),
-> `detectarSugerencias` lanza `ReferenceError: desde is not defined`: en Hoy la
-> tarjeta de avances no aparece (el error se captura) y en Entreno el banner de
-> sugerencias falla con una promesa rechazada.
+> **Corregido (encontrado en el QA final):** `78fe15a` quitó la variable
+> `desde` de `detectarSugerencias` (`js/core/sugerencias-nivel.js`) pero
+> `evaluarPorRatio` todavía la recibía. Si el ejercicio más alto de una rama en
+> las últimas 4 semanas era uno de los 4 básicos de gym con criterio `ratio`
+> (sentadilla, peso muerto, press banca, press militar), `detectarSugerencias`
+> lanzaba `ReferenceError: desde is not defined`: en Hoy la tarjeta de avances
+> no aparecía y en Entreno el banner de sugerencias fallaba. Corregido en el
+> commit "Sugerencias de nivel: ventana de 4 semanas en dias tambien para el
+> criterio ratio" (v199), commit siguiente a `b087a8e`: `evaluarPorRatio`
+> recibe `hoyClave` y filtra por días de calendario como el resto de la
+> ventana. Un barrido con ESLint (`no-undef`) sobre todo `js/` no encontró
+> otros casos (solo falsos positivos del envoltorio UMD de
+> `js/vendor/chart.js`).
 
 ### Vida extra de racha
 
