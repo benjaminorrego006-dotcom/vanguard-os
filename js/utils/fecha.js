@@ -92,3 +92,25 @@ export const claveDiaDe = (valor) => {
   if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) return valor;
   return diaKeyDe(valor instanceof Date ? valor : new Date(valor));
 };
+
+// Date LOCAL de un valor guardado: una clave 'YYYY-MM-DD' da ese día a las
+// 00:00 locales (new Date(y, m, d), nunca new Date('YYYY-MM-DD'), que en
+// Chile cae el día anterior a las 21:00); un timestamp/ISO da su instante.
+export const fechaLocalDe = (valor) => {
+  if (valor instanceof Date) return new Date(valor.getTime());
+  if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    const [y, m, d] = valor.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(valor);
+};
+
+// Comparador ascendente para fechas guardadas que mezclan claves e ISO:
+// primero por día local (claveDiaDe) y, dentro del mismo día, por hora
+// (una clave sin hora queda al inicio de su día). Para orden descendente,
+// invertir los argumentos.
+export const compararFechas = (a, b) => {
+  const ka = claveDiaDe(a), kb = claveDiaDe(b);
+  if (ka !== kb) return ka < kb ? -1 : 1;
+  return fechaLocalDe(a).getTime() - fechaLocalDe(b).getTime();
+};

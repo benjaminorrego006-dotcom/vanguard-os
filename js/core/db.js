@@ -1,6 +1,6 @@
 import { getEjercicioMetadata, getEjercicioPorId, getIdPorNombreExacto, GRUPO_MUSCULAR_ORDEN } from './ejercicios-catalogo.js';
 import * as idb from './idb.js';
-import { mesKeyDe, diaKeyDe, diasEntre, sumarDias, claveDiaDe } from '../utils/fecha.js';
+import { mesKeyDe, diaKeyDe, diasEntre, sumarDias, claveDiaDe, fechaLocalDe, compararFechas } from '../utils/fecha.js';
 import { EQUIPO_OPCIONES } from './trainingConfig.js';
 
 function toSafeNumber(value) {
@@ -533,7 +533,7 @@ async function migrateFromLocalStorageIfNeeded() {
   // Backfill del log de eventos a partir del historial real.
   const backfill = [];
   txs.forEach(t => {
-    const ts = new Date(t.date).getTime();
+    const ts = fechaLocalDe(t.date).getTime(); // clave 'YYYY-MM-DD' = 00:00 local de ese día
     backfill.push({ modulo: 'finanzas', tipo: 'movimiento_registrado', entidadId: t.id, payload: t, ts: isNaN(ts) ? Date.now() : ts });
   });
   rawSesiones.forEach(s => {
@@ -1081,13 +1081,13 @@ export const db = {
       .filter(t => t.type === 'Ingreso' && isValidDate(t.date))
       .map(t => ({ ...t, amt: safeNum(t.amount) }))
       .filter(t => t.amt > 0)
-      .sort((a,b) => new Date(a.date) - new Date(b.date));
+      .sort((a,b) => compararFechas(a.date, b.date));
 
     const expenses = txsAll
       .filter(t => t.type === 'Gasto' && t.category !== 'Savings' && isValidDate(t.date))
       .map(t => ({ ...t, amt: safeNum(t.amount) }))
       .filter(t => t.amt > 0)
-      .sort((a,b) => new Date(a.date) - new Date(b.date));
+      .sort((a,b) => compararFechas(a.date, b.date));
 
     if (incomes.length === 0 || expenses.length === 0) return 0;
 
@@ -1910,8 +1910,8 @@ export const db = {
   // repeticiones) más los totales del período.
   async getDesgloseGrupoMuscular(startDate, endDate) {
     const sesiones = await getSesionesConMigracionPerezosa();
-    const start = new Date(startDate); start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate); end.setHours(23, 59, 59, 999);
+    const start = fechaLocalDe(startDate); start.setHours(0, 0, 0, 0);
+    const end = fechaLocalDe(endDate); end.setHours(23, 59, 59, 999);
 
     const grupos = {};
     GRUPO_MUSCULAR_ORDEN.forEach(g => { grupos[g] = { series: 0, reps: 0, volumen: 0 }; });
@@ -2476,7 +2476,7 @@ export const db = {
       if (endDate && t.date > endDate) return false;
       return true;
     });
-    return filtered.sort((a, b) => b.date.localeCompare(a.date));
+    return filtered.sort((a, b) => compararFechas(b.date, a.date)); // claves e ISO mezclados: por día local y luego hora
   },
 
   async getBudget(monthFilter = null) {
@@ -2503,7 +2503,7 @@ export const db = {
     let income = 0; let expenses = 0;
     let needs = 0; let wants = 0; let savings = 0;
 
-    const breakdown = [...txs].sort((a,b) => b.date.localeCompare(a.date));
+    const breakdown = [...txs].sort((a,b) => compararFechas(b.date, a.date)); // claves e ISO mezclados: por día local y luego hora
 
     txs.forEach(t => {
       const amt = toSafeNumber(t.amount);

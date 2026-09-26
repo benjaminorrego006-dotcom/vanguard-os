@@ -15,7 +15,7 @@ import { renderDonutChart, destroyAllDonuts } from '../components/donut-chart.js
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { escapeHtml } from '../utils/escape.js';
-import { mesKeyDe, formatFechaCorta, formatMes } from '../utils/fecha.js';
+import { mesKeyDe, formatFechaCorta, formatMes, fechaLocalDe } from '../utils/fecha.js';
 
 const editSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const transferSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
@@ -787,7 +787,7 @@ export const txHtml = (tx, envelopes) => {
   let iconSvg = getSVG(tx.category, catColor);
   let fallbackLabel = tx.type === 'Ingreso' ? 'Ingreso' : (tx.category === 'Savings' ? 'Ahorro' : (tx.category === 'Needs' ? 'Necesidades' : 'Deseos'));
   let displayLabel = tx.label || fallbackLabel;
-  let subText = `${formatFechaCorta(new Date(tx.date))} &bull; ${tx.category === 'Needs' ? 'Necesidades' : tx.category === 'Wants' ? 'Deseos' : tx.category === 'Savings' ? 'Ahorro' : 'Ingreso'}`;
+  let subText = `${formatFechaCorta(fechaLocalDe(tx.date))} &bull; ${tx.category === 'Needs' ? 'Necesidades' : tx.category === 'Wants' ? 'Deseos' : tx.category === 'Savings' ? 'Ahorro' : 'Ingreso'}`;
 
   let amountPrefix = tx.type === 'Ingreso' ? '+' : '-';
   let amountColor = tx.type === 'Ingreso' ? 'var(--state-success)' : 'var(--text-primary)';
@@ -797,13 +797,13 @@ export const txHtml = (tx, envelopes) => {
     if (env) {
       if (tx.type === 'Gasto') {
         iconSvg = getSVG(env.icon, catColor);
-        subText = `${formatFechaCorta(new Date(tx.date))} &bull; ${escapeHtml(env.name)}`;
+        subText = `${formatFechaCorta(fechaLocalDe(tx.date))} &bull; ${escapeHtml(env.name)}`;
       } else if (tx.type === 'Assignment') {
         catColor = 'var(--accent-blue)';
         iconSvg = transferSvg;
         amountColor = tx.isSubtraction ? 'var(--text-primary)' : 'var(--state-success)';
         amountPrefix = tx.isSubtraction ? '-' : '+';
-        subText = `${formatFechaCorta(new Date(tx.date))} &bull; ${tx.isSubtraction ? 'Retirado de' : 'Asignado a'} ${escapeHtml(env.name)}`;
+        subText = `${formatFechaCorta(fechaLocalDe(tx.date))} &bull; ${tx.isSubtraction ? 'Retirado de' : 'Asignado a'} ${escapeHtml(env.name)}`;
       }
     }
   } else if (tx.type === 'Transfer' && envelopes) {
@@ -811,7 +811,7 @@ export const txHtml = (tx, envelopes) => {
     iconSvg = transferSvg;
     const fromEnv = escapeHtml(envelopes.find(e => e.id === tx.fromEnvelopeId)?.name || 'Desconocido');
     const toEnv = escapeHtml(envelopes.find(e => e.id === tx.toEnvelopeId)?.name || 'Desconocido');
-    subText = `${formatFechaCorta(new Date(tx.date))} &bull; ${fromEnv} &rarr; ${toEnv}`;
+    subText = `${formatFechaCorta(fechaLocalDe(tx.date))} &bull; ${fromEnv} &rarr; ${toEnv}`;
     amountPrefix = '';
     amountColor = 'var(--text-secondary)';
   }

@@ -8,7 +8,7 @@ import { renderGoalCard, formatGoalValue } from './goal-card.js';
 import { openGoalForm, openGoalContribute } from './goal-form.js';
 import { EmptyState, ConfirmDialog } from '../utils/states.js';
 import { GRUPO_MUSCULAR_ORDEN, GRUPO_MUSCULAR_LABELS, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
-import { formatFechaCorta, formatFechaLarga } from '../utils/fecha.js';
+import { formatFechaCorta, formatFechaLarga, fechaLocalDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 
 export const TABS = [
@@ -65,8 +65,8 @@ function rangoFechasPeriodo() {
   if (desglosePeriodo === 'mes') {
     return { start: new Date(hoy.getFullYear(), hoy.getMonth(), 1), end: hoy };
   }
-  const start = desgloseFechaInicio ? new Date(desgloseFechaInicio) : new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-  const end = desgloseFechaFin ? new Date(desgloseFechaFin) : hoy;
+  const start = desgloseFechaInicio ? fechaLocalDe(desgloseFechaInicio) : new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  const end = desgloseFechaFin ? fechaLocalDe(desgloseFechaFin) : hoy;
   return { start, end };
 }
 

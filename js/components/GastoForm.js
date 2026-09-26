@@ -1,6 +1,7 @@
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { escapeHtml } from '../utils/escape.js';
+import { compararFechas } from '../utils/fecha.js';
 
 export function renderGastoForm() {
   return `
@@ -71,7 +72,7 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
     b = getBudgetFn(); 
     const recentTx = (b.breakdown || [])
       .filter(t => t.type === 'Gasto' && t.envelopeId === selectedEnvelopeId)
-      .sort((x, y) => new Date(y.date) - new Date(x.date));
+      .sort((x, y) => compararFechas(y.date, x.date));
     const recentAmounts = recentTx.map(t => t.amount);
     const distinct = [...new Set(recentAmounts)].slice(0, 3);
     
