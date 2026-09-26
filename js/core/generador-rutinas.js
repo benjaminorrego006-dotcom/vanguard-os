@@ -880,6 +880,12 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
   const historialPorNombre = await barrerHistorialCompleto();
   const nivelPorRama = await calcularNivelPorRama(historialPorNombre);
   const avisos = [];
+  // Mismos avisos pero estructurados (patrón + tipo) para que la UI los
+  // agrupe en un solo bloque: 'faltante' = el patrón no entró en ninguna
+  // sesión ("no se pudo incluir"); 'incompleto' = entró pero le faltaron
+  // espacios extra ("no llenó"). Solo GYM/calistenia/HIIT de fuerza; no
+  // interviene en la selección.
+  const faltantes = [];
   const usadosEstaSemana = new Set();
   const exercisesPerSession = Math.max(3, Math.min(8, Math.round(duracionSesionMin / 9)));
   const nombreCategoria = categoria === 'gym' ? 'GYM' : categoria === 'calistenia' ? 'calistenia' : 'HIIT';
@@ -891,6 +897,8 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
       ? `${RAMA_LABELS[patron]} no se pudo incluir todavía: lo que tenemos de ${nombreCategoria} en este patrón requiere progresar antes en otro (mira el Árbol de Progresión para ver qué falta).`
       : `${RAMA_LABELS[patron]} no se pudo incluir: no hay ejercicios de ${nombreCategoria} con el equipo que declaraste para ese patrón.`;
     if (!avisos.includes(aviso)) avisos.push(aviso);
+    const tipo = razon === 'agotado-en-sesion' ? 'incompleto' : 'faltante';
+    if (!faltantes.some(f => f.patron === patron && f.tipo === tipo)) faltantes.push({ patron, tipo });
   };
 
   const resumenPatrones = Object.fromEntries(Object.entries(nivelPorRama).map(([rama, info]) => [rama, info.nivel]));
@@ -928,7 +936,7 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
     }
 
     await db.registrarRutinaGenerada({ categoria, diasPorSemana: diasSemana, resumenPatrones });
-    return { dias, avisos, nivelPorRama };
+    return { dias, avisos, faltantes, avisosVolumen: [], nivelPorRama };
   }
 
   // GYM y calistenia comparten el split de la Sección 2 (Full Body queda
@@ -940,14 +948,15 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
 
   const dias = splits.map(diaDef => {
     const elegidos = elegirEjerciciosDelDia(diaDef.patrones, exercisesPerSession, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso, ratio);
-    return { nombre: diaDef.nombre, ejercicios: elegidos };
+    return { nombre: diaDef.nombre, ejercicios: elegidos, cupo: exercisesPerSession };
   });
 
   if (diasSemana === 7) {
     dias.push(diaLigero(dias, categoria, nivelPorRama, equipoDisponible, historialPorNombre, usadosEstaSemana, registrarAviso));
   }
 
+  const cantidadAvisosDeCobertura = avisos.length;
   chequearVolumenSemanal(dias, avisos);
   await db.registrarRutinaGenerada({ categoria, diasPorSemana: diasSemana, resumenPatrones });
-  return { dias, avisos, nivelPorRama };
+  return { dias, avisos, faltantes, avisosVolumen: avisos.slice(cantidadAvisosDeCobertura), nivelPorRama };
 }

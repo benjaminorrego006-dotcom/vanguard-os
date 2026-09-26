@@ -1,6 +1,7 @@
 import { db } from '../core/db.js';
 import { PLANTILLAS } from '../core/plantillas.js';
 import { getEjercicioPorId, agruparPorGrupoMuscular, grupoMuscularParaMapa } from '../core/ejercicios-catalogo.js';
+import { RAMA_LABELS } from '../core/progresiones.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatDiaSemana } from '../utils/fecha.js';
@@ -507,14 +508,39 @@ export function initPlantillaPreviewListeners(categoria, plantilla, onSuccess, s
 // cubrir quedan arriba de todo, nunca ocultos. "Usar esta rutina" guarda
 // con el mismo db.crearRutina() que usa una plantilla fija — de ahí en
 // adelante es una rutina común: se edita, se borra, se re-genera después.
+//
+// Los avisos de cobertura ("no llenó", "no se pudo incluir") salen agrupados
+// en UN bloque arriba, con los patrones únicos; cada día solo lleva un
+// indicador "n/cupo" si le faltan ejercicios. Acento de alerta solo si algún
+// patrón quedó fuera del plan entero ('faltante'); si solo faltaron espacios
+// extra, tono neutro.
 export function renderGeneradorPreview(plan, categoria) {
-  const avisosHtml = plan.avisos.length === 0 ? '' : `
-    <div class="card" style="padding: 14px 16px; margin-bottom: 20px; border-left: 3px solid var(--state-medium);">
-      ${plan.avisos.map(a => `<div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: flex-start; gap: 6px; margin-bottom: 4px;">${warningSvg}<span>${a}</span></div>`).join('')}
+  const faltantes = plan.faltantes || [];
+  const etiquetas = (tipo) => faltantes.filter(f => f.tipo === tipo).map(f => RAMA_LABELS[f.patron] || f.patron);
+  const patronesAviso = [...new Set([...etiquetas('faltante'), ...etiquetas('incompleto')])];
+  const hayFaltante = faltantes.some(f => f.tipo === 'faltante');
+  const volumen = plan.avisosVolumen || [];
+  const colorBorde = hayFaltante ? 'var(--state-medium)' : 'var(--surface-border)';
+  const avisosHtml = patronesAviso.length === 0 ? '' : `
+    <div id="generador-avisos" class="chaflan" style="padding: 14px 16px; margin-bottom: 20px; background: var(--surface-2); border: 1px solid ${colorBorde}; ${hayFaltante ? 'border-left: 3px solid var(--state-medium);' : ''}">
+      <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: flex-start; gap: 6px; line-height: 1.5;">
+        ${hayFaltante ? warningSvg : ''}<span>Con el equipo que declaraste, algunos días tienen menos ejercicios en: <b style="color: var(--text-primary);">${patronesAviso.join(', ')}</b>.</span>
+      </div>
+      <button type="button" id="btn-generador-agregar-equipo" class="tappable" style="margin-top: 10px; padding: 0; background: none; border: none; color: var(--accent-teal); font-size: 12px; font-weight: 700; cursor: pointer; min-height: 32px;">Agregar equipo →</button>
+    </div>
+  `;
+  // El aviso de volumen semanal es otra cosa (no depende del equipo): va
+  // aparte, como nota suelta, para que "sin bloque" signifique que no hay
+  // problema de cobertura.
+  const volumenHtml = volumen.length === 0 ? '' : `
+    <div id="generador-volumen" style="margin-bottom: 20px;">
+      ${volumen.map(a => `<div style="font-size: 11px; color: var(--text-disabled); margin-bottom: 4px;">${a}</div>`).join('')}
     </div>
   `;
 
   const diasHtml = plan.dias.map(dia => {
+    const faltan = categoria !== 'hiit' && dia.cupo && dia.ejercicios.length > 0 && dia.ejercicios.length < dia.cupo;
+    const indicador = faltan ? `<span title="Este día tiene menos ejercicios de los previstos" style="font-size: 11px; font-weight: 700; color: var(--text-disabled); font-variant-numeric: tabular-nums;">${dia.ejercicios.length}/${dia.cupo}</span>` : '';
     const items = categoria === 'hiit'
       ? dia.motivos.map(m => `
           <div style="margin-bottom: 10px;">
@@ -531,7 +557,10 @@ export function renderGeneradorPreview(plan, categoria) {
 
     return `
       <div style="background: var(--surface-2); padding: 16px; border-radius: 14px; border: 1px solid var(--surface-border); margin-bottom: 16px;">
-        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 12px 0; color: var(--text-primary);">${dia.nombre}</h4>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 0 12px 0;">
+          <h4 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text-primary);">${dia.nombre}</h4>
+          ${indicador}
+        </div>
         ${items || `<div style="font-size: 12px; color: var(--text-secondary);">Sin ejercicios disponibles para este día.</div>`}
       </div>
     `;
@@ -544,6 +573,7 @@ export function renderGeneradorPreview(plan, categoria) {
         <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin: 0;">Según tu progreso actual en cada patrón de movimiento y el equipo que declaraste. Puedes editarla después como cualquier otra rutina.</p>
       </div>
       ${avisosHtml}
+      ${volumenHtml}
       ${diasHtml}
       <button id="btn-usar-generado" class="btn-primary tappable" style="background: var(--accent-teal); margin-top: 8px;">
         Usar esta rutina
@@ -552,7 +582,10 @@ export function renderGeneradorPreview(plan, categoria) {
   `;
 }
 
-export function initGeneradorPreviewListeners(plan, categoria, onSuccess, signal) {
+export function initGeneradorPreviewListeners(plan, categoria, onSuccess, signal, onAgregarEquipo) {
+  const btnEquipo = document.getElementById('btn-generador-agregar-equipo');
+  if (btnEquipo && onAgregarEquipo) btnEquipo.addEventListener('click', onAgregarEquipo, { signal });
+
   document.getElementById('btn-usar-generado').addEventListener('click', async () => {
     for (const dia of plan.dias) {
       const ejercicios = categoria === 'hiit'

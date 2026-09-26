@@ -528,7 +528,7 @@ mountListeners = () => {
       subContent.innerHTML = renderGeneradorPreview(plan, cat);
       initGeneradorPreviewListeners(plan, cat, async () => {
         await goToRutinas(cat);
-      }, signal);
+      }, signal, () => openGeneradorConfigForm(cat));
     } catch (err) {
       console.error('Error renderizando rutina generada:', err);
       subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
