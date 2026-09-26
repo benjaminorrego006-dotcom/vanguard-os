@@ -1,5 +1,77 @@
 # Vanguard OS — Changelog
 
+## 26 sept 2026 — Revisión del catálogo
+
+**`CACHE_NAME` final: `vanguard-os-v184`.** Ocho commits entre `b128826` (v177)
+y `b8db473` (v184): los pasos 1–7 de la revisión más un fix de racha detectado en
+el QA final (paso 8). El catálogo pasa de 176 a **182 ejercicios**. Medición
+común a todas las cifras: 60 planes por nivel (30 gym + 30 calistenia, 3 y 5 días
+alternados, 45 min, equipo completo, sin historial), 1140 ejercicios elegidos.
+
+### Commits
+
+| Paso | Commit | Caché | Qué cambia |
+|---|---|---|---|
+| 1 | `b128826` | v177 | Prerrequisitos por nivel y alternativos (OR) en `estaDesbloqueado` (`prerequisitosAlternativos`). |
+| 2 | `c197d69` | v178 | Datos P0: acceso cruzado gym/calistenia, dominadas con alternativos (asistida con banda / jalón al pecho) y frontera unificada: `calcularNivelPorRama` usa la misma `estaDesbloqueado` (sin regla de nivel, `ratioEstricto`), corrigiendo que un principiante viera tracción vertical intermedia. |
+| 3 | `4ac9b37` | v179 | 5 ejercicios nuevos (ver abajo). Solo datos. |
+| 4 | `5fa46f2` | v180 | Generador: no dejar espacios vacíos en silencio. Si se agota el nivel de la rama, se completa con el nivel inferior más cercano (`relajado`, motivo `nivel-inferior`) sin repetir ejercicios de la sesión; si aun así no hay, el espacio queda vacío con aviso. Cada fase corre en dos pasadas (nivel de la rama, luego relleno hacia abajo empezando por el patrón con menos ejercicios hoy). Un espacio extra nunca sube de nivel. |
+| 5 | `2d9fd9e` | v181 | Push Press (gym, avanzado, requiere Press Militar). Solo datos. |
+| 6 | `bd2e78a` | v182 | UI: un solo bloque de aviso por plan con los patrones únicos y "Agregar equipo →" (abre el modal del generador); cada día solo lleva "n/cupo" si le faltan ejercicios. `generarPlan` devuelve además `faltantes`, `avisosVolumen` y `cupo` por día (la selección no cambia). El aviso de volumen semanal queda como nota gris aparte. |
+| 7 | `201b1f7` | v183 | UI: el día 7 sin ejercicios por diseño se muestra como **Descanso activo** (tarjeta con 3 sugerencias fijas, sin "0/5" ni aviso). Se guarda como rutina vacía; al abrirlo muestra la tarjeta con "Marcar como hecho", que emite `descanso_activo_completado` (`fecha` por `diaKeyDe`) sin crear sesión. En `sync.js` es un evento de solo auditoría. |
+| 8 | `b8db473` | v184 | Fix: `descanso_activo_completado` cuenta para la racha global (`getRachaGlobal`, chip de racha y `last7`) pero no como sesión: `getRachaGeneral`, insignias de sesiones, volumen y mapa muscular solo leen `sesion_registrada` y no cambian. |
+
+### Ejercicios agregados (176 → 182)
+
+- **Calistenia:** Remo Invertido con Pies Elevados (intermedio, requiere Remo Invertido), Remo Invertido a Una Mano (avanzado, requiere el anterior), Flexión en Pica con Manos Elevadas (principiante), Flexión de Pino contra la Pared / HSPU (avanzado, requiere Handstand contra Pared). Pike Push-up pasa a requerir la flexión en pica con manos elevadas.
+- **Gym:** Press de Hombros en Máquina (principiante, empuje vertical) y Push Press (avanzado, requiere Press Militar).
+
+### % de ejercicios elegidos por debajo del nivel de su rama
+
+| Momento | Intermedio | Avanzado |
+|---|---|---|
+| Informe de fase 0 (antes) | 28 % (315/1140) | 32 % (360/1140) |
+| Paso 1 | 9 % (105/1140) | 14 % (165/1140) |
+| Paso 2 | 7 % (75/1140) | 14 % (165/1140) |
+| Paso 3 | 0 % (pero solo 1110 ejercicios: tracción vertical de calistenia daba 30 en vez de 60) | 3,9 % |
+| Paso 4 | 2,6 % (30/1140, 1140 ejercicios) | 3,9 % |
+| Paso 5 (final) | **2,6 %** (30/1140) | **0 %** (0/1140) |
+
+En ningún momento hubo ejercicios **por encima** del nivel de la rama, y
+un principiante ve 0 de 1140 ejercicios intermedios. Tracción vertical de
+calistenia da 60 en intermedio y avanzado. El 2,6 % restante de intermedio es
+tracción vertical de calistenia bajando al nivel principiante para completar el
+cupo.
+
+### Cobertura final del catálogo (gym + calistenia, ejercicios por patrón y nivel)
+
+Cuenta también los ejercicios con acceso cruzado (`tambienEn`).
+
+| Patrón | Gym P/I/A/Todos | Calistenia P/I/A/Todos |
+|---|---|---|
+| Rodilla | 3/3/1/7 | 4/5/2/2 |
+| Cadera | 1/3/3/9 | 2/1/1/1 |
+| Empuje horizontal | 7/6/3/15 | 7/5/12/1 |
+| Empuje vertical | 1/2/1/1 | 1/5/1/0 |
+| Tracción horizontal | 3/5/1/11 | 2/1/1/1 |
+| Tracción vertical | 2/1/2/6 | 6/4/8/0 |
+| Core | 1/6/1/2 | 6/2/1/0 |
+| Locomoción | — | 1/1/0/0 |
+
+### Espacios vacíos (3 niveles × gym/calistenia × 1–7 días × 5 juegos de equipo, 2 planes c/u, 5 ejercicios por sesión)
+
+- 1620 días evaluados (sin contar el día 7): **1170 espacios vacíos en 676 días** (antes del paso 4: 1502 en 676). **0 días sin ningún ejercicio**; el único día vacío por diseño es el Día 7 Movilidad, ahora "Descanso activo".
+- Los vacíos vienen de equipo restringido (gym sin equipo, solo barra de dominadas, o calistenia Pull con mancuernas y banco): no existe otro ejercicio disponible para ese patrón. Todos llevan aviso visible ("no llenó todos sus espacios…", agrupado en el bloque del plan) e indicador "n/5" en el día.
+
+### QA final (Playwright 375×812 y 1280×800, IndexedDB limpio, consola sin errores)
+
+- **Árbol por la interfaz:** Dominadas con alternativos (asistida con banda, jalón al pecho); Remo Invertido → con Pies Elevados → a Una Mano; Flexión en Pica con Manos Elevadas → Pike Push-up → Handstand contra Pared → HSPU; Press Militar → Push Press (junto a Press Arnold).
+- **Equipo limitado (gym sin equipo, 5 días):** 1 bloque de aviso, 0 avisos por día, indicadores 3/5, 2/5, 3/5; "Agregar equipo" abre el modal y Atrás lo cierra. Con equipo completo no hay bloque.
+- **Descanso activo (7 días, equipo completo):** tarjeta en el preview y al abrirlo como sesión (sin cronómetro); "Marcar como hecho" registra `descanso_activo_completado`, 0 sesiones creadas. Racha global 0 → 1 (chip 🔥 1 en Hoy); racha de Entreno, insignias, volumen y mapa muscular sin cambios.
+- **Replay:** borrar `rutinas`, `sesiones` y los singletons de perfil/generador/nivel y reaplicar los 15 eventos con `applyRemoteEvent` deja el mismo estado.
+- **Offline:** con el servidor detenido, recarga y generación de un plan de 7 días con Descanso activo funcionan desde el service worker (`vanguard-os-v184` incluye `descanso-activo.js`).
+- **Nota de medición:** las funciones memoizadas de `db.js` (`getRachaGlobal`…) se invalidan con `logEvent` dentro de la misma instancia del módulo; al consultarlas desde una instancia importada aparte hay que recargar para ver el valor nuevo. No es un bug de la app.
+
 ## 25 sept 2026 — Sistema de nivel de Entreno v2
 
 **`CACHE_NAME` final: `vanguard-os-v176`** (el commit de documentación no toca
