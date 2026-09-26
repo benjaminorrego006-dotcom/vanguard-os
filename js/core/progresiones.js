@@ -200,9 +200,16 @@ const NIVEL_RANGO = { principiante: 0, intermedio: 1, avanzado: 2 };
 // actual de la rama del ejercicio que se evalúa — quien ya está en un nivel
 // superior no tiene que demostrar de nuevo lo de los niveles de abajo — o
 // (d) el historial registra series limpias de ese paso.
-function prerrequisitoCumplido(reqId, historialPorNombre, desbloqueadosManual, nivelRama) {
+//
+// ratioEstricto: para derivar la FRONTERA de una rama (calcularNivelPorRama)
+// un prerrequisito tipo 'ratio' (sin "series limpias" que contar) NO cuenta
+// como cumplido — si no, un levantamiento sin evidencia real haría pasar
+// por desbloqueado a un principiante. Para elegir ejercicios o pintar el
+// árbol se mantiene la permisividad de siempre (cumplido).
+function prerrequisitoCumplido(reqId, historialPorNombre, desbloqueadosManual, nivelRama, ratioEstricto = false) {
   const req = ARBOL_PROGRESIONES[reqId];
-  if (!req || !req.objetivo) return true;
+  if (!req) return true;
+  if (!req.objetivo) return !ratioEstricto;
   if (desbloqueadosManual && desbloqueadosManual.has(reqId)) return true;
   if (nivelRama && NIVEL_RANGO[req.nivel] < NIVEL_RANGO[nivelRama]) return true;
   return contarSeriesLimpias(historialPorNombre[req.nombre], req.objetivo);
@@ -222,11 +229,16 @@ function prerrequisitoCumplido(reqId, historialPorNombre, desbloqueadosManual, n
 // desbloqueó a mano al confirmar una sugerencia de avance (ver
 // db.confirmarSugerenciaNivel); cuentan como desbloqueados aunque falten
 // sus prerrequisitos.
-export function estaDesbloqueado(nodoId, historialPorNombre, desbloqueadosManual = null, nivelRama = null) {
+//
+// nivelRama = null desactiva la regla de nivel: la usa la derivación de la
+// frontera (calcularNivelPorRama), donde comparar con el nivel de la rama
+// sería circular (ese nivel sale de la frontera). opciones.ratioEstricto:
+// ver prerrequisitoCumplido.
+export function estaDesbloqueado(nodoId, historialPorNombre, desbloqueadosManual = null, nivelRama = null, opciones = {}) {
   if (desbloqueadosManual && desbloqueadosManual.has(nodoId)) return true;
   const nodo = ARBOL_PROGRESIONES[nodoId];
   if (!nodo) return false;
-  const cumplido = reqId => prerrequisitoCumplido(reqId, historialPorNombre, desbloqueadosManual, nivelRama);
+  const cumplido = reqId => prerrequisitoCumplido(reqId, historialPorNombre, desbloqueadosManual, nivelRama, !!opciones.ratioEstricto);
   if (!nodo.requiere.every(cumplido)) return false;
   const alternativos = nodo.requiereAlternativos || [];
   return alternativos.length === 0 || alternativos.some(cumplido);
@@ -246,4 +258,19 @@ export function getPrerrequisitosAlternativos(nodoId) {
   const nodo = ARBOL_PROGRESIONES[nodoId];
   if (!nodo) return [];
   return (nodo.requiereAlternativos || []).map(id => ({ id, ...ARBOL_PROGRESIONES[id] }));
+}
+
+// Primer prerrequisito que falta para desbloquear un nodo (mismas reglas que
+// estaDesbloqueado): entre los AND, el primero sin cumplir; si los AND están
+// completos pero ninguna alternativa se cumple, la primera alternativa. null
+// si el nodo ya está desbloqueado.
+export function primerPrerrequisitoFaltante(nodoId, historialPorNombre, desbloqueadosManual = null, nivelRama = null, opciones = {}) {
+  const nodo = ARBOL_PROGRESIONES[nodoId];
+  if (!nodo) return null;
+  const cumplido = reqId => prerrequisitoCumplido(reqId, historialPorNombre, desbloqueadosManual, nivelRama, !!opciones.ratioEstricto);
+  const faltanteAnd = nodo.requiere.find(reqId => !cumplido(reqId));
+  if (faltanteAnd) return faltanteAnd;
+  const alternativos = nodo.requiereAlternativos || [];
+  if (alternativos.length > 0 && !alternativos.some(cumplido)) return alternativos[0];
+  return null;
 }

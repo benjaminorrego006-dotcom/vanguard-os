@@ -201,7 +201,7 @@ export const CATALOGO_HIIT = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
-    tambienEn: [],
+    tambienEn: ["calistenia"],
     equipo: "ninguno",
     patronMovimiento: "locomocion",
     tipoMovimiento: "compuesto"

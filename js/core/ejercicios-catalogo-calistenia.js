@@ -77,7 +77,7 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":15,"series":3},
-    tambienEn: [],
+    tambienEn: ["gym"],
     equipo: "ninguno",
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "compuesto"
@@ -127,7 +127,7 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: ["flexiones inclinadas"],
     progresionDe: "flexiones inclinadas",
     criterioAvance: {"tipo":"reps","valor":10,"series":3},
-    tambienEn: [],
+    tambienEn: ["gym"],
     equipo: "ninguno",
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "compuesto"
@@ -475,8 +475,8 @@ export const CATALOGO_CALISTENIA = {
       'Balancear el cuerpo en vez de mantenerlo quieto.'
     ],
     nivel: "principiante",
-    prerequisitos: ["remo invertido"],
-    progresionDe: "remo invertido",
+    prerequisitos: [],
+    progresionDe: null,
     criterioAvance: {"tipo":"segundos","valor":20,"series":3},
     tambienEn: [],
     equipo: "barra-dominadas",
@@ -515,7 +515,7 @@ export const CATALOGO_CALISTENIA = {
     grupoMuscular: 'espalda',
     patron: 'traccion',
     musculoSecundario: 'bíceps',
-    posturaInicial: 'Acostado bajo una barra baja (o TRX), sujeto con agarre pronado, cuerpo en línea recta.',
+    posturaInicial: 'Acostado bajo una barra baja, anillas (o TRX) o el borde de una mesa firme, sujeto con agarre pronado, cuerpo en línea recta.',
     pasosEjecucion: [
       'Tira del pecho hacia la barra, apretando los omóplatos.',
       'Baja controladamente a extensión completa.'
@@ -915,7 +915,7 @@ export const CATALOGO_CALISTENIA = {
     prerequisitos: ["hollow body hold"],
     progresionDe: "hollow body hold",
     criterioAvance: {"tipo":"segundos","valor":40,"series":3},
-    tambienEn: [],
+    tambienEn: ["gym"],
     equipo: "ninguno",
     patronMovimiento: "core",
     tipoMovimiento: "aislamiento"

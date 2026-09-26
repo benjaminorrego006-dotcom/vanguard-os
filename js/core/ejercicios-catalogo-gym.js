@@ -234,7 +234,7 @@ export const CATALOGO_GYM = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
-    tambienEn: [],
+    tambienEn: ["calistenia"],
     equipo: "ninguno",
     patronMovimiento: "rodilla",
     tipoMovimiento: "compuesto"
@@ -934,10 +934,11 @@ export const CATALOGO_GYM = {
       'Encoger los hombros en vez de usar la espalda.'
     ],
     nivel: "intermedio",
-    prerequisitos: ["jalón al pecho"],
-    progresionDe: "jalón al pecho",
+    prerequisitos: [],
+    prerequisitosAlternativos: ["dominada asistida con banda", "jalón al pecho"],
+    progresionDe: "dominada asistida con banda",
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
-    tambienEn: [],
+    tambienEn: ["calistenia"],
     equipo: "barra-dominadas",
     patronMovimiento: "traccion-vertical",
     tipoMovimiento: "compuesto"
@@ -1180,7 +1181,7 @@ export const CATALOGO_GYM = {
     prerequisitos: ["fondos en banco"],
     progresionDe: "fondos en banco",
     criterioAvance: {"tipo":"reps","valor":8,"series":3},
-    tambienEn: [],
+    tambienEn: ["calistenia"],
     equipo: "barra-dominadas",
     patronMovimiento: "empuje-horizontal",
     tipoMovimiento: "compuesto"
@@ -1866,7 +1867,7 @@ export const CATALOGO_GYM = {
     prerequisitos: [],
     progresionDe: null,
     criterioAvance: {"tipo":"reps","valor":12,"series":3},
-    tambienEn: [],
+    tambienEn: ["calistenia"],
     equipo: "ninguno",
     patronMovimiento: "rodilla",
     tipoMovimiento: "compuesto"

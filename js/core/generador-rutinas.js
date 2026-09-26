@@ -9,7 +9,7 @@
 // `motivo` (por qué se eligió, no solo qué se eligió) y cualquier patrón
 // que no se pudo cubrir queda en `avisos`, nunca se omite en silencio.
 import { db } from './db.js';
-import { ARBOL_PROGRESIONES, RAMA_ORDEN, RAMA_LABELS, profundidadNodo, estaDesbloqueado, contarSeriesLimpias } from './progresiones.js';
+import { ARBOL_PROGRESIONES, RAMA_ORDEN, RAMA_LABELS, profundidadNodo, estaDesbloqueado, primerPrerrequisitoFaltante, contarSeriesLimpias } from './progresiones.js';
 import { CATALOGO_EJERCICIOS, getEjercicioPorId } from './ejercicios-catalogo.js';
 import { getNivel } from './estandares-fuerza.js';
 import { diaKeyDe, diasEntre } from '../utils/fecha.js';
@@ -70,15 +70,14 @@ function esDominado(nodoId, historialPorNombre) {
 // limpias", así que no puede contar como frontera para derivar el nivel de
 // un principiante. La fuerza real en esos levantamientos se suma aparte,
 // vía Estándares de Fuerza, más abajo en calcularNivelPorRama().
-function desbloqueadoParaFrontera(nodoId, historialPorNombre) {
-  const nodo = ARBOL_PROGRESIONES[nodoId];
-  if (!nodo) return false;
-  return nodo.requiere.every(reqId => {
-    const req = ARBOL_PROGRESIONES[reqId];
-    if (!req) return true;
-    if (!req.objetivo) return false;
-    return contarSeriesLimpias(historialPorNombre[req.nombre], req.objetivo);
-  });
+//
+// Usa la MISMA función que el resto (estaDesbloqueado, con alternativos y
+// desbloqueos manuales) pero SIN la regla de nivel (nivelRama = null): el
+// nivel de la rama se deriva de esta frontera, así que compararlo acá sería
+// circular. La frontera sale solo de historial, desbloqueos manuales y
+// alternativos cumplidos.
+function desbloqueadoParaFrontera(nodoId, historialPorNombre, desbloqueadosManual = null) {
+  return estaDesbloqueado(nodoId, historialPorNombre, desbloqueadosManual, null, { ratioEstricto: true });
 }
 
 function tieneIntentos(nodoId, historialPorNombre) {
@@ -103,7 +102,7 @@ function tieneIntentos(nodoId, historialPorNombre) {
 // (Jalón al Pecho) quedaba invisible. Recién en empate de "intentado"
 // desempata la profundidad, y por último el nivel más bajo (el más
 // conservador cuando tampoco hay forma de distinguir cuál intentó primero).
-function fronteraDeRama(rama, historialPorNombre) {
+function fronteraDeRama(rama, historialPorNombre, desbloqueadosManual = null) {
   const idsRama = Object.keys(ARBOL_PROGRESIONES).filter(id => ARBOL_PROGRESIONES[id].rama === rama);
   if (idsRama.length === 0) return null;
 
@@ -116,7 +115,7 @@ function fronteraDeRama(rama, historialPorNombre) {
   // aparte, vía Estándares de Fuerza, más abajo en calcularNivelPorRama().
   const candidatos = idsRama.filter(id =>
     ARBOL_PROGRESIONES[id].objetivo &&
-    desbloqueadoParaFrontera(id, historialPorNombre) &&
+    desbloqueadoParaFrontera(id, historialPorNombre, desbloqueadosManual) &&
     !esDominado(id, historialPorNombre)
   );
   if (candidatos.length === 0) {
@@ -134,7 +133,7 @@ function fronteraDeRama(rama, historialPorNombre) {
     if (!quedaAlgoSinDominar) return { nodoId: null, nivel: 'avanzado', maxeada: true, bloqueo: null };
 
     const dominado = nodoDominadoMasProfundo(rama, historialPorNombre);
-    const bloqueo = nodoBloqueadoMasCercano(rama, historialPorNombre);
+    const bloqueo = nodoBloqueadoMasCercano(rama, historialPorNombre, desbloqueadosManual);
     return { nodoId: null, nivel: dominado ? dominado.nivel : 'principiante', maxeada: false, bloqueo };
   }
 
@@ -162,17 +161,14 @@ function fronteraDeRama(rama, historialPorNombre) {
 // OTRA rama todavía no deja tocar. Identifica también cuál es ese
 // prerrequisito faltante, para poder decirle al usuario adónde ir a
 // destrabarlo en vez de solo declarar la rama "avanzada" sin más.
-function nodoBloqueadoMasCercano(rama, historialPorNombre) {
+function nodoBloqueadoMasCercano(rama, historialPorNombre, desbloqueadosManual = null) {
   const idsRama = Object.keys(ARBOL_PROGRESIONES).filter(id => ARBOL_PROGRESIONES[id].rama === rama && ARBOL_PROGRESIONES[id].objetivo);
-  const bloqueados = idsRama.filter(id => !desbloqueadoParaFrontera(id, historialPorNombre) && !esDominado(id, historialPorNombre));
+  const bloqueados = idsRama.filter(id => !desbloqueadoParaFrontera(id, historialPorNombre, desbloqueadosManual) && !esDominado(id, historialPorNombre));
   if (bloqueados.length === 0) return null;
 
   bloqueados.sort((a, b) => profundidadNodo(a) - profundidadNodo(b) || a.localeCompare(b));
   const nodo = ARBOL_PROGRESIONES[bloqueados[0]];
-  const faltanteId = nodo.requiere.find(reqId => {
-    const req = ARBOL_PROGRESIONES[reqId];
-    return !req || !req.objetivo || !contarSeriesLimpias(historialPorNombre[req.nombre], req.objetivo);
-  });
+  const faltanteId = primerPrerrequisitoFaltante(bloqueados[0], historialPorNombre, desbloqueadosManual, null, { ratioEstricto: true });
   const faltante = faltanteId ? ARBOL_PROGRESIONES[faltanteId] : null;
   return {
     nombre: nodo.nombre,
@@ -242,10 +238,12 @@ export async function calcularNivelPorRama(historialPorNombre) {
   const pesoKg = Number(profile?.pesoKg) || 0;
   const sexo = profile?.sexo === 'F' ? 'F' : 'M';
   const nivelPiso = TIEMPO_A_NIVEL_PISO[nivelDeclarado?.tiempoEntrenando] || null;
+  // Ejercicios que el usuario desbloqueó a mano (al confirmar una sugerencia)
+  const desbloqueadosManuales = new Set(Object.values(nivelDeclarado?.desbloqueadosPorRama || {}).flat().map(idDeDesbloqueo));
 
   const resultado = {};
   RAMA_ORDEN.forEach(rama => {
-    const frontera = fronteraDeRama(rama, historialPorNombre);
+    const frontera = fronteraDeRama(rama, historialPorNombre, desbloqueadosManuales);
     let nivel = frontera ? frontera.nivel : 'principiante';
     // origen + frontierNombre quedan SEPARADOS del texto armado (fuente):
     // motivoPara() necesita comparar frontierNombre contra el ejercicio que
@@ -275,7 +273,8 @@ export async function calcularNivelPorRama(historialPorNombre) {
     // en vez de ignorarlo silenciosamente, para no sonar a "no progresaste
     // nada" cuando sí progresaste, solo que por un camino que no siguió.
     let notaDominado = null;
-    if (origen === 'arbol' && ARBOL_PROGRESIONES[frontera.nodoId].requiere.length === 0) {
+    const nodoFrontera = ARBOL_PROGRESIONES[frontera.nodoId];
+    if (origen === 'arbol' && nodoFrontera && nodoFrontera.requiere.length === 0 && (nodoFrontera.requiereAlternativos || []).length === 0) {
       notaDominado = nodoDominadoMasProfundo(rama, historialPorNombre)?.nombre || null;
     }
     let bloqueo = origen === 'arbol-bloqueada' ? frontera.bloqueo : null;
