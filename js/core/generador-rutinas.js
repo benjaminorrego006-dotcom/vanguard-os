@@ -319,7 +319,7 @@ export async function calcularNivelPorRama(historialPorNombre) {
       bajadoPorInactividad = true;
     }
 
-    resultado[rama] = { nivel, origen, frontierNombre, notaDominado, bloqueo, fuente, bajadoPorInactividad, diasSinEntrenar };
+    resultado[rama] = { nivel, origen, frontierNombre, notaDominado, bloqueo, fuente, bajadoPorInactividad, diasSinEntrenar, desbloqueados: nivelDeclarado?.desbloqueadosPorRama?.[rama] || [] };
   });
 
   return resultado;
@@ -433,8 +433,13 @@ function nivelesAIntentarPara(nivelRama) {
 // pool sin importar qué declaró el usuario — la "degradación de equipo" del
 // Paso 3 de la spec ya está cubierta por esto, no hace falta un paso
 // aparte; lo único que de verdad hay que degradar acá es el nivel.
-function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historialPorNombre, preferirTipo) {
+function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historialPorNombre, preferirTipo, desbloqueados = []) {
   const { abajo, arriba } = nivelesAIntentarPara(nivelRama);
+  // Ejercicios desbloqueados a mano al confirmar una sugerencia de avance:
+  // pasan el filtro de prerrequisitos y, si son de un nivel <= al de la
+  // rama, también el de nivel (no se pueden quedar fuera por un intento de
+  // nivel que no coincide con el suyo).
+  const manuales = new Set(desbloqueados);
 
   let sinEquipoNiPrereq = [];
   let primerPoolNoVacio = null;
@@ -443,7 +448,7 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
     e.patronMovimiento === patron &&
     (e.categoria === categoria || (e.tambienEn || []).includes(categoria)) &&
     (e.equipo === 'ninguno' || equipoDisponible.includes(e.equipo)) &&
-    (e.nivel === 'todos' || e.nivel === nivelIntento);
+    (e.nivel === 'todos' || e.nivel === nivelIntento || (manuales.has(e.id) && NIVEL_RANGO[e.nivel] <= NIVEL_RANGO[nivelRama]));
 
   // Un intento en un nivel. Devuelve el resultado si hay candidatos que
   // sirvan (del tipo pedido, si se pidió uno) o null para seguir con el
@@ -452,7 +457,7 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
   const intentar = (nivelIntento) => {
     const baseFiltro = filtroDe(nivelIntento);
     const pool = Object.values(CATALOGO_EJERCICIOS).filter(e =>
-      baseFiltro(e) && ((e.prerequisitos || []).length === 0 || estaDesbloqueado(e.id, historialPorNombre))
+      baseFiltro(e) && ((e.prerequisitos || []).length === 0 || estaDesbloqueado(e.id, historialPorNombre, manuales))
     );
     if (pool.length > 0) {
       if (!primerPoolNoVacio) primerPoolNoVacio = { pool, nivelIntento };
@@ -522,21 +527,25 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
 // Infinity) siendo el caso más común, un desempate fijo por id siempre
 // elegía el mismo ejercicio del catálogo primero, el sesgo por orden de
 // inserción que la spec pide evitar explícitamente (casos borde).
-function elegirDeCandidatos(pool, historialPorNombre, usadosEstaSemana, frontierNombre) {
+function elegirDeCandidatos(pool, historialPorNombre, usadosEstaSemana, frontierNombre, desbloqueados = []) {
+  const manuales = new Set(desbloqueados);
   const conPrioridad = pool.map(e => {
     const hist = historialPorNombre[e.nombre] || [];
     const ultima = hist.length ? new Date(hist[hist.length - 1].fecha) : null;
     const diasDesde = ultima ? (Date.now() - ultima.getTime()) / 86400000 : Infinity;
-    return { e, diasDesde, yaUsado: usadosEstaSemana.has(e.id), esProgresionPendiente: e.nombre === frontierNombre };
+    return { e, diasDesde, yaUsado: usadosEstaSemana.has(e.id), esManual: manuales.has(e.id), esProgresionPendiente: e.nombre === frontierNombre };
   });
   conPrioridad.sort((a, b) => {
     if (a.yaUsado !== b.yaUsado) return a.yaUsado ? 1 : -1;
+    // El ejercicio que el usuario desbloqueó al confirmar un avance va
+    // primero (entre los candidatos del mismo tipo, que ya vienen filtrados)
+    if (a.esManual !== b.esManual) return a.esManual ? -1 : 1;
     if (a.esProgresionPendiente !== b.esProgresionPendiente) return a.esProgresionPendiente ? -1 : 1;
     return b.diasDesde - a.diasDesde;
   });
   const mejor = conPrioridad[0];
   const empatados = conPrioridad.filter(c =>
-    c.yaUsado === mejor.yaUsado && c.esProgresionPendiente === mejor.esProgresionPendiente && c.diasDesde === mejor.diasDesde
+    c.yaUsado === mejor.yaUsado && c.esManual === mejor.esManual && c.esProgresionPendiente === mejor.esProgresionPendiente && c.diasDesde === mejor.diasDesde
   );
   return empatados[Math.floor(Math.random() * empatados.length)].e;
 }
@@ -633,7 +642,7 @@ function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, 
       if (agotados.has(patron)) continue;
 
       const nivelInfo = nivelPorRama[patron];
-      const { pool, relajado, nivelUsado, razon, motivoRelajado } = candidatosPara(patron, categoria, nivelInfo.nivel, equipoDisponible, historialPorNombre, preferirTipo);
+      const { pool, relajado, nivelUsado, razon, motivoRelajado } = candidatosPara(patron, categoria, nivelInfo.nivel, equipoDisponible, historialPorNombre, preferirTipo, nivelInfo.desbloqueados);
       if (pool.length === 0) {
         // razon null: no había del tipo pedido en esta fase, pero sí de
         // otro — no es un hueco real, la otra fase lo cubre, así que no
@@ -651,7 +660,7 @@ function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, 
         continue;
       }
 
-      const elegido = elegirDeCandidatos(noUsadosHoy, historialPorNombre, usadosEstaSemana, nivelInfo.frontierNombre);
+      const elegido = elegirDeCandidatos(noUsadosHoy, historialPorNombre, usadosEstaSemana, nivelInfo.frontierNombre, nivelInfo.desbloqueados);
       usadosEstaSemana.add(elegido.id);
       const esPrimeraDelPatronHoy = !vecesPorPatronHoy[patron];
       vecesPorPatronHoy[patron] = (vecesPorPatronHoy[patron] || 0) + 1;

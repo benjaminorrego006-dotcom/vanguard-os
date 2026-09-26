@@ -187,7 +187,13 @@ export function contarSeriesLimpias(historial, objetivo) {
 // de fuerza, no por "series limpias" — acá se trata como siempre
 // satisfecho para no bloquear su variante GYM sobre un criterio que este
 // árbol no evalúa.
-export function estaDesbloqueado(nodoId, historialPorNombre) {
+//
+// desbloqueadosManual (Set de ids, opcional): ejercicios que el usuario
+// desbloqueó a mano al confirmar una sugerencia de avance (ver
+// db.confirmarSugerenciaNivel); cuentan como desbloqueados aunque falten
+// sus prerrequisitos.
+export function estaDesbloqueado(nodoId, historialPorNombre, desbloqueadosManual = null) {
+  if (desbloqueadosManual && desbloqueadosManual.has(nodoId)) return true;
   const nodo = ARBOL_PROGRESIONES[nodoId];
   if (!nodo) return false;
   return nodo.requiere.every(reqId => {

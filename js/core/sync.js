@@ -151,11 +151,17 @@ export async function applyRemoteEvent(event) {
         break;
       case 'sugerencia_nivel_confirmada': {
         const row = await idb.getOne('singletons', 'nivelEntrenamiento');
-        const nivel = row?.value || { tiempoEntrenando: 'menos-1', overridesPorRama: {}, sugerenciasDescartadas: {} };
+        const nivel = row?.value || { tiempoEntrenando: 'menos-1', overridesPorRama: {}, desbloqueadosPorRama: {}, sugerenciasDescartadas: {} };
         const overridesPorRama = { ...nivel.overridesPorRama, [payload.rama]: payload.nivelSugerido };
         const sugerenciasDescartadas = { ...nivel.sugerenciasDescartadas };
         delete sugerenciasDescartadas[payload.rama];
-        await idb.put('singletons', { key: 'nivelEntrenamiento', value: { ...nivel, overridesPorRama, sugerenciasDescartadas } });
+        // Ejercicio siguiente desbloqueado a mano (eventos viejos no lo traen)
+        const desbloqueadosPorRama = { ...(nivel.desbloqueadosPorRama || {}) };
+        if (payload.ejercicioSiguienteId) {
+          const ids = desbloqueadosPorRama[payload.rama] || [];
+          if (!ids.includes(payload.ejercicioSiguienteId)) desbloqueadosPorRama[payload.rama] = [...ids, payload.ejercicioSiguienteId];
+        }
+        await idb.put('singletons', { key: 'nivelEntrenamiento', value: { ...nivel, overridesPorRama, desbloqueadosPorRama, sugerenciasDescartadas } });
         break;
       }
       case 'sugerencia_nivel_descartada': {

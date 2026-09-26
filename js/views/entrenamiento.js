@@ -101,7 +101,7 @@ async function renderSugerenciaNivelBanner() {
       const s = porRama(btn.dataset.rama);
       if (!s) return;
       btn.disabled = true;
-      await db.confirmarSugerenciaNivel(s.rama, s.nivelSugerido);
+      await db.confirmarSugerenciaNivel(s.rama, s.nivelSugerido, s.ejercicioSiguiente.id);
       Toast(`Subiste a ${NIVEL_SUGERIDO_LABEL[s.nivelSugerido]} en ${s.ramaLabel}`, 'success');
       renderSugerenciaNivelBanner();
     });

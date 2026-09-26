@@ -1285,6 +1285,12 @@ export const db = {
   // la app se lo sugirió, por rama — a diferencia de tiempoEntrenando (un
   // solo valor global), esto es por patrón de movimiento, y solo sube,
   // nunca baja (ver sugerencias-nivel.js).
+  // desbloqueadosPorRama (rama -> [ids de ejercicio]): el ejercicio siguiente
+  // de una sugerencia que el usuario confirmó ("Subir de nivel"). El
+  // generador lo trata como desbloqueado aunque el árbol de progresión aún
+  // no lo vea así (ej. las series del ejercicio anterior tenían RPE > 8, que
+  // el árbol no cuenta como "limpias" pero la sugerencia sí) y lo prioriza
+  // en la próxima rutina que incluya esa rama.
   // sugerenciasDescartadas: por rama, { nivel, fecha } — el nivel que el
   // usuario rechazó ("Ahora no") y el día (diaKeyDe) en que lo hizo. No se
   // le vuelve a mostrar ESE nivel (ni uno menor) durante 7 días; pasado ese
@@ -1300,6 +1306,7 @@ export const db = {
     const nivel = {
       tiempoEntrenando: valido.includes(data.tiempoEntrenando) ? data.tiempoEntrenando : (previo?.tiempoEntrenando || 'menos-1'),
       overridesPorRama: previo?.overridesPorRama || {},
+      desbloqueadosPorRama: previo?.desbloqueadosPorRama || {},
       sugerenciasDescartadas: previo?.sugerenciasDescartadas || {},
       actualizadoEn: new Date().toISOString()
     };
@@ -1308,17 +1315,22 @@ export const db = {
     await logEvent({ modulo: 'entreno', tipo: 'nivel_entrenamiento_actualizado', payload: nivel });
     return nivel;
   },
-  async confirmarSugerenciaNivel(rama, nivelSugerido) {
-    const previo = await idbGetSingleton('nivelEntrenamiento', { tiempoEntrenando: 'menos-1', overridesPorRama: {}, sugerenciasDescartadas: {} });
+  async confirmarSugerenciaNivel(rama, nivelSugerido, ejercicioSiguienteId = null) {
+    const previo = await idbGetSingleton('nivelEntrenamiento', { tiempoEntrenando: 'menos-1', overridesPorRama: {}, desbloqueadosPorRama: {}, sugerenciasDescartadas: {} });
+    const desbloqueadosPrevios = previo.desbloqueadosPorRama?.[rama] || [];
+    const desbloqueados = ejercicioSiguienteId && !desbloqueadosPrevios.includes(ejercicioSiguienteId)
+      ? [...desbloqueadosPrevios, ejercicioSiguienteId]
+      : desbloqueadosPrevios;
     const nivel = {
       ...previo,
       overridesPorRama: { ...previo.overridesPorRama, [rama]: nivelSugerido },
+      desbloqueadosPorRama: { ...(previo.desbloqueadosPorRama || {}), [rama]: desbloqueados },
       actualizadoEn: new Date().toISOString()
     };
     delete nivel.sugerenciasDescartadas[rama];
     await idbSetSingleton('nivelEntrenamiento', nivel);
     this._triggerUpdate();
-    await logEvent({ modulo: 'entreno', tipo: 'sugerencia_nivel_confirmada', payload: { rama, nivelSugerido } });
+    await logEvent({ modulo: 'entreno', tipo: 'sugerencia_nivel_confirmada', payload: { rama, nivelSugerido, ejercicioSiguienteId } });
     return nivel;
   },
   async descartarSugerenciaNivel(rama, nivelSugerido) {
