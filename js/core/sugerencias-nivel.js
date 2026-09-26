@@ -16,7 +16,7 @@ import { db } from './db.js';
 import { getNivel } from './estandares-fuerza.js';
 import { CATALOGO_EJERCICIOS, getEjercicioPorId, getEjercicioMetadata, getIdPorNombreExacto } from './ejercicios-catalogo.js';
 import { RAMA_ORDEN, RAMA_LABELS, ARBOL_PROGRESIONES, profundidadNodo, contarSeriesLimpias } from './progresiones.js';
-import { diaKeyDe } from '../utils/fecha.js';
+import { diaKeyDe, diasEntre } from '../utils/fecha.js';
 
 const NIVEL_RANGO = { principiante: 0, intermedio: 1, avanzado: 2 };
 const NIVEL_DESDE_RANGO = ['principiante', 'intermedio', 'avanzado'];
@@ -103,14 +103,6 @@ function evaluarPorSeries(entry, sesiones) {
   if (cumplen.length < SESIONES_MINIMAS_QUE_CUMPLEN) return null;
   const unidad = tipo === 'segundos' ? ' s' : '';
   return `${cumplen.length} de tus últimas ${ultimas.length} sesiones con ${series}×${valor}${unidad} de ${entry.nombre.toLowerCase()}.`;
-}
-
-// Días de calendario entre dos claves diaKeyDe ('YYYY-MM-DD'), en hora local
-// (nunca toISOString: cruzaría el día por el huso horario).
-function diasEntre(claveDesde, claveHasta) {
-  const [ya, ma, da] = claveDesde.split('-').map(Number);
-  const [yb, mb, db_] = claveHasta.split('-').map(Number);
-  return Math.round((new Date(yb, mb - 1, db_) - new Date(ya, ma - 1, da)) / 86400000);
 }
 
 // ¿Sigue vigente el "Ahora no" de esta rama para el nivel sugerido? Vigente

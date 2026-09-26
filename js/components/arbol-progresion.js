@@ -133,7 +133,7 @@ export async function renderArbolProgresion(categoria) {
   // Ejercicios que el usuario desbloqueó a mano al confirmar una sugerencia
   // de avance (ver db.confirmarSugerenciaNivel): cuentan como desbloqueados.
   const nivelDeclarado = await db.getNivelEntrenamiento();
-  const desbloqueadosManuales = new Set(Object.values(nivelDeclarado?.desbloqueadosPorRama || {}).flat());
+  const desbloqueadosManuales = new Set(Object.values(nivelDeclarado?.desbloqueadosPorRama || {}).flat().map(d => (typeof d === 'string' ? d : d.id)));
 
   return `
     <div>

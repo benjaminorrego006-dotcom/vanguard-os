@@ -63,3 +63,12 @@ export const formatDiaSemana = (d) => {
   const f = d instanceof Date ? d : new Date(d);
   return f.toLocaleDateString('es-CL', { weekday: 'narrow' });
 };
+
+// Días de calendario entre dos claves diaKeyDe ('YYYY-MM-DD'), en hora local
+// (nunca toISOString: cruzaría el día por el huso horario). Positivo si
+// claveHasta es posterior a claveDesde.
+export const diasEntre = (claveDesde, claveHasta) => {
+  const [ya, ma, da] = claveDesde.split('-').map(Number);
+  const [yb, mb, db] = claveHasta.split('-').map(Number);
+  return Math.round((new Date(yb, mb - 1, db) - new Date(ya, ma - 1, da)) / 86400000);
+};

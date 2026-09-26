@@ -157,9 +157,14 @@ export async function applyRemoteEvent(event) {
         delete sugerenciasDescartadas[payload.rama];
         // Ejercicio siguiente desbloqueado a mano (eventos viejos no lo traen)
         const desbloqueadosPorRama = { ...(nivel.desbloqueadosPorRama || {}) };
+        // (con su fecha; un evento viejo sin fecha queda sin garantía)
         if (payload.ejercicioSiguienteId) {
-          const ids = desbloqueadosPorRama[payload.rama] || [];
-          if (!ids.includes(payload.ejercicioSiguienteId)) desbloqueadosPorRama[payload.rama] = [...ids, payload.ejercicioSiguienteId];
+          const idDe = d => (typeof d === 'string' ? d : d.id);
+          const previos = desbloqueadosPorRama[payload.rama] || [];
+          desbloqueadosPorRama[payload.rama] = [
+            ...previos.filter(d => idDe(d) !== payload.ejercicioSiguienteId),
+            { id: payload.ejercicioSiguienteId, fecha: payload.fecha || null }
+          ];
         }
         await idb.put('singletons', { key: 'nivelEntrenamiento', value: { ...nivel, overridesPorRama, desbloqueadosPorRama, sugerenciasDescartadas } });
         break;

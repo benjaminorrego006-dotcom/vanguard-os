@@ -12,6 +12,19 @@ import { db } from './db.js';
 import { ARBOL_PROGRESIONES, RAMA_ORDEN, RAMA_LABELS, profundidadNodo, estaDesbloqueado, contarSeriesLimpias } from './progresiones.js';
 import { CATALOGO_EJERCICIOS, getEjercicioPorId } from './ejercicios-catalogo.js';
 import { getNivel } from './estandares-fuerza.js';
+import { diaKeyDe, diasEntre } from '../utils/fecha.js';
+
+// Ejercicios desbloqueados a mano (al confirmar una sugerencia de avance):
+// entradas { id, fecha } (o solo el id, en datos viejos). Durante
+// DIAS_GARANTIA_DESBLOQUEO días desde `fecha` tienen 1 espacio garantizado
+// por sesión de su rama; después (o sin fecha) siguen desbloqueados pero
+// compiten con la prioridad normal.
+const DIAS_GARANTIA_DESBLOQUEO = 28;
+const idDeDesbloqueo = d => (typeof d === 'string' ? d : d.id);
+function desbloqueoConGarantia(d) {
+  if (!d || typeof d === 'string' || !d.fecha) return false;
+  return diasEntre(d.fecha, diaKeyDe(new Date())) < DIAS_GARANTIA_DESBLOQUEO;
+}
 
 const NIVEL_RANGO = { principiante: 0, intermedio: 1, avanzado: 2 };
 const NIVEL_DESDE_RANGO = ['principiante', 'intermedio', 'avanzado'];
@@ -435,11 +448,13 @@ function nivelesAIntentarPara(nivelRama) {
 // aparte; lo único que de verdad hay que degradar acá es el nivel.
 function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historialPorNombre, preferirTipo, desbloqueados = []) {
   const { abajo, arriba } = nivelesAIntentarPara(nivelRama);
-  // Ejercicios desbloqueados a mano al confirmar una sugerencia de avance:
-  // pasan el filtro de prerrequisitos y, si son de un nivel <= al de la
-  // rama, también el de nivel (no se pueden quedar fuera por un intento de
-  // nivel que no coincide con el suyo).
-  const manuales = new Set(desbloqueados);
+  // Ejercicios desbloqueados a mano al confirmar una sugerencia de avance.
+  // Se SUMAN al pool de cualquier intento (pasan prerrequisitos y nivel,
+  // porque el usuario los habilitó), pero no cuentan como "hay candidatos en
+  // este nivel": si lo hicieran, taparían los ejercicios de los niveles
+  // inferiores y, vencida la garantía (ver elegirDeCandidatos), el
+  // desbloqueado seguiría siendo el único candidato de la rama.
+  const manuales = new Set(desbloqueados.map(idDeDesbloqueo));
 
   let sinEquipoNiPrereq = [];
   let primerPoolNoVacio = null;
@@ -448,7 +463,19 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
     e.patronMovimiento === patron &&
     (e.categoria === categoria || (e.tambienEn || []).includes(categoria)) &&
     (e.equipo === 'ninguno' || equipoDisponible.includes(e.equipo)) &&
-    (e.nivel === 'todos' || e.nivel === nivelIntento || (manuales.has(e.id) && NIVEL_RANGO[e.nivel] <= NIVEL_RANGO[nivelRama]));
+    (e.nivel === 'todos' || e.nivel === nivelIntento);
+
+  const poolManual = manuales.size === 0 ? [] : Object.values(CATALOGO_EJERCICIOS).filter(e =>
+    manuales.has(e.id) &&
+    e.patronMovimiento === patron &&
+    (e.categoria === categoria || (e.tambienEn || []).includes(categoria)) &&
+    (e.equipo === 'ninguno' || equipoDisponible.includes(e.equipo))
+  );
+  const manualesDelTipo = preferirTipo ? poolManual.filter(e => e.tipoMovimiento === preferirTipo) : poolManual;
+  const conManuales = (pool) => {
+    const ids = new Set(pool.map(e => e.id));
+    return [...pool, ...manualesDelTipo.filter(e => !ids.has(e.id))];
+  };
 
   // Un intento en un nivel. Devuelve el resultado si hay candidatos que
   // sirvan (del tipo pedido, si se pidió uno) o null para seguir con el
@@ -469,9 +496,9 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
         // "taparían" el hueco antes de llegar al nivel donde vive el
         // compuesto real (ej. Remo con Barra, intermedio).
         const preferidos = pool.filter(e => e.tipoMovimiento === preferirTipo);
-        return preferidos.length > 0 ? { pool: preferidos, nivelIntento } : null;
+        return preferidos.length > 0 ? { pool: conManuales(preferidos), nivelIntento } : null;
       }
-      return { pool, nivelIntento };
+      return { pool: conManuales(pool), nivelIntento };
     }
     if (sinEquipoNiPrereq.length === 0) sinEquipoNiPrereq = Object.values(CATALOGO_EJERCICIOS).filter(baseFiltro);
     return null;
@@ -485,6 +512,13 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
       const bajo = nivelIntento !== nivelRama;
       return { pool: r.pool, relajado: bajo, nivelUsado: nivelIntento, razon: null, motivoRelajado: bajo ? 'nivel-inferior' : null };
     }
+  }
+
+  // Nada en el nivel de la rama ni en inferiores (o solo del otro tipo), pero
+  // el usuario desbloqueó a mano un ejercicio de este patrón/tipo: es lo que
+  // hay, sin relajar nivel.
+  if (manualesDelTipo.length > 0) {
+    return { pool: manualesDelTipo, relajado: false, nivelUsado: nivelRama, razon: null, motivoRelajado: null };
   }
 
   // Había candidatos en el nivel de la rama o en inferiores, pero no del
@@ -528,7 +562,8 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
 // elegía el mismo ejercicio del catálogo primero, el sesgo por orden de
 // inserción que la spec pide evitar explícitamente (casos borde).
 function elegirDeCandidatos(pool, historialPorNombre, usadosEstaSemana, frontierNombre, desbloqueados = []) {
-  const manuales = new Set(desbloqueados);
+  // Solo los desbloqueos dentro de su plazo de garantía tienen prioridad.
+  const manuales = new Set(desbloqueados.filter(desbloqueoConGarantia).map(idDeDesbloqueo));
   const conPrioridad = pool.map(e => {
     const hist = historialPorNombre[e.nombre] || [];
     const ultima = hist.length ? new Date(hist[hist.length - 1].fecha) : null;
@@ -536,10 +571,10 @@ function elegirDeCandidatos(pool, historialPorNombre, usadosEstaSemana, frontier
     return { e, diasDesde, yaUsado: usadosEstaSemana.has(e.id), esManual: manuales.has(e.id), esProgresionPendiente: e.nombre === frontierNombre };
   });
   conPrioridad.sort((a, b) => {
-    // El ejercicio que el usuario desbloqueó al confirmar un avance tiene un
-    // espacio garantizado en CADA sesión que incluye su rama (va primero
-    // entre los candidatos del mismo tipo, incluso si ya se usó otro día de
-    // la semana). Una vez elegido hoy, elegirEjerciciosDelDia lo saca del
+    // El ejercicio que el usuario desbloqueó al confirmar un avance (durante
+    // las primeras 4 semanas) tiene un espacio garantizado en CADA sesión que
+    // incluye su rama (va primero entre los candidatos del mismo tipo,
+    // incluso si ya se usó otro día de la semana). Una vez elegido hoy, elegirEjerciciosDelDia lo saca del
     // pool (noUsadosHoy), así que los demás espacios de la rama se llenan
     // con el orden normal de abajo.
     if (a.esManual !== b.esManual) return a.esManual ? -1 : 1;

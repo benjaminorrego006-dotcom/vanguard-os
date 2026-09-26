@@ -1285,12 +1285,13 @@ export const db = {
   // la app se lo sugirió, por rama — a diferencia de tiempoEntrenando (un
   // solo valor global), esto es por patrón de movimiento, y solo sube,
   // nunca baja (ver sugerencias-nivel.js).
-  // desbloqueadosPorRama (rama -> [ids de ejercicio]): el ejercicio siguiente
-  // de una sugerencia que el usuario confirmó ("Subir de nivel"). El
-  // generador lo trata como desbloqueado aunque el árbol de progresión aún
-  // no lo vea así (ej. las series del ejercicio anterior tenían RPE > 8, que
-  // el árbol no cuenta como "limpias" pero la sugerencia sí) y lo prioriza
-  // en la próxima rutina que incluya esa rama.
+  // desbloqueadosPorRama (rama -> [{ id, fecha }]): el ejercicio siguiente
+  // de una sugerencia que el usuario confirmó ("Subir de nivel") y el día
+  // (diaKeyDe) del desbloqueo. El generador lo trata como desbloqueado aunque
+  // el árbol de progresión aún no lo vea así, y durante 4 semanas desde esa
+  // fecha le garantiza 1 espacio por sesión de su rama (pasado ese plazo
+  // compite con la prioridad normal). Una entrada vieja (solo el id, sin
+  // fecha) no tiene garantía: prioridad normal.
   // sugerenciasDescartadas: por rama, { nivel, fecha } — el nivel que el
   // usuario rechazó ("Ahora no") y el día (diaKeyDe) en que lo hizo. No se
   // le vuelve a mostrar ESE nivel (ni uno menor) durante 7 días; pasado ese
@@ -1317,9 +1318,11 @@ export const db = {
   },
   async confirmarSugerenciaNivel(rama, nivelSugerido, ejercicioSiguienteId = null) {
     const previo = await idbGetSingleton('nivelEntrenamiento', { tiempoEntrenando: 'menos-1', overridesPorRama: {}, desbloqueadosPorRama: {}, sugerenciasDescartadas: {} });
+    const fecha = diaKeyDe(new Date());
     const desbloqueadosPrevios = previo.desbloqueadosPorRama?.[rama] || [];
-    const desbloqueados = ejercicioSiguienteId && !desbloqueadosPrevios.includes(ejercicioSiguienteId)
-      ? [...desbloqueadosPrevios, ejercicioSiguienteId]
+    const idDe = d => (typeof d === 'string' ? d : d.id);
+    const desbloqueados = ejercicioSiguienteId
+      ? [...desbloqueadosPrevios.filter(d => idDe(d) !== ejercicioSiguienteId), { id: ejercicioSiguienteId, fecha }]
       : desbloqueadosPrevios;
     const nivel = {
       ...previo,
@@ -1330,7 +1333,7 @@ export const db = {
     delete nivel.sugerenciasDescartadas[rama];
     await idbSetSingleton('nivelEntrenamiento', nivel);
     this._triggerUpdate();
-    await logEvent({ modulo: 'entreno', tipo: 'sugerencia_nivel_confirmada', payload: { rama, nivelSugerido, ejercicioSiguienteId } });
+    await logEvent({ modulo: 'entreno', tipo: 'sugerencia_nivel_confirmada', payload: { rama, nivelSugerido, ejercicioSiguienteId, fecha } });
     return nivel;
   },
   async descartarSugerenciaNivel(rama, nivelSugerido) {
