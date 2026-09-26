@@ -850,7 +850,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
             const reps = row.querySelector('.serie-reps').value;
             const peso = row.querySelector('.serie-peso').value;
             const rpe = row.querySelector('.serie-rpe').value ? parseInt(row.querySelector('.serie-rpe').value) : null;
-            seriesCompletadas.push({ tipo, reps, peso, rpe });
+            // checked: true explícito (solo se guardan las series marcadas):
+            // sugerencias-nivel.js solo cuenta series marcadas.
+            seriesCompletadas.push({ tipo, reps, peso, rpe, checked: true });
           }
         });
         

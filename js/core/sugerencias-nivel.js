@@ -65,12 +65,20 @@ function repsDe(serie) {
   return m ? parseInt(m[0], 10) : 0;
 }
 
+// ¿La serie cuenta como marcada (hecha)? Las sesiones guardadas desde la
+// pantalla de sesión antes de este cambio solo guardaban las series
+// marcadas, pero SIN el campo `checked`: una serie sin el campo cuenta como
+// marcada. Si el campo existe y es false, no cuenta.
+function serieMarcada(serie) {
+  return serie.checked !== false;
+}
+
 // Serie válida para el criterio 'ratio': tipo normal (una sesión vieja sin
 // `tipo` cuenta como normal) y marcada como hecha. Los criterios de
 // reps/segundos NO usan esto: usan la definición de "serie limpia" del árbol
 // de progresión (ver evaluarPorSeries).
 function serieValida(serie) {
-  return (!serie.tipo || serie.tipo === 'normal') && serie.checked === true;
+  return (!serie.tipo || serie.tipo === 'normal') && serieMarcada(serie);
 }
 
 // Sesiones (de más reciente a más antigua) donde apareció el ejercicio, con
@@ -97,7 +105,7 @@ function evaluarPorSeries(entry, sesiones) {
   const objetivo = ARBOL_PROGRESIONES[entry.id]?.objetivo || null;
   const ultimas = sesionesDelEjercicio(sesiones, entry.id).slice(0, SESIONES_A_MIRAR);
   const cumplen = ultimas.filter(s => contarSeriesLimpias(
-    [{ seriesDetalle: s.series.filter(sr => sr.checked === true).map(sr => ({ ...sr, reps: repsDe(sr) })) }],
+    [{ seriesDetalle: s.series.filter(serieMarcada).map(sr => ({ ...sr, reps: repsDe(sr) })) }],
     objetivo
   ));
   if (cumplen.length < SESIONES_MINIMAS_QUE_CUMPLEN) return null;
