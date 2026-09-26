@@ -43,19 +43,29 @@ function criterioAObjetivo(criterioAvance) {
     : { series: criterioAvance.series, reps: criterioAvance.valor };
 }
 
+// Campo opcional del catálogo `prerequisitosAlternativos` (string[]): se
+// cumple si AL MENOS UNO está cumplido; `prerequisitos` sigue siendo AND y un
+// ejercicio puede tener ambos. Un nodo con solo alternativos también es "en
+// cadena".
 function construirArbol() {
   const entradas = Object.values(CATALOGO_EJERCICIOS);
   const referenciados = new Set();
-  entradas.forEach(e => (e.prerequisitos || []).forEach(id => referenciados.add(id)));
+  entradas.forEach(e => {
+    (e.prerequisitos || []).forEach(id => referenciados.add(id));
+    (e.prerequisitosAlternativos || []).forEach(id => referenciados.add(id));
+  });
 
   const arbol = {};
   entradas.forEach(e => {
-    const enCadena = (e.prerequisitos || []).length > 0 || referenciados.has(e.id);
+    const enCadena = (e.prerequisitos || []).length > 0 || (e.prerequisitosAlternativos || []).length > 0 || referenciados.has(e.id);
     if (!enCadena) return;
     arbol[e.id] = {
       nombre: e.nombre,
       rama: e.patronMovimiento,
+      // 'todos' no clasifica dificultad; para comparar niveles cuenta como principiante.
+      nivel: e.nivel === 'todos' ? 'principiante' : e.nivel,
       requiere: e.prerequisitos || [],
+      requiereAlternativos: e.prerequisitosAlternativos || [],
       objetivo: criterioAObjetivo(e.criterioAvance)
     };
   });
@@ -89,8 +99,12 @@ export const RAMA_LABELS = {
 export function profundidadNodo(id, memo = new Map()) {
   if (memo.has(id)) return memo.get(id);
   const nodo = ARBOL_PROGRESIONES[id];
-  if (!nodo || nodo.requiere.length === 0) { memo.set(id, 1); return 1; }
-  const d = 1 + Math.max(...nodo.requiere.map(reqId => profundidadNodo(reqId, memo)));
+  const alternativos = (nodo && nodo.requiereAlternativos) || [];
+  if (!nodo || (nodo.requiere.length === 0 && alternativos.length === 0)) { memo.set(id, 1); return 1; }
+  // AND: pesa el más profundo; OR: alcanza el más superficial.
+  const profundidades = nodo.requiere.map(reqId => profundidadNodo(reqId, memo));
+  if (alternativos.length > 0) profundidades.push(Math.min(...alternativos.map(reqId => profundidadNodo(reqId, memo))));
+  const d = 1 + Math.max(...profundidades);
   memo.set(id, d);
   return d;
 }
@@ -178,6 +192,22 @@ export function contarSeriesLimpias(historial, objetivo) {
   );
 }
 
+const NIVEL_RANGO = { principiante: 0, intermedio: 1, avanzado: 2 };
+
+// Un prerrequisito está cumplido si (a) no hay nada que evaluar (tipo
+// 'ratio' o fuera del árbol, ver más abajo), (b) el usuario lo desbloqueó a
+// mano, (c) su nivel (con 'todos' = principiante) es MENOR que el nivel
+// actual de la rama del ejercicio que se evalúa — quien ya está en un nivel
+// superior no tiene que demostrar de nuevo lo de los niveles de abajo — o
+// (d) el historial registra series limpias de ese paso.
+function prerrequisitoCumplido(reqId, historialPorNombre, desbloqueadosManual, nivelRama) {
+  const req = ARBOL_PROGRESIONES[reqId];
+  if (!req || !req.objetivo) return true;
+  if (desbloqueadosManual && desbloqueadosManual.has(reqId)) return true;
+  if (nivelRama && NIVEL_RANGO[req.nivel] < NIVEL_RANGO[nivelRama]) return true;
+  return contarSeriesLimpias(historialPorNombre[req.nombre], req.objetivo);
+}
+
 // historialPorNombre: { [nombreDeEjercicio]: historial } para todos los
 // nombres involucrados — el caller (la vista del árbol) hace un solo
 // barrido de db.getHistorialEjercicio por nodo relevante y arma este mapa
@@ -192,15 +222,14 @@ export function contarSeriesLimpias(historial, objetivo) {
 // desbloqueó a mano al confirmar una sugerencia de avance (ver
 // db.confirmarSugerenciaNivel); cuentan como desbloqueados aunque falten
 // sus prerrequisitos.
-export function estaDesbloqueado(nodoId, historialPorNombre, desbloqueadosManual = null) {
+export function estaDesbloqueado(nodoId, historialPorNombre, desbloqueadosManual = null, nivelRama = null) {
   if (desbloqueadosManual && desbloqueadosManual.has(nodoId)) return true;
   const nodo = ARBOL_PROGRESIONES[nodoId];
   if (!nodo) return false;
-  return nodo.requiere.every(reqId => {
-    const req = ARBOL_PROGRESIONES[reqId];
-    if (!req || !req.objetivo) return true;
-    return contarSeriesLimpias(historialPorNombre[req.nombre], req.objetivo);
-  });
+  const cumplido = reqId => prerrequisitoCumplido(reqId, historialPorNombre, desbloqueadosManual, nivelRama);
+  if (!nodo.requiere.every(cumplido)) return false;
+  const alternativos = nodo.requiereAlternativos || [];
+  return alternativos.length === 0 || alternativos.some(cumplido);
 }
 
 // Nodos de prerrequisito directo de `nodoId`, resueltos a su info completa
@@ -210,4 +239,11 @@ export function getPrerrequisitos(nodoId) {
   const nodo = ARBOL_PROGRESIONES[nodoId];
   if (!nodo) return [];
   return nodo.requiere.map(id => ({ id, ...ARBOL_PROGRESIONES[id] }));
+}
+
+// Ídem para los prerrequisitos alternativos (basta con uno de ellos).
+export function getPrerrequisitosAlternativos(nodoId) {
+  const nodo = ARBOL_PROGRESIONES[nodoId];
+  if (!nodo) return [];
+  return (nodo.requiereAlternativos || []).map(id => ({ id, ...ARBOL_PROGRESIONES[id] }));
 }

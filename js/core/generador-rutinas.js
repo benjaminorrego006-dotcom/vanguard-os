@@ -484,7 +484,7 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
   const intentar = (nivelIntento) => {
     const baseFiltro = filtroDe(nivelIntento);
     const pool = Object.values(CATALOGO_EJERCICIOS).filter(e =>
-      baseFiltro(e) && ((e.prerequisitos || []).length === 0 || estaDesbloqueado(e.id, historialPorNombre, manuales))
+      baseFiltro(e) && (((e.prerequisitos || []).length === 0 && (e.prerequisitosAlternativos || []).length === 0) || estaDesbloqueado(e.id, historialPorNombre, manuales, nivelRama))
     );
     if (pool.length > 0) {
       if (!primerPoolNoVacio) primerPoolNoVacio = { pool, nivelIntento };

@@ -19,8 +19,9 @@
 // igual que cualquier otro contenido de la app. El árbol informa, no
 // premia — no hay confetti ni mensaje de felicitación en ningún lado acá.
 import { db } from '../core/db.js';
-import { ARBOL_PROGRESIONES, RAMA_ORDEN, RAMA_LABELS, profundidadNodo, estaDesbloqueado, getPrerrequisitos } from '../core/progresiones.js';
+import { ARBOL_PROGRESIONES, RAMA_ORDEN, RAMA_LABELS, profundidadNodo, estaDesbloqueado, getPrerrequisitos, getPrerrequisitosAlternativos } from '../core/progresiones.js';
 import { getEjercicioPorId } from '../core/ejercicios-catalogo.js';
+import { calcularNivelPorRama } from '../core/generador-rutinas.js';
 
 const MODALIDAD_LABELS = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
 
@@ -60,7 +61,8 @@ const formatObjetivo = (objetivo) => {
 // ya que "Dominadas" no tiene tarjeta propia dentro de esta vista filtrada.
 function renderPrerrequisitos(nodoId, prereqs, categoria) {
   const nodo = ARBOL_PROGRESIONES[nodoId];
-  const items = prereqs.map(p => {
+  const alternativos = getPrerrequisitosAlternativos(nodoId);
+  const item = p => {
     const cruzaModalidad = !modalidadesDe(p.id).has(categoria);
     const cruzaRama = p.rama !== nodo.rama;
     const partes = [];
@@ -68,18 +70,22 @@ function renderPrerrequisitos(nodoId, prereqs, categoria) {
     if (cruzaRama) partes.push(RAMA_LABELS[p.rama]);
     const etiqueta = partes.length ? ` <span style="color: var(--text-disabled); font-weight: 500;">(${partes.join(' · ')})</span>` : '';
     return `<li>${p.nombre}${etiqueta} — ${formatObjetivo(p.objetivo)}</li>`;
-  }).join('');
+  };
+  const items = prereqs.map(item).join('');
+  const itemsAlternativos = alternativos.length === 0 ? '' : `
+      <div style="text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin: 6px 0 4px 0; color: var(--text-disabled);">Uno de estos</div>
+      <ul style="margin: 0; padding-left: 16px; line-height: 1.6;">${alternativos.map(item).join('')}</ul>`;
   return `
     <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary);">
       <div style="text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 4px; color: var(--text-disabled);">Requiere</div>
-      <ul style="margin: 0; padding-left: 16px; line-height: 1.6;">${items}</ul>
+      <ul style="margin: 0; padding-left: 16px; line-height: 1.6;">${items}</ul>${itemsAlternativos}
     </div>
   `;
 }
 
 function renderNodo(nodoId, bloqueado, categoria) {
   const nodo = ARBOL_PROGRESIONES[nodoId];
-  const esRaiz = nodo.requiere.length === 0;
+  const esRaiz = nodo.requiere.length === 0 && (nodo.requiereAlternativos || []).length === 0;
   const prereqs = getPrerrequisitos(nodoId);
 
   return `
@@ -98,7 +104,8 @@ function renderNodo(nodoId, bloqueado, categoria) {
 const porProfundidad = (a, b) =>
   profundidadNodo(a) - profundidadNodo(b) || ARBOL_PROGRESIONES[a].nombre.localeCompare(ARBOL_PROGRESIONES[b].nombre);
 
-function renderRama(rama, historialPorNombre, categoria, desbloqueadosManuales) {
+function renderRama(rama, historialPorNombre, categoria, desbloqueadosManuales, nivelPorRama) {
+  const nivelRama = nivelPorRama[rama]?.nivel || null;
   const idsRama = Object.keys(ARBOL_PROGRESIONES)
     .filter(id => ARBOL_PROGRESIONES[id].rama === rama)
     .filter(id => modalidadesDe(id).has(categoria));
@@ -106,10 +113,10 @@ function renderRama(rama, historialPorNombre, categoria, desbloqueadosManuales) 
   const estaticos = idsRama.filter(id => NODOS_ESTATICOS.has(id)).sort(porProfundidad);
   if (normales.length === 0 && estaticos.length === 0) return '';
 
-  const nodosNormalesHtml = normales.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre, desbloqueadosManuales), categoria)).join('');
+  const nodosNormalesHtml = normales.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre, desbloqueadosManuales, nivelRama), categoria)).join('');
   const nodosEstaticosHtml = estaticos.length === 0 ? '' : `
     <div style="font-size: 10.5px; font-weight: 700; color: var(--text-disabled); text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 8px 0;">Estáticos</div>
-    ${estaticos.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre, desbloqueadosManuales), categoria)).join('')}
+    ${estaticos.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre, desbloqueadosManuales, nivelRama), categoria)).join('')}
   `;
 
   return `
@@ -132,6 +139,8 @@ export async function renderArbolProgresion(categoria) {
   const historialPorNombre = Object.fromEntries(nombres.map((nombre, i) => [nombre, historiales[i]]));
   // Ejercicios que el usuario desbloqueó a mano al confirmar una sugerencia
   // de avance (ver db.confirmarSugerenciaNivel): cuentan como desbloqueados.
+  // Mismo nivel de rama que usa el generador (historial + declarado + override)
+  const nivelPorRama = await calcularNivelPorRama(historialPorNombre);
   const nivelDeclarado = await db.getNivelEntrenamiento();
   const desbloqueadosManuales = new Set(Object.values(nivelDeclarado?.desbloqueadosPorRama || {}).flat().map(d => (typeof d === 'string' ? d : d.id)));
 
@@ -140,7 +149,7 @@ export async function renderArbolProgresion(categoria) {
       <h2 style="font-size: 21px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Árbol de Progresión · ${MODALIDAD_LABELS[categoria] || ''}</h2>
       <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 4px 0; line-height: 1.5;">Qué entrenar después. Un paso se habilita cuando el historial registra series limpias del paso anterior.</p>
       <p style="font-size: 11px; color: var(--text-disabled); margin: 0 0 20px 0; line-height: 1.5; font-style: italic;">Es una referencia de la comunidad, no un veredicto sobre tu cuerpo — progresa al ritmo que te funcione.</p>
-      ${RAMA_ORDEN.map(rama => renderRama(rama, historialPorNombre, categoria, desbloqueadosManuales)).join('')}
+      ${RAMA_ORDEN.map(rama => renderRama(rama, historialPorNombre, categoria, desbloqueadosManuales, nivelPorRama)).join('')}
     </div>
   `;
 }
