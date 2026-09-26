@@ -4,7 +4,7 @@
 // y fecha límite en los dos casos, solo cambia cómo se formatea el número.
 import { formatCurrency } from '../utils/currency.js';
 import { escapeHtml } from '../utils/escape.js';
-import { formatFechaCorta } from '../utils/fecha.js';
+import { formatFechaCorta, diaKeyDe, diasEntre } from '../utils/fecha.js';
 
 export const GOAL_ICONS = ['shield', 'plane', 'car', 'home', 'laptop', 'education', 'run', 'target'];
 export const GOAL_ICON_LABELS = {
@@ -76,9 +76,8 @@ export function renderGoalCard(goal) {
 
   let deadlineHtml = '';
   if (goal.deadline) {
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const fechaLimite = new Date(goal.deadline + 'T00:00:00');
-    const diasRestantes = Math.ceil((fechaLimite - hoy) / (1000 * 60 * 60 * 24));
+    const diasRestantes = diasEntre(diaKeyDe(new Date()), goal.deadline);
     const fechaLabel = formatFechaCorta(fechaLimite);
     const vencida = diasRestantes < 0 && !goal.completed;
     deadlineHtml = `<div style="font-size: 11px; color: ${vencida ? 'var(--state-high)' : 'var(--text-disabled)'}; margin-top: 6px;">${vencida ? 'Venció el' : 'Vence el'} ${fechaLabel}${!vencida && !goal.completed ? ` &bull; ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}` : ''}</div>`;

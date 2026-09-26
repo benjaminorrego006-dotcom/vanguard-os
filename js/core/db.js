@@ -1,6 +1,6 @@
 import { getEjercicioMetadata, getEjercicioPorId, getIdPorNombreExacto, GRUPO_MUSCULAR_ORDEN } from './ejercicios-catalogo.js';
 import * as idb from './idb.js';
-import { mesKeyDe, diaKeyDe } from '../utils/fecha.js';
+import { mesKeyDe, diaKeyDe, diasEntre, sumarDias, claveDiaDe } from '../utils/fecha.js';
 import { EQUIPO_OPCIONES } from './trainingConfig.js';
 
 function toSafeNumber(value) {
@@ -175,28 +175,27 @@ const generateId = () => {
 // que solo necesita la lista de días únicos (ya ordenada de más reciente a
 // más antiguo); de dónde salen esos días (eventos, sesiones, lo que sea)
 // lo decide cada caller.
-function calcularRachaDesdeDias(sortedDays) {
-  if (sortedDays.length === 0) return { actual: 0, mejor: 0 };
+//
+// Trabaja con claves de día 'YYYY-MM-DD' (diaKeyDe) y cuenta la
+// consecutividad con diasEntre, nunca restando ms entre medianoches: con
+// el cambio de horario hay días de 23 o 25 horas y la racha se cortaba
+// sola (ej. en Chile, 3–8 de septiembre daba 2 en vez de 6).
+function calcularRachaDesdeDias(diasDesc) {
+  if (diasDesc.length === 0) return { actual: 0, mejor: 0 };
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayTime = today.getTime();
+  const hoy = diaKeyDe(new Date());
 
+  // Hoy o ayer: si hoy todavía no hay actividad, la racha sigue viva.
   let actual = 0;
-  if (sortedDays[0] === todayTime || sortedDays[0] === todayTime - 86400000) {
-    let checkTime = sortedDays[0];
-    let index = 0;
-    while (index < sortedDays.length && sortedDays[index] === checkTime) {
-      actual++;
-      checkTime -= 86400000;
-      index++;
-    }
+  if (diasDesc[0] === hoy || diasEntre(diasDesc[0], hoy) === 1) {
+    actual = 1;
+    while (actual < diasDesc.length && diasEntre(diasDesc[actual], diasDesc[actual - 1]) === 1) actual++;
   }
 
   let mejor = 1;
   let tempMejor = 1;
-  for (let i = 0; i < sortedDays.length - 1; i++) {
-    if (sortedDays[i] - sortedDays[i + 1] === 86400000) {
+  for (let i = 0; i < diasDesc.length - 1; i++) {
+    if (diasEntre(diasDesc[i + 1], diasDesc[i]) === 1) {
       tempMejor++;
       if (tempMejor > mejor) mejor = tempMejor;
     } else {
@@ -207,30 +206,17 @@ function calcularRachaDesdeDias(sortedDays) {
   return { actual, mejor };
 }
 
-// Timestamps de medianoche (uno por día con al menos un evento), de más
-// reciente a más antiguo — la forma que espera calcularRachaDesdeDias.
+// Claves de día únicas (una por día con al menos un evento), de más
+// reciente a más antigua — la forma que espera calcularRachaDesdeDias.
+// Las claves 'YYYY-MM-DD' ordenan bien como texto.
 function diasUnicosDesdeEventos(eventos) {
-  const uniqueDays = new Set();
-  eventos.forEach(e => {
-    const d = new Date(e.ts);
-    d.setHours(0, 0, 0, 0);
-    uniqueDays.add(d.getTime());
-  });
-  return Array.from(uniqueDays).sort((a, b) => b - a);
+  return Array.from(new Set(eventos.map(e => diaKeyDe(new Date(e.ts))))).sort().reverse();
 }
 
 // Misma forma que diasUnicosDesdeEventos, pero a partir de fechas
-// 'YYYY-MM-DD' (Hábitos) en vez de eventos con `ts` — usa mediodía local
-// antes de truncar a medianoche para no correr el día si el runtime
-// interpretara la fecha en UTC.
+// 'YYYY-MM-DD' (Hábitos) en vez de eventos con `ts` — ya son claves.
 function diasUnicosDesdeFechas(fechas) {
-  const uniqueDays = new Set();
-  fechas.forEach(f => {
-    const d = new Date(f + 'T12:00:00');
-    d.setHours(0, 0, 0, 0);
-    uniqueDays.add(d.getTime());
-  });
-  return Array.from(uniqueDays).sort((a, b) => b - a);
+  return Array.from(new Set(fechas)).sort().reverse();
 }
 
 // --- Hábitos con frecuencia: helpers de "¿aplica/se cumplió este día?" ---
@@ -262,24 +248,32 @@ function habitoCumplidoEnFecha(habito, fechaIso) {
   return !!valor;
 }
 
-// Ancla fija para numerar semanas (mismo criterio que el "knownMonday" de
-// getDashboardStats más abajo, pero exportado como helper porque hábitos
-// de tipo 'semanal' lo necesitan en dos lugares: racha y tendencia).
-const HABITO_SEMANA_EPOCH = new Date('2024-01-01T00:00:00Z'); // un lunes
+// Ancla fija para numerar semanas: la usan la racha semanal de Entreno
+// (getDashboardStats) y la racha de hábitos 'semanal'.
+// Se cuenta en días de calendario LOCALES desde el lunes ancla (claves +
+// diasEntre), no en ms desde una medianoche UTC: así la semana empieza el
+// lunes a las 00:00 locales (con ms, en Chile empezaba el domingo a las
+// 21:00) y el cambio de horario no mueve el borde.
+const HABITO_SEMANA_EPOCH = '2024-01-01'; // un lunes
 function weekIdDe(date) {
-  return Math.floor((date - HABITO_SEMANA_EPOCH) / (1000 * 60 * 60 * 24 * 7));
+  return Math.floor(diasEntre(HABITO_SEMANA_EPOCH, claveDiaDe(date)) / 7);
+}
+
+// Día de la semana de una clave, 0 = lunes .. 6 = domingo (mismo orden que
+// DOW_SHORT en habitos.js).
+function dowDeClave(clave) {
+  const [y, m, d] = clave.split('-').map(Number);
+  return (new Date(y, m - 1, d).getDay() + 6) % 7;
 }
 
 // Todos los días aplicables de un hábito 'dias' entre su creación y `hoy`,
-// timestamps de medianoche de más reciente a más antiguo — es la secuencia
-// sobre la que calcularRachaDiasAplicables cuenta pasos consecutivos (no
-// sobre el calendario continuo, que incluiría días que nunca iban a
-// marcarse).
+// claves de día de más reciente a más antigua — es la secuencia sobre la
+// que calcularRachaDiasAplicables cuenta pasos consecutivos (no sobre el
+// calendario continuo, que incluiría días que nunca iban a marcarse).
 function generarDiasAplicables(habito, hoy) {
   const frecuencia = habito.frecuencia || { tipo: 'diario' };
   const dias = frecuencia.dias || [];
-  const inicio = new Date(habito.createdAt || hoy);
-  inicio.setHours(0, 0, 0, 0);
+  let inicio = claveDiaDe(habito.createdAt || hoy);
   // La franja semanal de la vista (renderFranjaSemanal) muestra toda la
   // semana calendario actual y deja marcar cualquier día no-futuro de esa
   // semana, sin fijarse en cuándo se creó el hábito — así que puede haber
@@ -289,18 +283,10 @@ function generarDiasAplicables(habito, hoy) {
   // "días aplicables" y la racha las ignoraría por completo. Se extiende
   // el inicio hacia atrás hasta la marca más vieja que exista, si hay
   // alguna anterior a createdAt.
-  const fechasMarcadas = Object.keys(habito.marcas || {});
-  fechasMarcadas.forEach(f => {
-    const d = new Date(f + 'T00:00:00');
-    if (d < inicio) inicio.setTime(d.getTime());
-  });
-  const limiteHoy = new Date(hoy); limiteHoy.setHours(0, 0, 0, 0);
+  Object.keys(habito.marcas || {}).forEach(f => { if (f < inicio) inicio = f; });
   const resultado = [];
-  const cursor = new Date(limiteHoy);
-  while (cursor >= inicio) {
-    const dow = (cursor.getDay() + 6) % 7;
-    if (dias.includes(dow)) resultado.push(cursor.getTime());
-    cursor.setDate(cursor.getDate() - 1);
+  for (let clave = claveDiaDe(hoy); clave >= inicio; clave = sumarDias(clave, -1)) {
+    if (dias.includes(dowDeClave(clave))) resultado.push(clave);
   }
   return resultado;
 }
@@ -309,16 +295,15 @@ function generarDiasAplicables(habito, hoy) {
 // una secuencia de días YA FILTRADA a los que de verdad aplican (ej. solo
 // lunes/miércoles/viernes) en vez de días calendario continuos — el "paso"
 // entre dos marcas válidas de un hábito de días específicos no es
-// necesariamente de 24hs.
+// necesariamente de 24hs. Ambos parámetros son claves de día (diaKeyDe).
 function calcularRachaDiasAplicables(diasCumplidosSet, diasAplicablesDesc) {
   if (diasAplicablesDesc.length === 0) return { actual: 0, mejor: 0 };
 
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
   let startIdx = 0;
   // Gracia: si el día aplicable más reciente es HOY y todavía no se marcó,
   // no rompe la racha — se evalúa desde el aplicable anterior (mismo
   // criterio que calcularRachaDesdeDias con "hoy o ayer").
-  if (diasAplicablesDesc[0] === hoy.getTime() && !diasCumplidosSet.has(diasAplicablesDesc[0])) {
+  if (diasAplicablesDesc[0] === diaKeyDe(new Date()) && !diasCumplidosSet.has(diasAplicablesDesc[0])) {
     startIdx = 1;
   }
 
@@ -581,18 +566,16 @@ export const db = {
 
     let sesionesSemana = 0;
     const weekIds = new Set();
-    const knownMonday = new Date('2024-01-01T00:00:00Z'); // A Monday
 
+    // Semanas contadas en días de calendario locales (weekIdDe), no en ms
+    // desde una medianoche UTC.
     sesiones.forEach(s => {
       const sDate = new Date(s.fecha);
       if (sDate >= startOfThisWeek) sesionesSemana++;
-
-      const diffTime = sDate - knownMonday;
-      const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
-      weekIds.add(diffWeeks);
+      weekIds.add(weekIdDe(s.fecha));
     });
 
-    const currentWeekDiff = Math.floor((now - knownMonday) / (1000 * 60 * 60 * 24 * 7));
+    const currentWeekDiff = weekIdDe(now);
     let racha = 0;
     let checkWeek = currentWeekDiff;
 
@@ -1077,14 +1060,12 @@ export const db = {
 
     for (let exp of expenses) {
       let remainingExp = exp.amt;
-      let expDate = new Date(exp.date);
+      const expDia = claveDiaDe(exp.date);
 
       while (remainingExp > 0 && incomeIdx < incomes.length) {
         let inc = incomes[incomeIdx];
-        let incDate = new Date(inc.date);
-
-        let diffTime = expDate.getTime() - incDate.getTime();
-        let diffDays = Math.max(0, Math.floor(diffTime / (1000 * 3600 * 24)));
+        // Días de calendario entre ingreso y gasto (claves, no ms).
+        let diffDays = Math.max(0, diasEntre(claveDiaDe(inc.date), expDia));
 
         if (inc.amt >= remainingExp) {
           inc.amt -= remainingExp;
@@ -1380,8 +1361,7 @@ export const db = {
         }
         if (cat !== categoria) return;
       }
-      const sDate = new Date(s.fecha);
-      const diffDays = (now - sDate) / (1000 * 60 * 60 * 24);
+      const diffDays = diasEntre(claveDiaDe(s.fecha), diaKeyDe(now)); // días de calendario, no ms
       if (diffDays >= 0 && diffDays < 28) {
         const weekIndex = 3 - Math.floor(diffDays / 7);
         if (s.ejercicios) {
@@ -1471,13 +1451,7 @@ export const db = {
     const sesiones = await idbGetArray('sesiones');
     const sesionesHiit = sesiones.filter(s => hitIds.includes(s.rutinaId) || s.nombreRutina.toLowerCase().includes('hiit') || s.nombreRutina.toLowerCase().includes('tabata'));
 
-    const uniqueDays = new Set();
-    sesionesHiit.forEach(s => {
-      const d = new Date(s.fecha);
-      d.setHours(0, 0, 0, 0);
-      uniqueDays.add(d.getTime());
-    });
-    return calcularRachaDesdeDias(Array.from(uniqueDays).sort((a, b) => b - a));
+    return calcularRachaDesdeDias(diasUnicosDesdeFechas(sesionesHiit.map(s => claveDiaDe(s.fecha))));
   },
 
   // Racha de días consecutivos con al menos una sesión de Entreno, sin
@@ -1528,37 +1502,24 @@ export const db = {
       e.tipo === 'sesion_registrada' || e.tipo === 'descanso_activo_completado' || e.tipo === 'movimiento_registrado' || e.tipo === 'tarea_completada' || e.tipo === 'habito_marcado' || e.tipo === 'habito_progreso_registrado'
     );
 
-    const activityByDay = new Map(); // dayTime -> cantidad de eventos
+    const activityByDay = new Map(); // clave de día -> cantidad de eventos
     relevantes.forEach(e => {
-      const d = new Date(e.ts);
-      d.setHours(0, 0, 0, 0);
-      const dayTime = d.getTime();
-      activityByDay.set(dayTime, (activityByDay.get(dayTime) || 0) + 1);
+      const dia = diaKeyDe(new Date(e.ts));
+      activityByDay.set(dia, (activityByDay.get(dia) || 0) + 1);
     });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTime = today.getTime();
-
-    // Racha de días consecutivos (mismo algoritmo que getRachaHiit/getRachaGeneral).
-    const sortedDays = Array.from(activityByDay.keys()).sort((a, b) => b - a);
-    let actual = 0;
-    if (sortedDays.length > 0 && (sortedDays[0] === todayTime || sortedDays[0] === todayTime - 86400000)) {
-      let checkTime = sortedDays[0];
-      let index = 0;
-      while (index < sortedDays.length && sortedDays[index] === checkTime) {
-        actual++;
-        checkTime -= 86400000;
-        index++;
-      }
-    }
+    // Racha de días consecutivos: el mismo algoritmo compartido que
+    // getRachaGeneral/getRachaTareas/getRachaHiit (antes era una copia del
+    // bucle, con la misma resta de ms que cortaba la racha en el cambio de
+    // horario).
+    const { actual } = calcularRachaDesdeDias(Array.from(activityByDay.keys()).sort().reverse());
 
     // Últimos 7 días (incluye hoy) para el mini-gráfico de línea.
+    const hoy = diaKeyDe(new Date());
     const last7 = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      last7.push({ date: diaKeyDe(d), count: activityByDay.get(d.getTime()) || 0 });
+      const dia = sumarDias(hoy, -i);
+      last7.push({ date: dia, count: activityByDay.get(dia) || 0 });
     }
 
     return { actual, last7 };
@@ -1755,8 +1716,7 @@ export const db = {
       }
       if (categoria && cat !== categoria) return;
 
-      const sDate = new Date(s.fecha);
-      const diffDays = (now - sDate) / (1000 * 60 * 60 * 24);
+      const diffDays = diasEntre(claveDiaDe(s.fecha), diaKeyDe(now)); // días de calendario, no ms
       const weekIdx = semanas - 1 - Math.floor(diffDays / 7);
       if (weekIdx < 0 || weekIdx >= semanas) return;
 
@@ -2173,7 +2133,7 @@ export const db = {
     const porSemana = Array.from({ length: semanas }, () => 0);
     tareaEventos.forEach(e => {
       const d = new Date(e.ts);
-      const diffDays = (now - d) / (1000 * 60 * 60 * 24);
+      const diffDays = diasEntre(diaKeyDe(d), diaKeyDe(now)); // días de calendario, no ms
       const weekIdx = semanas - 1 - Math.floor(diffDays / 7);
       if (weekIdx < 0 || weekIdx >= semanas) return;
       porSemana[weekIdx]++;
@@ -2355,7 +2315,7 @@ export const db = {
     if (frecuencia.tipo === 'semanal') {
       const conteoPorSemana = {};
       fechasCumplidas.forEach(f => {
-        const w = weekIdDe(new Date(f + 'T12:00:00'));
+        const w = weekIdDe(f);
         conteoPorSemana[w] = (conteoPorSemana[w] || 0) + 1;
       });
       const vecesObjetivo = frecuencia.vecesObjetivo || 1;
@@ -2365,8 +2325,7 @@ export const db = {
 
     if (frecuencia.tipo === 'dias') {
       const diasAplicables = generarDiasAplicables(habito, new Date());
-      const cumplidosSet = new Set(fechasCumplidas.map(f => { const d = new Date(f + 'T12:00:00'); d.setHours(0, 0, 0, 0); return d.getTime(); }));
-      return calcularRachaDiasAplicables(cumplidosSet, diasAplicables);
+      return calcularRachaDiasAplicables(new Set(fechasCumplidas), diasAplicables);
     }
 
     return calcularRachaDesdeDias(diasUnicosDesdeFechas(fechasCumplidas));
@@ -2396,29 +2355,24 @@ export const db = {
     // ningún hábito relevante aplicaba, que no deberían ni sumar ni cortar
     // la racha) y se cuenta con calcularRachaDiasAplicables sobre esa
     // secuencia, igual que getRachaHabito hace por hábito individual.
-    let inicio = new Date();
+    // Todo en claves de día: se retrocede con sumarDias (calendario), no
+    // restando ms, así el cambio de horario no desalinea los días.
+    const hoy = diaKeyDe(new Date());
+    let inicio = hoy;
     relevantes.forEach(h => {
-      const creado = new Date(h.createdAt || inicio);
+      const creado = h.createdAt ? claveDiaDe(h.createdAt) : hoy;
       if (creado < inicio) inicio = creado;
-      Object.keys(h.marcas || {}).forEach(f => {
-        const d = new Date(f + 'T00:00:00');
-        if (d < inicio) inicio = d;
-      });
+      Object.keys(h.marcas || {}).forEach(f => { if (f < inicio) inicio = f; });
     });
-    inicio.setHours(0, 0, 0, 0);
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
     const diasConAplicable = [];
     const diasPerfectosSet = new Set();
-    const cursor = new Date(hoy);
-    while (cursor >= inicio) {
-      const iso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+    for (let iso = hoy; iso >= inicio; iso = sumarDias(iso, -1)) {
       const aplicables = relevantes.filter(h => habitoDiaAplicable(h, iso));
       if (aplicables.length > 0) {
-        diasConAplicable.push(cursor.getTime());
-        if (aplicables.every(h => habitoCumplidoEnFecha(h, iso))) diasPerfectosSet.add(cursor.getTime());
+        diasConAplicable.push(iso);
+        if (aplicables.every(h => habitoCumplidoEnFecha(h, iso))) diasPerfectosSet.add(iso);
       }
-      cursor.setDate(cursor.getDate() - 1);
     }
 
     return calcularRachaDiasAplicables(diasPerfectosSet, diasConAplicable);
@@ -2644,11 +2598,10 @@ export const db = {
   async getRachaRitual() {
     const filas = await idbGetArray('ritual');
     const conMision = new Set(filas.filter(r => r.mision && String(r.mision).trim()).map(r => r.fecha));
-    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const d = new Date(); d.setHours(0, 0, 0, 0);
-    if (!conMision.has(iso(d))) d.setDate(d.getDate() - 1);
+    let dia = diaKeyDe(new Date());
+    if (!conMision.has(dia)) dia = sumarDias(dia, -1);
     let actual = 0;
-    while (conMision.has(iso(d))) { actual++; d.setDate(d.getDate() - 1); }
+    while (conMision.has(dia)) { actual++; dia = sumarDias(dia, -1); }
     return { actual, total: conMision.size };
   },
 

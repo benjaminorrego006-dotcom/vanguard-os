@@ -1,7 +1,7 @@
 import { Toast, ConfirmDialog } from './states.js';
 import { db } from '../core/db.js';
 import * as idb from '../core/idb.js';
-import { diaKeyDe } from './fecha.js';
+import { diaKeyDe, diasEntre } from './fecha.js';
 
 // Stores de entidad + el log de eventos, tal como quedaron definidos en
 // idb.js. Los singletons (perfil, ajustes, favoritos de PR) se exportan
@@ -60,7 +60,8 @@ export async function exportAllData() {
 export async function getDiasDesdeUltimoBackup() {
   const row = await idb.getOne('singletons', 'ultimoBackup');
   if (!row || typeof row.value !== 'number') return null;
-  return Math.floor((Date.now() - row.value) / 86400000);
+  // Días de calendario (claves), no bloques de 24 h restando ms.
+  return diasEntre(diaKeyDe(new Date(row.value)), diaKeyDe(new Date()));
 }
 
 async function restoreNewFormat(data) {

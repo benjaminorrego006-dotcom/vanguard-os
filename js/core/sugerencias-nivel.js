@@ -16,7 +16,7 @@ import { db } from './db.js';
 import { getNivel } from './estandares-fuerza.js';
 import { CATALOGO_EJERCICIOS, getEjercicioPorId, getEjercicioMetadata, getIdPorNombreExacto } from './ejercicios-catalogo.js';
 import { RAMA_ORDEN, RAMA_LABELS, ARBOL_PROGRESIONES, profundidadNodo, contarSeriesLimpias } from './progresiones.js';
-import { diaKeyDe, diasEntre } from '../utils/fecha.js';
+import { diaKeyDe, diasEntre, claveDiaDe } from '../utils/fecha.js';
 
 const NIVEL_RANGO = { principiante: 0, intermedio: 1, avanzado: 2 };
 const NIVEL_DESDE_RANGO = ['principiante', 'intermedio', 'avanzado'];
@@ -31,7 +31,7 @@ const RANGO_FUERZA = { principiante: 0, novato: 1, intermedio: 2, avanzado: 3 };
 // desincronizarse.
 const TIEMPO_A_NIVEL = { 'menos-1': 'principiante', '1-3': 'intermedio', 'mas-3': 'avanzado' };
 
-const VENTANA_MS = 4 * 7 * 24 * 60 * 60 * 1000; // últimas 4 semanas
+const VENTANA_DIAS = 28; // últimas 4 semanas, en días de calendario (diasEntre)
 const SESIONES_A_MIRAR = 3;
 const SESIONES_MINIMAS_QUE_CUMPLEN = 2;
 const DIAS_AHORA_NO = 7; // cuánto dura un "Ahora no" antes de poder volver a sugerir
@@ -184,11 +184,10 @@ export async function detectarSugerencias({ hoy = new Date() } = {}) {
 
   // Ejercicios entrenados en las últimas 4 semanas, con la fecha de la más
   // reciente, agrupados por rama.
-  const desde = hoy.getTime() - VENTANA_MS;
   const recientes = new Map(); // ejercicioId -> ts de su sesión más reciente
   sesiones.forEach(s => {
     const ts = new Date(s.fecha).getTime();
-    if (isNaN(ts) || ts < desde) return;
+    if (isNaN(ts) || diasEntre(claveDiaDe(s.fecha), hoyClave) >= VENTANA_DIAS) return;
     (s.ejercicios || []).forEach(ej => {
       const id = idDeEntrada(ej);
       if (!id || !getEjercicioPorId(id)) return;

@@ -3,7 +3,7 @@ import { formatCurrency } from '../utils/currency.js';
 import { Toast } from '../utils/states.js';
 import { parseQuickGasto } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
-import { diaKeyDe } from '../utils/fecha.js';
+import { diaKeyDe, diasEntre } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import * as LabFinanzas from '../components/lab-finanzas.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
@@ -75,13 +75,8 @@ function renderAgenda({ tareasHoy, planHoy, habitosPend, atrasadas, hoyIso }) {
       </div>
     </div>`;
   // Atrasadas de Tareas y de Semana (fecha anterior a hoy, comparada como texto YYYY-MM-DD
-  // local — diaKeyDe, nunca toISOString). Los días se cuentan con fechas
-  // locales a medianoche.
-  const diasAtras = (dueDate) => {
-    const [y, m, d] = dueDate.split('-').map(Number);
-    const [hy, hm, hd] = hoyIso.split('-').map(Number);
-    return Math.round((new Date(hy, hm - 1, hd) - new Date(y, m - 1, d)) / 86400000);
-  };
+  // local — diaKeyDe, nunca toISOString). Los días se cuentan con diasEntre.
+  const diasAtras = (fecha) => diasEntre(fecha, hoyIso);
   const haceTexto = (n) => (n === 1 ? 'ayer' : `hace ${n} días`);
   const filaAtrasada = (t) => `
     <div style="display: flex; align-items: center; gap: 4px;">
@@ -133,7 +128,7 @@ function debeMostrarBannerInstalar() {
   try {
     const dismissedAt = localStorage.getItem(INSTALL_DISMISS_KEY);
     if (dismissedAt) {
-      const diasDesde = (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
+      const diasDesde = diasEntre(diaKeyDe(new Date(Number(dismissedAt))), diaKeyDe(new Date()));
       if (diasDesde < INSTALL_DISMISS_DIAS) return false;
     }
   } catch (e) { /* localStorage puede fallar en modo privado — no bloquear el banner por eso */ }

@@ -64,11 +64,31 @@ export const formatDiaSemana = (d) => {
   return f.toLocaleDateString('es-CL', { weekday: 'narrow' });
 };
 
-// Días de calendario entre dos claves diaKeyDe ('YYYY-MM-DD'), en hora local
-// (nunca toISOString: cruzaría el día por el huso horario). Positivo si
-// claveHasta es posterior a claveDesde.
+// Días de calendario entre dos claves diaKeyDe ('YYYY-MM-DD'). Positivo si
+// claveHasta es posterior a claveDesde. Las claves se comparan como fechas
+// de calendario puras vía Date.UTC (sin huso horario): con medianoches
+// LOCALES, el cambio de horario deja días de 23 o 25 horas (en Chile, el
+// 6 de septiembre ni siquiera tiene 00:00) y cualquier cuenta en ms se
+// descuadra. Toda diferencia de días de la app pasa por acá.
 export const diasEntre = (claveDesde, claveHasta) => {
   const [ya, ma, da] = claveDesde.split('-').map(Number);
   const [yb, mb, db] = claveHasta.split('-').map(Number);
-  return Math.round((new Date(yb, mb - 1, db) - new Date(ya, ma - 1, da)) / 86400000);
+  return Math.round((Date.UTC(yb, mb - 1, db) - Date.UTC(ya, ma - 1, da)) / 86400000);
+};
+
+// Clave del día `n` días después (o antes, si es negativo) de `clave`.
+// Avanza con el calendario (new Date(y, m, d + n)), nunca sumando ms.
+export const sumarDias = (clave, n) => {
+  const [y, m, d] = clave.split('-').map(Number);
+  return diaKeyDe(new Date(y, m - 1, d + n));
+};
+
+// Clave de día local de un valor guardado, que en la app puede ser una
+// clave 'YYYY-MM-DD' (fechas elegidas en formularios) o un timestamp/ISO
+// completo (lo que se registra al momento). OJO: new Date('YYYY-MM-DD') se
+// interpreta en UTC y, al oeste de UTC, diaKeyDe lo correría al día
+// anterior — por eso una clave pura se devuelve tal cual.
+export const claveDiaDe = (valor) => {
+  if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) return valor;
+  return diaKeyDe(valor instanceof Date ? valor : new Date(valor));
 };

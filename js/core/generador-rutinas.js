@@ -314,7 +314,7 @@ export async function calcularNivelPorRama(historialPorNombre) {
     }
 
     const ultima = ultimaFechaEnRama(rama, historialPorNombre);
-    const diasSinEntrenar = ultima ? Math.round((Date.now() - ultima.getTime()) / 86400000) : null;
+    const diasSinEntrenar = ultima ? diasEntre(diaKeyDe(ultima), diaKeyDe(new Date())) : null;
 
     if (diasSinEntrenar === null && nivelPiso && NIVEL_RANGO[nivelPiso] > NIVEL_RANGO[nivel]) {
       nivel = nivelPiso;
