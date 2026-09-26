@@ -2362,4 +2362,32 @@ export const CATALOGO_GYM = {
     patronMovimiento: "empuje-vertical",
     tipoMovimiento: "compuesto"
   },
+  'push press': {
+    id: 'push press',
+    nombre: 'Push Press',
+    categoria: 'gym',
+    grupoMuscular: 'hombros',
+    patron: 'empuje',
+    musculoSecundario: 'tríceps, piernas, core',
+    posturaInicial: 'Barra a la altura de la clavícula, pies al ancho de cadera, codos ligeramente por delante de la barra, abdomen y glúteos apretados.',
+    pasosEjecucion: [
+      'Flexiona apenas rodillas y cadera (un cuarto de sentadilla) manteniendo el torso vertical.',
+      'Extiende piernas con fuerza y, al terminar el impulso, empuja la barra hacia arriba hasta extender los codos.',
+      'Recibe la barra con los brazos bloqueados sobre la cabeza y el cuerpo alineado.',
+      'Baja la barra controlada hasta la clavícula y repite.'
+    ],
+    erroresComunes: [
+      'Empujar con los brazos antes de terminar el impulso de piernas.',
+      'Inclinar el torso hacia atrás y cargar la zona lumbar.',
+      'Flexionar demasiado las rodillas y convertirlo en una sentadilla.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["press militar"],
+    progresionDe: "press militar",
+    criterioAvance: {"tipo":"reps","valor":5,"series":3},
+    tambienEn: [],
+    equipo: "barra",
+    patronMovimiento: "empuje-vertical",
+    tipoMovimiento: "compuesto"
+  },
 };
