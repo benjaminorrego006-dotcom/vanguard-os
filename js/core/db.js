@@ -2336,22 +2336,39 @@ export const db = {
     return porSemana;
   },
 
+  // Crea o edita una tarea (formulario). Si el estado pasa a 'done' —una
+  // tarea nueva creada directo en "Hecho" o una existente editada a
+  // "Hecho"— se pone completedAt (instante, igual que updateTaskStatus) y se
+  // emite tarea_completada DESPUÉS de tarea_creada/tarea_actualizada: es el
+  // evento que cuentan la racha de Tareas y la racha global. Si una tarea
+  // "Hecho" vuelve a otro estado, completedAt se limpia.
   async saveTask(data) {
     let tasks = await idbGetArray('tareas');
     if (data.id) {
       const idx = tasks.findIndex(t => t.id === data.id);
       if (idx > -1) {
+        const eraDone = tasks[idx].status === 'done';
         tasks[idx] = { ...tasks[idx], ...data };
+        const esDone = tasks[idx].status === 'done';
+        if (esDone && !eraDone) tasks[idx].completedAt = new Date().toISOString();
+        if (!esDone && eraDone) tasks[idx].completedAt = null;
         await idbSetArray('tareas', tasks); this._triggerUpdate();
         await logEvent({ modulo: 'tareas', tipo: 'tarea_actualizada', entidadId: tasks[idx].id, payload: tasks[idx] });
+        if (esDone && !eraDone) {
+          await logEvent({ modulo: 'tareas', tipo: 'tarea_completada', entidadId: tasks[idx].id, payload: tasks[idx] });
+        }
         return tasks[idx];
       }
     }
     const { id: _ignoredId, ...rest } = data;
     const newTask = { createdAt: new Date().toISOString(), ...rest, id: generateId() };
+    if (newTask.status === 'done') newTask.completedAt = new Date().toISOString();
     tasks.push(newTask);
     await idbSetArray('tareas', tasks); this._triggerUpdate();
     await logEvent({ modulo: 'tareas', tipo: 'tarea_creada', entidadId: newTask.id, payload: newTask });
+    if (newTask.status === 'done') {
+      await logEvent({ modulo: 'tareas', tipo: 'tarea_completada', entidadId: newTask.id, payload: newTask });
+    }
     return newTask;
   },
 
@@ -2372,7 +2389,10 @@ export const db = {
       // pasó a 'done'. Si se revierte a otro estado, se limpia.
       tasks[idx].completedAt = status === 'done' ? new Date().toISOString() : null;
       await idbSetArray('tareas', tasks); this._triggerUpdate();
-      await logEvent({ modulo: 'tareas', tipo: 'tarea_actualizada', entidadId: id, payload: { status } });
+      // completedAt va en el payload para que el replay (mergeRow) también
+      // lo limpie al revertir a otro estado; con solo { status } quedaba el
+      // completedAt viejo.
+      await logEvent({ modulo: 'tareas', tipo: 'tarea_actualizada', entidadId: id, payload: { status, completedAt: tasks[idx].completedAt } });
       if (status === 'done') {
         await logEvent({ modulo: 'tareas', tipo: 'tarea_completada', entidadId: id, payload: tasks[idx] });
       }
