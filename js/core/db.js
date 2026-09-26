@@ -1513,8 +1513,11 @@ export const db = {
   // Tareas (tarea_completada), Hábitos (habito_marcado o
   // habito_progreso_registrado — este último es el que dejan los hábitos
   // con meta numérica al registrar una cantidad, ver
-  // registrarProgresoHabito), Entreno (sesion_registrada) o Finanzas
-  // (movimiento_registrado). Distinta de getRachaGeneral(), que es
+  // registrarProgresoHabito), Entreno (sesion_registrada, o
+  // descanso_activo_completado: el día 7 "Descanso activo" cuenta como día
+  // activo pero NO es una sesión — getRachaGeneral, las insignias de
+  // sesiones, el volumen y el mapa muscular solo leen sesion_registrada) o
+  // Finanzas (movimiento_registrado). Distinta de getRachaGeneral(), que es
   // específica de Entreno y se sigue usando ahí — esta es para la tarjeta
   // de racha del Dashboard. Se deriva
   // enteramente del log de eventos: no hay un campo "racha" guardado en
@@ -1522,7 +1525,7 @@ export const db = {
   async getRachaGlobal() {
     const eventos = await idb.getAll('events');
     const relevantes = eventos.filter(e =>
-      e.tipo === 'sesion_registrada' || e.tipo === 'movimiento_registrado' || e.tipo === 'tarea_completada' || e.tipo === 'habito_marcado' || e.tipo === 'habito_progreso_registrado'
+      e.tipo === 'sesion_registrada' || e.tipo === 'descanso_activo_completado' || e.tipo === 'movimiento_registrado' || e.tipo === 'tarea_completada' || e.tipo === 'habito_marcado' || e.tipo === 'habito_progreso_registrado'
     );
 
     const activityByDay = new Map(); // dayTime -> cantidad de eventos
