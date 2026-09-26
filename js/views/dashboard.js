@@ -300,8 +300,12 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesion
 
 export async function render() {
   const hoyIso = diaKeyDe(new Date());
-  const [budget, stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, alertasCaja, diasDesdeBackup, plan] = await Promise.all([
-    db.getBudget(),
+  // getBudget procesa las recurrentes que vencieron; la proyección se pide
+  // DESPUÉS (encadenada, no en paralelo) para que no avise de una que se
+  // acaba de generar con el estado anterior al procesamiento.
+  const budgetYProyeccion = db.getBudget().then(async b => [b, await db.getProyeccionRecurrentes()]);
+  const [[budget, alertasCaja], stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, diasDesdeBackup, plan] = await Promise.all([
+    budgetYProyeccion,
     db.getDashboardStats(),
     db.getSesiones(),
     db.getRachaGlobal(),
@@ -309,7 +313,6 @@ export async function render() {
     db.getTasks(),
     db.getNotas(),
     db.getCategoriasNota(),
-    db.getProyeccionRecurrentes(),
     getDiasDesdeUltimoBackup(),
     db.getTareasPlan()
   ]);

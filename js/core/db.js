@@ -219,6 +219,47 @@ function diasUnicosDesdeFechas(fechas) {
   return Array.from(new Set(fechas)).sort().reverse();
 }
 
+// --- Recurrentes: cuándo toca la próxima ---------------------------------
+// Clave del día `dia` del mes `mesOffset` meses después del de `clave`
+// (dayOfMonth se limita a 28 en la UI, así que no hay desborde de mes).
+function claveEnMes(clave, mesOffset, dia) {
+  const [y, m] = clave.split('-').map(Number);
+  return diaKeyDe(new Date(y, m - 1 + mesOffset, dia));
+}
+
+// Próxima fecha pendiente de una recurrente ('YYYY-MM-DD'): el día
+// dayOfMonth del mes de lastProcessed (o de createdAt si nunca se procesó)
+// y, si ya se procesó o se creó ese mismo día o después, el del mes
+// siguiente. La usan processRecurringTransactions (para generar) y
+// getProyeccionRecurrentes (para avisar) — mismo cálculo, sin guardar
+// ningún "nextDate". El único candado contra procesar dos veces la misma
+// recurrencia es lastProcessed (los ids de las transacciones generadas son
+// aleatorios). lastProcessed se guarda como clave, pero puede venir como
+// ISO de versiones anteriores (toISOString() de las 00:00 locales):
+// claveDiaDe acepta ambos y da el mismo día local. OJO: nunca
+// new Date(lastProcessed) con una clave — se leería en UTC (en Chile, el
+// día anterior), el mes base podría retroceder uno y duplicar la
+// recurrencia.
+function proximaFechaRecurrente(req) {
+  const base = claveDiaDe(req.lastProcessed || req.createdAt);
+  const enMesBase = claveEnMes(base, 0, req.dayOfMonth);
+  return (base >= enMesBase || req.lastProcessed) ? claveEnMes(enMesBase, 1, req.dayOfMonth) : enMesBase;
+}
+
+// Saldo de cada sobre en un mes: asignado menos lo gastado desde ese sobre
+// en `txsDelMes` (ya filtradas al mes). Lo usan getBudget y la proyección
+// de recurrentes.
+function saldosDeSobres(sobres, txsDelMes) {
+  return sobres.map(env => {
+    const assignedAmount = Number(env.assignedAmount) || 0;
+    let spent = 0;
+    txsDelMes.forEach(t => {
+      if (t.envelopeId === env.id && t.type === 'Gasto') spent += toSafeNumber(t.amount);
+    });
+    return { ...env, assignedAmount, spent, balance: assignedAmount - spent };
+  });
+}
+
 // --- Días activos de la racha global -------------------------------------
 // Clave de día -> cantidad de actividad (la cantidad solo la usa el
 // mini-gráfico `last7`). Dos fuentes:
@@ -817,33 +858,13 @@ export const db = {
     const generatedTxs = [];
     const recurrentesProcesados = [];
 
-    // Todo en claves de día locales ('YYYY-MM-DD'). El único candado contra
-    // procesar dos veces la misma recurrencia es lastProcessed (los ids de
-    // las transacciones generadas son aleatorios): el próximo objetivo sale
-    // siempre del mes de lastProcessed + 1. lastProcessed se guarda ahora
-    // como clave, pero puede venir como ISO de antes de este cambio
-    // (nextTarget.toISOString() de las 00:00 locales) — claveDiaDe acepta
-    // ambos y da el mismo día local, así que una recurrencia ya procesada
-    // no se vuelve a generar. OJO: nunca new Date(lastProcessed) con una
-    // clave: se leería en UTC (en Chile, el día anterior) y el mes base
-    // podría retroceder uno, duplicando la recurrencia.
+    // Todo en claves de día locales ('YYYY-MM-DD'); el próximo objetivo lo
+    // calcula proximaFechaRecurrente (ver ahí por qué lastProcessed es el
+    // único candado contra duplicados).
     const hoy = diaKeyDe(new Date());
-    // Clave del día `dia` del mes `mesOffset` meses después del de `clave`
-    // (dayOfMonth se limita a 28 en la UI, así que no hay desborde).
-    const claveEnMes = (clave, mesOffset, dia) => {
-      const [y, m] = clave.split('-').map(Number);
-      return diaKeyDe(new Date(y, m - 1 + mesOffset, dia));
-    };
 
     recurring.forEach(req => {
-      const base = claveDiaDe(req.lastProcessed || req.createdAt);
-
-      let nextTarget = claveEnMes(base, 0, req.dayOfMonth);
-      // Ya procesada este mes (o creada ese mismo día o después): el
-      // próximo objetivo es el mes siguiente.
-      if (base >= nextTarget || req.lastProcessed) {
-        nextTarget = claveEnMes(nextTarget, 1, req.dayOfMonth);
-      }
+      let nextTarget = proximaFechaRecurrente(req);
 
       while (hoy >= nextTarget) {
         const env = envelopes.find(e => e.id === req.envelopeId);
@@ -1813,33 +1834,45 @@ export const db = {
     return serie;
   },
 
+  // Recurrentes que tocan entre hoy y hoy+7 (claves de día) y no alcanzan
+  // con el saldo de su sobre este mes. La próxima fecha se calcula al vuelo
+  // con proximaFechaRecurrente (la misma que usa processRecurringTransactions);
+  // antes se leía r.nextDate, que nunca se escribía, así que la alerta no
+  // se disparaba jamás. Si varias recurrentes caen en el mismo sobre, se
+  // descuentan en orden de fecha: la que ya no alcanza avisa con lo que
+  // falta para ella. NO llama a getBudget a propósito: getBudget procesa
+  // recurrentes y, en paralelo con el getBudget del Dashboard, podría
+  // generar la misma recurrencia dos veces.
   async getProyeccionRecurrentes() {
     const recurring = await this.getRecurring();
-    const envs = await this.getEnvelopes();
-    const now = new Date();
-    const in7Days = new Date(now);
-    in7Days.setDate(now.getDate() + 7);
+    const hoy = diaKeyDe(new Date());
+    const limite = sumarDias(hoy, 7);
+    const mes = mesKeyDe(new Date());
+    const txsDelMes = (await idbGetArray('transacciones')).filter(t => t.date && claveDiaDe(t.date).startsWith(mes));
+    const disponible = new Map(saldosDeSobres(await this.getEnvelopes(), txsDelMes).map(e => [e.id, e]));
 
-    let alerts = [];
+    const proximas = recurring
+      .filter(r => r.envelopeId && disponible.has(r.envelopeId))
+      .map(r => ({ r, fecha: proximaFechaRecurrente(r) }))
+      .filter(({ fecha }) => fecha >= hoy && fecha <= limite)
+      .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
 
-    recurring.forEach(r => {
-      if (r.type === 'Gasto' && r.envelopeId) {
-        const nextDate = new Date(r.nextDate);
-        if (nextDate >= now && nextDate <= in7Days) {
-          const env = envs.find(e => e.id === r.envelopeId);
-          if (env) {
-            const available = env.assignedAmount - env.spent;
-            if (r.amount > available) {
-              alerts.push({
-                name: r.name,
-                amount: r.amount,
-                date: r.nextDate,
-                envelopeName: env.name,
-                shortfall: r.amount - available
-              });
-            }
-          }
-        }
+    const alerts = [];
+    const comprometido = new Map(); // sobre -> suma de recurrentes próximas ya contadas
+    proximas.forEach(({ r, fecha }) => {
+      const env = disponible.get(r.envelopeId);
+      const monto = toSafeNumber(r.amount);
+      const acumulado = (comprometido.get(env.id) || 0) + monto;
+      comprometido.set(env.id, acumulado);
+      const falta = acumulado - env.balance;
+      if (falta > 0) {
+        alerts.push({
+          name: r.label,
+          amount: monto,
+          date: fecha,
+          envelopeName: env.name,
+          shortfall: Math.min(monto, falta)
+        });
       }
     });
     return alerts;
@@ -2538,15 +2571,7 @@ export const db = {
     const remaining = budgeted - expenses - savedThisMonth;
     const rule = await this.getAllocationRule();
 
-    const rawEnvelopes = await this.getEnvelopes();
-    const envelopes = rawEnvelopes.map(env => {
-      const assignedAmount = Number(env.assignedAmount) || 0;
-      let spent = 0;
-      txs.forEach(t => {
-        if (t.envelopeId === env.id && t.type === 'Gasto') spent += toSafeNumber(t.amount);
-      });
-      return { ...env, assignedAmount, spent, balance: assignedAmount - spent };
-    });
+    const envelopes = saldosDeSobres(await this.getEnvelopes(), txs);
 
     let trend = null;
     if (prevExpenses > 0) {
