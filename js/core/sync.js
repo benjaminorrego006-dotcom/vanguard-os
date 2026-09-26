@@ -210,6 +210,9 @@ export async function applyRemoteEvent(event) {
       case 'tarea_descompletada':
         await setPlanificadorHecha(entidadId, false);
         break;
+      case 'tarea_reabierta': // solo Tareas (Lista): una tarea 'done' volvió a otro estado
+        await mergeRow('tareas', entidadId, { completedAt: null });
+        break;
       case 'tarea_reprogramada': // solo Planificador (db.moverTareaPlan)
         await mergeRow('planificador', entidadId, { fecha: payload.fecha });
         break;
@@ -353,6 +356,7 @@ function mirrorTargetFor(event) {
     case 'tarea_creada':
       return { store: modulo === 'planificador' ? 'planificador' : 'tareas', id: entidadId };
     case 'tarea_actualizada':
+    case 'tarea_reabierta':
       return { store: 'tareas', id: entidadId };
     case 'tarea_completada':
       return { store: modulo === 'planificador' ? 'planificador' : 'tareas', id: entidadId };

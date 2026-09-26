@@ -333,12 +333,53 @@ const STORES_RESPALDO = ['sesiones', 'rutinas', 'goals', 'transacciones', 'envel
 //   racha si ese día no queda otra actividad (otro hábito aún marcado, una
 //   sesión, una tarea...), sin guardar nada aparte del log. Un evento sin
 //   payload.fecha cae en el día de su ts, como antes.
-const TIPOS_ACTIVIDAD_POR_TS = new Set(['sesion_registrada', 'descanso_activo_completado', 'movimiento_registrado', 'tarea_completada']);
+const TIPOS_ACTIVIDAD_POR_TS = new Set(['sesion_registrada', 'descanso_activo_completado', 'movimiento_registrado']);
 const TIPOS_HABITO_MARCA = new Set(['habito_marcado', 'habito_progreso_registrado', 'habito_desmarcado']);
+const TIPOS_TAREA_NETA = new Set(['tarea_completada', 'tarea_reabierta', 'tarea_descompletada']);
+
+// Estado neto de tareas completadas por (tarea, día en que se completó),
+// recorriendo sus eventos en orden de ts — mismo criterio que los hábitos:
+// - tarea_completada: la tarea cuenta en el día de su ts.
+// - tarea_reabierta (Lista, updateTaskStatus/saveTask) y
+//   tarea_descompletada (Semana, toggleTareaPlan): deja de contar en el día
+//   en que se había completado (payload.fecha si viene; si no, el último
+//   día en que se completó esa tarea).
+// Así, reabrir una tarea solo le quita el día a la racha si ese día no
+// quedó otra actividad. `filtro(e)` restringe los eventos (ej. solo el
+// módulo Tareas para getRachaTareas). Devuelve [claves de día], una por
+// tarea completada neta (con repetidos si hubo varias el mismo día).
+function diasTareasCompletadasNetos(eventos, filtro = () => true) {
+  const activas = new Map();  // `${modulo}|${id}|${dia}` -> dia
+  const ultimoDia = new Map(); // `${modulo}|${id}` -> último día en que se completó
+  eventos
+    .filter(e => TIPOS_TAREA_NETA.has(e.tipo) && filtro(e))
+    .sort((a, b) => a.ts - b.ts)
+    .forEach(e => {
+      const tarea = `${e.modulo}|${e.entidadId}`;
+      if (e.tipo === 'tarea_completada') {
+        const dia = diaKeyDe(new Date(e.ts));
+        activas.set(`${tarea}|${dia}`, dia);
+        ultimoDia.set(tarea, dia);
+      } else {
+        const dia = e.tipo === 'tarea_reabierta' && e.payload && e.payload.fecha ? claveDiaDe(e.payload.fecha) : ultimoDia.get(tarea);
+        if (dia) activas.delete(`${tarea}|${dia}`);
+      }
+    });
+  return [...activas.values()];
+}
+
+// Payload de tarea_reabierta: la clave del día (local) en que la tarea se
+// había completado. Una tarea vieja sin completedAt va sin fecha y el
+// estado neto usa el último día en que se completó.
+function payloadReabierta(completedAt) {
+  return completedAt ? { fecha: claveDiaDe(completedAt) } : {};
+}
 
 function actividadGlobalPorDia(eventos) {
   const porDia = new Map();
   const sumar = (dia) => porDia.set(dia, (porDia.get(dia) || 0) + 1);
+
+  diasTareasCompletadasNetos(eventos).forEach(sumar);
 
   const marcasNetas = new Map(); // `${habitoId}|${fecha}` -> fecha, solo si sigue activa
   eventos
@@ -1666,10 +1707,12 @@ export const db = {
   // sobre su propio pasado. Ya no se generan eventos nuevos de este tipo
   // porque no hay dónde crear una tarea — la cuenta simplemente deja de
   // crecer, no se le resta lo que ya pasó.
+  // Estado neto (diasTareasCompletadasNetos): una tarea reabierta deja de
+  // contar en el día en que se había completado.
   async getRachaTareas() {
     const eventos = await idb.getAll('events');
-    const tareaEventos = eventos.filter(e => e.modulo === 'tareas' && e.tipo === 'tarea_completada');
-    return calcularRachaDesdeDias(diasUnicosDesdeEventos(tareaEventos));
+    const dias = diasTareasCompletadasNetos(eventos, e => e.modulo === 'tareas');
+    return calcularRachaDesdeDias(diasUnicosDesdeFechas(dias));
   },
 
   // Racha global: cuenta un día como "activo" si hubo cualquier evento en
@@ -2348,6 +2391,7 @@ export const db = {
       const idx = tasks.findIndex(t => t.id === data.id);
       if (idx > -1) {
         const eraDone = tasks[idx].status === 'done';
+        const completadaEl = tasks[idx].completedAt;
         tasks[idx] = { ...tasks[idx], ...data };
         const esDone = tasks[idx].status === 'done';
         if (esDone && !eraDone) tasks[idx].completedAt = new Date().toISOString();
@@ -2356,6 +2400,8 @@ export const db = {
         await logEvent({ modulo: 'tareas', tipo: 'tarea_actualizada', entidadId: tasks[idx].id, payload: tasks[idx] });
         if (esDone && !eraDone) {
           await logEvent({ modulo: 'tareas', tipo: 'tarea_completada', entidadId: tasks[idx].id, payload: tasks[idx] });
+        } else if (!esDone && eraDone) {
+          await logEvent({ modulo: 'tareas', tipo: 'tarea_reabierta', entidadId: tasks[idx].id, payload: payloadReabierta(completadaEl) });
         }
         return tasks[idx];
       }
@@ -2384,6 +2430,8 @@ export const db = {
     let tasks = await idbGetArray('tareas');
     const idx = tasks.findIndex(t => t.id === id);
     if (idx > -1) {
+      const eraDone = tasks[idx].status === 'done';
+      const completadaEl = tasks[idx].completedAt;
       tasks[idx].status = status;
       // Se usa para la racha global: solo cuenta el día en que la tarea
       // pasó a 'done'. Si se revierte a otro estado, se limpia.
@@ -2395,6 +2443,8 @@ export const db = {
       await logEvent({ modulo: 'tareas', tipo: 'tarea_actualizada', entidadId: id, payload: { status, completedAt: tasks[idx].completedAt } });
       if (status === 'done') {
         await logEvent({ modulo: 'tareas', tipo: 'tarea_completada', entidadId: id, payload: tasks[idx] });
+      } else if (eraDone) {
+        await logEvent({ modulo: 'tareas', tipo: 'tarea_reabierta', entidadId: id, payload: payloadReabierta(completadaEl) });
       }
     }
   },
