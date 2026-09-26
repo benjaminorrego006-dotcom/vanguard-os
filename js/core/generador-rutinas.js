@@ -445,8 +445,21 @@ function nivelesAIntentarPara(nivelRama) {
 // pool sin importar qué declaró el usuario — la "degradación de equipo" del
 // Paso 3 de la spec ya está cubierta por esto, no hace falta un paso
 // aparte; lo único que de verdad hay que degradar acá es el nivel.
-function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historialPorNombre, preferirTipo, desbloqueados = []) {
-  const { abajo, arriba } = nivelesAIntentarPara(nivelRama);
+//
+// excluir (Set de ids, opcional): ejercicios ya elegidos en esta sesión. Se
+// sacan del pool de CADA nivel, así cuando el nivel de la rama se agota
+// (segundo espacio del mismo patrón) el generador baja al nivel inferior más
+// cercano en vez de dejar el espacio vacío. permitirSubir: solo el primer
+// ejercicio de un patrón en la sesión puede caer al último recurso de subir
+// de nivel; un espacio extra que no se puede llenar hacia abajo queda vacío
+// (y elegirEjerciciosDelDia lo avisa), nunca se llena con algo más difícil.
+// permitirBajar: si es false solo se mira el nivel de la rama (sin bajar a
+// los inferiores) — lo usa la primera pasada de cada fase para que un
+// patrón sin más opciones a su nivel no le quite el cupo a otro patrón que
+// todavía las tiene; la segunda pasada, con true, completa lo que falte.
+function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historialPorNombre, preferirTipo, desbloqueados = [], excluir = null, permitirSubir = true, permitirBajar = true) {
+  const { abajo: abajoCompleto, arriba } = nivelesAIntentarPara(nivelRama);
+  const abajo = permitirBajar ? abajoCompleto : abajoCompleto.slice(0, 1);
   // Ejercicios desbloqueados a mano al confirmar una sugerencia de avance.
   // Se SUMAN al pool de cualquier intento (pasan prerrequisitos y nivel,
   // porque el usuario los habilitó), pero no cuentan como "hay candidatos en
@@ -464,8 +477,10 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
     (e.equipo === 'ninguno' || equipoDisponible.includes(e.equipo)) &&
     (e.nivel === 'todos' || e.nivel === nivelIntento);
 
+  const yaElegido = (e) => !!excluir && excluir.has(e.id);
   const poolManual = manuales.size === 0 ? [] : Object.values(CATALOGO_EJERCICIOS).filter(e =>
     manuales.has(e.id) &&
+    !yaElegido(e) &&
     e.patronMovimiento === patron &&
     (e.categoria === categoria || (e.tambienEn || []).includes(categoria)) &&
     (e.equipo === 'ninguno' || equipoDisponible.includes(e.equipo))
@@ -483,7 +498,7 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
   const intentar = (nivelIntento) => {
     const baseFiltro = filtroDe(nivelIntento);
     const pool = Object.values(CATALOGO_EJERCICIOS).filter(e =>
-      baseFiltro(e) && (((e.prerequisitos || []).length === 0 && (e.prerequisitosAlternativos || []).length === 0) || estaDesbloqueado(e.id, historialPorNombre, manuales, nivelRama))
+      !yaElegido(e) && baseFiltro(e) && (((e.prerequisitos || []).length === 0 && (e.prerequisitosAlternativos || []).length === 0) || estaDesbloqueado(e.id, historialPorNombre, manuales, nivelRama))
     );
     if (pool.length > 0) {
       if (!primerPoolNoVacio) primerPoolNoVacio = { pool, nivelIntento };
@@ -527,6 +542,12 @@ function candidatosPara(patron, categoria, nivelRama, equipoDisponible, historia
   // accesorio como Curl de Bíceps terminara representando el slot
   // "compuesto" de Tracción Horizontal).
   if (preferirTipo && primerPoolNoVacio) {
+    return { pool: [], relajado: false, nivelUsado: null, razon: null, motivoRelajado: null };
+  }
+
+  // Espacio extra de un patrón que ya tiene ejercicio hoy: si no hay nada
+  // en el nivel de la rama ni en los inferiores, no se sube — queda vacío.
+  if (!permitirSubir) {
     return { pool: [], relajado: false, nivelUsado: null, razon: null, motivoRelajado: null };
   }
 
@@ -670,17 +691,30 @@ function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, 
   // ya hay uno real más arriba en el mismo día.
   const vecesPorPatronHoy = {};
 
-  function fase(preferirTipo, tope) {
+  // bajarExtras: en false, los espacios extra de un patrón (no el primero del
+  // día) solo se llenan con el nivel de su rama; en true también pueden
+  // bajar al nivel inferior más cercano. Cada fase corre primero en false y
+  // después en true (ver más abajo).
+  function fase(preferirTipo, tope, bajarExtras) {
     agotados.clear();
     let i = 0;
     let vueltasSinExito = 0;
     while (elegidosHoy.length < tope && agotados.size < patrones.length && vueltasSinExito < patrones.length) {
-      const patron = patrones[i % patrones.length];
+      // Pasada de relleno (bajarExtras): cada vuelta le toca al patrón con
+      // menos ejercicios hoy, así el nivel inferior no se lo queda siempre el
+      // primer patrón de la lista; en empate, el último de la lista.
+      const patron = bajarExtras
+        ? patrones
+          .map((p, idx) => ({ p, idx }))
+          .filter(x => !agotados.has(x.p))
+          .sort((a, b) => (vecesPorPatronHoy[a.p] || 0) - (vecesPorPatronHoy[b.p] || 0) || b.idx - a.idx)[0]?.p
+        : patrones[i % patrones.length];
       i++;
-      if (agotados.has(patron)) continue;
+      if (!patron || agotados.has(patron)) continue;
 
       const nivelInfo = nivelPorRama[patron];
-      const { pool, relajado, nivelUsado, razon, motivoRelajado } = candidatosPara(patron, categoria, nivelInfo.nivel, equipoDisponible, historialPorNombre, preferirTipo, nivelInfo.desbloqueados);
+      const yaElegidosHoy = new Set(elegidosHoy.map(x => x.ejercicioId));
+      const { pool, relajado, nivelUsado, razon, motivoRelajado } = candidatosPara(patron, categoria, nivelInfo.nivel, equipoDisponible, historialPorNombre, preferirTipo, nivelInfo.desbloqueados, yaElegidosHoy, !vecesPorPatronHoy[patron], bajarExtras || !vecesPorPatronHoy[patron]);
       if (pool.length === 0) {
         // razon null: no había del tipo pedido en esta fase, pero sí de
         // otro — no es un hueco real, la otra fase lo cubre, así que no
@@ -708,17 +742,35 @@ function elegirEjerciciosDelDia(patrones, presupuesto, categoria, nivelPorRama, 
         series: categoria === 'hiit' ? null : seriesDesdeObjetivo(elegido),
         motivo: esPrimeraDelPatronHoy
           ? motivoPara(patron, nivelInfo, relajado, nivelUsado, elegido.nombre, motivoRelajado)
-          : `Suma volumen a ${RAMA_LABELS[patron]} junto al ejercicio principal de hoy para ese patrón.`
+          : relajado
+            ? `Suma volumen a ${RAMA_LABELS[patron]} con un ejercicio de nivel ${nivelUsado}: no quedaban más opciones de tu nivel para ese patrón en esta sesión.`
+            : `Suma volumen a ${RAMA_LABELS[patron]} junto al ejercicio principal de hoy para ese patrón.`
       });
       vueltasSinExito = 0;
     }
   }
 
+  // Cada fase en dos pasadas: primero cada patrón toma lo que tiene a su nivel
+  // (reparto parejo entre patrones), y solo lo que falte se completa
+  // bajando de nivel en los patrones que se quedaron sin opciones.
   if (ratioMultiarticular == null) {
-    fase(null, presupuesto);
+    fase(null, presupuesto, false);
+    fase(null, presupuesto, true);
   } else {
-    fase('compuesto', Math.round(presupuesto * ratioMultiarticular));
-    fase('aislamiento', presupuesto);
+    const cupoMultiarticular = Math.round(presupuesto * ratioMultiarticular);
+    fase('compuesto', cupoMultiarticular, false);
+    fase('compuesto', cupoMultiarticular, true);
+    fase('aislamiento', presupuesto, false);
+    fase('aislamiento', presupuesto, true);
+  }
+
+  // Si tras las dos fases la sesión quedó con menos ejercicios que su cupo,
+  // no se deja en silencio: se avisa (mismo mecanismo que "no se pudo
+  // incluir") en cada patrón que sí tuvo ejercicio pero se quedó sin más
+  // opciones, ni siquiera de un nivel inferior. HIIT tiene su propio
+  // circuito corto y sus avisos fijos; no se toca.
+  if (categoria !== 'hiit' && elegidosHoy.length < presupuesto) {
+    patrones.forEach(p => { if (vecesPorPatronHoy[p] && agotados.has(p)) registrarAviso(p, 'agotado-en-sesion'); });
   }
 
   return elegidosHoy;
@@ -833,7 +885,9 @@ export async function generarPlan({ categoria, diasSemana, duracionSesionMin, eq
   const nombreCategoria = categoria === 'gym' ? 'GYM' : categoria === 'calistenia' ? 'calistenia' : 'HIIT';
 
   const registrarAviso = (patron, razon) => {
-    const aviso = razon === 'bloqueado-prerrequisitos'
+    const aviso = razon === 'agotado-en-sesion'
+      ? `${RAMA_LABELS[patron]} no llenó todos sus espacios de la sesión: no hay más ejercicios de ${nombreCategoria} para ese patrón con tu nivel y equipo.`
+      : razon === 'bloqueado-prerrequisitos'
       ? `${RAMA_LABELS[patron]} no se pudo incluir todavía: lo que tenemos de ${nombreCategoria} en este patrón requiere progresar antes en otro (mira el Árbol de Progresión para ver qué falta).`
       : `${RAMA_LABELS[patron]} no se pudo incluir: no hay ejercicios de ${nombreCategoria} con el equipo que declaraste para ese patrón.`;
     if (!avisos.includes(aviso)) avisos.push(aviso);
