@@ -817,26 +817,41 @@ export const db = {
     const generatedTxs = [];
     const recurrentesProcesados = [];
 
-    const today = new Date();
-    today.setHours(0,0,0,0);
+    // Todo en claves de día locales ('YYYY-MM-DD'). El único candado contra
+    // procesar dos veces la misma recurrencia es lastProcessed (los ids de
+    // las transacciones generadas son aleatorios): el próximo objetivo sale
+    // siempre del mes de lastProcessed + 1. lastProcessed se guarda ahora
+    // como clave, pero puede venir como ISO de antes de este cambio
+    // (nextTarget.toISOString() de las 00:00 locales) — claveDiaDe acepta
+    // ambos y da el mismo día local, así que una recurrencia ya procesada
+    // no se vuelve a generar. OJO: nunca new Date(lastProcessed) con una
+    // clave: se leería en UTC (en Chile, el día anterior) y el mes base
+    // podría retroceder uno, duplicando la recurrencia.
+    const hoy = diaKeyDe(new Date());
+    // Clave del día `dia` del mes `mesOffset` meses después del de `clave`
+    // (dayOfMonth se limita a 28 en la UI, así que no hay desborde).
+    const claveEnMes = (clave, mesOffset, dia) => {
+      const [y, m] = clave.split('-').map(Number);
+      return diaKeyDe(new Date(y, m - 1 + mesOffset, dia));
+    };
 
     recurring.forEach(req => {
-      let lastDate = req.lastProcessed ? new Date(req.lastProcessed) : new Date(req.createdAt);
+      const base = claveDiaDe(req.lastProcessed || req.createdAt);
 
-      let nextTarget = new Date(lastDate.getFullYear(), lastDate.getMonth(), req.dayOfMonth);
-      // Evitar overflow de meses (ej. 31 de Febrero) limitando el dayOfMonth a 28 en UI.
-
-      if (lastDate >= nextTarget || req.lastProcessed) {
-        nextTarget.setMonth(nextTarget.getMonth() + 1);
+      let nextTarget = claveEnMes(base, 0, req.dayOfMonth);
+      // Ya procesada este mes (o creada ese mismo día o después): el
+      // próximo objetivo es el mes siguiente.
+      if (base >= nextTarget || req.lastProcessed) {
+        nextTarget = claveEnMes(nextTarget, 1, req.dayOfMonth);
       }
 
-      while (today >= nextTarget) {
+      while (hoy >= nextTarget) {
         const env = envelopes.find(e => e.id === req.envelopeId);
         const cat = env ? env.category : 'Needs';
 
         const newTx = {
           id: generateId(),
-          date: nextTarget.toISOString(),
+          date: nextTarget, // clave del día local que corresponde (antes toISOString())
           type: 'Gasto',
           category: cat,
           label: req.label + ' (Auto)',
@@ -847,10 +862,10 @@ export const db = {
         txs.push(newTx);
         generatedTxs.push(newTx);
 
-        req.lastProcessed = nextTarget.toISOString();
+        req.lastProcessed = nextTarget;
         updated = true;
         recurrentesProcesados.push({ id: req.id, lastProcessed: req.lastProcessed, txId: newTx.id });
-        nextTarget.setMonth(nextTarget.getMonth() + 1);
+        nextTarget = claveEnMes(nextTarget, 1, req.dayOfMonth);
       }
     });
 
@@ -858,7 +873,7 @@ export const db = {
       await idbSetArray('recurrentes', recurring);
       await idbSetArray('transacciones', txs); this._triggerUpdate();
       for (const tx of generatedTxs) {
-        await logEvent({ modulo: 'finanzas', tipo: 'movimiento_registrado', entidadId: tx.id, payload: tx, ts: new Date(tx.date).getTime() });
+        await logEvent({ modulo: 'finanzas', tipo: 'movimiento_registrado', entidadId: tx.id, payload: tx, ts: fechaLocalDe(tx.date).getTime() });
       }
       // Deja lastProcessed reconstruible por replay: sin este evento, ese
       // campo del store 'recurrentes' no viene de ningún evento.
@@ -1026,7 +1041,7 @@ export const db = {
     for(let i = monthsBack - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const txs = txsAll.filter(t => t.date && t.date.startsWith(mStr) && t.envelopeId === envelopeId && t.type === 'Gasto');
+      const txs = txsAll.filter(t => t.date && claveDiaDe(t.date).startsWith(mStr) && t.envelopeId === envelopeId && t.type === 'Gasto');
       let exp = 0;
       txs.forEach(t => exp += toSafeNumber(t.amount));
       result.push(exp);
@@ -1044,7 +1059,7 @@ export const db = {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
-      const txs = txsAll.filter(t => t.date && t.date.startsWith(mStr));
+      const txs = txsAll.filter(t => t.date && claveDiaDe(t.date).startsWith(mStr));
       if (i > 0 && txs.length > 0) hasDataBeforeCurrent = true;
 
       let inc = 0; let exp = 0; let sav = 0;
@@ -2472,8 +2487,8 @@ export const db = {
     const txs = await idbGetArray('transacciones');
     const filtered = txs.filter(t => {
       if (!t.date) return false;
-      if (startDate && t.date < startDate) return false;
-      if (endDate && t.date > endDate) return false;
+      if (startDate && claveDiaDe(t.date) < startDate) return false;
+      if (endDate && claveDiaDe(t.date) > endDate) return false;
       return true;
     });
     return filtered.sort((a, b) => compararFechas(b.date, a.date)); // claves e ISO mezclados: por día local y luego hora
@@ -2487,13 +2502,13 @@ export const db = {
       monthFilter = mesKeyDe(new Date());
     }
 
-    const txs = txsAll.filter(t => t.date && t.date.startsWith(monthFilter));
+    const txs = txsAll.filter(t => t.date && claveDiaDe(t.date).startsWith(monthFilter));
 
     // Calculate previous month trend
     const [y, m] = monthFilter.split('-');
     let prevDate = new Date(parseInt(y), parseInt(m) - 2);
     const prevMonthStr = mesKeyDe(prevDate);
-    const prevTxs = txsAll.filter(t => t.date && t.date.startsWith(prevMonthStr));
+    const prevTxs = txsAll.filter(t => t.date && claveDiaDe(t.date).startsWith(prevMonthStr));
 
     let prevExpenses = 0;
     prevTxs.forEach(t => {

@@ -1,7 +1,7 @@
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { escapeHtml } from '../utils/escape.js';
-import { compararFechas } from '../utils/fecha.js';
+import { compararFechas, claveDiaDe } from '../utils/fecha.js';
 
 export function renderGastoForm() {
   return `
@@ -229,7 +229,7 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
       document.getElementById('gasto-label').value = tx.label || '';
       const now = new Date();
       document.getElementById('gasto-fecha').value = tx.date
-        ? tx.date.slice(0, 10)
+        ? claveDiaDe(tx.date) // día local también si la fecha guardada es ISO
         : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       selectedCategory = tx.category || (b.envelopes[0] ? b.envelopes[0].category : 'Needs');
       selectedEnvelopeId = tx.envelopeId || (b.envelopes[0] ? b.envelopes[0].id : null);

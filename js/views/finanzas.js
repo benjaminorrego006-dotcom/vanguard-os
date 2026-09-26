@@ -15,7 +15,7 @@ import { renderDonutChart, destroyAllDonuts } from '../components/donut-chart.js
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { escapeHtml } from '../utils/escape.js';
-import { mesKeyDe, formatFechaCorta, formatMes, fechaLocalDe } from '../utils/fecha.js';
+import { mesKeyDe, formatFechaCorta, formatMes, fechaLocalDe, claveDiaDe } from '../utils/fecha.js';
 
 const editSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const transferSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
@@ -209,8 +209,8 @@ export async function init() {
 
     const dateFrom = document.getElementById('history-date-from')?.value;
     const dateTo = document.getElementById('history-date-to')?.value;
-    if (dateFrom) filtered = filtered.filter(t => t.date && t.date.slice(0, 10) >= dateFrom);
-    if (dateTo) filtered = filtered.filter(t => t.date && t.date.slice(0, 10) <= dateTo);
+    if (dateFrom) filtered = filtered.filter(t => t.date && claveDiaDe(t.date) >= dateFrom);
+    if (dateTo) filtered = filtered.filter(t => t.date && claveDiaDe(t.date) <= dateTo);
 
     if (filtered.length === 0) {
       container.innerHTML = finEmptyState('Sin resultados', 'No hay movimientos', 'No se encontraron resultados con este filtro.');
@@ -877,7 +877,7 @@ const buildFinanzasHeatmapHtml = () => {
     // 'date' es 'YYYY-MM-DD' sin hora — se parsean los componentes a mano
     // para no interpretarlo como medianoche UTC (mismo problema que
     // documenta toDayKey en db.js > getRachaGlobal).
-    const day = Number(tx.date.split('-')[2]);
+    const day = Number(claveDiaDe(tx.date).split('-')[2]); // con ISO, split daba '30T03:00...' (NaN)
     if (!day) return;
     countByDay[day] = (countByDay[day] || 0) + 1;
     if (!detailByDay[day]) detailByDay[day] = [];
@@ -940,7 +940,7 @@ const computeDailyBalanceSeries = (b) => {
 
   (b.breakdown || []).forEach(t => {
     if (!t.date) return;
-    const day = parseInt(t.date.slice(8, 10), 10);
+    const day = parseInt(claveDiaDe(t.date).slice(8, 10), 10); // día local, también para las ISO
     if (!day || day < 1 || day > today) return;
     const amt = Number(t.amount) || 0;
     deltaPorDia[day] += (t.type === 'Ingreso') ? amt : -amt;
