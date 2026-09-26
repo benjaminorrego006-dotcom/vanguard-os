@@ -260,6 +260,13 @@ function saldosDeSobres(sobres, txsDelMes) {
   });
 }
 
+// --- Respaldo (utils/backup.js) ------------------------------------------
+// Stores de entidad que viajan en un respaldo: todos los de STORE_DEFS
+// (idb.js) salvo 'events' y 'singletons', que van con su propia clave. Al
+// agregar un store nuevo en idb.js hay que sumarlo acá, o el respaldo lo
+// pierde en silencio (así pasó con ritual/planificador/notas, que faltaban).
+const STORES_RESPALDO = ['sesiones', 'rutinas', 'goals', 'transacciones', 'envelopes', 'recurrentes', 'tareas', 'habitos', 'ritual', 'planificador', 'notas', 'notas_categorias'];
+
 // --- Días activos de la racha global -------------------------------------
 // Clave de día -> cantidad de actividad (la cantidad solo la usa el
 // mini-gráfico `last7`). Dos fuentes:
@@ -668,6 +675,39 @@ export const db = {
     return { sesionesSemana, rachaSemanas: racha };
   },
   _triggerUpdate() { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('budget-updated')); },
+
+  // --- Respaldo: backup.js no toca idb.js directamente ---
+  // Contenido de la clave `idb` del archivo de respaldo (formato version 2):
+  // { singletons, events, <cada store de STORES_RESPALDO> }.
+  async exportarDatosRespaldo() {
+    const datos = { singletons: await idb.getAll('singletons'), events: await idb.getAll('events') };
+    for (const store of STORES_RESPALDO) datos[store] = await idb.getAll(store);
+    return datos;
+  },
+
+  // Reemplaza cada store que venga como arreglo en `datos`; los que no
+  // vengan (ej. un respaldo anterior a ritual/planificador/notas) quedan
+  // como están. No emite logEvent: el log de eventos se restaura tal cual
+  // desde el propio respaldo.
+  async restaurarDatosRespaldo(datos) {
+    for (const store of STORES_RESPALDO) {
+      if (Array.isArray(datos[store])) await idb.putAllReplacing(store, datos[store]);
+    }
+    if (Array.isArray(datos.singletons)) await idb.putAllReplacing('singletons', datos.singletons);
+    if (Array.isArray(datos.events)) await idb.putAllReplacing('events', datos.events);
+    memoCache.clear(); // los agregados cacheados ya no corresponden a los datos restaurados
+  },
+
+  // Marca de "último respaldo exportado" (dato local de este navegador, no
+  // del dominio: no viaja por sync, no emite evento).
+  async marcarRespaldoExportado() {
+    await idb.put('singletons', { key: 'ultimoBackup', value: Date.now() });
+  },
+
+  async getUltimoRespaldoTs() {
+    const row = await idb.getOne('singletons', 'ultimoBackup');
+    return row && typeof row.value === 'number' ? row.value : null;
+  },
 
   async init() {
     try {

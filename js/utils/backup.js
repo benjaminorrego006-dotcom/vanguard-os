@@ -1,12 +1,11 @@
 import { Toast, ConfirmDialog } from './states.js';
 import { db } from '../core/db.js';
-import * as idb from '../core/idb.js';
 import { diaKeyDe, diasEntre } from './fecha.js';
 
-// Stores de entidad + el log de eventos, tal como quedaron definidos en
-// idb.js. Los singletons (perfil, ajustes, favoritos de PR) se exportan
-// aparte porque viven en un único store compartido ('singletons').
-const ENTITY_STORES = ['sesiones', 'rutinas', 'goals', 'transacciones', 'envelopes', 'recurrentes', 'tareas', 'habitos'];
+// Los stores de IndexedDB se leen y escriben a través de db.js
+// (exportarDatosRespaldo / restaurarDatosRespaldo): solo db.js importa
+// idb.js. La lista de stores que viajan en el respaldo vive allá
+// (STORES_RESPALDO).
 
 // Claves de localStorage que ya NO son la fuente de verdad (quedaron como
 // copia congelada de antes de migrar a IndexedDB) — no se incluyen en un
@@ -21,10 +20,7 @@ const LEGACY_KEYS_SUPERSEDED_BY_IDB = new Set([
 ]);
 
 export async function exportAllData() {
-  const idbData = { singletons: await idb.getAll('singletons'), events: await idb.getAll('events') };
-  for (const store of ENTITY_STORES) {
-    idbData[store] = await idb.getAll(store);
-  }
+  const idbData = await db.exportarDatosRespaldo();
 
   const localStorageData = {};
   Object.keys(localStorage)
@@ -50,7 +46,7 @@ export async function exportAllData() {
 
   // No crítico: si esto falla, el archivo ya se descargó igual — el usuario
   // solo perdería el aviso de "días desde el último respaldo" en Ajustes.
-  try { await idb.put('singletons', { key: 'ultimoBackup', value: Date.now() }); }
+  try { await db.marcarRespaldoExportado(); }
   catch (e) { console.error('[Vanguard OS] Error guardando fecha de último respaldo', e); }
 }
 
@@ -58,19 +54,14 @@ export async function exportAllData() {
 // nunca se exportó un respaldo en este navegador. Usado en Ajustes de
 // Finanzas para avisar cuando el respaldo manual quedó desactualizado.
 export async function getDiasDesdeUltimoBackup() {
-  const row = await idb.getOne('singletons', 'ultimoBackup');
-  if (!row || typeof row.value !== 'number') return null;
+  const ts = await db.getUltimoRespaldoTs();
+  if (ts === null) return null;
   // Días de calendario (claves), no bloques de 24 h restando ms.
-  return diasEntre(diaKeyDe(new Date(row.value)), diaKeyDe(new Date()));
+  return diasEntre(diaKeyDe(new Date(ts)), diaKeyDe(new Date()));
 }
 
 async function restoreNewFormat(data) {
-  const idbData = data.idb || {};
-  for (const store of ENTITY_STORES) {
-    if (Array.isArray(idbData[store])) await idb.putAllReplacing(store, idbData[store]);
-  }
-  if (Array.isArray(idbData.singletons)) await idb.putAllReplacing('singletons', idbData.singletons);
-  if (Array.isArray(idbData.events)) await idb.putAllReplacing('events', idbData.events);
+  await db.restaurarDatosRespaldo(data.idb || {});
 
   const localStorageData = data.localStorage || {};
   Object.keys(localStorageData).forEach(k => {
