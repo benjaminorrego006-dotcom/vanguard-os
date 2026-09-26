@@ -15,7 +15,7 @@
 import { db } from './db.js';
 import { getNivel } from './estandares-fuerza.js';
 import { CATALOGO_EJERCICIOS, getEjercicioPorId, getEjercicioMetadata, getIdPorNombreExacto } from './ejercicios-catalogo.js';
-import { RAMA_ORDEN, RAMA_LABELS, profundidadNodo } from './progresiones.js';
+import { RAMA_ORDEN, RAMA_LABELS, ARBOL_PROGRESIONES, profundidadNodo, contarSeriesLimpias } from './progresiones.js';
 import { diaKeyDe } from '../utils/fecha.js';
 
 const NIVEL_RANGO = { principiante: 0, intermedio: 1, avanzado: 2 };
@@ -65,8 +65,10 @@ function repsDe(serie) {
   return m ? parseInt(m[0], 10) : 0;
 }
 
-// Serie "limpia": tipo normal (una sesión vieja sin `tipo` cuenta como
-// normal) y marcada como hecha.
+// Serie válida para el criterio 'ratio': tipo normal (una sesión vieja sin
+// `tipo` cuenta como normal) y marcada como hecha. Los criterios de
+// reps/segundos NO usan esto: usan la definición de "serie limpia" del árbol
+// de progresión (ver evaluarPorSeries).
 function serieValida(serie) {
   return (!serie.tipo || serie.tipo === 'normal') && serie.checked === true;
 }
@@ -85,11 +87,19 @@ function sesionesDelEjercicio(sesiones, ejercicioId) {
 
 // 'reps' / 'segundos' (los segundos se registran en el campo reps): en al
 // menos 2 de las últimas 3 sesiones del ejercicio hubo >= `series` series
-// limpias con >= `valor`. Devuelve la evidencia (texto) o null.
+// limpias con >= `valor`. "Limpia" es EXACTAMENTE la del árbol de
+// progresión (contarSeriesLimpias: tipo normal, reps/segundos suficientes y,
+// si hay RPE registrado, <= 8) más estar marcada como hecha — así una
+// sugerencia nunca se basa en series que el árbol no daría por buenas (que
+// dejarían el ejercicio siguiente bloqueado). Devuelve la evidencia o null.
 function evaluarPorSeries(entry, sesiones) {
   const { tipo, valor, series } = entry.criterioAvance;
+  const objetivo = ARBOL_PROGRESIONES[entry.id]?.objetivo || null;
   const ultimas = sesionesDelEjercicio(sesiones, entry.id).slice(0, SESIONES_A_MIRAR);
-  const cumplen = ultimas.filter(s => s.series.filter(sr => serieValida(sr) && repsDe(sr) >= valor).length >= series);
+  const cumplen = ultimas.filter(s => contarSeriesLimpias(
+    [{ seriesDetalle: s.series.filter(sr => sr.checked === true).map(sr => ({ ...sr, reps: repsDe(sr) })) }],
+    objetivo
+  ));
   if (cumplen.length < SESIONES_MINIMAS_QUE_CUMPLEN) return null;
   const unidad = tipo === 'segundos' ? ' s' : '';
   return `${cumplen.length} de tus últimas ${ultimas.length} sesiones con ${series}×${valor}${unidad} de ${entry.nombre.toLowerCase()}.`;

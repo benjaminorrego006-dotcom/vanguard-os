@@ -536,16 +536,20 @@ function elegirDeCandidatos(pool, historialPorNombre, usadosEstaSemana, frontier
     return { e, diasDesde, yaUsado: usadosEstaSemana.has(e.id), esManual: manuales.has(e.id), esProgresionPendiente: e.nombre === frontierNombre };
   });
   conPrioridad.sort((a, b) => {
-    if (a.yaUsado !== b.yaUsado) return a.yaUsado ? 1 : -1;
-    // El ejercicio que el usuario desbloqueó al confirmar un avance va
-    // primero (entre los candidatos del mismo tipo, que ya vienen filtrados)
+    // El ejercicio que el usuario desbloqueó al confirmar un avance tiene un
+    // espacio garantizado en CADA sesión que incluye su rama (va primero
+    // entre los candidatos del mismo tipo, incluso si ya se usó otro día de
+    // la semana). Una vez elegido hoy, elegirEjerciciosDelDia lo saca del
+    // pool (noUsadosHoy), así que los demás espacios de la rama se llenan
+    // con el orden normal de abajo.
     if (a.esManual !== b.esManual) return a.esManual ? -1 : 1;
+    if (a.yaUsado !== b.yaUsado) return a.yaUsado ? 1 : -1;
     if (a.esProgresionPendiente !== b.esProgresionPendiente) return a.esProgresionPendiente ? -1 : 1;
     return b.diasDesde - a.diasDesde;
   });
   const mejor = conPrioridad[0];
   const empatados = conPrioridad.filter(c =>
-    c.yaUsado === mejor.yaUsado && c.esManual === mejor.esManual && c.esProgresionPendiente === mejor.esProgresionPendiente && c.diasDesde === mejor.diasDesde
+    c.esManual === mejor.esManual && c.yaUsado === mejor.yaUsado && c.esProgresionPendiente === mejor.esProgresionPendiente && c.diasDesde === mejor.diasDesde
   );
   return empatados[Math.floor(Math.random() * empatados.length)].e;
 }

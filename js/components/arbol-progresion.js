@@ -98,7 +98,7 @@ function renderNodo(nodoId, bloqueado, categoria) {
 const porProfundidad = (a, b) =>
   profundidadNodo(a) - profundidadNodo(b) || ARBOL_PROGRESIONES[a].nombre.localeCompare(ARBOL_PROGRESIONES[b].nombre);
 
-function renderRama(rama, historialPorNombre, categoria) {
+function renderRama(rama, historialPorNombre, categoria, desbloqueadosManuales) {
   const idsRama = Object.keys(ARBOL_PROGRESIONES)
     .filter(id => ARBOL_PROGRESIONES[id].rama === rama)
     .filter(id => modalidadesDe(id).has(categoria));
@@ -106,10 +106,10 @@ function renderRama(rama, historialPorNombre, categoria) {
   const estaticos = idsRama.filter(id => NODOS_ESTATICOS.has(id)).sort(porProfundidad);
   if (normales.length === 0 && estaticos.length === 0) return '';
 
-  const nodosNormalesHtml = normales.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre), categoria)).join('');
+  const nodosNormalesHtml = normales.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre, desbloqueadosManuales), categoria)).join('');
   const nodosEstaticosHtml = estaticos.length === 0 ? '' : `
     <div style="font-size: 10.5px; font-weight: 700; color: var(--text-disabled); text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 8px 0;">Estáticos</div>
-    ${estaticos.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre), categoria)).join('')}
+    ${estaticos.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre, desbloqueadosManuales), categoria)).join('')}
   `;
 
   return `
@@ -130,13 +130,17 @@ export async function renderArbolProgresion(categoria) {
   const nombres = [...new Set(Object.values(ARBOL_PROGRESIONES).map(n => n.nombre))];
   const historiales = await Promise.all(nombres.map(nombre => db.getHistorialEjercicio(nombre)));
   const historialPorNombre = Object.fromEntries(nombres.map((nombre, i) => [nombre, historiales[i]]));
+  // Ejercicios que el usuario desbloqueó a mano al confirmar una sugerencia
+  // de avance (ver db.confirmarSugerenciaNivel): cuentan como desbloqueados.
+  const nivelDeclarado = await db.getNivelEntrenamiento();
+  const desbloqueadosManuales = new Set(Object.values(nivelDeclarado?.desbloqueadosPorRama || {}).flat());
 
   return `
     <div>
       <h2 style="font-size: 21px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Árbol de Progresión · ${MODALIDAD_LABELS[categoria] || ''}</h2>
       <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 4px 0; line-height: 1.5;">Qué entrenar después. Un paso se habilita cuando el historial registra series limpias del paso anterior.</p>
       <p style="font-size: 11px; color: var(--text-disabled); margin: 0 0 20px 0; line-height: 1.5; font-style: italic;">Es una referencia de la comunidad, no un veredicto sobre tu cuerpo — progresa al ritmo que te funcione.</p>
-      ${RAMA_ORDEN.map(rama => renderRama(rama, historialPorNombre, categoria)).join('')}
+      ${RAMA_ORDEN.map(rama => renderRama(rama, historialPorNombre, categoria, desbloqueadosManuales)).join('')}
     </div>
   `;
 }
