@@ -74,7 +74,7 @@ function renderAgenda({ tareasHoy, planHoy, habitosPend, atrasadas, hoyIso }) {
         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 1px;">${it.etiqueta}</div>
       </div>
     </div>`;
-  // Tareas atrasadas (fecha anterior a hoy, comparada como texto YYYY-MM-DD
+  // Atrasadas de Tareas y de Semana (fecha anterior a hoy, comparada como texto YYYY-MM-DD
   // local — diaKeyDe, nunca toISOString). Los días se cuentan con fechas
   // locales a medianoche.
   const diasAtras = (dueDate) => {
@@ -85,14 +85,14 @@ function renderAgenda({ tareasHoy, planHoy, habitosPend, atrasadas, hoyIso }) {
   const haceTexto = (n) => (n === 1 ? 'ayer' : `hace ${n} días`);
   const filaAtrasada = (t) => `
     <div style="display: flex; align-items: center; gap: 4px;">
-      <button class="agenda-check tappable" data-tipo="tarea" data-id="${t.id}" data-nombre="${escapeHtml(t.title)}" aria-label="Marcar ${escapeHtml(t.title)}" style="width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;">
+      <button class="agenda-check tappable" data-tipo="${t.tipo}" data-id="${t.id}" data-nombre="${escapeHtml(t.texto)}" aria-label="Marcar ${escapeHtml(t.texto)}" style="width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;">
         <span aria-hidden="true" style="display: block; width: 22px; height: 22px; border: 1.5px solid var(--state-high);"></span>
       </button>
       <div style="flex: 1; min-width: 0;">
-        <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(t.title)}</div>
-        <div style="font-size: 11px; color: var(--state-high); margin-top: 1px;">${haceTexto(diasAtras(t.dueDate))}</div>
+        <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(t.texto)}</div>
+        <div style="font-size: 11px; color: var(--state-high); margin-top: 1px;">${t.tipo === 'plan' ? '<span style="color: var(--text-secondary);">Semana · </span>' : ''}${haceTexto(diasAtras(t.fecha))}</div>
       </div>
-      <button class="agenda-mover tappable" data-id="${t.id}" style="flex-shrink: 0; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 8px 10px; font-size: 12px; font-weight: 600; cursor: pointer;">Mover a hoy</button>
+      <button class="agenda-mover tappable" data-tipo="${t.tipo}" data-id="${t.id}" style="flex-shrink: 0; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 8px 10px; font-size: 12px; font-weight: 600; cursor: pointer;">Mover a hoy</button>
     </div>`;
   const atrasadasHtml = atrasadas.length === 0 ? '' : `
       <button id="hoy-atrasadas-toggle" class="tappable" aria-expanded="${atrasadasAbierta}" aria-controls="hoy-atrasadas-lista" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: color-mix(in srgb, var(--state-high) 12%, transparent); border: 1px solid color-mix(in srgb, var(--state-high) 40%, transparent); color: var(--state-high); padding: 10px 12px; margin: 4px 0 6px; font-size: 13px; font-weight: 700; cursor: pointer;">
@@ -305,7 +305,7 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesion
 
 export async function render() {
   const hoyIso = diaKeyDe(new Date());
-  const [budget, stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, alertasCaja, diasDesdeBackup, planHoy] = await Promise.all([
+  const [budget, stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, alertasCaja, diasDesdeBackup, plan] = await Promise.all([
     db.getBudget(),
     db.getDashboardStats(),
     db.getSesiones(),
@@ -316,8 +316,11 @@ export async function render() {
     db.getCategoriasNota(),
     db.getProyeccionRecurrentes(),
     getDiasDesdeUltimoBackup(),
-    db.getTareasPlan(hoyIso, hoyIso)
+    db.getTareasPlan()
   ]);
+  // Semana (Planificador): los de hoy van a la agenda; los de días
+  // anteriores sin hacer, a las atrasadas junto con las de Tareas.
+  const planHoy = plan.filter(t => t.fecha === hoyIso);
 
   let alertasHtml = '';
   if (alertasCaja && alertasCaja.length > 0) {
@@ -369,9 +372,14 @@ export async function render() {
     tareasHoy: tareas.filter(t => t.status !== 'done' && t.dueDate === hoyIso),
     planHoy: planHoy.filter(t => !t.hecha),
     habitosPend: habitos.filter(h => habitoPendienteHoy(h, hoyIso)),
-    atrasadas: tareas
-      .filter(t => t.status !== 'done' && t.dueDate && t.dueDate < hoyIso)
-      .sort((a, b) => (a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0)),
+    atrasadas: [
+      ...tareas
+        .filter(t => t.status !== 'done' && t.dueDate && t.dueDate < hoyIso)
+        .map(t => ({ tipo: 'tarea', id: t.id, texto: t.title, fecha: t.dueDate })),
+      ...plan
+        .filter(t => !t.hecha && t.fecha && t.fecha < hoyIso)
+        .map(t => ({ tipo: 'plan', id: t.id, texto: t.texto, fecha: t.fecha }))
+    ].sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0)),
     hoyIso
   });
 
@@ -630,8 +638,9 @@ export function mountListeners() {
   });
 
   // Atrasadas: la fila las despliega en línea (sin repintar); cada una se
-  // marca con el mismo checkbox de la agenda (.agenda-check, updateTaskStatus)
-  // o se pasa a hoy con saveTask({ id, dueDate }), que emite tarea_actualizada.
+  // marca con el mismo checkbox de la agenda (.agenda-check: updateTaskStatus
+  // o toggleTareaPlan, como en Semana) o se pasa a hoy con saveTask({ id,
+  // dueDate }) (tarea_actualizada) o moverTareaPlan (tarea_reprogramada).
   const atrasadasToggle = document.getElementById('hoy-atrasadas-toggle');
   if (atrasadasToggle) {
     atrasadasToggle.addEventListener('click', () => {
@@ -645,7 +654,10 @@ export function mountListeners() {
     btn.addEventListener('click', async () => {
       btn.disabled = true;
       try {
-        await db.saveTask({ id: btn.getAttribute('data-id'), dueDate: diaKeyDe(new Date()) });
+        const id = btn.getAttribute('data-id');
+        const hoy = diaKeyDe(new Date());
+        if (btn.getAttribute('data-tipo') === 'plan') await db.moverTareaPlan(id, hoy);
+        else await db.saveTask({ id, dueDate: hoy });
         Toast('Tarea movida a hoy', 'success');
         await repintar();
       } catch (err) {

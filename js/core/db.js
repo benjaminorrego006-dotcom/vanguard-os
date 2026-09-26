@@ -2713,6 +2713,21 @@ export const db = {
     return tareas[idx];
   },
 
+  // Cambia el día de un ítem (ej. "Mover a hoy" desde las atrasadas de
+  // Hoy). `fecha` es una clave diaKeyDe ('YYYY-MM-DD' local). Evento
+  // propio (no tarea_actualizada, que en el replay siempre va al store
+  // `tareas`).
+  async moverTareaPlan(id, fecha) {
+    const tareas = await idbGetArray('planificador');
+    const idx = tareas.findIndex(t => t.id === id);
+    if (idx === -1) return null;
+    const fechaAnterior = tareas[idx].fecha;
+    tareas[idx] = { ...tareas[idx], fecha };
+    await idbSetArray('planificador', tareas); this._triggerUpdate();
+    await logEvent({ modulo: 'planificador', tipo: 'tarea_reprogramada', entidadId: id, payload: { fecha, fechaAnterior } });
+    return tareas[idx];
+  },
+
   async eliminarTareaPlan(id) {
     let tareas = await idbGetArray('planificador');
     const tarea = tareas.find(t => t.id === id);
