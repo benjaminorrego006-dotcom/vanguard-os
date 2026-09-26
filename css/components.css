@@ -417,6 +417,75 @@ input[type="date"] { color-scheme: dark; }
   filter: drop-shadow(0 0 1.5px var(--cy)) drop-shadow(0 0 4px var(--cy));
 }
 
+/* Vida extra de la racha global (escudos). Acento de Hábitos (--vi): las
+   vidas viven en el reactor de Hábitos y se resumen en el chip de Hoy.
+   Sin esquinas redondeadas ni sombras. */
+.chip-vidas {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--vi);
+}
+.chip-vidas--vacio { color: var(--text-disabled); }
+.escudo-vida { display: block; flex-shrink: 0; }
+
+.reactor-vidas {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  color: var(--vib);
+}
+.reactor-vida--llena { color: var(--vi); }
+.reactor-vidas-texto {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+/* Últimos 7 días de la racha: activo (relleno), protegido por una vida
+   (borde discontinuo + escudo), vacío (borde fino) y hoy (etiqueta
+   resaltada). */
+.racha-semana {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+}
+.racha-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.racha-dia-letra {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-disabled);
+}
+.racha-dia--hoy .racha-dia-letra { color: var(--text-primary); }
+.racha-dia-marca {
+  width: 100%;
+  max-width: 28px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1px solid var(--surface-border);
+  border-radius: 0;
+  color: var(--vi);
+}
+.racha-dia--activo .racha-dia-marca {
+  background: var(--vi);
+  border-color: var(--vi);
+}
+.racha-dia--protegido .racha-dia-marca {
+  border: 1px dashed var(--vi);
+  background: var(--vib);
+}
+
 /* Alerta de flujo de caja (Hoy): un cobro de los próximos 7 días que no
    alcanza con el saldo de su sobre — una alerta real, por eso el rojo. Los
    mismos color-mix sobre --state-high que la fila "N atrasadas" de la

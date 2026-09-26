@@ -219,12 +219,14 @@ function calcularRachaDesdeDias(diasDesc) {
 // - Hoy sin actividad está pendiente: nunca consume vida.
 // Devuelve { actual, vidas, diasProtegidos (los de la racha en curso),
 // maxHistorica (la racha más larga alcanzada alguna vez),
-// ultimaVidaUsada (clave del último día protegido, o null) }.
+// ultimaVidaUsada (clave del último día protegido, o null),
+// faltanParaVida (días activos reales que faltan para la próxima vida; 0
+// si ya tiene el máximo) }.
 const VIDAS_MAX = 2;
 const DIAS_POR_VIDA = 7;
 function calcularRachaConVidas(diasActivos, hoyKey) {
   const activos = diasActivos instanceof Set ? diasActivos : new Set(diasActivos);
-  const r = { actual: 0, vidas: 0, diasProtegidos: [], maxHistorica: 0, ultimaVidaUsada: null };
+  const r = { actual: 0, vidas: 0, diasProtegidos: [], maxHistorica: 0, ultimaVidaUsada: null, faltanParaVida: DIAS_POR_VIDA };
   if (activos.size === 0) return r;
   const primero = [...activos].sort()[0];
   if (primero > hoyKey) return r;
@@ -253,6 +255,7 @@ function calcularRachaConVidas(diasActivos, hoyKey) {
       seguidos = 0;
     }
   }
+  r.faltanParaVida = r.vidas >= VIDAS_MAX ? 0 : DIAS_POR_VIDA - seguidos;
   return r;
 }
 
@@ -1690,7 +1693,7 @@ export const db = {
     // Racha con vida extra (calcularRachaConVidas): los días sin actividad
     // se cubren con vidas mientras haya. `actual` y `last7` mantienen su
     // forma de siempre para la UI existente; el resto es nuevo.
-    const { actual, vidas, diasProtegidos, maxHistorica, ultimaVidaUsada } = calcularRachaConVidas(new Set(activityByDay.keys()), hoy);
+    const { actual, vidas, diasProtegidos, maxHistorica, ultimaVidaUsada, faltanParaVida } = calcularRachaConVidas(new Set(activityByDay.keys()), hoy);
 
     // Últimos 7 días (incluye hoy) para el mini-gráfico de línea.
     const last7 = [];
@@ -1699,7 +1702,7 @@ export const db = {
       last7.push({ date: dia, count: activityByDay.get(dia) || 0 });
     }
 
-    return { actual, last7, vidas, diasProtegidos, maxHistorica, ultimaVidaUsada };
+    return { actual, last7, vidas, diasProtegidos, maxHistorica, ultimaVidaUsada, faltanParaVida };
   },
 
   // Actividad por día de un mes para un módulo+tipo de evento dado — la

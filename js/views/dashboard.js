@@ -3,13 +3,14 @@ import { formatCurrency } from '../utils/currency.js';
 import { Toast } from '../utils/states.js';
 import { parseQuickGasto } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
-import { diaKeyDe, diasEntre, formatFechaCorta, fechaLocalDe } from '../utils/fecha.js';
+import { diaKeyDe, diasEntre, formatFechaCorta, fechaLocalDe, sumarDias } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import * as LabFinanzas from '../components/lab-finanzas.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
 import * as Anotaciones from './anotaciones.js';
+import { svgEscudo, avisarPrimeraVidaSiCorresponde } from '../components/racha-reactor.js';
 
 // Llamado por el router (app.js) antes de desmontar Inicio. El laboratorio
 // puede tener una instancia de Chart.js viva (el donut de "Distribución del
@@ -177,6 +178,16 @@ function ocultarHoy(tipo) {
   catch (e) { /* modo privado */ }
 }
 
+// Aviso de vida extra usada: guarda la clave del día protegido que ya se
+// vio ("Entendido"). Preferencia de UI → localStorage.
+const VIDA_USADA_VISTA = 'vg-vida-extra-usada-vista';
+function vidaUsadaVista() {
+  try { return localStorage.getItem(VIDA_USADA_VISTA); } catch (e) { return null; }
+}
+function marcarVidaUsadaVista(clave) {
+  try { localStorage.setItem(VIDA_USADA_VISTA, clave); } catch (e) { /* modo privado */ }
+}
+
 function saludoPorHora() {
   const h = new Date().getHours();
   if (h < 6) return 'Buenas noches';
@@ -210,15 +221,16 @@ function renderHeroicRow({ id, color, label, value }) {
 }
 
 // Tarjeta contextual: un solo espacio con prioridad Ritual pendiente (solo
-// antes de las 12:00) > aviso de respaldo > avances de nivel listos > "Hoy
+// antes de las 12:00) > aviso de respaldo > vida extra usada (ayer o
+// anteayer) > avances de nivel listos > "Hoy
 // toca" de Entreno. "Después"
 // oculta esa tarjeta hasta mañana (ver ocultarHoy) y deja pasar a la
 // siguiente en la prioridad.
-async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesiones }) {
+async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesiones, rachaGlobal }) {
   const hoy = diaKeyDe(new Date());
 
-  const tarjeta = ({ tipo, color, eyebrow, titulo, detalle, accion }) => `
-    <div id="ctx-card" data-tipo="${tipo}" class="card card-hero" style="padding: 14px 16px; margin-bottom: 14px;">
+  const tarjeta = ({ tipo, color, eyebrow, titulo, detalle, accion, vida = null }) => `
+    <div id="ctx-card" data-tipo="${tipo}"${vida ? ` data-vida="${vida}"` : ''} class="card card-hero" style="padding: 14px 16px; margin-bottom: 14px;">
       <div class="num" style="font-size: 10px; font-weight: 700; color: ${color}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">${eyebrow}</div>
       <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${titulo}</div>
       <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4;">${detalle}</div>
@@ -253,6 +265,29 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesion
         : `Hace ${diasDesdeBackup} días sin respaldo`,
       detalle: 'Tus datos viven solo en este teléfono. Sin respaldo, se pierden si borras la app o cambias de equipo.',
       accion: 'Exportar respaldo'
+    });
+  }
+
+  // Vida extra usada ayer o anteayer, con la racha todavía viva (el día
+  // protegido sigue dentro de la racha en curso). "Entendido" la oculta
+  // para siempre para ESE día protegido (vidaUsadaVista); "Después", solo
+  // hasta mañana como las demás.
+  const usada = rachaGlobal && rachaGlobal.ultimaVidaUsada;
+  if (usada && rachaGlobal.actual > 0 && (rachaGlobal.diasProtegidos || []).includes(usada)
+      && (usada === sumarDias(hoy, -1) || usada === sumarDias(hoy, -2))
+      && vidaUsadaVista() !== usada && !ocultaHoy('vida')) {
+    const f = fechaLocalDe(usada);
+    const dia = `${f.toLocaleDateString('es-CL', { weekday: 'long' })} ${f.getDate()}`;
+    return tarjeta({
+      tipo: 'vida',
+      color: 'var(--vi)',
+      eyebrow: 'Vida extra',
+      // El título va en una sola línea (con elipsis): corto a propósito; la
+      // frase completa va en el detalle.
+      titulo: 'Tu racha se salvó',
+      detalle: `Usaste una vida extra el ${dia} — tu racha sigue en ${rachaGlobal.actual}. ${rachaGlobal.vidas > 0 ? `Te ${rachaGlobal.vidas === 1 ? 'queda 1 vida' : `quedan ${rachaGlobal.vidas} vidas`}.` : 'Registra algo hoy para no cortarla.'}`,
+      accion: 'Entendido',
+      vida: usada
     });
   }
 
@@ -348,7 +383,8 @@ export async function render() {
   // ve el aviso de respaldo cuando no hay nada real que respaldar.
   // Reutiliza datos que este render() ya pidió arriba, sin consultas nuevas.
   const hayDatosReales = sesiones.length > 0 || habitos.length > 0 || tareas.length > 0 || budget.breakdown.length > 0;
-  const tarjetaContextualHtml = await renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesiones });
+  const tarjetaContextualHtml = await renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesiones, rachaGlobal });
+  avisarPrimeraVidaSiCorresponde(rachaGlobal);
 
   const installBannerHtml = debeMostrarBannerInstalar() ? `
     <div id="install-banner" class="card" style="padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
@@ -405,8 +441,9 @@ export async function render() {
           <h1 style="font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.4px;">${saludoPorHora()}, Benjamín</h1>
           <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">${escapeHtml(fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1))}</div>
         </div>
-        <button id="chip-racha" class="tappable" aria-label="Racha de ${rachaGlobal.actual} ${rachaGlobal.actual === 1 ? 'día' : 'días'}. Ver hábitos" style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 6px 12px 6px 10px; border-radius: 999px; cursor: pointer;">
+        <button id="chip-racha" class="tappable" aria-label="Racha de ${rachaGlobal.actual} ${rachaGlobal.actual === 1 ? 'día' : 'días'}, ${rachaGlobal.vidas} ${rachaGlobal.vidas === 1 ? 'vida extra' : 'vidas extra'}. Ver hábitos" style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 6px 12px 6px 10px; border-radius: 999px; cursor: pointer;">
           🔥 <span class="num">${rachaGlobal.actual}</span>
+          <span class="chip-vidas${rachaGlobal.vidas > 0 ? '' : ' chip-vidas--vacio'}" aria-hidden="true">· ${svgEscudo({ lleno: rachaGlobal.vidas > 0, size: 12 })}<span class="num">${rachaGlobal.vidas}</span></span>
         </button>
       </div>
 
@@ -582,6 +619,7 @@ export function mountListeners() {
     document.getElementById('ctx-accion').addEventListener('click', async () => {
       if (tipo === 'ritual') go('ritual');
       else if (tipo === 'backup') { await exportAllData(); refresh(); } // diasDesdeUltimoBackup ya quedó en 0 — la tarjeta se saca sola al re-renderizar
+      else if (tipo === 'vida') { marcarVidaUsadaVista(ctx.getAttribute('data-vida')); refresh(); }
       else go('entrenamiento');
     });
     document.getElementById('ctx-despues').addEventListener('click', () => {

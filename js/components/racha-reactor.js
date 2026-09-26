@@ -5,7 +5,58 @@
 // db.getBadges), así que muestran los mismos valores que antes.
 import { db } from '../core/db.js';
 import { WEEKLY_GOALS } from '../core/trainingConfig.js';
-import { diaKeyDe } from '../utils/fecha.js';
+import { diaKeyDe, fechaLocalDe, formatDiaSemana } from '../utils/fecha.js';
+import { Toast } from '../utils/states.js';
+
+// --- Vida extra (racha global) --------------------------------------------
+// Escudo SVG (no emoji) de una vida extra. `lleno` = vida disponible; vacío
+// = hueco para una vida que todavía no se gana. El color lo pone quien lo
+// usa (currentColor).
+export function svgEscudo({ lleno = true, size = 14 } = {}) {
+  return `<svg class="escudo-vida" aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${lleno ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+}
+
+// Texto corto bajo el reactor según las vidas disponibles.
+function textoVidas(racha) {
+  if (racha.vidas > 0) {
+    return `${racha.vidas} ${racha.vidas === 1 ? 'vida extra' : 'vidas extra'} · protege tu racha si un día no registras nada`;
+  }
+  const n = racha.faltanParaVida;
+  return `Gana una vida con 7 días seguidos (${n === 1 ? 'falta 1' : `faltan ${n}`})`;
+}
+
+// Últimos 7 días de la racha global (last7): activo, protegido por una vida
+// (escudo + borde discontinuo), vacío, y hoy pendiente. Clases en
+// components.css (.racha-semana), con el acento de Hábitos.
+function renderSemanaRacha(racha) {
+  const protegidos = new Set(racha.diasProtegidos || []);
+  const hoy = diaKeyDe(new Date());
+  return `
+    <div class="racha-semana" role="list" aria-label="Últimos 7 días de la racha">
+      ${racha.last7.map(d => {
+        const estado = protegidos.has(d.date) ? 'protegido' : d.count > 0 ? 'activo' : 'vacio';
+        const etiqueta = estado === 'protegido' ? 'protegido por una vida extra' : estado === 'activo' ? 'con actividad' : (d.date === hoy ? 'hoy, pendiente' : 'sin actividad');
+        const letra = formatDiaSemana(fechaLocalDe(d.date)).toUpperCase();
+        return `
+          <div class="racha-dia racha-dia--${estado}${d.date === hoy ? ' racha-dia--hoy' : ''}" role="listitem" data-fecha="${d.date}" aria-label="${letra} ${d.date.slice(8)}: ${etiqueta}">
+            <span class="racha-dia-letra">${letra}</span>
+            <span class="racha-dia-marca">${estado === 'protegido' ? svgEscudo({ lleno: true, size: 10 }) : ''}</span>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// Toast "Ganaste una vida extra" una sola vez en la vida del usuario: la
+// primera vez que se ve vidas >= 1. Preferencia de UI → localStorage.
+const CLAVE_PRIMERA_VIDA = 'vg-vida-extra-primera-vista';
+export function avisarPrimeraVidaSiCorresponde(racha) {
+  if (!racha || !(racha.vidas > 0)) return;
+  try {
+    if (localStorage.getItem(CLAVE_PRIMERA_VIDA)) return;
+    localStorage.setItem(CLAVE_PRIMERA_VIDA, diaKeyDe(new Date()));
+  } catch (e) { return; /* sin localStorage no hay forma de mostrarlo una sola vez */ }
+  Toast('Ganaste una vida extra 🛡', 'success', 3500);
+}
 
 // Insignias sobrias: sin niveles, sin copy de videojuego. Bloqueada = ícono
 // de candado atenuado en gris; desbloqueada = ícono propio con el color de
@@ -67,6 +118,9 @@ function renderReactor({ cyPct, amPct, viPct, rachaGlobal }) {
       <div aria-hidden="true" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none;">
         <div class="num" style="font-size: 36px; font-weight: 800; color: var(--t1); line-height: 1;">${rachaGlobal.actual}</div>
         <div style="font-size: 10px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: 2.5px; margin-top: 5px;">Racha</div>
+        <div class="reactor-vidas">
+          ${[0, 1].map(i => `<span class="reactor-vida${i < rachaGlobal.vidas ? ' reactor-vida--llena' : ''}">${svgEscudo({ lleno: i < rachaGlobal.vidas, size: 12 })}</span>`).join('')}
+        </div>
       </div>
     </div>
   `;
@@ -117,11 +171,16 @@ export async function renderCabeceraRacha() {
   // en vez de inventar un porcentaje (0/0 no es 100%).
   const viPct = habitos.length > 0 ? (marcadosHoy / habitos.length) * 100 : 0;
 
+  avisarPrimeraVidaSiCorresponde(rachaGlobal);
+
   return `
     <!-- Reactor: tres anillos (Entreno/Finanzas/Hábitos) + racha global —
-         lleva chaflán (ver .card-hero). -->
+         lleva chaflán (ver .card-hero). Debajo: vidas extra y los últimos
+         7 días de la racha. -->
     <div class="card card-hero" style="margin-right: 20px; padding: 24px 18px; margin-bottom: 16px;">
       ${renderReactor({ cyPct, amPct, viPct, rachaGlobal })}
+      <div id="reactor-vidas-texto" class="reactor-vidas-texto">${textoVidas(rachaGlobal)}</div>
+      ${renderSemanaRacha(rachaGlobal)}
     </div>
 
     <!-- Insignias: panal hexagonal -->
