@@ -7,10 +7,13 @@
 // funcionando 100% offline sin cuenta — esta sección es opcional.
 import { Toast } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
-import { getSupabase, isSupabaseConfigured } from '../core/supabase-client.js';
+import { getSupabase, isSupabaseConfigured, cargarSupabase, estadoSupabase } from '../core/supabase-client.js';
 import { runFullSync } from '../core/sync.js';
 
+// Espera la carga del bundle de Supabase (la dispara initSync al arrancar;
+// si todavía no terminó, se espera acá) antes de pedir la sesión.
 export async function getAuthSession() {
+  await cargarSupabase();
   if (!isSupabaseConfigured()) return null;
   const { data: { session } } = await getSupabase().auth.getSession();
   return session;
@@ -22,8 +25,15 @@ export async function getAuthSession() {
 const PRIVACIDAD_LINK = `<p style="font-size: 12px; color: var(--text-secondary); margin: 14px 0 0;">Al usar una cuenta se guarda una copia de tus datos en la nube. <a href="privacidad.html" style="color: var(--accent-primary);">Política de privacidad</a></p>`;
 
 export function renderAuthSection(session) {
-  if (!isSupabaseConfigured()) {
+  const estado = estadoSupabase();
+  if (estado === 'no-configurado') {
     return `<p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Todavía no está configurado el proyecto de Supabase — completá SUPABASE_URL y SUPABASE_ANON_KEY en js/core/supabase-client.js.</p>`;
+  }
+  if (estado !== 'listo') {
+    // El bundle de Supabase no cargó: la app funciona igual, solo sin sync.
+    return `
+      <div id="auth-no-disponible" style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px;">Sincronización no disponible</div>
+      <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4;">No se pudo cargar el módulo de sincronización. Tus datos siguen guardados en este teléfono; vuelve a intentarlo al recargar la app.</p>`;
   }
 
   if (session?.user) {

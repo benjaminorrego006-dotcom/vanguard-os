@@ -22,7 +22,7 @@
 // exponer un acceso genérico por store que el resto de la app no debe
 // usar. Cualquier otro módulo que necesite datos va por db.js.
 import * as idb from './idb.js';
-import { getSupabase, isSupabaseConfigured } from './supabase-client.js';
+import { getSupabase, isSupabaseConfigured, cargarSupabase } from './supabase-client.js';
 import { reportError } from './error-tracking.js';
 
 const SYNC_META_KEY = 'syncMeta';
@@ -566,7 +566,13 @@ let initialized = false;
 // Se llama una sola vez al arrancar la app (ver app.js). No hace nada si
 // Supabase no está configurado todavía.
 export async function initSync() {
-  if (!isSupabaseConfigured() || initialized) return;
+  if (initialized) return;
+  // El cliente de Supabase se carga acá, bajo demanda y en paralelo al
+  // arranque (bundle local, ver supabase-client.js). Si no carga, la sync
+  // queda desactivada y el resto de la app sigue igual.
+  let listo = false;
+  try { listo = await cargarSupabase(); } catch (err) { listo = false; }
+  if (!listo || !isSupabaseConfigured() || initialized) return;
   initialized = true;
 
   window.addEventListener('vg-event-logged', (e) => { pushSingleEvent(e.detail); });

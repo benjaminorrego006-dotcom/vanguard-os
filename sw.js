@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v199';
+const CACHE_NAME = 'vanguard-os-v200';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -46,6 +46,7 @@ const PRECACHE_URLS = [
   './js/utils/quickCapture.js',
   './js/utils/hoyToca.js',
   './js/vendor/chart.js',
+  './js/vendor/supabase-js-2.116.0.js',
   './js/views/dashboard.js',
   './js/views/entrenamiento.js',
   './js/views/finanzas.js',
