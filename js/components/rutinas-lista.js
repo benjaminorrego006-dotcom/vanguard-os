@@ -2,6 +2,7 @@ import { db } from '../core/db.js';
 import { PLANTILLAS } from '../core/plantillas.js';
 import { getEjercicioPorId, agruparPorGrupoMuscular, grupoMuscularParaMapa } from '../core/ejercicios-catalogo.js';
 import { RAMA_LABELS } from '../core/progresiones.js';
+import { esDescansoActivo, renderDescansoActivoCard } from './descanso-activo.js';
 import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatDiaSemana } from '../utils/fecha.js';
@@ -229,7 +230,9 @@ export async function renderRutinasLista(categoria) {
     html += `<div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">`;
     rutinas.forEach(r => {
       const eCount = r.ejercicios ? r.ejercicios.length : 0;
-      const ejerciciosHtml = r.hiitSettings
+      const ejerciciosHtml = esDescansoActivo(r, r.categoria)
+        ? `<p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0 0 16px 0;">Descanso activo</p>`
+        : r.hiitSettings
         ? `<p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0 0 16px 0;">Configuración HIIT</p>`
         : `<div style="margin-bottom: 16px;"><p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0;">${eCount} ejercicio${eCount === 1 ? '' : 's'}</p>${renderEjerciciosRutina(r.ejercicios || [])}</div>`;
       html += `
@@ -539,6 +542,7 @@ export function renderGeneradorPreview(plan, categoria) {
   `;
 
   const diasHtml = plan.dias.map(dia => {
+    if (esDescansoActivo(dia, categoria)) return `<div style="margin-bottom: 16px;">${renderDescansoActivoCard({ nombre: dia.nombre })}</div>`;
     const faltan = categoria !== 'hiit' && dia.cupo && dia.ejercicios.length > 0 && dia.ejercicios.length < dia.cupo;
     const indicador = faltan ? `<span title="Este día tiene menos ejercicios de los previstos" style="font-size: 11px; font-weight: 700; color: var(--text-disabled); font-variant-numeric: tabular-nums;">${dia.ejercicios.length}/${dia.cupo}</span>` : '';
     const items = categoria === 'hiit'
@@ -592,7 +596,7 @@ export function initGeneradorPreviewListeners(plan, categoria, onSuccess, signal
         ? dia.ejercicioIds.map(id => ({ nombre: getEjercicioPorId(id)?.nombre || id, series: [] }))
         : dia.ejercicios.map(ej => ({ nombre: ej.nombre, series: ej.series }));
 
-      if (ejercicios.length === 0) continue;
+      if (ejercicios.length === 0 && !esDescansoActivo(dia, categoria)) continue;
 
       await db.crearRutina({
         nombre: dia.nombre,

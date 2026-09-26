@@ -130,6 +130,8 @@ export async function applyRemoteEvent(event) {
       case 'rutina_creada':
         await idb.put('rutinas', { ...payload, id: entidadId });
         break;
+      case 'descanso_activo_completado':
+        break; // solo auditoría: no crea sesión ni toca ningún store derivado
       case 'rutina_generada':
         break; // solo auditoría (spec-generador-rutinas.md) — no toca ningún store derivado
       case 'rutina_eliminada':

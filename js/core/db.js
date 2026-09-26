@@ -1141,6 +1141,14 @@ export const db = {
     await logEvent({ modulo: 'entreno', tipo: 'rutina_generada', entidadId: id, payload: { categoria, diasPorSemana, resumenPatrones } });
     return id;
   },
+  // Día 7 "Descanso activo" (ver components/descanso-activo.js): no es una
+  // sesión de fuerza, así que NO crea un registro en 'sesiones'; solo deja
+  // constancia en el log con el día (diaKeyDe) en que el usuario lo marcó.
+  async registrarDescansoActivoCompletado({ rutinaId = null, categoria = null, nombre = '' } = {}) {
+    const fecha = diaKeyDe(new Date());
+    await logEvent({ modulo: 'entreno', tipo: 'descanso_activo_completado', entidadId: rutinaId, payload: { fecha, categoria, nombre } });
+    return fecha;
+  },
   async eliminarRutina(id) {
     let rutinas = await idbGetArray('rutinas');
     rutinas = rutinas.filter(r => r.id !== id);

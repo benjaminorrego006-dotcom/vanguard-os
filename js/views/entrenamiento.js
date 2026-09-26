@@ -1,5 +1,6 @@
 import { db } from '../core/db.js';
 import { renderRutinasLista, initRutinasListaListeners, renderPlantillaPreview, initPlantillaPreviewListeners, renderGeneradorPreview, initGeneradorPreviewListeners } from '../components/rutinas-lista.js';
+import { esDescansoActivo, renderDescansoActivoSesion, initDescansoActivoListeners } from '../components/descanso-activo.js';
 import { renderGeneradorConfigForm, setupGeneradorConfigForm, openGeneradorConfigForm } from '../components/generador-rutina-form.js';
 import { renderRutinaForm, initRutinaFormListeners } from '../components/rutina-form.js';
 import { renderHiitRutinaForm, initHiitRutinaFormListeners } from '../components/hiit-rutina-form.js';
@@ -570,7 +571,10 @@ mountListeners = () => {
     empujarHistorialSiHaceFalta();
 
     try {
-      if (rutina.categoria === 'hiit') {
+      if (esDescansoActivo(rutina, rutina.categoria)) {
+        subContent.innerHTML = renderDescansoActivoSesion(rutina);
+        initDescansoActivoListeners(rutina, async () => goToMain(), signal);
+      } else if (rutina.categoria === 'hiit') {
         subContent.innerHTML = renderHiitTimer(rutina);
         initHiitTimerListeners(rutina, async () => goToMain(), signal);
       } else {
