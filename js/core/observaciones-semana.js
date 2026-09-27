@@ -5,10 +5,16 @@
 // mismo módulo principal. Redacción: tuteo, "coincide con" / "en los días
 // que…", nunca "causa" ni "porque".
 import { formatCurrency } from '../utils/currency.js';
+import { conMayuscula } from '../utils/fecha.js';
 
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 const DIAS_PLURAL = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'];
-const MIN_DIAS_GRUPO = 3;
+// Comparaciones entre grupos de días: al menos 4 días en cada grupo, con la
+// semana sola o, si no alcanza, con las semanas previas con actividad.
+const MIN_DIAS_GRUPO = 4;
+// Tope de magnitud: un caso extremo (ej. 83 % vs 11 % con pocos días) no
+// tapa a las demás; entre empatadas gana la que tiene más días de datos.
+const MAGNITUD_MAX = 3;
 const MIN_SEMANAS_PREVIAS = 3;
 
 // "3,6" (un decimal, coma).
@@ -28,7 +34,7 @@ const conActividad = (semanas) => semanas.filter(s => s.porDia.some(d => d.activ
 
 // Compara un valor diario entre dos grupos de días. Primero con la semana
 // sola; si algún grupo no llega al mínimo, con las previas con actividad + la
-// actual. `semanas` = cuántas semanas entraron (1 = esta semana).
+// actual; si tampoco, null. `semanas` = cuántas semanas entraron (1 = esta semana).
 function compararGrupos(semana, previas, filtro, grupo, valor) {
   const ampliado = conActividad([...previas, semana]);
   const intentos = [[semana]];
@@ -51,7 +57,7 @@ function reglaEnergiaEntreno(semana, previas) {
   if (!c || Math.abs(c.si - c.no) < 0.5) return null;
   const mas = c.si > c.no;
   return {
-    id: 'energia-entreno', modulos: ['ritual', 'entreno'], principal: 'ritual',
+    id: 'energia-entreno', modulos: ['ritual', 'entreno'], principal: 'ritual', dias: c.nSi + c.nNo,
     magnitud: Math.abs(c.si - c.no) / Math.min(c.si, c.no),
     texto: `${prefijo(c.semanas)} días que entrenaste coinciden con ${mas ? 'más' : 'menos'} energía: ${dec(c.si)} vs ${dec(c.no)} los días sin entreno.`
   };
@@ -79,7 +85,7 @@ function reglaDeseos(semana, previas) {
   const comparacion = actual >= esperado * 2
     ? `${dec(actual / esperado)} veces ${referencia}`
     : `un ${Math.round(Math.abs(rel) * 100)} % ${rel > 0 ? 'más' : 'menos'} que ${referencia}`;
-  return { id: 'deseos-ritmo', modulos: ['finanzas'], principal: 'finanzas', magnitud: Math.abs(rel), texto: `${inicio}: ${comparacion}.` };
+  return { id: 'deseos-ritmo', modulos: ['finanzas'], principal: 'finanzas', dias: semana.diasContados + 7 * r.n, magnitud: Math.abs(rel), texto: `${inicio}: ${comparacion}.` };
 }
 
 // 3. Hábitos cumplidos en días con y sin Ritual.
@@ -88,7 +94,7 @@ function reglaRitualHabitos(semana, previas) {
   if (!c || Math.abs(c.si - c.no) < 15) return null;
   const mas = c.si > c.no;
   return {
-    id: 'ritual-habitos', modulos: ['habitos', 'ritual'], principal: 'habitos',
+    id: 'ritual-habitos', modulos: ['habitos', 'ritual'], principal: 'habitos', dias: c.nSi + c.nNo,
     magnitud: Math.abs(c.si - c.no) / Math.max(1, Math.min(c.si, c.no)),
     texto: `${prefijo(c.semanas)} días que hiciste el Ritual coinciden con ${mas ? 'más' : 'menos'} hábitos cumplidos: ${Math.round(c.si)} % vs ${Math.round(c.no)} % los demás días.`
   };
@@ -103,7 +109,7 @@ function reglaGastoEntreno(semana, previas) {
   const rel = Math.abs(c.si - c.no) / base;
   if (rel < 0.25) return null;
   return {
-    id: 'gasto-entreno', modulos: ['finanzas', 'entreno'], principal: 'finanzas', magnitud: rel,
+    id: 'gasto-entreno', modulos: ['finanzas', 'entreno'], principal: 'finanzas', dias: c.nSi + c.nNo, magnitud: rel,
     texto: `${prefijo(c.semanas)} días que entrenaste coinciden con ${c.si > c.no ? 'más' : 'menos'} gasto variable: ${monto(c.si)} vs ${monto(c.no)} al día.`
   };
 }
@@ -119,7 +125,7 @@ function reglaTareas(semana) {
   const texto = dif > 0
     ? `Entraron ${creadas} tareas y completaste ${completadas}${detalle}: la lista creció en ${dif}.`
     : `Completaste ${completadas} tareas${detalle} y entraron ${creadas}: la lista bajó en ${-dif}.`;
-  return { id: 'tareas-flujo', modulos: ['tareas'], principal: 'tareas', magnitud: rel, texto };
+  return { id: 'tareas-flujo', modulos: ['tareas'], principal: 'tareas', dias: semana.diasContados, magnitud: rel, texto };
 }
 
 // 6. Día de la semana más activo (sesiones + tareas completadas).
@@ -136,8 +142,8 @@ function reglaMejorDia(semana, previas) {
   const rel = porDow[mejor] / media - 1;
   if (porDow[mejor] < media * 1.5) return null;
   return {
-    id: 'mejor-dia', modulos: ['entreno', 'tareas'], principal: 'general', magnitud: rel,
-    texto: `En las últimas ${semanas.length} semanas, los ${DIAS_PLURAL[mejor]} coinciden con tu mayor actividad: ${porDow[mejor]} entre entrenos y tareas; los ${DIAS_PLURAL[flojo]}, con la menor (${porDow[flojo]}).`
+    id: 'mejor-dia', modulos: ['entreno', 'tareas'], principal: 'general', dias: diasContados(semanas).length, magnitud: rel,
+    texto: `${conMayuscula(`los ${DIAS_PLURAL[mejor]}`)} son tus días más activos (${porDow[mejor]} entrenos y tareas en ${semanas.length} semanas); los ${DIAS_PLURAL[flojo]}, los más tranquilos (${porDow[flojo]}).`
   };
 }
 
@@ -150,7 +156,7 @@ function reglaHabitosRitmo(semana, previas) {
   if (Math.abs(dif) < 10) return null;
   const verbo = semana.parcial ? 'Vas en' : 'Cumpliste';
   return {
-    id: 'habitos-ritmo', modulos: ['habitos'], principal: 'habitos',
+    id: 'habitos-ritmo', modulos: ['habitos'], principal: 'habitos', dias: semana.diasContados + 7 * r.n,
     magnitud: Math.abs(dif) / Math.max(1, r.prom),
     texto: `${verbo} ${semana.habitos.pct} % de tus hábitos, ${dif > 0 ? 'sobre' : 'bajo'} tu ${Math.round(r.prom)} % habitual.`
   };
@@ -163,9 +169,9 @@ function reglaVidaExtra(semana) {
   if (!protegidos.length) return null;
   const dias = listaY(protegidos.map(d => diaConNumero(d.fecha, d.dow)));
   const texto = protegidos.length === 1
-    ? `${dias.charAt(0).toUpperCase()}${dias.slice(1)} no registraste nada y la vida extra sostuvo tu racha.`
-    : `${dias.charAt(0).toUpperCase()}${dias.slice(1)} no registraste nada y las vidas extra sostuvieron tu racha.`;
-  return { id: 'vida-extra', modulos: ['racha'], principal: 'racha', magnitud: protegidos.length, texto };
+    ? `${conMayuscula(dias)} no registraste nada y la vida extra sostuvo tu racha.`
+    : `${conMayuscula(dias)} no registraste nada y las vidas extra sostuvieron tu racha.`;
+  return { id: 'vida-extra', modulos: ['racha'], principal: 'racha', dias: semana.diasContados, magnitud: protegidos.length, texto };
 }
 
 const REGLAS = [reglaEnergiaEntreno, reglaDeseos, reglaRitualHabitos, reglaGastoEntreno, reglaTareas, reglaMejorDia, reglaHabitosRitmo, reglaVidaExtra];
@@ -176,7 +182,8 @@ export function evaluarReglas(semana, semanasPrevias = []) {
   if (!semana || semana.futura || semana.diasContados === 0) return [];
   return REGLAS.map(regla => regla(semana, semanasPrevias))
     .filter(Boolean)
-    .sort((a, b) => b.magnitud - a.magnitud);
+    .map(o => ({ ...o, magnitud: Math.min(MAGNITUD_MAX, o.magnitud) }))
+    .sort((a, b) => b.magnitud - a.magnitud || b.dias - a.dias);
 }
 
 export function generarObservaciones(semana, semanasPrevias = []) {
