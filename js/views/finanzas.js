@@ -663,29 +663,45 @@ const renderEnvelopesHTML = async (b) => {
     return finEmptyState('Sin cuentas', archivados.length ? 'Todos tus sobres están archivados' : 'Todavía no creaste ningún sobre', 'Un sobre es donde separas plata para una categoría de gasto — luz, comida, salidas.') + addBtnHtml + archivadosHtml;
   }
 
-  // getHistoricalSummaryByEnvelope es async (lee IndexedDB): se
-  // precalculan todos los sparklines ANTES de armar el HTML.
-  const histByEnvId = new Map(await Promise.all(
-    b.envelopes.map(async (env) => [env.id, await db.getHistoricalSummaryByEnvelope(env.id, 3)])
-  ));
+  // Mini-gráfico de 3 meses (R5): gasto de cada mes contra el disponible de
+  // ESE mes (arrastre + asignado ± transferencias), no contra el asignado
+  // de hoy. Los 2 meses anteriores salen de getBudget, en serie a propósito:
+  // en paralelo podrían procesar la misma recurrente dos veces.
+  const [anioVista, mesVista] = b.currentMonth.split('-').map(Number);
+  const mesesPrevios = [2, 1].map(i => mesKeyDe(new Date(anioVista, mesVista - 1 - i, 1)));
+  const sobresPorMes = [];
+  for (const m of mesesPrevios) sobresPorMes.push(new Map((await db.getBudget(m)).todosLosSobres.map(e => [e.id, e])));
+  sobresPorMes.push(new Map(b.envelopes.map(e => [e.id, e])));
+  const disponibleDe = (e) => e.arrastre + e.asignado + e.transferencias;
+  const nombreMesAnterior = formatMes(new Date(anioVista, mesVista - 2, 1)).toLowerCase();
+  const conSigno = (n) => `${n < 0 ? '−' : '+'}${formatCurrency(Math.abs(n))}`;
 
   const cards = b.envelopes.map(env => {
-    const pct = env.assignedAmount > 0 ? Math.min(100, Math.round((env.spent / env.assignedAmount) * 100)) : (env.spent > 0 ? 100 : 0);
-    const meterCls = pct >= 100 ? 'danger' : pct >= 80 ? 'warn' : '';
+    const disponible = disponibleDe(env);
+    const negativo = env.saldo < 0;
+    const pct = negativo ? 100 : disponible > 0 ? Math.min(100, Math.round((env.gastado / disponible) * 100)) : (env.gastado > 0 ? 100 : 0);
+    const meterCls = negativo ? 'danger' : pct >= 80 ? 'warn' : ''; // rojo solo con saldo negativo
     const catColor = getCatColor(env.category);
 
-    const hist = histByEnvId.get(env.id) || [];
-    const maxH = Math.max(...hist, 1);
-    const sparklineHtml = hist.length ? `<div style="display:flex; align-items:flex-end; gap:2px; height:12px;" title="Últimos 3 meses">${
-      hist.map(v => {
-        const hPct = Math.max(10, Math.round((v / maxH) * 100));
-        const sparkColor = v > env.assignedAmount ? 'var(--state-high)' : 'var(--accent-blue)';
-        return `<div style="width:3px; height:${hPct}%; background:${sparkColor}; border-radius:1px; opacity:0.7;"></div>`;
+    const hist = sobresPorMes.map(mapa => mapa.get(env.id)).map(e => (e ? { gastado: e.gastado, disponible: disponibleDe(e) } : { gastado: 0, disponible: 0 }));
+    const maxH = Math.max(...hist.map(h => Math.max(h.gastado, h.disponible)), 1);
+    const sparklineHtml = hist.some(h => h.gastado > 0 || h.disponible > 0) ? `<div class="sobre-spark" title="Gasto contra disponible, últimos 3 meses">${
+      hist.map(h => {
+        const hPct = Math.max(10, Math.round((h.gastado / maxH) * 100));
+        return `<div class="${h.gastado > h.disponible ? 'excedido' : ''}" style="height:${hPct}%;"></div>`;
       }).join('')
     }</div>` : '';
 
+    const lineaArrastre = env.arrastre !== 0
+      ? `<div class="sobre-linea${env.arrastre < 0 ? ' negativo' : ''}">${conSigno(env.arrastre)} de ${nombreMesAnterior}</div>` : '';
+    const lineaTransf = env.transferencias !== 0
+      ? `<div class="sobre-linea">${conSigno(env.transferencias)} transferido</div>` : '';
+    const aria = `${env.name}: saldo ${formatCurrency(env.saldo)}. Gastado ${formatCurrency(env.gastado)} de ${formatCurrency(disponible)} disponibles.`
+      + (env.arrastre !== 0 ? ` Arrastre ${conSigno(env.arrastre)} de ${nombreMesAnterior}.` : '')
+      + (env.transferencias !== 0 ? ` ${conSigno(env.transferencias)} transferido.` : '');
+
     return `
-      <div class="card fin-account-card env-row tappable" data-id="${env.id}">
+      <div class="card fin-account-card env-row tappable" data-id="${env.id}" role="group" aria-label="${escapeHtml(aria)}">
         <div class="flex-between">
           <p class="fin-eyebrow" style="color: ${catColor};">${CAT_LABELS[env.category] || env.category}</p>
           <div style="display: flex; gap: 10px;">
@@ -698,9 +714,10 @@ const renderEnvelopesHTML = async (b) => {
           <div style="font-weight: 600; font-size: 14px;">${escapeHtml(env.name)}</div>
           ${sparklineHtml}
         </div>
-        <div class="fin-bal" style="color: ${env.balance >= 0 ? 'var(--text-primary)' : 'var(--state-high)'};">${formatCurrency(env.balance)}</div>
+        <div class="fin-bal" style="color: ${negativo ? 'var(--state-high)' : 'var(--text-primary)'};">${formatCurrency(env.saldo)}</div>
         <div class="fin-meter"><i class="${meterCls}" style="width:${pct}%"></i></div>
-        <div class="fin-bc-figures">${formatCurrency(env.spent)} de ${formatCurrency(env.assignedAmount)}</div>
+        <div class="fin-bc-figures">${formatCurrency(env.gastado)} de ${formatCurrency(disponible)}</div>
+        ${lineaArrastre}${lineaTransf}
       </div>
     `;
   }).join('');
