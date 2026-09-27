@@ -978,9 +978,11 @@ const renderDailyAvailable = (b) => {
 // no dice nada real, así que se muestra un texto neutro en vez de omitirlo.
 const renderMonthTrend = (b) => {
   if (!b.trend) return `<div style="font-size: 12px; font-weight: 600; color: var(--text-disabled); margin-top: 10px;">Sin datos del mes anterior</div>`;
-  const { pct, isUp } = b.trend;
+  const { pct, isUp, hastaDia } = b.trend;
   const color = isUp ? 'var(--state-high)' : 'var(--state-low)';
-  const texto = isUp ? `Gastaste ${pct}% más que el mes pasado` : `Vas ${pct}% mejor que el mes pasado`;
+  // hastaDia: mes en curso comparado con el anterior hasta el mismo día.
+  const referencia = hastaDia ? 'a esta altura del mes pasado' : 'el mes pasado';
+  const texto = isUp ? `Gastaste ${pct}% más que ${referencia}` : `Vas ${pct}% mejor que ${referencia}`;
   const arrow = isUp
     ? `<svg width="12" height="12" fill="none" stroke="${color}" stroke-width="3" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`
     : `<svg width="12" height="12" fill="none" stroke="${color}" stroke-width="3" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
@@ -1083,14 +1085,14 @@ const renderResumenCharts = async (b) => {
 
   const barCanvas = document.getElementById('bar-chart-mes-comparativo');
   if (barCanvas) {
-    const hist = await db.getHistoricalSummary(2);
-    const prevMes = hist.data[0]?.expenses || 0;
-    const esteMes = hist.data[1]?.expenses || 0;
+    // Mismo corte que b.trend: en el mes en curso, el anterior hasta el mismo día.
+    const prevMes = b.prevExpenses || 0;
+    const esteMes = b.expenses || 0;
     if (monthCompareChartInstance) monthCompareChartInstance.destroy();
     monthCompareChartInstance = new Chart(barCanvas, {
       type: 'bar',
       data: {
-        labels: ['Mes anterior', 'Este mes'],
+        labels: [b.trendHastaDia ? `Mes anterior (1–${b.trendHastaDia})` : 'Mes anterior', 'Este mes'],
         datasets: [{
           data: [prevMes, esteMes],
           backgroundColor: [palette.surfaceBorder, esteMes > prevMes ? palette.high : palette.low],

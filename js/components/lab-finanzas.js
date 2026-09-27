@@ -56,7 +56,7 @@ async function renderDesglose() {
     : `<div style="height: 200px;"><canvas id="lab-fin-donut"></canvas></div><div style="margin-top: 14px;">${renderDonutLegend(entries)}</div>`;
 
   const trendHtml = budget.trend
-    ? `<div style="font-size: 12.5px; font-weight: 700; margin-top: 10px; color: ${budget.trend.isUp ? 'var(--rd)' : 'var(--state-success)'};">Gastaste ${budget.trend.pct}% ${budget.trend.isUp ? 'más' : 'menos'} que el mes pasado</div>`
+    ? `<div style="font-size: 12.5px; font-weight: 700; margin-top: 10px; color: ${budget.trend.isUp ? 'var(--rd)' : 'var(--state-success)'};">Gastaste ${budget.trend.pct}% ${budget.trend.isUp ? 'más' : 'menos'} que ${budget.trend.hastaDia ? 'a esta altura del mes pasado' : 'el mes pasado'}</div>`
     : '';
 
   return `

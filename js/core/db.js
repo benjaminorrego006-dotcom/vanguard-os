@@ -2946,7 +2946,17 @@ export const db = {
     const [y, m] = monthFilter.split('-');
     let prevDate = new Date(parseInt(y), parseInt(m) - 2);
     const prevMonthStr = mesKeyDe(prevDate);
-    const prevTxs = txsAll.filter(t => t.date && claveDiaDe(t.date).startsWith(prevMonthStr));
+    // Mes en curso: el mes anterior se cuenta solo hasta el MISMO día (1–26
+    // sept contra 1–26 ago); comparar un mes a medias contra uno completo
+    // daba "74% menos" a fin de mes. Si el mes anterior es más corto, hasta
+    // su último día. Un mes ya cerrado se compara completo contra completo.
+    const hoyClave = diaKeyDe(new Date());
+    const trendHastaDia = monthFilter === hoyClave.slice(0, 7)
+      ? Math.min(Number(hoyClave.slice(8)), new Date(parseInt(y), parseInt(m) - 1, 0).getDate())
+      : null;
+    const prevHastaClave = trendHastaDia ? `${prevMonthStr}-${String(trendHastaDia).padStart(2, '0')}` : null;
+    const prevTxs = txsAll.filter(t => t.date && claveDiaDe(t.date).startsWith(prevMonthStr)
+      && (!prevHastaClave || claveDiaDe(t.date) <= prevHastaClave));
 
     let prevExpenses = 0;
     prevTxs.forEach(t => {
@@ -2990,7 +3000,7 @@ export const db = {
     if (prevExpenses > 0) {
       const diff = expenses - prevExpenses;
       const pct = Math.round((diff / prevExpenses) * 100);
-      trend = { pct: Math.abs(pct), isUp: diff > 0 };
+      trend = { pct: Math.abs(pct), isUp: diff > 0, hastaDia: trendHastaDia };
     }
 
     let alertLevel = 'none';
@@ -3009,6 +3019,8 @@ export const db = {
       currentMonth: monthFilter,
       alertLevel,
       trend,
+      // Gasto del mes anterior con el mismo corte que trend (gráfico "Gasto vs. mes anterior").
+      prevExpenses, trendHastaDia,
       income, expenses, savedThisMonth, budgeted, balance: remaining, remaining, rule,
       goals,
       recurring,
