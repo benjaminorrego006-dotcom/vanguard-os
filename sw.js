@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v228';
+const CACHE_NAME = 'vanguard-os-v229';
 const PRECACHE_URLS = [
   './',
   './index.html',

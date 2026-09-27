@@ -198,16 +198,17 @@ export function initGoalForm(refreshCallback) {
     }
 
     if (id) {
-      const goals = await db.getGoals();
-      const existing = goals.find(g => g.id === id);
+      // El progreso lo conserva db.updateGoal; si el monto inicial cambió, lo
+      // recalcula sin tocar los aportes. Las metas por sesiones no tienen inicial.
       await db.updateGoal(id, {
         name, targetAmount, icon, deadline, dominio, tipo, unidad, autoTrack,
-        currentAmount: existing ? existing.currentAmount : 0
+        ...(autoTrack ? {} : { montoInicial: initialAmount })
       });
     } else {
       await db.createGoal({
         name, targetAmount, icon, deadline, dominio, tipo, unidad, autoTrack,
         currentAmount: autoTrack ? 0 : initialAmount,
+        montoInicial: autoTrack ? 0 : initialAmount,
         completed: false
       });
     }
@@ -269,6 +270,13 @@ export function initGoalForm(refreshCallback) {
       if (tipoSelect) tipoSelect.value = goal.tipo || 'personalizado';
       document.getElementById('goal-unidad').value = goal.unidad || '';
       document.getElementById('modal-goal-title').textContent = 'Editar Meta';
+      // Monto inicial guardado (en metas antiguas, el de su creación): si no se
+      // toca, se conserva al guardar.
+      const inicialInput = document.getElementById('goal-initial');
+      inicialInput.value = '';
+      db.getMontoInicialMeta(goal.id).then(v => {
+        if (document.getElementById('goal-id').value === goal.id) inicialInput.value = dominio === 'entreno' ? String(v) : digitsToMiles(v);
+      });
     } else {
       dominio = defaults.dominio || 'finanzas';
       document.getElementById('goal-id').value = '';

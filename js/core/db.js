@@ -945,6 +945,13 @@ export function resumirSemana({ eventos = [], sesiones = [], transacciones = [],
   };
 }
 
+// Monto inicial de una meta (ver db.getMontoInicialMeta).
+function montoInicialDe(goal, eventos) {
+  if (typeof goal.montoInicial === 'number') return goal.montoInicial;
+  const creada = eventos.find(e => e.tipo === 'meta_creada' && e.entidadId === goal.id);
+  return creada ? toSafeNumber(creada.payload && creada.payload.currentAmount) : 0;
+}
+
 // Una sola lectura del store `events` por render para los agregados que lo
 // recorren entero y se piden juntos (getRachaGlobal + getBadges al abrir
 // Hábitos): misma caché que memoize, así que un logEvent la invalida.
@@ -1588,10 +1595,28 @@ export const db = {
     await logEvent({ modulo: newGoal.dominio === 'entreno' ? 'entreno' : 'finanzas', tipo: 'meta_creada', entidadId: newGoal.id, payload: newGoal });
   },
 
+  // Monto (o progreso) inicial con que se creó una meta. Las metas nuevas lo
+  // guardan en `montoInicial`; en las anteriores se deduce de su meta_creada
+  // (createGoal guardaba el inicial como currentAmount) y, sin evento, es 0.
+  async getMontoInicialMeta(id) {
+    const goal = (await idbGetArray('goals')).find(g => g.id === id);
+    if (!goal) return 0;
+    return montoInicialDe(goal, await leerEventosCompartido());
+  },
+
+  // Editar una meta. Si `data` trae montoInicial y cambió, el progreso se
+  // recalcula con el nuevo inicial sin tocar los aportes:
+  // progreso = progreso actual − inicial anterior + inicial nuevo.
   async updateGoal(id, data) {
     let goals = await idbGetArray('goals');
     const idx = goals.findIndex(g => g.id === id);
     if(idx > -1) {
+      if ('montoInicial' in data) {
+        const anterior = montoInicialDe(goals[idx], await leerEventosCompartido());
+        const nuevo = Math.max(0, toSafeNumber(data.montoInicial));
+        const actual = toSafeNumber(goals[idx].currentAmount);
+        data = { ...data, montoInicial: nuevo, currentAmount: nuevo === anterior ? actual : Math.max(0, actual - anterior + nuevo) };
+      }
       goals[idx] = { ...goals[idx], ...data };
       await idbSetArray('goals', goals); this._triggerUpdate();
       await logEvent({ modulo: goals[idx].dominio === 'entreno' ? 'entreno' : 'finanzas', tipo: 'meta_actualizada', entidadId: id, payload: goals[idx] });
