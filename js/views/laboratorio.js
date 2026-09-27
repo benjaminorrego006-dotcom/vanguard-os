@@ -4,9 +4,10 @@
 // heroicas de módulo, todo en la misma pantalla. Inicio ahora solo muestra
 // un gráfico destacado (ver dashboard.js) con un link "Ver todo" hacia acá;
 // esta vista es la versión completa e interactiva, sin recortar.
-import { renderLaboratorio, initLaboratorioListeners, cleanupLaboratorio } from '../components/laboratorio.js';
+import { renderLaboratorio, initLaboratorioListeners, cleanupLaboratorio, entrarLaboratorio } from '../components/laboratorio.js';
 
 export async function render() {
+  entrarLaboratorio(); // "Semana" por defecto al entrar (salvo un deep-link)
   return `
     <div style="padding: 20px 20px 110px 20px; font-family: var(--font-body);">
       <div style="margin-bottom: 20px;">

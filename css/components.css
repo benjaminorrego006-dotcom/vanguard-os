@@ -485,6 +485,107 @@ input[type="date"] { color-scheme: dark; }
   border: 1px dashed var(--vi);
   background: var(--vib);
 }
+/* Día que todavía no llega (tira de Laboratorio > Semana). */
+.racha-dia--futuro .racha-dia-marca {
+  border-style: dotted;
+  opacity: 0.45;
+}
+
+/* Laboratorio > Semana (revisión semanal). MK III: rectos, sin sombras;
+   cada bloque lleva el acento de su módulo en el borde izquierdo (inline). */
+.semana-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.semana-flecha {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--surface-border);
+  border-radius: 0;
+  color: var(--text-primary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.semana-flecha:disabled { opacity: 0.35; cursor: default; }
+.semana-flecha:focus-visible, .semana-bloque:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
+.semana-rango {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.semana-en-curso {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--t2);
+  border: 1px solid var(--t2);
+  padding: 2px 6px;
+}
+.semana-tira { margin: 14px 0 18px; }
+.semana-bloques {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+@media (min-width: 700px) {
+  .semana-bloques { grid-template-columns: 1fr 1fr; }
+}
+.semana-bloque {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-border);
+  border-left: 2px solid var(--surface-border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 14px 16px;
+  color: var(--text-primary);
+}
+button.semana-bloque { cursor: pointer; }
+.semana-bloque-titulo, .semana-obs-titulo {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+.semana-bloque-linea { font-size: 13px; line-height: 1.55; }
+.semana-sec { color: var(--text-secondary); }
+.semana-obs {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.semana-obs-titulo { color: var(--t2); }
+.semana-obs-texto {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.semana-vacia {
+  padding: 32px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
 
 /* Alerta de flujo de caja (Hoy): un cobro de los próximos 7 días que no
    alcanza con el saldo de su sobre — una alerta real, por eso el rojo. Los

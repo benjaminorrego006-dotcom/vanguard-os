@@ -935,7 +935,8 @@ export function resumirSemana({ eventos = [], sesiones = [], transacciones = [],
       semanales: { cumplidos: semanalesCumplidos, total: semanales.length }
     },
     general: {
-      diasActivos: sumar('activo'), diasProtegidos: sumar('protegido'), vidasAlCierre: racha ? racha.vidas : null,
+      diasActivos: sumar('activo'), diasProtegidos: sumar('protegido'),
+      rachaAlCierre: racha ? racha.actual : null, vidasAlCierre: racha ? racha.vidas : null,
       diasRitual: sumar('ritual'),
       energia: energias.length ? Math.round((energias.reduce((a, b) => a + b, 0) / energias.length) * 10) / 10 : null,
       diasEnergia: energias.length
