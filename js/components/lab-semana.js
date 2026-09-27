@@ -20,7 +20,11 @@ let lunesVista = null;
 // re-render reemplaza el HTML): así se puede recorrer con el teclado.
 let focoPendiente = null;
 
-export function reiniciar() { lunesVista = null; }
+// Semana pedida desde afuera (tarjeta "Tu semana" de Hoy): la toma el
+// próximo reiniciar() al entrar al Laboratorio, en vez de la de por defecto.
+let lunesPedido = null;
+export function pedirSemana(lunesKey) { lunesPedido = lunesKey; }
+export function reiniciar() { lunesVista = lunesPedido; lunesPedido = null; }
 export function cleanup() {}
 
 const lunesDe = (clave) => {
@@ -36,7 +40,7 @@ const num = (texto) => `<span class="num">${texto}</span>`;
 const mesCorto = (clave) => fechaLocalDe(clave).toLocaleDateString('es-CL', { month: 'short' }).replace('.', '');
 
 // "14 – 20 sept" o "31 ago – 6 sept".
-function rangoTexto(lunes, domingo) {
+export function rangoTexto(lunes, domingo) {
   const d1 = Number(lunes.slice(8)); const d2 = Number(domingo.slice(8));
   return lunes.slice(0, 7) === domingo.slice(0, 7)
     ? `${d1} – ${d2} ${mesCorto(domingo)}`

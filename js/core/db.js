@@ -1267,6 +1267,20 @@ export const db = {
     await logEvent({ modulo: 'sistema', tipo: 'onboarding_inicial_completado', payload: {} });
   },
 
+  // Revisión semanal (S4): semanas cuya tarjeta "Tu semana" de Hoy ya se vio
+  // ("Ver") o se descartó ("Después"), por clave del lunes. Va en el log
+  // (semana_revisada) para que tampoco reaparezca en otro dispositivo.
+  async getSemanasRevisadas() {
+    return idbGetSingleton('semanasRevisadas', []);
+  },
+  async marcarSemanaRevisada(lunesKey) {
+    const lunes = claveDiaDe(lunesKey);
+    const actuales = await this.getSemanasRevisadas();
+    if (actuales.includes(lunes)) return;
+    await idbSetSingleton('semanasRevisadas', [...actuales, lunes].sort().slice(-52));
+    await logEvent({ modulo: 'sistema', tipo: 'semana_revisada', entidadId: lunes, payload: { lunes } });
+  },
+
   // --- PIN de acceso (100% local, ver nota sobre "vglock_" en sha256Hex) ---
   // OJO: a propósito NO son async (salvo las que ya lo eran por el hash) —
   // isPinEnabled() se usa de forma síncrona para decidir en el primer

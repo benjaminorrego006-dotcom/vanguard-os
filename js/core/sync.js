@@ -140,6 +140,14 @@ export async function applyRemoteEvent(event) {
       case 'onboarding_inicial_completado':
         await idb.put('singletons', { key: 'onboardingInicialCompletado', value: true });
         break;
+      case 'semana_revisada': { // revisión semanal: tarjeta "Tu semana" vista o descartada
+        const fila = await idb.getOne('singletons', 'semanasRevisadas');
+        const actuales = Array.isArray(fila?.value) ? fila.value : [];
+        if (payload.lunes && !actuales.includes(payload.lunes)) {
+          await idb.put('singletons', { key: 'semanasRevisadas', value: [...actuales, payload.lunes].sort().slice(-52) });
+        }
+        break;
+      }
 
       // --- Entreno: rutinas y sesiones ---
       case 'rutina_creada':
@@ -361,6 +369,7 @@ function mirrorTargetFor(event) {
     case 'pr_favorito_toggled': return { store: 'singletons', id: 'prFavoritos' };
     case 'configuracion_actualizada': return { store: 'singletons', id: 'settings' };
     case 'onboarding_inicial_completado': return { store: 'singletons', id: 'onboardingInicialCompletado' };
+    case 'semana_revisada': return { store: 'singletons', id: 'semanasRevisadas' };
     case 'tarea_creada':
       return { store: modulo === 'planificador' ? 'planificador' : 'tareas', id: entidadId };
     case 'tarea_actualizada':

@@ -12,6 +12,7 @@ import { calcularHoyToca } from '../utils/hoyToca.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
 import * as Anotaciones from './anotaciones.js';
 import { svgEscudo, avisarPrimeraVidaSiCorresponde } from '../components/racha-reactor.js';
+import { pedirSemana, rangoTexto } from '../components/lab-semana.js';
 
 // Llamado por el router (app.js) antes de desmontar Inicio. El laboratorio
 // puede tener una instancia de Chart.js viva (el donut de "Distribución del
@@ -222,22 +223,22 @@ function renderHeroicRow({ id, color, label, value }) {
 }
 
 // Tarjeta contextual: un solo espacio con prioridad Ritual pendiente (solo
-// antes de las 12:00) > aviso de respaldo > vida extra usada (ayer o
-// anteayer) > avances de nivel listos > "Hoy
+// antes de las 12:00) > "Tu semana" (lunes y martes) > aviso de respaldo >
+// vida extra usada (ayer o anteayer) > avances de nivel listos > "Hoy
 // toca" de Entreno. "Después"
 // oculta esa tarjeta hasta mañana (ver ocultarHoy) y deja pasar a la
-// siguiente en la prioridad.
+// siguiente en la prioridad; en "Tu semana", la oculta para esa semana.
 async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincronizadoReciente, sesiones, rachaGlobal }) {
   const hoy = diaKeyDe(new Date());
 
-  const tarjeta = ({ tipo, color, eyebrow, titulo, detalle, accion, vida = null }) => `
-    <div id="ctx-card" data-tipo="${tipo}"${vida ? ` data-vida="${vida}"` : ''} class="card card-hero" style="padding: 14px 16px; margin-bottom: 14px;">
+  const tarjeta = ({ tipo, color, eyebrow, titulo, detalle, accion, vida = null, semana = null, despuesAria = 'Ocultar hasta mañana' }) => `
+    <div id="ctx-card" data-tipo="${tipo}"${vida ? ` data-vida="${vida}"` : ''}${semana ? ` data-semana="${semana}"` : ''} class="card card-hero" style="padding: 14px 16px; margin-bottom: 14px;">
       <div class="num" style="font-size: 10px; font-weight: 700; color: ${color}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">${eyebrow}</div>
       <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${titulo}</div>
       <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4;">${detalle}</div>
       <div style="display: flex; gap: 8px; margin-top: 12px;">
         <button id="ctx-accion" class="tappable" style="flex: 1; background: ${color}; color: #000; border: none; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer;">${accion}</button>
-        <button id="ctx-despues" class="tappable" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer;" aria-label="Ocultar hasta mañana">Después</button>
+        <button id="ctx-despues" class="tappable" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer;" aria-label="${despuesAria}">Después</button>
       </div>
     </div>`;
 
@@ -252,6 +253,32 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincro
         detalle: `${p.hechos} de ${p.total} campos completados. Empieza el día con intención.`,
         accion: 'Hacer ritual'
       });
+    }
+  }
+
+  // Revisión semanal: lunes y martes, la semana recién terminada (si tuvo
+  // datos y no se vio ni descartó ya, en este u otro dispositivo).
+  const dow = (new Date().getDay() + 6) % 7; // 0 = lunes
+  if (dow <= 1) {
+    const lunesPasado = sumarDias(hoy, -dow - 7);
+    const revisadas = await db.getSemanasRevisadas();
+    if (!revisadas.includes(lunesPasado)) {
+      const s = await db.getResumenSemana(lunesPasado);
+      const conDatos = s.general.diasActivos > 0 || s.finanzas.gastoTotal > 0 || s.tareas.creadas > 0 || s.general.diasRitual > 0;
+      if (conDatos) {
+        const obs = s.observaciones && s.observaciones[0];
+        const resumen = `${s.entreno.sesiones} ${s.entreno.sesiones === 1 ? 'entreno' : 'entrenos'} · ${formatCurrency(s.finanzas.gastoTotal)} gastado · ${s.tareas.completadas} ${s.tareas.completadas === 1 ? 'tarea' : 'tareas'}`;
+        return tarjeta({
+          tipo: 'semana',
+          color: 'var(--text-primary)',
+          eyebrow: 'Revisión semanal',
+          titulo: `Tu semana · <span class="num">${rangoTexto(s.lunes, s.domingo)}</span>`,
+          detalle: escapeHtml(obs ? obs.texto : resumen),
+          accion: 'Ver',
+          semana: s.lunes,
+          despuesAria: 'Ocultar la revisión de esta semana'
+        });
+      }
     }
   }
 
@@ -628,10 +655,17 @@ export function mountListeners() {
       if (tipo === 'ritual') go('ritual');
       else if (tipo === 'backup') { await exportAllData(); refresh(); } // diasDesdeUltimoBackup ya quedó en 0 — la tarjeta se saca sola al re-renderizar
       else if (tipo === 'vida') { marcarVidaUsadaVista(ctx.getAttribute('data-vida')); refresh(); }
+      else if (tipo === 'semana') {
+        const lunes = ctx.getAttribute('data-semana');
+        await db.marcarSemanaRevisada(lunes);
+        pedirSemana(lunes);
+        go('laboratorio');
+      }
       else go('entrenamiento');
     });
-    document.getElementById('ctx-despues').addEventListener('click', () => {
-      ocultarHoy(tipo);
+    document.getElementById('ctx-despues').addEventListener('click', async () => {
+      if (tipo === 'semana') await db.marcarSemanaRevisada(ctx.getAttribute('data-semana'));
+      else ocultarHoy(tipo);
       refresh();
     });
   }
