@@ -8,11 +8,11 @@ import { renderRutinaSession, initRutinaSessionListeners, cleanupSessionTimer } 
 import { renderHiitTimer, initHiitTimerListeners, cleanupHiitTimer } from '../components/hiit-timer.js';
 import { renderProgressRing } from '../utils/progressRing.js';
 import { WEEKLY_GOALS, CATEGORY_COLORS } from '../core/trainingConfig.js';
-import { renderProfileForm, setupProfileForm, openProfileForm, perfilPospuestoHoy } from '../components/profile-form.js';
-import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardingForm, nivelPospuestoHoy } from '../components/nivel-onboarding-form.js';
+import { renderProfileForm, setupProfileForm, openProfileForm } from '../components/profile-form.js';
+import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardingForm } from '../components/nivel-onboarding-form.js';
 import { calcularIMC } from '../utils/bodyMetrics.js';
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
-import { formatFechaCorta } from '../utils/fecha.js';
+import { formatFechaCorta, diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { detectarSugerencias } from '../core/sugerencias-nivel.js';
 import { Toast, hayModalAbierto } from '../utils/states.js';
@@ -26,7 +26,20 @@ import { calcularHoyToca } from '../utils/hoyToca.js';
 // db.getNivelEntrenamiento() — tiempoEntrenando + overrides POR RAMA, no un
 // nivel único — así que el pill muestra una lectura aproximada de eso, no
 // un nivel "real" todavía.
-const TIEMPO_ENTRENANDO_PILL = { 'menos-1': 'Nivel: recién empezando', '1-3': 'Nivel: intermedio', 'mas-3': 'Nivel: experimentado' };
+// Tarjeta "Completa tu perfil" (en vez de abrir el formulario solo al entrar):
+// "Ahora no" la oculta hasta mañana. La fecha (diaKeyDe) va en localStorage
+// porque es una preferencia de UI, no dato de la app.
+const TARJETA_PERFIL_OCULTA_KEY = 'vg-entreno-tarjeta-perfil-oculta';
+function tarjetaPerfilOcultaHoy() {
+  try { return localStorage.getItem(TARJETA_PERFIL_OCULTA_KEY) === diaKeyDe(new Date()); }
+  catch (e) { return false; /* modo privado: se muestra igual */ }
+}
+function ocultarTarjetaPerfilHoy() {
+  try { localStorage.setItem(TARJETA_PERFIL_OCULTA_KEY, diaKeyDe(new Date())); }
+  catch (e) { /* modo privado */ }
+}
+
+const TIEMPO_ENTRENANDO_PILL ={ 'menos-1': 'Nivel: recién empezando', '1-3': 'Nivel: intermedio', 'mas-3': 'Nivel: experimentado' };
 
 let categoriaActiva = null;
 let viewState = 'main'; // 'main', 'rutinas', 'form', 'session', 'progreso'
@@ -184,6 +197,22 @@ export async function render() {
   const nivelGuardado = await db.getNivelEntrenamiento();
   const nivelPillLabel = nivelGuardado ? (TIEMPO_ENTRENANDO_PILL[nivelGuardado.tiempoEntrenando] || 'Nivel: sin definir') : 'Nivel: sin definir';
 
+  // Falta el perfil (peso, estatura…) o el nivel declarado: una tarjeta con
+  // botón al mismo formulario, en vez de abrirlo solo y tapar la vista.
+  const faltaPerfil = !profile;
+  const faltaNivel = !nivelGuardado;
+  const tarjetaPerfilHtml = (faltaPerfil || faltaNivel) && !tarjetaPerfilOcultaHoy() ? `
+    <div id="entreno-tarjeta-perfil" class="card card-hero" style="padding: 16px; margin-bottom: 20px;">
+      <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">${faltaPerfil ? 'Perfil' : 'Nivel'}</div>
+      <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); line-height: 1.3;">${faltaPerfil ? 'Completa tu perfil para calcular tu nivel e IMC' : 'Define tu nivel para ajustar tus rutinas'}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">${faltaPerfil && faltaNivel ? 'Tu peso y estatura calculan el IMC; tu nivel ajusta la exigencia del generador.' : faltaPerfil ? 'Con tu peso y estatura calculamos tu IMC.' : 'Con tu experiencia el generador elige ejercicios de tu nivel.'}</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">
+        ${faltaPerfil ? '<button id="btn-tarjeta-perfil-completar" type="button" class="tappable" style="flex: 1; background: var(--accent-teal); color: #000; border: none; padding: 10px 12px; font-size: 13px; font-weight: 700; cursor: pointer;">Completar</button>' : ''}
+        ${faltaNivel ? `<button id="btn-tarjeta-perfil-nivel" type="button" class="tappable" style="flex: 1; background: ${faltaPerfil ? 'transparent' : 'var(--accent-teal)'}; color: ${faltaPerfil ? 'var(--text-primary)' : '#000'}; border: ${faltaPerfil ? '1px solid var(--surface-border)' : 'none'}; padding: 10px 12px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;">Definir mi nivel</button>` : ''}
+        <button id="btn-tarjeta-perfil-ahora-no" type="button" class="tappable" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer;">Ahora no</button>
+      </div>
+    </div>` : '';
+
   // Racha en cian (--cy): es un logro, no una alerta — el rojo (--state-high)
   // en MK III queda reservado para alertas reales (ver auditoría de Fase 6).
   const rachaHtml = racha.actual > 0
@@ -279,6 +308,8 @@ export async function render() {
             </button>
           </div>
         </div>
+
+        ${tarjetaPerfilHtml}
 
         <div id="sugerencia-nivel-banner"></div>
 
@@ -391,17 +422,14 @@ mountListeners = () => {
   const btnOpenCfgEntreno = document.getElementById('btn-open-cfg-entreno');
   if (btnOpenCfgEntreno) btnOpenCfgEntreno.addEventListener('click', () => window.appRouter.navigate('configuracion'));
 
-  // Onboarding: si todavía no hay perfil guardado, se abre automáticamente
-  // al entrar a Entreno (el usuario igual puede cancelar y completarlo después
-  // desde el botón de perfil). El de nivel es un segundo gate independiente
-  // — se abre solo si el perfil YA existe, para no apilar dos modales a la
-  // vez en la primera visita; si falta el perfil, el de nivel queda para la
-  // próxima visita (el usuario también puede abrirlo a mano con su ícono).
-  db.getProfile().then(profile => {
-    if (!profile) { if (!perfilPospuestoHoy()) openProfileForm(); return; }
-    db.getNivelEntrenamiento().then(nivel => {
-      if (!nivel && !nivelPospuestoHoy()) openNivelOnboardingForm();
-    });
+  // Perfil y nivel ya no se abren solos al entrar: la tarjeta de arriba
+  // (si falta alguno) abre los mismos formularios; al guardar, refreshFull
+  // vuelve a renderizar y la tarjeta desaparece cuando ya no falta nada.
+  document.getElementById('btn-tarjeta-perfil-completar')?.addEventListener('click', () => openProfileForm());
+  document.getElementById('btn-tarjeta-perfil-nivel')?.addEventListener('click', () => openNivelOnboardingForm());
+  document.getElementById('btn-tarjeta-perfil-ahora-no')?.addEventListener('click', () => {
+    ocultarTarjetaPerfilHoy();
+    document.getElementById('entreno-tarjeta-perfil')?.remove();
   });
 
   const goToMain = () => {
