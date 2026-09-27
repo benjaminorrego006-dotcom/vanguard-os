@@ -758,6 +758,188 @@ function memoize(fn) {
   };
 }
 
+// --- Revisión semanal (S1): resumen de una semana lunes–domingo ----------
+// Función pura: recibe los eventos (una sola lectura, leerEventosCompartido)
+// y los stores ya leídos, y devuelve el resumen de la semana que empieza en
+// `lunesKey` (clave de día; si no es lunes se usa el lunes de esa semana).
+// Bordes con claves de día (sumarDias/dowDeClave), nunca sumando ms, así el
+// cambio de horario no mueve la semana. La semana en curso llega solo hasta
+// hoy y va marcada `parcial`. Nada se guarda: todo se deriva de los datos.
+// - entreno: sesiones, minutos y volumen (peso × reps, o reps sin peso, igual
+//   que getTendenciaSemanal), días objetivo (diasSemana del generador) y
+//   días de descanso activo.
+// - finanzas: gasto total con el criterio de getBudget (todo lo que no es
+//   Ingreso ni Ahorro, sin transferencias ni Assignment); variable = sin
+//   recurrentes (recurrenteId); por categoría y el sobre con más gasto.
+// - tareas: completadas netas de Tareas + Planificador (descontando
+//   reabiertas/descompletadas), de ellas de Semana; creadas; atrasadas al
+//   cierre (vencidas hasta el domingo —o ayer, si la semana está en curso— y
+//   sin completar a esa altura).
+// - habitos: % de aplicables cumplidos (promedio diario, como la tendencia de
+//   hábitos; un hábito no aplica antes de crearse), el mejor y el más flojo, y
+//   los semanales que llegaron a su objetivo.
+// - general: días activos, días protegidos y vidas al cierre (misma racha
+//   que getRachaGlobal), días con Ritual y energía promedio.
+// - porDia: 7 entradas (lunes a domingo) con los datos diarios.
+export function resumirSemana({ eventos = [], sesiones = [], transacciones = [], sobres = [], tareas = [], plan = [], habitos = [], ritual = [], generadorConfig = null }, lunesKey, hoyKey = diaKeyDe(new Date())) {
+  const lunes = sumarDias(claveDiaDe(lunesKey), -dowDeClave(claveDiaDe(lunesKey)));
+  const domingo = sumarDias(lunes, 6);
+  const parcial = hoyKey >= lunes && hoyKey <= domingo;
+  const futura = hoyKey < lunes;
+  const ultimoDia = parcial ? hoyKey : domingo; // último día con datos a contar
+  const dias = Array.from({ length: 7 }, (_, i) => sumarDias(lunes, i));
+  const enSemana = (k) => k >= lunes && k <= ultimoDia && !futura;
+  const porDia = new Map(dias.map((fecha, i) => [fecha, {
+    fecha, dow: i, futuro: futura || fecha > ultimoDia,
+    sesiones: 0, minutos: 0, volumen: 0, descanso: false,
+    gasto: 0, gastoVariable: 0, deseos: 0,
+    tareas: 0, tareasSemana: 0, creadas: 0,
+    habitosPct: null, activo: false, protegido: false, ritual: false, energia: null
+  }]));
+  const dia = (k) => (enSemana(k) ? porDia.get(k) : null);
+
+  // Entreno
+  sesiones.forEach(s => {
+    const d = s.fecha && dia(claveDiaDe(s.fecha));
+    if (!d) return;
+    d.sesiones++;
+    d.minutos += toSafeNumber(s.duracionMin);
+    (s.ejercicios || []).forEach(ej => (ej.series || []).forEach(serie => {
+      const p = toSafeNumber(serie.peso);
+      const m = String(serie.reps).match(/\d+/);
+      const r = m ? parseInt(m[0], 10) : 0;
+      d.volumen += p > 0 ? p * r : r;
+    }));
+  });
+
+  // Finanzas
+  const gastoPorSobre = new Map();
+  transacciones.forEach(t => {
+    if (!t.date || esMovimientoEntreSobres(t) || t.type === 'Ingreso' || t.category === 'Savings') return;
+    const d = dia(claveDiaDe(t.date));
+    if (!d) return;
+    const monto = toSafeNumber(t.amount);
+    d.gasto += monto;
+    if (!t.recurrenteId) d.gastoVariable += monto;
+    if (t.category === 'Wants') d.deseos += monto;
+    if (t.envelopeId) gastoPorSobre.set(t.envelopeId, (gastoPorSobre.get(t.envelopeId) || 0) + monto);
+  });
+
+  // Tareas (Tareas + Planificador), un recorrido del log en orden de ts.
+  const deTareas = (e) => e.modulo === 'tareas' || e.modulo === 'planificador';
+  diasTareasCompletadasNetos(eventos, deTareas).forEach(k => { const d = dia(k); if (d) d.tareas++; });
+  diasTareasCompletadasNetos(eventos, e => e.modulo === 'planificador').forEach(k => { const d = dia(k); if (d) d.tareasSemana++; });
+  const completadaHasta = new Map(); // `${modulo}|${id}` -> día de la completación vigente al cierre
+  const corte = parcial ? sumarDias(hoyKey, -1) : domingo;
+  eventos
+    .filter(e => deTareas(e) && (TIPOS_TAREA_NETA.has(e.tipo) || e.tipo === 'tarea_creada'))
+    .sort((a, b) => a.ts - b.ts)
+    .forEach(e => {
+      const k = diaKeyDe(new Date(e.ts));
+      if (e.tipo === 'tarea_creada') { const d = dia(k); if (d) d.creadas++; return; }
+      if (k > corte) return;
+      const id = `${e.modulo}|${e.entidadId}`;
+      if (e.tipo === 'tarea_completada') completadaHasta.set(id, k);
+      else completadaHasta.delete(id);
+    });
+  let atrasadas = 0;
+  if (!futura) {
+    tareas.forEach(t => {
+      if (!t.dueDate || t.dueDate > corte || claveDiaDe(t.createdAt || t.dueDate) > corte) return;
+      if (!completadaHasta.has(`tareas|${t.id}`)) atrasadas++;
+    });
+    plan.forEach(t => {
+      if (!t.fecha || t.fecha > corte) return;
+      if (!completadaHasta.has(`planificador|${t.id}`)) atrasadas++;
+    });
+  }
+
+  // Hábitos
+  const diarios = habitos.filter(h => (h.frecuencia?.tipo || 'diario') !== 'semanal');
+  const porHabito = diarios.map(h => ({ id: h.id, nombre: h.nombre, aplicables: 0, cumplidos: 0 }));
+  dias.forEach(k => {
+    const d = dia(k);
+    if (!d) return;
+    let aplicables = 0; let cumplidos = 0;
+    diarios.forEach((h, i) => {
+      if (h.createdAt && claveDiaDe(h.createdAt) > k) return;
+      if (!habitoDiaAplicable(h, k)) return;
+      aplicables++; porHabito[i].aplicables++;
+      if (habitoCumplidoEnFecha(h, k)) { cumplidos++; porHabito[i].cumplidos++; }
+    });
+    if (aplicables > 0) d.habitosPct = Math.round((cumplidos / aplicables) * 100);
+  });
+  const conPct = porHabito.filter(h => h.aplicables > 0)
+    .map(h => ({ id: h.id, nombre: h.nombre, pct: Math.round((h.cumplidos / h.aplicables) * 100) }))
+    .sort((a, b) => b.pct - a.pct || (a.nombre || '').localeCompare(b.nombre || ''));
+  const semanales = habitos.filter(h => h.frecuencia?.tipo === 'semanal' && !(h.createdAt && claveDiaDe(h.createdAt) > ultimoDia));
+  const semanalesCumplidos = semanales.filter(h => {
+    const veces = Object.keys(h.marcas || {}).filter(f => enSemana(f) && habitoCumplidoEnFecha(h, f)).length;
+    return veces >= (h.frecuencia.vecesObjetivo || 1);
+  }).length;
+
+  // General: actividad, racha con vidas al cierre, Ritual.
+  const actividad = actividadGlobalPorDia(eventos);
+  eventos.forEach(e => {
+    if (e.tipo !== 'descanso_activo_completado') return;
+    const d = dia(e.payload && e.payload.fecha ? claveDiaDe(e.payload.fecha) : diaKeyDe(new Date(e.ts)));
+    if (d) d.descanso = true;
+  });
+  const activosHastaCierre = new Set([...actividad.keys()].filter(k => k <= ultimoDia));
+  // Semana cerrada: el domingo ya terminó, así que se evalúa con el lunes
+  // siguiente como "hoy" (pendiente); en curso, con hoy.
+  const racha = futura ? null : calcularRachaConVidas(activosHastaCierre, parcial ? hoyKey : sumarDias(domingo, 1));
+  const protegidos = new Set(racha ? racha.diasProtegidos : []);
+  ritual.forEach(r => {
+    const d = r.fecha && dia(r.fecha);
+    if (!d) return;
+    d.ritual = !!(r.mision && String(r.mision).trim());
+    if (r.energia != null && toSafeNumber(r.energia) > 0) d.energia = toSafeNumber(r.energia);
+  });
+  porDia.forEach(d => {
+    if (d.futuro) return;
+    d.activo = (actividad.get(d.fecha) || 0) > 0;
+    d.protegido = protegidos.has(d.fecha);
+  });
+
+  const lista = [...porDia.values()];
+  const sumar = (campo) => lista.reduce((s, d) => s + (d.futuro ? 0 : (typeof d[campo] === 'boolean' ? (d[campo] ? 1 : 0) : d[campo])), 0);
+  const pcts = lista.filter(d => !d.futuro && d.habitosPct !== null).map(d => d.habitosPct);
+  const energias = lista.filter(d => !d.futuro && d.energia !== null).map(d => d.energia);
+  const sobreTop = [...gastoPorSobre.entries()].sort((a, b) => b[1] - a[1])[0];
+  const sobreInfo = sobreTop ? sobres.find(e => e.id === sobreTop[0]) : null;
+  const gastoTotal = sumar('gasto');
+  const deseos = sumar('deseos');
+
+  return {
+    lunes, domingo, weekId: weekIdDe(lunes), parcial, futura,
+    diasContados: futura ? 0 : diasEntre(lunes, ultimoDia) + 1,
+    entreno: {
+      sesiones: sumar('sesiones'), minutos: sumar('minutos'), volumen: Math.round(sumar('volumen') * 10) / 10,
+      diasObjetivo: generadorConfig?.diasSemana || null, diasDescanso: sumar('descanso')
+    },
+    finanzas: {
+      gastoTotal, gastoVariable: sumar('gastoVariable'),
+      porCategoria: { necesidades: gastoTotal - deseos, deseos },
+      sobreTop: sobreTop ? { id: sobreTop[0], nombre: sobreInfo ? sobreInfo.name : null, gasto: sobreTop[1] } : null
+    },
+    tareas: { completadas: sumar('tareas'), deSemana: sumar('tareasSemana'), creadas: sumar('creadas'), atrasadas },
+    habitos: {
+      pct: pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : null,
+      mejor: conPct[0] || null,
+      masFlojo: conPct.length > 1 ? conPct[conPct.length - 1] : null,
+      semanales: { cumplidos: semanalesCumplidos, total: semanales.length }
+    },
+    general: {
+      diasActivos: sumar('activo'), diasProtegidos: sumar('protegido'), vidasAlCierre: racha ? racha.vidas : null,
+      diasRitual: sumar('ritual'),
+      energia: energias.length ? Math.round((energias.reduce((a, b) => a + b, 0) / energias.length) * 10) / 10 : null,
+      diasEnergia: energias.length
+    },
+    porDia: lista
+  };
+}
+
 // Una sola lectura del store `events` por render para los agregados que lo
 // recorren entero y se piden juntos (getRachaGlobal + getBadges al abrir
 // Hábitos): misma caché que memoize, así que un logEvent la invalida.
@@ -765,6 +947,25 @@ function memoize(fn) {
 // map sí, sort in place no).
 const leerEventosCompartido = memoize(async function leerEventosCompartido() {
   return idb.getAll('events');
+});
+
+// Resumen de una semana para la revisión semanal: una sola lectura de events
+// (leerEventosCompartido) y de cada store, memoizado por render (misma caché
+// que memoize: un logEvent la invalida). La clave incluye el día de hoy, así
+// la semana en curso se recalcula al cambiar de día.
+const resumenSemanaMemo = memoize(async function resumenSemana(lunesKey, hoyKey) {
+  const [eventos, sesiones, transacciones, sobres, tareas, plan, habitos, ritual, generadorConfig] = await Promise.all([
+    leerEventosCompartido(),
+    idbGetArray('sesiones'),
+    idbGetArray('transacciones'),
+    idbGetArray('envelopes'),
+    idbGetArray('tareas'),
+    idbGetArray('planificador'),
+    idbGetArray('habitos'),
+    idbGetArray('ritual'),
+    idbGetSingleton('entrenoGeneradorConfig', null)
+  ]);
+  return resumirSemana({ eventos, sesiones, transacciones, sobres, tareas, plan, habitos, ritual, generadorConfig }, lunesKey, hoyKey);
 });
 
 // Ordena por fecha de creación ascendente (más viejo primero), igual que el
@@ -1935,6 +2136,12 @@ export const db = {
   // enteramente del log de eventos: no hay un campo "racha" guardado en
   // ningún lado. El conjunto de días activos lo arma actividadGlobalPorDia
   // (los hábitos cuentan en la fecha marcada, no en el ts del evento).
+  // Revisión semanal: resumen de la semana que empieza el lunes `lunesKey`
+  // (clave de día; otro día de la semana se lleva a su lunes). Ver resumirSemana.
+  async getResumenSemana(lunesKey) {
+    return resumenSemanaMemo(claveDiaDe(lunesKey), diaKeyDe(new Date()));
+  },
+
   async getRachaGlobal() {
     const activityByDay = actividadGlobalPorDia(await leerEventosCompartido());
     const hoy = diaKeyDe(new Date());
