@@ -679,6 +679,10 @@ const renderEnvelopesHTML = async (b) => {
   const cards = b.envelopes.map(env => {
     const disponible = disponibleDe(env);
     const negativo = env.saldo < 0;
+    // Disponible negativo: el sobre arrastra más sobregiro que lo que recibe
+    // este mes; "$0 de -$66.200" no se entiende. Con 0 justo (sobre vacío)
+    // se deja la línea normal: no es una alerta.
+    const sobregiroAcumulado = disponible < 0 ? -disponible : 0;
     const pct = negativo ? 100 : disponible > 0 ? Math.min(100, Math.round((env.gastado / disponible) * 100)) : (env.gastado > 0 ? 100 : 0);
     const meterCls = negativo ? 'danger' : pct >= 80 ? 'warn' : ''; // rojo solo con saldo negativo
     const catColor = getCatColor(env.category);
@@ -696,7 +700,7 @@ const renderEnvelopesHTML = async (b) => {
       ? `<div class="sobre-linea${env.arrastre < 0 ? ' negativo' : ''}">${conSigno(env.arrastre)} de ${nombreMesAnterior}</div>` : '';
     const lineaTransf = env.transferencias !== 0
       ? `<div class="sobre-linea">${conSigno(env.transferencias)} transferido</div>` : '';
-    const aria = `${env.name}: saldo ${formatCurrency(env.saldo)}. Gastado ${formatCurrency(env.gastado)} de ${formatCurrency(disponible)} disponibles.`
+    const aria = `${env.name}: saldo ${formatCurrency(env.saldo)}. ${sobregiroAcumulado ? `Sobregiro de ${formatCurrency(sobregiroAcumulado)} acumulado. Gastado ${formatCurrency(env.gastado)} este mes.` : `Gastado ${formatCurrency(env.gastado)} de ${formatCurrency(disponible)} disponibles.`}`
       + (env.arrastre !== 0 ? ` Arrastre ${conSigno(env.arrastre)} de ${nombreMesAnterior}.` : '')
       + (env.transferencias !== 0 ? ` ${conSigno(env.transferencias)} transferido.` : '');
 
@@ -716,7 +720,9 @@ const renderEnvelopesHTML = async (b) => {
         </div>
         <div class="fin-bal" style="color: ${negativo ? 'var(--state-high)' : 'var(--text-primary)'};">${formatCurrency(env.saldo)}</div>
         <div class="fin-meter"><i class="${meterCls}" style="width:${pct}%"></i></div>
-        <div class="fin-bc-figures">${formatCurrency(env.gastado)} de ${formatCurrency(disponible)}</div>
+        ${sobregiroAcumulado
+          ? `<div class="fin-bc-figures sobre-sobregiro">Sobregiro de ${formatCurrency(sobregiroAcumulado)} acumulado</div>`
+          : `<div class="fin-bc-figures">${formatCurrency(env.gastado)} de ${formatCurrency(disponible)}</div>`}
         ${lineaArrastre}${lineaTransf}
       </div>
     `;
