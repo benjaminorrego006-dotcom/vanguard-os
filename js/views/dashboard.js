@@ -12,7 +12,7 @@ import { calcularHoyToca } from '../utils/hoyToca.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
 import * as Anotaciones from './anotaciones.js';
 import { svgEscudo, avisarPrimeraVidaSiCorresponde } from '../components/racha-reactor.js';
-import { pedirSemana, rangoTexto } from '../components/lab-semana.js';
+import { pedirSemana, rangoHtml } from '../components/lab-semana.js';
 
 // Llamado por el router (app.js) antes de desmontar Inicio. El laboratorio
 // puede tener una instancia de Chart.js viva (el donut de "Distribución del
@@ -272,7 +272,7 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincro
           tipo: 'semana',
           color: 'var(--text-primary)',
           eyebrow: 'Revisión semanal',
-          titulo: `Tu semana · <span class="num">${rangoTexto(s.lunes, s.domingo)}</span>`,
+          titulo: `Tu semana · ${rangoHtml(s.lunes, s.domingo)}`,
           detalle: escapeHtml(obs ? obs.texto : resumen),
           accion: 'Ver',
           semana: s.lunes,

@@ -37,6 +37,8 @@ const lunesPorDefecto = () => sumarDias(lunesActual(), -7);
 const numero = (n) => new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 }).format(Math.round(n));
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 const num = (texto) => `<span class="num">${texto}</span>`;
+// Un par número + texto ("1 atrasada") no se parte entre líneas.
+const dato = (html) => `<span class="semana-dato">${html}</span>`;
 const mesCorto = (clave) => fechaLocalDe(clave).toLocaleDateString('es-CL', { month: 'short' }).replace('.', '');
 
 // "14 – 20 sept" o "31 ago – 6 sept".
@@ -45,6 +47,10 @@ export function rangoTexto(lunes, domingo) {
   return lunes.slice(0, 7) === domingo.slice(0, 7)
     ? `${d1} – ${d2} ${mesCorto(domingo)}`
     : `${d1} ${mesCorto(lunes)} – ${d2} ${mesCorto(domingo)}`;
+}
+// Mismo rango con solo los números en mono ("sept" y el guion en la fuente normal).
+export function rangoHtml(lunes, domingo) {
+  return rangoTexto(lunes, domingo).replace(/\d+/g, n => num(n));
 }
 
 function semanaVacia(s) {
@@ -79,41 +85,42 @@ function bloque({ modulo, color, titulo, lineas, aria }) {
 
 function renderBloques(s) {
   const e = s.entreno; const f = s.finanzas; const t = s.tareas; const h = s.habitos; const g = s.general;
-  const sesiones = e.diasObjetivo ? `${num(e.sesiones)} de ${num(e.diasObjetivo)} sesiones` : `${num(e.sesiones)} ${e.sesiones === 1 ? 'sesión' : 'sesiones'}`;
+  const pct = (n) => `${num(n)} %`;
+  const sesiones = e.diasObjetivo ? dato(`${num(e.sesiones)} de ${num(e.diasObjetivo)} sesiones`) : dato(`${num(e.sesiones)} ${e.sesiones === 1 ? 'sesión' : 'sesiones'}`);
   const entreno = bloque({
     modulo: 'entreno', color: 'var(--cy)', titulo: 'Entreno',
-    lineas: [`${sesiones} · ${num(numero(e.minutos))} min · volumen ${num(numero(e.volumen))}`, e.diasDescanso ? plural(e.diasDescanso, 'día de descanso activo', 'días de descanso activo') : ''],
+    lineas: [`${sesiones} · ${dato(`${num(numero(e.minutos))} min`)} · ${dato(`volumen ${num(numero(e.volumen))}`)}`, e.diasDescanso ? dato(plural(e.diasDescanso, 'día de descanso activo', 'días de descanso activo')) : ''],
     aria: `Entreno: ${e.diasObjetivo ? `${e.sesiones} de ${e.diasObjetivo} sesiones` : plural(e.sesiones, 'sesión', 'sesiones')}, ${numero(e.minutos)} minutos, volumen ${numero(e.volumen)}`
   });
   const finanzas = bloque({
     modulo: 'finanzas', color: 'var(--am)', titulo: 'Finanzas',
-    lineas: [`Gasto ${num(formatCurrency(f.gastoTotal))} <span class="semana-sec">(variable ${num(formatCurrency(f.gastoVariable))})</span>`,
+    lineas: [`${dato(`Gasto ${num(formatCurrency(f.gastoTotal))}`)} <span class="semana-sec">${dato(`(variable ${num(formatCurrency(f.gastoVariable))})`)}</span>`,
       f.sobreTop ? `Más gasto: ${escapeHtml(f.sobreTop.nombre || 'Sin sobre')} ${num(formatCurrency(f.sobreTop.gasto))}` : ''],
     aria: `Finanzas: gasto ${formatCurrency(f.gastoTotal)}, variable ${formatCurrency(f.gastoVariable)}${f.sobreTop ? `, más gasto en ${f.sobreTop.nombre || 'sin sobre'} ${formatCurrency(f.sobreTop.gasto)}` : ''}`
   });
   const tareas = bloque({
     modulo: 'tareas', color: 'var(--vi)', titulo: 'Tareas',
-    lineas: [`${num(t.completadas)} ${t.completadas === 1 ? 'completada' : 'completadas'}${t.deSemana ? ` <span class="semana-sec">(${num(t.deSemana)} de Semana)</span>` : ''} · ${num(t.creadas)} ${t.creadas === 1 ? 'creada' : 'creadas'} · ${num(t.atrasadas)} ${t.atrasadas === 1 ? 'atrasada' : 'atrasadas'}`],
+    lineas: [`${dato(`${num(t.completadas)} ${t.completadas === 1 ? 'completada' : 'completadas'}`)}${t.deSemana ? ` <span class="semana-sec">${dato(`(${num(t.deSemana)} de Semana)`)}</span>` : ''} · ${dato(`${num(t.creadas)} ${t.creadas === 1 ? 'creada' : 'creadas'}`)} · ${dato(`${num(t.atrasadas)} ${t.atrasadas === 1 ? 'atrasada' : 'atrasadas'}`)}`],
     aria: `Tareas: ${plural(t.completadas, 'completada', 'completadas')}${t.deSemana ? `, ${t.deSemana} de Semana` : ''}, ${plural(t.creadas, 'creada', 'creadas')}, ${plural(t.atrasadas, 'atrasada', 'atrasadas')}`
   });
   const habitos = bloque({
     modulo: 'habitos', color: 'var(--vi)', titulo: 'Hábitos',
     lineas: h.pct === null ? ['Sin hábitos para esta semana'] : [
-      `${num(`${h.pct} %`)} cumplido`,
-      h.mejor ? `Mejor: ${escapeHtml(h.mejor.nombre)} ${num(`${h.mejor.pct} %`)}` : '',
-      h.masFlojo ? `Más flojo: ${escapeHtml(h.masFlojo.nombre)} ${num(`${h.masFlojo.pct} %`)}` : '',
-      h.semanales.total ? `Semanales: ${num(h.semanales.cumplidos)} de ${num(h.semanales.total)}` : ''
+      dato(`${pct(h.pct)} cumplido`),
+      h.mejor ? `Mejor: ${escapeHtml(h.mejor.nombre)} ${dato(pct(h.mejor.pct))}` : '',
+      h.masFlojo ? `Más flojo: ${escapeHtml(h.masFlojo.nombre)} ${dato(pct(h.masFlojo.pct))}` : '',
+      h.semanales.total ? `Semanales: ${dato(`${num(h.semanales.cumplidos)} de ${num(h.semanales.total)}`)}` : ''
     ],
     aria: h.pct === null ? 'Hábitos: sin hábitos para esta semana' : `Hábitos: ${h.pct} % cumplido${h.mejor ? `, mejor ${h.mejor.nombre} ${h.mejor.pct} %` : ''}${h.masFlojo ? `, más flojo ${h.masFlojo.nombre} ${h.masFlojo.pct} %` : ''}`
   });
   const dias = s.diasContados;
-  const energia = g.diasRitual > 0 && g.energia !== null ? `Energía ${num(g.energia.toFixed(1).replace('.', ','))} · ${num(g.diasEnergia)} de ${num(dias)} días` : '';
+  const energia = g.diasRitual > 0 && g.energia !== null ? `${dato(`Energía ${num(g.energia.toFixed(1).replace('.', ','))}`)} · ${dato(`${num(g.diasEnergia)} de ${num(dias)} días`)}` : '';
   const general = bloque({
     modulo: null, color: 'var(--t2)', titulo: 'General',
     lineas: [
-      g.rachaAlCierre !== null ? `Racha ${num(g.rachaAlCierre)} ${g.rachaAlCierre === 1 ? 'día' : 'días'} · ${num(g.vidasAlCierre)} ${g.vidasAlCierre === 1 ? 'vida' : 'vidas'} al cierre` : '',
-      `${num(g.diasActivos)} de ${num(dias)} días activos${g.diasProtegidos ? ` · ${plural(g.diasProtegidos, 'protegido', 'protegidos')}` : ''}`,
-      g.diasRitual > 0 ? `Ritual ${num(g.diasRitual)} de ${num(dias)} días` : '',
+      g.rachaAlCierre !== null ? `${dato(`Racha ${num(g.rachaAlCierre)} ${g.rachaAlCierre === 1 ? 'día' : 'días'}`)} · ${dato(`${num(g.vidasAlCierre)} ${g.vidasAlCierre === 1 ? 'vida' : 'vidas'} al cierre`)}` : '',
+      `${dato(`${num(g.diasActivos)} de ${num(dias)} días activos`)}${g.diasProtegidos ? ` · ${dato(`${num(g.diasProtegidos)} ${g.diasProtegidos === 1 ? 'protegido' : 'protegidos'}`)}` : ''}`,
+      g.diasRitual > 0 ? dato(`Ritual ${num(g.diasRitual)} de ${num(dias)} días`) : '',
       energia
     ],
     aria: `General: racha ${plural(g.rachaAlCierre ?? 0, 'día', 'días')} y ${plural(g.vidasAlCierre ?? 0, 'vida', 'vidas')} al cierre, ${g.diasActivos} de ${dias} días activos, ${plural(g.diasProtegidos, 'protegido', 'protegidos')}${g.diasRitual > 0 ? `, Ritual ${g.diasRitual} de ${dias} días` : ''}${energia ? `, energía ${g.energia.toFixed(1).replace('.', ',')} en ${plural(g.diasEnergia, 'día', 'días')}` : ''}`
@@ -141,7 +148,7 @@ export async function renderTab() {
     <div class="semana-cabecera">
       <button type="button" id="semana-anterior" class="semana-flecha tappable" aria-label="Semana anterior">‹</button>
       <div class="semana-rango" aria-live="polite">
-        <span class="num">${rangoTexto(s.lunes, s.domingo)}</span>
+        <span>${rangoHtml(s.lunes, s.domingo)}</span>
         ${esActual ? '<span class="semana-en-curso">En curso</span>' : ''}
       </div>
       <button type="button" id="semana-siguiente" class="semana-flecha tappable" aria-label="Semana siguiente"${esActual ? ' disabled' : ''}>›</button>

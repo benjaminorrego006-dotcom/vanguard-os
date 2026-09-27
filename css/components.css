@@ -609,6 +609,7 @@ button.semana-bloque { cursor: pointer; }
 }
 .semana-bloque-linea { font-size: 13px; line-height: 1.55; }
 .semana-sec { color: var(--text-secondary); }
+.semana-dato { white-space: nowrap; }
 .semana-obs {
   margin-top: 16px;
   padding: 14px 16px;
