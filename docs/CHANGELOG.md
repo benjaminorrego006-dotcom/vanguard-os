@@ -1,5 +1,115 @@
 # Vanguard OS — Changelog
 
+## 27 sept 2026 — Arrastre de saldos de sobres
+
+**`CACHE_NAME` final: `vanguard-os-v210`.** Seis commits entre `88efe44` (v205)
+y `1afc101` (v210), cada uno con su propio bump de caché. QA final con
+Playwright en 375×812 y 1280×800, zona `America/Santiago` y reloj simulado,
+importando por la UI (Configuración → Restaurar respaldo) el respaldo
+`vanguard-backup-demo-3-meses-COMPLETO.json` (120 transacciones, 6 sobres,
+6 recurrentes, 700 eventos) en un contexto limpio con el reloj en
+2026-09-26 10:00.
+
+### Decisiones
+
+1. `saldo(mes) = arrastre(mes anterior) + asignado(mes) − gastado(mes) ± transferencias(mes)`, incluidos los saldos negativos (un sobregiro también arrastra).
+2. Transferencias: desde R2, una transferencia mueve saldo solo en su mes y NO toca `assignedAmount`. Las anteriores quedan como estaban (su efecto ya está en `assignedAmount`) y borrarlas sigue revirtiendo como siempre. Sin migrar datos: las nuevas llevan `modelo: 'saldo'`.
+3. El asignado se suma solo en meses con al menos una transacción (de cualquier tipo, en toda la app). *Ajuste R4b:* el mes actual siempre suma su asignado; la regla aplica solo a meses pasados.
+4. Solo los sobres arrastran. "Disponible del mes", "Disponible por día" y la fila de Hoy siguen siendo del mes.
+5. Sobres sin eventos (por defecto o anteriores al log): su `assignedAmount` actual rige en todos los meses.
+6. "Eliminar sobre" pasa a "Archivar": se oculta de la UI, su historial y saldo quedan y se puede desarchivar.
+7. Tarjeta: "$gastado de $disponible" y una línea aparte con el arrastre ("+$30.000 de agosto" / "−$20.000 de agosto").
+8. Orden: primero R1 (ids de los sobres por defecto entre dispositivos), después el arrastre.
+
+Además: el arrastre no usa el `createdAt` de los sobres (difiere entre
+dispositivos); el punto de partida sale de las transacciones. *Ajuste R4b:* un
+sobre existe desde lo que ocurra antes, su `sobre_creado` o su primer
+movimiento propio (gasto o transferencia `saldo`); antes de su `sobre_creado`
+usa el asignado de esa primera foto, así ningún gasto se ignora.
+
+### Commits
+
+| Fase | Commit | Caché | Qué cambia |
+|---|---|---|---|
+| R1 | — | — | Verificación sin código: los sobres por defecto usan ids fijos `env_1`…`env_6` en todos los dispositivos; solo su `createdAt` difiere. |
+| R2 | `88efe44` | v205 | Transferencias nuevas (`modelo: 'saldo'`) mueven saldo solo en su mes; no tocan `assignedAmount` ni emiten `sobre_transferencia`. |
+| Fix | `5150066` | v206 | Las transferencias entre sobres (nuevas, antiguas y `Assignment`) no son gasto: fuera de gastos del mes, disponible, tendencia, distribución e historial. Siguen en Movimientos y cuentan para la racha. |
+| R3 | `64d66cd` | v207 | Archivar/desarchivar (`sobre_archivado` / `sobre_desarchivado` con replay). Bloqueado si hay recurrentes apuntando al sobre. Sección "Archivados (N)". |
+| R4 | `72ec37f` | v208 | `calcularSaldosConArrastre` (pura) reemplaza a `saldosDeSobres`; la usan `getBudget().envelopes` (Gasto, tope de Transferencia) y `getProyeccionRecurrentes`. |
+| R4b | `bd7ed9a` | v209 | El mes actual siempre suma su asignado; un sobre existe desde su creación o su primer movimiento, lo que sea antes. |
+| R5 | `1afc101` | v210 | Tarjeta: saldo, "$gastado de $disponible", líneas de arrastre y de transferencias, mini-gráfico contra el disponible de cada mes, `aria-label`. |
+
+### Verificación con el respaldo (vista del 26/9)
+
+asignado / gastado / transferencias / arrastre / **saldo**
+
+| Sobre | Julio | Agosto | Septiembre |
+|---|---|---|---|
+| Supermercado | 220.000 / 254.780 / 0 / 0 / **−34.780** | 240.000 / 274.470 / 0 / −34.780 / **−69.250** | 240.000 / 247.990 / 0 / −69.250 / **−77.240** |
+| Servicios | 105.000 / 102.710 / 0 / 0 / **2.290** | 105.000 / 106.600 / 0 / 2.290 / **690** | 105.000 / 106.450 / 0 / 690 / **−760** |
+| Transporte | 45.000 / 52.120 / 0 / 0 / **−7.120** | 45.000 / 57.410 / 0 / −7.120 / **−19.530** | 45.000 / 38.450 / 0 / −19.530 / **−12.980** |
+| Arriendo | 380.000 / 380.000 / 0 / 0 / **0** | 380.000 / 380.000 / 0 / 0 / **0** | 380.000 / 380.000 / 0 / 0 / **0** |
+| Salidas y Ocio | 80.000 / 86.000 / 0 / 0 / **−6.000** | 60.000 / 77.700 / 0 / −6.000 / **−23.700** | 60.000 / 162.500 / 0 / −23.700 / **−126.200** |
+| Suscripciones | 40.000 / 41.470 / 0 / 0 / **−1.470** | 40.000 / 41.470 / 0 / −1.470 / **−2.940** | 40.000 / 28.480 / 0 / −2.940 / **8.580** |
+
+Revisado a mano:
+- **Supermercado:** `sobre_actualizado` del 1/7 con 220.000; la transferencia
+  antigua del 25/8 (+20.000 desde Salidas y Ocio) lo deja en 240.000 desde
+  agosto. Julio 220.000 − 254.780 = −34.780; agosto −34.780 + 240.000 − 274.470
+  = −69.250; septiembre −69.250 + 240.000 − 247.990 = −77.240.
+- **Salidas y Ocio:** foto del 1/7 con 80.000; la misma transferencia antigua lo
+  deja en 60.000 desde agosto. Julio 80.000 − 86.000 = −6.000; agosto −6.000 +
+  60.000 − 77.700 = −23.700; septiembre −23.700 + 60.000 − 162.500 = −126.200.
+  La transferencia antigua actúa en el asignado, como antes, y no se vuelve a
+  sumar en la columna de transferencias.
+
+Resto del QA:
+- **1/10 08:00 sin registrar nada:** cada sobre muestra arrastre de septiembre +
+  asignado de octubre (Supermercado −77.240 + 240.000 = 162.760). Se generó
+  una sola vez la recurrente vencida (Gimnasio del 28/9, $24.990), que pasa a
+  septiembre: Suscripciones cierra septiembre en −16.410 y octubre arranca en
+  23.590. Tres recargas no la duplican.
+- **Tarjetas (375×812):** sobregiro "Supermercado $162.760 · $0 de $162.760 ·
+  −$77.240 de septiembre" (línea en rojo). Ningún sobre del respaldo cierra
+  septiembre con sobrante; el sobrante se verificó el 26/9 con Servicios
+  "+$690 de agosto". Sin cortes a 375 px, sin border-radius ni sombras.
+- **Consumidores:** Gasto "Quedan $157.760 en este sobre" (Supermercado,
+  $5.000); tope de Transferencia "Max: $380.000" (Arriendo); alerta de Hoy el
+  26/9 "Gimnasio ($24.990) excederá el saldo de Suscripciones. Faltan $16.410"
+  (saldo con arrastre 8.580; sin arrastre habría dicho $13.470).
+- **Archivar:** Transporte archivado el 1/10 queda congelado en 32.020 en
+  noviembre (asignado 0); al desarchivar el 2/11 vuelve a sumar (77.020).
+- **Sync:** un segundo contexto (instalado el 20/10, IndexedDB propio) aplica
+  los eventos con `applyRemoteEvent`: mismos saldos de julio a noviembre y 128
+  transacciones en ambos.
+- **Replay** desde `events`: stores y saldos idénticos. **Offline** tras
+  recarga (service worker activo): Finanzas carga con las 6 tarjetas.
+- **Rendimiento con el respaldo:** `calcularSaldosConArrastre` 0,14 ms;
+  `getBudget` completo 13 ms. Con 24 meses sintéticos (1.920 transacciones,
+  3.300 eventos) unos 2–3 ms.
+- ESLint `no-undef` limpio (ignorando `js/vendor/`); consola sin errores en
+  Hoy, Finanzas y Laboratorio.
+
+### Notas
+
+- **Transferencias antiguas vs nuevas.** Las antiguas (sin `modelo`)
+  modificaron `assignedAmount` con `sobre_transferencia`; en el arrastre cuentan
+  como un cambio del asignado desde el mes en que ocurrieron, y borrarlas lo
+  revierte desde el mes del borrado. Las nuevas (`modelo: 'saldo'`) solo suman
+  o restan en su mes y se ven en la tarjeta como "±$X transferido".
+- **Sobres por defecto sin eventos.** Si no tienen ningún evento, su
+  `assignedAmount` actual rige en todos los meses. Si solo tienen
+  `sobre_actualizado` (sin `sobre_creado`), el valor anterior al primer evento
+  se deduce de ese evento. Si el log leído no llega al valor guardado (caché de
+  eventos de hasta 5 s), la diferencia se aplica en el mes actual.
+- **El mes actual siempre suma su asignado**, aunque todavía no tenga
+  movimientos. Un mes que termina sin ninguna transacción, visto después como
+  mes pasado, solo arrastra.
+- Un sobre con `disponible` negativo muestra "$0 de $-66.200" (formato actual
+  de `formatCurrency` para negativos).
+- Tras restaurar este respaldo vuelve a aparecer el onboarding inicial: el
+  respaldo no trae la marca de completado.
+
 ## 26 sept 2026 — Vida extra, fechas locales, Finanzas y respaldos
 
 **`CACHE_NAME` final: `vanguard-os-v199`.** Catorce commits entre `da71068`

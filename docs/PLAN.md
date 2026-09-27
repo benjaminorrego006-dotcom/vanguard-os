@@ -41,6 +41,7 @@ cualquier sesión nueva de Claude Code retome sin explicaciones.
 | Limpieza B — borrar `metas.js` y `ripple.js` (código muerto) | hecha |
 | Limpieza C — "Análisis" como 5º ítem de la navbar | hecha (`dcfb0a2`) |
 | Fase 3 — Tareas recurrentes (diaria/semanal/mensual) | hecha (`7aba0f3`), migración IndexedDB v1→v2 |
+| Fase 4 — Rollover de sobres (Finanzas): arrastre (opción A), negativos incluidos; eliminar pasa a archivar | hecha (R2 `88efe44` → R5 `1afc101`, v210). Decisiones y QA en `docs/CHANGELOG.md` ("Arrastre de saldos de sobres") |
 
 Verificado en navegador con Playwright MCP + Claude in Chrome: migración
 preserva datos, navbar de 5 ítems entra a 375px y 1280px, recurrentes no
@@ -52,23 +53,6 @@ dejaron a propósito.
 ---
 
 ## Pendiente
-
-### FASE 4 — Rollover de sobres (Finanzas)
-
-**Bloqueada: falta decisión.** Hoy no hay lógica de qué pasa con el saldo de
-un sobre al cambiar de mes, así que el presupuesto miente al cruzar el día 1.
-
-El sobre de "Comida" que quedó con $15.000 el 31 de enero:
-
-- **A)** arranca febrero con esos $15.000 (arrastre, estilo Goodbudget)
-- **B)** vuelve a cero y se reasigna desde el ingreso nuevo (presupuesto a cero)
-- **C)** el sobrante se transfiere automático a una meta de ahorro
-
-Elegir una e implementar SOLO esa. Considerar también el caso negativo (sobre
-sobregirado) — proponer cómo tratarlo antes de codificar.
-
-Revisar `getBudget(monthFilter)` en `db.js`: probablemente necesite saber del
-arrastre. No romper el histórico ya guardado.
 
 ### FASE 5 — Árbol de calistenia con prerrequisitos
 
