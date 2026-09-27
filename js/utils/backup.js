@@ -60,8 +60,18 @@ export async function getDiasDesdeUltimoBackup() {
   return diasEntre(diaKeyDe(new Date(ts)), diaKeyDe(new Date()));
 }
 
+// Restaurar reemplaza el store de singletons entero, así que la marca de
+// onboarding del dispositivo se pierde y el onboarding inicial volvía a
+// aparecer. Quien restaura un respaldo ya usa la app: se marca como hecho,
+// salvo que el respaldo traiga su propia marca, que se respeta tal cual.
+async function marcarOnboardingTrasRestaurar(singletons) {
+  const traeMarca = Array.isArray(singletons) && singletons.some(s => s && s.key === 'onboardingInicialCompletado');
+  if (!traeMarca) await db.marcarOnboardingInicialCompletado();
+}
+
 async function restoreNewFormat(data) {
   await db.restaurarDatosRespaldo(data.idb || {});
+  await marcarOnboardingTrasRestaurar((data.idb || {}).singletons);
 
   const localStorageData = data.localStorage || {};
   Object.keys(localStorageData).forEach(k => {
@@ -84,6 +94,7 @@ async function restoreLegacyFormat(data) {
   });
   localStorage.removeItem('vg_migrated_to_idb');
   await db.init();
+  await marcarOnboardingTrasRestaurar(null); // los respaldos viejos no traen la marca
 }
 
 export function importAllData(file) {
