@@ -2206,7 +2206,11 @@ export const db = {
   // antes se leía r.nextDate, que nunca se escribía, así que la alerta no
   // se disparaba jamás. Si varias recurrentes caen en el mismo sobre, se
   // descuentan en orden de fecha: la que ya no alcanza avisa con lo que
-  // falta para ella. NO llama a getBudget a propósito: getBudget procesa
+  // falta para ella. Un cobro que cae en el MES SIGUIENTE (la ventana de 7
+  // días cruza el día 1) se compara contra el saldo proyectado de ese mes:
+  // lo que este mes arrastra (saldo menos los cobros de este mes ya
+  // descontados) más el asignado del mes siguiente, que es el configurado hoy.
+  // NO llama a getBudget a propósito: getBudget procesa
   // recurrentes y, en paralelo con el getBudget del Dashboard, podría
   // generar la misma recurrencia dos veces.
   async getProyeccionRecurrentes() {
@@ -2225,20 +2229,25 @@ export const db = {
       .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
 
     const alerts = [];
-    const comprometido = new Map(); // sobre -> suma de recurrentes próximas ya contadas
+    const restante = new Map(); // sobre -> saldo que le queda tras los cobros ya contados
+    const sumoMesSiguiente = new Set(); // sobres a los que ya se sumó el asignado del mes siguiente
     proximas.forEach(({ r, fecha }) => {
       const env = disponible.get(r.envelopeId);
       const monto = toSafeNumber(r.amount);
-      const acumulado = (comprometido.get(env.id) || 0) + monto;
-      comprometido.set(env.id, acumulado);
-      const falta = acumulado - env.balance;
-      if (falta > 0) {
+      let queda = restante.has(env.id) ? restante.get(env.id) : env.balance;
+      if (fecha.slice(0, 7) > mes && !sumoMesSiguiente.has(env.id)) {
+        queda += toSafeNumber(env.assignedAmount);
+        sumoMesSiguiente.add(env.id);
+      }
+      queda -= monto;
+      restante.set(env.id, queda);
+      if (queda < 0) {
         alerts.push({
           name: r.label,
           amount: monto,
           date: fecha,
           envelopeName: env.name,
-          shortfall: Math.min(monto, falta)
+          shortfall: Math.min(monto, -queda)
         });
       }
     });
