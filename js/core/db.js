@@ -961,6 +961,16 @@ const leerEventosCompartido = memoize(async function leerEventosCompartido() {
   return idb.getAll('events');
 });
 
+// getBudget de un mes, memoizado por render para los cálculos de Laboratorio >
+// Finanzas > Hitos (getMesesSinExceder, getTendenciaAhorro,
+// getCategoriasFueraDeRango): cada uno recorre 6 meses y, juntos, pedían el
+// mismo mes hasta 3 veces (18 getBudget por render). Misma caché que
+// memoize: un logEvent la invalida. No reemplaza a getBudget en el resto de
+// la app, donde se lee fresco a propósito.
+const presupuestoDelMesMemo = memoize(async function presupuestoDelMes(mes) {
+  return db.getBudget(mes);
+});
+
 // Resumen de una semana para la revisión semanal, con sus observaciones
 // cruzadas (observaciones-semana.js): una sola lectura de events
 // (leerEventosCompartido) y de cada store, memoizado por render (misma caché
@@ -2283,7 +2293,7 @@ export const db = {
     for (let i = 1; i <= n; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const budgetMes = await this.getBudget(monthStr);
+      const budgetMes = await presupuestoDelMesMemo(monthStr);
       const gastado = budgetMes.expenses + budgetMes.savedThisMonth;
       if (budgetMes.budgeted > 0 && gastado < budgetMes.budgeted) {
         meses.push({ mes: monthStr, disponible: budgetMes.budgeted, gastado });
@@ -2301,7 +2311,7 @@ export const db = {
     for (let i = n - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const budgetMes = await this.getBudget(monthStr);
+      const budgetMes = await presupuestoDelMesMemo(monthStr);
       meses.push(Math.round(budgetMes.savedThisMonth));
     }
     return meses;
@@ -2318,7 +2328,7 @@ export const db = {
     for (let i = 1; i <= n; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const budgetMes = await this.getBudget(monthStr);
+      const budgetMes = await presupuestoDelMesMemo(monthStr);
       if (budgetMes.budgeted <= 0) continue;
       mesesConDatos++;
       if (budgetMes.needs > budgetMes.budgeted * rule.needs) conteo.Needs++;
