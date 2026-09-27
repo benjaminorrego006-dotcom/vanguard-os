@@ -945,6 +945,24 @@ export function resumirSemana({ eventos = [], sesiones = [], transacciones = [],
   };
 }
 
+// Meta automática: Entreno tipo 'sesiones' con autoTrack.
+function esMetaAutomatica(goal) {
+  return goal.dominio === 'entreno' && goal.tipo === 'sesiones' && !!goal.autoTrack;
+}
+
+// Progreso de una meta automática: sesiones completadas desde el día en que
+// se creó la meta (claves de día), de su categoría si la meta la filtra. Una
+// sesión sin el campo `completado` cuenta; una HIIT cortada antes de tiempo
+// (completado: false), no.
+function progresoMetaAutomatica(goal, sesiones, catPorRutina) {
+  const desde = goal.createdAt ? claveDiaDe(goal.createdAt) : '';
+  return sesiones.filter(s => {
+    if (!s.fecha || s.completado === false) return false;
+    if (claveDiaDe(s.fecha) < desde) return false;
+    return !goal.rutinaCategoriaFiltro || catPorRutina.get(s.rutinaId) === goal.rutinaCategoriaFiltro;
+  }).length;
+}
+
 // Monto inicial de una meta (ver db.getMontoInicialMeta).
 function montoInicialDe(goal, eventos) {
   if (typeof goal.montoInicial === 'number') return goal.montoInicial;
@@ -1583,8 +1601,17 @@ export const db = {
   // conceptual con datos ya guardados, pero ya no es solo de ahorro.
   async getGoals(dominio) {
     const goals = sortByCreatedAt(await idbGetArray('goals'));
+    // Metas automáticas (Entreno, tipo 'sesiones'): el progreso se DERIVA de
+    // las sesiones reales, no de un total guardado, así da lo mismo en otro
+    // dispositivo, al reconstruir desde el log o con eventos antiguos.
+    let sesiones = null; let catPorRutina = null;
+    if (goals.some(g => esMetaAutomatica(g) && (!dominio || g.dominio === dominio))) {
+      const [ses, rutinas] = await Promise.all([idbGetArray('sesiones'), idbGetArray('rutinas')]);
+      sesiones = ses;
+      catPorRutina = new Map(rutinas.map(r => [r.id, r.categoria]));
+    }
     const normalizadas = goals.map(g => {
-      const c = Number(g.currentAmount) || 0;
+      const c = esMetaAutomatica(g) && sesiones ? progresoMetaAutomatica(g, sesiones, catPorRutina) : (Number(g.currentAmount) || 0);
       const t = Number(g.targetAmount) || 0;
       return {
         ...DEFAULT_GOAL_SHAPE,
@@ -1880,28 +1907,12 @@ export const db = {
     const sesionTs = new Date(newSesion.fecha).getTime();
     await logEvent({ modulo: 'entreno', tipo: 'sesion_registrada', entidadId: newSesion.id, payload: newSesion, ts: isNaN(sesionTs) ? null : sesionTs });
 
-    // Auto-track: las metas de Entreno tipo 'sesiones' suman 1 solas al
-    // registrarse una sesión (opcionalmente limitado a una categoría).
-    const rutinas = await idbGetArray('rutinas');
-    const categoriaSesion = rutinas.find(r => r.id === newSesion.rutinaId)?.categoria || null;
-    let goals = await idbGetArray('goals');
-    let goalsChanged = false;
-    const autoTrackedIds = [];
-    goals.forEach(g => {
-      if (g.dominio === 'entreno' && g.tipo === 'sesiones' && g.autoTrack) {
-        if (!g.rutinaCategoriaFiltro || g.rutinaCategoriaFiltro === categoriaSesion) {
-          g.currentAmount = (Number(g.currentAmount) || 0) + 1;
-          goalsChanged = true;
-          autoTrackedIds.push(g.id);
-        }
-      }
-    });
-    if (goalsChanged) {
-      await idbSetArray('goals', goals);
-      for (const goalId of autoTrackedIds) {
-        await logEvent({ modulo: 'entreno', tipo: 'meta_progreso_agregado', entidadId: goalId, payload: { amount: 1, automatico: true, sesionId: newSesion.id }, ts: isNaN(sesionTs) ? null : sesionTs });
-      }
-    }
+    // Metas automáticas (tipo 'sesiones'): ya no se suma a mano ni se emite
+    // un meta_progreso_agregado { automatico: true } por sesión. getGoals
+    // deriva su progreso de las sesiones (progresoMetaAutomatica), que ya
+    // viajan en sesion_registrada; ese evento aparte no llevaba el total y
+    // era lo que dejaba la meta en 0 al reconstruir o en otro dispositivo.
+    // Los que ya existen quedan en el log como registro y el replay los ignora.
 
     this._triggerUpdate();
     return newSesion;

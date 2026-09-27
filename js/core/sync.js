@@ -128,6 +128,10 @@ export async function applyRemoteEvent(event) {
         // delta) tal como lo calculó el dispositivo de origen — replicar
         // ese valor en vez de volver a sumar payload.amount es lo que hace
         // este caso seguro de reaplicar.
+        // Los aportes automáticos antiguos ({ automatico: true }, sin total)
+        // no tocan el progreso: el de las metas por sesiones se deriva de las
+        // sesiones en getGoals.
+        if (typeof payload.currentAmount !== 'number') break;
         const goal = await idb.getOne('goals', entidadId);
         if (goal) await idb.put('goals', { ...goal, currentAmount: payload.currentAmount });
         break;
