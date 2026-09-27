@@ -2,6 +2,7 @@ import { getEjercicioMetadata, getEjercicioPorId, getIdPorNombreExacto, GRUPO_MU
 import * as idb from './idb.js';
 import { mesKeyDe, diaKeyDe, diasEntre, sumarDias, claveDiaDe, fechaLocalDe, compararFechas } from '../utils/fecha.js';
 import { EQUIPO_OPCIONES } from './trainingConfig.js';
+import { generarObservaciones } from './observaciones-semana.js';
 
 function toSafeNumber(value) {
   const n = Number(value);
@@ -857,9 +858,12 @@ export function resumirSemana({ eventos = [], sesiones = [], transacciones = [],
   // Hábitos
   const diarios = habitos.filter(h => (h.frecuencia?.tipo || 'diario') !== 'semanal');
   const porHabito = diarios.map(h => ({ id: h.id, nombre: h.nombre, aplicables: 0, cumplidos: 0 }));
+  // Semana en curso: hoy entra al % solo si ya tiene alguna marca; si no,
+  // el día todavía no termina y el promedio llega hasta ayer.
+  const hoySinMarcas = parcial && !habitos.some(h => (h.marcas || {})[hoyKey]);
   dias.forEach(k => {
     const d = dia(k);
-    if (!d) return;
+    if (!d || (hoySinMarcas && k === hoyKey)) return;
     let aplicables = 0; let cumplidos = 0;
     diarios.forEach((h, i) => {
       if (h.createdAt && claveDiaDe(h.createdAt) > k) return;
@@ -949,7 +953,8 @@ const leerEventosCompartido = memoize(async function leerEventosCompartido() {
   return idb.getAll('events');
 });
 
-// Resumen de una semana para la revisión semanal: una sola lectura de events
+// Resumen de una semana para la revisión semanal, con sus observaciones
+// cruzadas (observaciones-semana.js): una sola lectura de events
 // (leerEventosCompartido) y de cada store, memoizado por render (misma caché
 // que memoize: un logEvent la invalida). La clave incluye el día de hoy, así
 // la semana en curso se recalcula al cambiar de día.
@@ -965,7 +970,11 @@ const resumenSemanaMemo = memoize(async function resumenSemana(lunesKey, hoyKey)
     idbGetArray('ritual'),
     idbGetSingleton('entrenoGeneradorConfig', null)
   ]);
-  return resumirSemana({ eventos, sesiones, transacciones, sobres, tareas, plan, habitos, ritual, generadorConfig }, lunesKey, hoyKey);
+  // Las 4 semanas anteriores salen de la misma lectura, para las observaciones.
+  const datos = { eventos, sesiones, transacciones, sobres, tareas, plan, habitos, ritual, generadorConfig };
+  const semana = resumirSemana(datos, lunesKey, hoyKey);
+  const previas = [4, 3, 2, 1].map(n => resumirSemana(datos, sumarDias(semana.lunes, -7 * n), hoyKey));
+  return { ...semana, observaciones: generarObservaciones(semana, previas) };
 });
 
 // Ordena por fecha de creación ascendente (más viejo primero), igual que el
