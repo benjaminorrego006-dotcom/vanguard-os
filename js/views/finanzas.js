@@ -1,6 +1,6 @@
 import { Toast, ConfirmDialog, SkeletonCard } from '../utils/states.js';
 import { renderDonut } from '../utils/donut.js';
-import { db } from '../core/db.js';
+import { db, esMovimientoEntreSobres } from '../core/db.js';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { renderIngresoForm, initIngresoForm } from '../components/IngresoForm.js';
@@ -943,6 +943,7 @@ const computeDailyBalanceSeries = (b) => {
     const day = parseInt(claveDiaDe(t.date).slice(8, 10), 10); // día local, también para las ISO
     if (!day || day < 1 || day > today) return;
     const amt = Number(t.amount) || 0;
+    if (esMovimientoEntreSobres(t)) return; // mover dinero entre sobres no cambia el balance
     deltaPorDia[day] += (t.type === 'Ingreso') ? amt : -amt;
   });
 

@@ -299,6 +299,15 @@ function proximaFechaRecurrente(req) {
   return (base >= enMesBase || req.lastProcessed) ? claveEnMes(enMesBase, 1, req.dayOfMonth) : enMesBase;
 }
 
+// Transferencia entre sobres (nueva o antigua) o asignación heredada
+// ('Assignment'): mueve dinero entre sobres, no es gasto ni ingreso. Se
+// excluye de todos los totales del mes (gastos, disponible, comparación,
+// distribución, historial); sigue en la lista de movimientos y como
+// actividad de la racha global.
+export function esMovimientoEntreSobres(t) {
+  return t.type === 'Transfer' || t.type === 'Assignment';
+}
+
 // Saldo de cada sobre en un mes: asignado − gastado ± transferencias modelo
 // 'saldo' del mes, sobre `txsDelMes` (ya filtradas al mes con claveDiaDe).
 // Las transferencias antiguas (sin `modelo`) no entran acá: su efecto ya
@@ -1252,6 +1261,7 @@ export const db = {
 
       let inc = 0; let exp = 0; let sav = 0;
       txs.forEach(t => {
+        if (esMovimientoEntreSobres(t)) return;
         const amt = toSafeNumber(t.amount);
         if (t.type === 'Ingreso') inc += amt;
         else if (t.category === 'Savings') sav += amt;
@@ -2743,15 +2753,18 @@ export const db = {
 
     let prevExpenses = 0;
     prevTxs.forEach(t => {
+      if (esMovimientoEntreSobres(t)) return;
       if(t.type !== 'Ingreso' && t.category !== 'Savings') prevExpenses += toSafeNumber(t.amount);
     });
 
     let income = 0; let expenses = 0;
     let needs = 0; let wants = 0; let savings = 0;
 
+    // La lista (breakdown) sí incluye las transferencias; los totales no.
     const breakdown = [...txs].sort((a,b) => compararFechas(b.date, a.date)); // claves e ISO mezclados: por día local y luego hora
 
     txs.forEach(t => {
+      if (esMovimientoEntreSobres(t)) return;
       const amt = toSafeNumber(t.amount);
       if (t.type === 'Ingreso') {
         income += amt;
