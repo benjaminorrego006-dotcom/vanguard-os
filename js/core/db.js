@@ -949,6 +949,32 @@ export const db = {
       await logEvent({ modulo: 'finanzas', tipo: 'sobre_actualizado', entidadId: id, payload: envs[idx] });
     }
   },
+  // Archivar un sobre (R3): lo oculta de la UI sin borrar nada — su
+  // historial y su saldo quedan, y se puede desarchivar. No se archiva si
+  // tiene recurrentes apuntando a él: devuelve { ok: false, recurrentes }
+  // con sus nombres para que la UI pida cambiarlas o borrarlas primero.
+  async archivarSobre(id) {
+    const envs = await this.getEnvelopes();
+    const idx = envs.findIndex(e => e.id === id);
+    if (idx === -1) return { ok: false, recurrentes: [] };
+    const recurrentes = (await this.getRecurring()).filter(r => r.envelopeId === id).map(r => r.label || 'Sin nombre');
+    if (recurrentes.length > 0) return { ok: false, recurrentes };
+    const archivadoEl = diaKeyDe(new Date());
+    envs[idx] = { ...envs[idx], archivado: true, archivadoEl };
+    await idbSetArray('envelopes', envs); this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'sobre_archivado', entidadId: id, payload: { archivadoEl } });
+    return { ok: true };
+  },
+  async desarchivarSobre(id) {
+    const envs = await this.getEnvelopes();
+    const idx = envs.findIndex(e => e.id === id);
+    if (idx === -1) return;
+    envs[idx] = { ...envs[idx], archivado: false, archivadoEl: null };
+    await idbSetArray('envelopes', envs); this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'sobre_desarchivado', entidadId: id, payload: {} });
+  },
+  // Borrado definitivo: la UI ya no lo usa (R3, ahora se archiva). Se
+  // mantiene para respaldos/eventos antiguos (sobre_eliminado).
   async deleteEnvelope(id) {
     let envs = await this.getEnvelopes();
     envs = envs.filter(e => e.id !== id);
@@ -2782,7 +2808,11 @@ export const db = {
     const remaining = budgeted - expenses - savedThisMonth;
     const rule = await this.getAllocationRule();
 
-    const envelopes = saldosDeSobres(await this.getEnvelopes(), txs);
+    // Archivados (R3): fuera de envelopes (tarjetas, selectores, tope 50/30/20);
+    // todosLosSobres los incluye para mostrar nombres en Movimientos/Recurrentes.
+    const todosLosSobres = saldosDeSobres(await this.getEnvelopes(), txs);
+    const envelopes = todosLosSobres.filter(e => !e.archivado);
+    const envelopesArchivados = todosLosSobres.filter(e => e.archivado);
 
     let trend = null;
     if (prevExpenses > 0) {
@@ -2813,6 +2843,8 @@ export const db = {
       ageOfMoney,
 
       envelopes, // NUEVO
+      envelopesArchivados,
+      todosLosSobres,
       budgetTarget: {
         needs: income * rule.needs,
         wants: income * rule.wants,

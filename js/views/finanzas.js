@@ -20,6 +20,8 @@ import { mesKeyDe, formatFechaCorta, formatMes, fechaLocalDe, claveDiaDe } from 
 const editSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const transferSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
 const delSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+// Archivar un sobre (caja con tapa), R3: reemplaza al botón de eliminar.
+const archiveSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4"></rect><path d="M5 8v12h14V8"></path><line x1="10" y1="12" x2="14" y2="12"></line></svg>`;
 const backspaceSvg = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>`;
 let b = null;
 let activeFinTab = 'resumen';
@@ -155,7 +157,7 @@ export async function init() {
     // Update transactions
     const txContainer = document.getElementById('recent-tx-list');
     if(txContainer) {
-      txContainer.innerHTML = b.breakdown.length === 0 ? finEmptyState('Sin datos', 'Todavía no hay movimientos', 'Toca el botón Ingreso o Gasto para registrar el primero.') : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.envelopes)).join('');
+      txContainer.innerHTML = b.breakdown.length === 0 ? finEmptyState('Sin datos', 'Todavía no hay movimientos', 'Toca el botón Ingreso o Gasto para registrar el primero.') : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.todosLosSobres || b.envelopes)).join('');
     }
 
     // Update Presupuesto Tab Legend (budget cards de la regla 50/30/20)
@@ -217,7 +219,7 @@ export async function init() {
       return;
     }
 
-    container.innerHTML = filtered.map(tx => txHtml(tx, b.envelopes)).join('');
+    container.innerHTML = filtered.map(tx => txHtml(tx, b.todosLosSobres || b.envelopes)).join('');
     attachTxListeners();
   };
 
@@ -241,23 +243,39 @@ export async function init() {
         if (env) document.getElementById('envelope-modal').openForm(env);
       });
     });
-    document.querySelectorAll('.delete-env').forEach(btn => {
+    // R3: archivar en vez de eliminar. Si hay recurrentes apuntando al sobre,
+    // no se archiva: se muestran y se ofrece ir a Recurrentes.
+    document.querySelectorAll('.archive-env').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.getAttribute('data-id');
         const env = b.envelopes.find(x => x.id === id);
-        const todasTxs = await db.getTransaccionesEnRango(null, null);
-        const movimientosVinculados = todasTxs.filter(t => t.envelopeId === id || t.fromEnvelopeId === id || t.toEnvelopeId === id).length;
-        const confirmed = await ConfirmDialog(
-          `Eliminar sobre${env ? ' ' + env.name : ''}`,
-          movimientosVinculados > 0
-            ? `${movimientosVinculados} movimiento${movimientosVinculados === 1 ? '' : 's'} ya no ${movimientosVinculados === 1 ? 'tendrá' : 'tendrán'} un sobre asociado. No se puede deshacer.`
-            : 'No se puede deshacer.',
-          { verb: 'Eliminar' }
-        );
-        if (confirmed) {
-          await db.deleteEnvelope(id);
-          refresh();
+        const nombre = env ? env.name : 'el sobre';
+        const recurrentes = (await db.getRecurring()).filter(r => r.envelopeId === id);
+        if (recurrentes.length > 0) {
+          const uno = recurrentes.length === 1;
+          const lista = recurrentes.map(r => r.label || 'Sin nombre').join(', ');
+          const irARecurrentes = await ConfirmDialog(
+            `No se puede archivar ${nombre}`,
+            `${uno ? 'Lo usa este pago fijo' : 'Lo usan estos pagos fijos'}: ${lista}. ${uno ? 'Cámbialo de sobre o bórralo' : 'Cámbialos de sobre o bórralos'} en Recurrentes primero.`,
+            { verb: 'Ver recurrentes', danger: false }
+          );
+          if (irARecurrentes) document.querySelector('.fin-tab[data-tab="recurrentes"]')?.click();
+          return;
         }
+        const confirmed = await ConfirmDialog(
+          `Archivar sobre ${nombre}`,
+          'El sobre se oculta; su historial y saldo se conservan. Puedes desarchivarlo cuando quieras.',
+          { verb: 'Archivar', danger: false }
+        );
+        if (!confirmed) return;
+        await db.archivarSobre(id);
+        refresh();
+      });
+    });
+    document.querySelectorAll('.desarchivar-env').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        await db.desarchivarSobre(e.currentTarget.getAttribute('data-id'));
+        refresh();
       });
     });
     document.querySelectorAll('.transfer-env').forEach(btn => {
@@ -591,7 +609,7 @@ const renderRecurringHTML = (b) => {
 
   const total = b.recurring.reduce((s, r) => s + (Number(r.amount) || 0), 0);
   const rows = b.recurring.map(req => {
-    const env = b.envelopes.find(e => e.id === req.envelopeId);
+    const env = (b.todosLosSobres || b.envelopes).find(e => e.id === req.envelopeId);
     const envName = env ? escapeHtml(env.name) : 'Desconocido';
     return `
       <div class="fin-row recurring-row" data-id="${req.id}">
@@ -626,8 +644,23 @@ const CAT_LABELS = { Needs: 'Necesidades', Wants: 'Deseos' };
 const renderEnvelopesHTML = async (b) => {
   const addBtnHtml = `<button class="btn-add-envelope tappable" style="margin-top: 12px; width: 100%; padding: 12px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer;">+ Nuevo sobre</button>`;
 
+  // R3: sección colapsada al final con los sobres archivados.
+  const archivados = b.envelopesArchivados || [];
+  const archivadosHtml = archivados.length === 0 ? '' : `
+    <details class="sobres-archivados">
+      <summary>Archivados (${archivados.length})</summary>
+      ${archivados.map(env => `
+        <div class="sobre-archivado-row">
+          <div style="min-width: 0;">
+            <div style="font-weight: 600; font-size: 13px;">${escapeHtml(env.name)}</div>
+            <p class="fin-eyebrow" style="margin: 0;">${CAT_LABELS[env.category] || env.category}</p>
+          </div>
+          <button class="desarchivar-env tappable" data-id="${env.id}" aria-label="Desarchivar sobre ${escapeHtml(env.name)}">Desarchivar</button>
+        </div>`).join('')}
+    </details>`;
+
   if (!b.envelopes || b.envelopes.length === 0) {
-    return finEmptyState('Sin cuentas', 'Todavía no creaste ningún sobre', 'Un sobre es donde separas plata para una categoría de gasto — luz, comida, salidas.') + addBtnHtml;
+    return finEmptyState('Sin cuentas', archivados.length ? 'Todos tus sobres están archivados' : 'Todavía no creaste ningún sobre', 'Un sobre es donde separas plata para una categoría de gasto — luz, comida, salidas.') + addBtnHtml + archivadosHtml;
   }
 
   // getHistoricalSummaryByEnvelope es async (lee IndexedDB): se
@@ -658,7 +691,7 @@ const renderEnvelopesHTML = async (b) => {
           <div style="display: flex; gap: 10px;">
             <button class="transfer-env" data-id="${env.id}" aria-label="Transferir desde ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Transferir">${transferSvg}</button>
             <button class="edit-env" data-id="${env.id}" aria-label="Editar sobre ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Editar">${editSvg}</button>
-            <button class="delete-env" data-id="${env.id}" aria-label="Eliminar sobre ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer;" title="Eliminar">${delSvg}</button>
+            <button class="archive-env" data-id="${env.id}" aria-label="Archivar sobre ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer;" title="Archivar">${archiveSvg}</button>
           </div>
         </div>
         <div class="flex-between" style="margin-top: 2px; align-items: flex-end;">
@@ -672,7 +705,7 @@ const renderEnvelopesHTML = async (b) => {
     `;
   }).join('');
 
-  return `<div class="fin-grid2">${cards}</div>${addBtnHtml}`;
+  return `<div class="fin-grid2">${cards}</div>${addBtnHtml}${archivadosHtml}`;
 };
 
 const renderGoalsHTML = (b) => {
@@ -1350,7 +1383,7 @@ export async function render() {
             <span class="btn-go-movimientos fin-eyebrow" id="btn-ver-todos" style="cursor: pointer;">Ver todos</span>
           </div>
           <div id="recent-tx-list" class="fin-row-list">
-            ${b.breakdown.length === 0 ? finEmptyState('Sin datos', 'Todavía no hay movimientos', 'Toca el botón Ingreso o Gasto para registrar el primero.') : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.envelopes)).join('')}
+            ${b.breakdown.length === 0 ? finEmptyState('Sin datos', 'Todavía no hay movimientos', 'Toca el botón Ingreso o Gasto para registrar el primero.') : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.todosLosSobres || b.envelopes)).join('')}
           </div>
         </div>
       </div>

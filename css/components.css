@@ -765,6 +765,13 @@ input[type="date"] { color-scheme: dark; }
 .fin-empty .fin-eyebrow { margin-bottom: 10px; }
 .fin-empty p.fin-desc { color: var(--text-secondary); max-width: 380px; margin: 10px auto 0; font-size: 12.5px; }
 
+/* Sobres archivados (R3): sección colapsada al final de la lista de sobres. */
+.sobres-archivados { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.sobres-archivados summary { cursor: pointer; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.11em; color: var(--text-secondary); padding: 6px 0; }
+.sobre-archivado-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); color: var(--text-secondary); }
+.sobre-archivado-row:first-of-type { border-top: none; }
+.desarchivar-env { flex-shrink: 0; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 8px 12px; cursor: pointer; }
+
 /* Empty state genérico: generaliza el mismo patrón de .fin-empty de arriba
    (texto centrado, sin caja ni ícono genérico) para el resto de la app —
    lo consume EmptyState() en utils/states.js, compartido por Análisis,

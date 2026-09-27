@@ -66,6 +66,12 @@ export async function applyRemoteEvent(event) {
       case 'sobre_actualizado':
         await idb.put('envelopes', { ...payload, id: entidadId });
         break;
+      case 'sobre_archivado': // R3: se oculta, no se borra
+        await mergeRow('envelopes', entidadId, { archivado: true, archivadoEl: payload.archivadoEl || null });
+        break;
+      case 'sobre_desarchivado':
+        await mergeRow('envelopes', entidadId, { archivado: false, archivadoEl: null });
+        break;
       case 'sobre_eliminado':
         await idb.remove('envelopes', entidadId);
         break;
@@ -335,7 +341,7 @@ const MIRROR_STORES = ['envelopes', 'goals', 'habitos', 'notas', 'notas_categori
 function mirrorTargetFor(event) {
   const { modulo, tipo, entidadId } = event;
   switch (tipo) {
-    case 'sobre_creado': case 'sobre_actualizado': return { store: 'envelopes', id: entidadId };
+    case 'sobre_creado': case 'sobre_actualizado': case 'sobre_archivado': case 'sobre_desarchivado': return { store: 'envelopes', id: entidadId };
     case 'sobre_eliminado': return { store: 'envelopes', id: entidadId, deleted: true };
     case 'recurrente_creado': case 'recurrente_procesado': return { store: 'recurrentes', id: entidadId };
     case 'recurrente_eliminado': return { store: 'recurrentes', id: entidadId, deleted: true };
