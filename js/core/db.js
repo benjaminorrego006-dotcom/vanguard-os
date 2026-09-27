@@ -1653,6 +1653,8 @@ export const db = {
   },
   async saveProfile(data) {
     const profile = {
+      // Opcional: solo para el saludo de Hoy ("Buenos días, Ana").
+      nombre: typeof data.nombre === 'string' ? data.nombre.trim().slice(0, 40) : '',
       pesoKg: toSafeNumber(data.pesoKg),
       estaturaCm: toSafeNumber(data.estaturaCm),
       edad: toSafeNumber(data.edad),

@@ -80,6 +80,20 @@ export const diasEntre = (claveDesde, claveHasta) => {
   return Math.round((Date.UTC(yb, mb - 1, db) - Date.UTC(ya, ma - 1, da)) / 86400000);
 };
 
+// "hace un momento" / "hace 5 min" / "hace 3 h" / "ayer" / "hace 4 días".
+// Dentro del mismo día se usan minutos y horas; desde el día anterior, días
+// de calendario con diasEntre (nunca bloques de 24 h en ms).
+export const formatHaceCuanto = (ts) => {
+  const ahora = new Date();
+  const dias = diasEntre(diaKeyDe(new Date(ts)), diaKeyDe(ahora));
+  if (dias === 1) return 'ayer';
+  if (dias > 1) return `hace ${dias} días`;
+  const min = Math.max(0, Math.floor((ahora.getTime() - ts) / 60000));
+  if (min < 1) return 'hace un momento';
+  if (min < 60) return `hace ${min} min`;
+  return `hace ${Math.floor(min / 60)} h`;
+};
+
 // Clave del día `n` días después (o antes, si es negativo) de `clave`.
 // Avanza con el calendario (new Date(y, m, d + n)), nunca sumando ms.
 export const sumarDias = (clave, n) => {

@@ -12,6 +12,7 @@ import { renderProfileForm, setupProfileForm, openProfileForm } from '../compone
 import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardingForm } from '../components/nivel-onboarding-form.js';
 import { renderPinSecuritySection, attachPinSecurityListeners } from '../components/pin-security.js';
 import { getAuthSession, renderAuthSection, attachAuthListeners } from '../components/auth-section.js';
+import { getEstadoSincronizacion } from '../core/sync.js';
 import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import { isErrorTrackingConfigured, isErrorReportingEnabled, setErrorReportingEnabled } from '../core/error-tracking.js';
 
@@ -29,14 +30,15 @@ function seccion(titulo, subtitulo, contenidoHtml) {
 const btnSecundario = (id, texto) => `<button id="${id}" type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border);">${escapeHtml(texto)}</button>`;
 
 export async function render() {
-  const [profile, nivel, restTimerSecs, rule, diasDesdeBackup, estadoAlmacenamiento, authSession] = await Promise.all([
+  const [profile, nivel, restTimerSecs, rule, diasDesdeBackup, estadoAlmacenamiento, authSession, estadoSync] = await Promise.all([
     db.getProfile(),
     db.getNivelEntrenamiento(),
     db.getRestTimerSecs(),
     db.getAllocationRule(),
     getDiasDesdeUltimoBackup(),
     db.getEstadoAlmacenamiento(),
-    getAuthSession()
+    getAuthSession(),
+    getEstadoSincronizacion()
   ]);
 
   const perfilResumen = profile
@@ -82,7 +84,7 @@ export async function render() {
       </div>
 
       ${seccion('Cuenta', 'Sincroniza tus datos entre dispositivos con email y contraseña. Es opcional — la app sigue funcionando 100% offline sin esto.', `
-        <div id="cfg-auth-container">${renderAuthSection(authSession)}</div>
+        <div id="cfg-auth-container">${renderAuthSection(authSession, estadoSync.ultimaSyncTs)}</div>
       `)}
 
       ${seccion('Perfil', escapeHtml(perfilResumen), btnSecundario('btn-cfg-perfil', 'Editar perfil'))}

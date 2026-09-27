@@ -8,7 +8,8 @@
 import { Toast } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { getSupabase, isSupabaseConfigured, cargarSupabase, estadoSupabase } from '../core/supabase-client.js';
-import { runFullSync } from '../core/sync.js';
+import { runFullSync, getEstadoSincronizacion } from '../core/sync.js';
+import { formatHaceCuanto } from '../utils/fecha.js';
 
 // Espera la carga del bundle de Supabase (la dispara initSync al arrancar;
 // si todavía no terminó, se espera acá) antes de pedir la sesión.
@@ -24,7 +25,7 @@ export async function getAuthSession() {
 // no tiene botón atrás del navegador.
 const PRIVACIDAD_LINK = `<p style="font-size: 12px; color: var(--text-secondary); margin: 14px 0 0;">Al usar una cuenta se guarda una copia de tus datos en la nube. <a href="privacidad.html" style="color: var(--accent-primary);">Política de privacidad</a></p>`;
 
-export function renderAuthSection(session) {
+export function renderAuthSection(session, ultimaSyncTs = null) {
   const estado = estadoSupabase();
   if (estado === 'no-configurado') {
     return `<p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Todavía no está configurado el proyecto de Supabase — completa SUPABASE_URL y SUPABASE_ANON_KEY en js/core/supabase-client.js.</p>`;
@@ -33,7 +34,7 @@ export function renderAuthSection(session) {
     // El bundle de Supabase no cargó: la app funciona igual, solo sin sync.
     return `
       <div id="auth-no-disponible" style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px;">Sincronización no disponible</div>
-      <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4;">No se pudo cargar el módulo de sincronización. Tus datos siguen guardados en este teléfono; vuelve a intentarlo al recargar la app.</p>`;
+      <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4;">No se pudo cargar el módulo de sincronización. Tus datos siguen guardados en este dispositivo; vuelve a intentarlo al recargar la app.</p>`;
   }
 
   if (session?.user) {
@@ -42,6 +43,7 @@ export function renderAuthSection(session) {
         <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--state-success); flex-shrink: 0;"></span>
         Sesión iniciada: ${escapeHtml(session.user.email)}
       </div>
+      <p id="auth-ultima-sync" style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 14px;">${ultimaSyncTs ? `Sincronizado ${formatHaceCuanto(ultimaSyncTs)}` : 'Todavía sin sincronizar en este dispositivo'}</p>
       <div style="display: flex; gap: 10px;">
         <button id="btn-auth-sync" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-weight: 600; cursor: pointer;">Sincronizar ahora</button>
         <button id="btn-auth-logout" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: transparent; color: var(--state-high); border: 1px solid var(--state-high); font-weight: 600; cursor: pointer;">Cerrar sesión</button>
@@ -73,8 +75,8 @@ export function attachAuthListeners(containerId) {
   if (!container) return;
 
   const refresh = async () => {
-    const session = await getAuthSession();
-    container.innerHTML = renderAuthSection(session);
+    const [session, estado] = await Promise.all([getAuthSession(), getEstadoSincronizacion()]);
+    container.innerHTML = renderAuthSection(session, estado.ultimaSyncTs);
     attachAuthListeners(containerId);
   };
 
@@ -137,5 +139,6 @@ export function attachAuthListeners(containerId) {
       btn.disabled = false;
       btn.textContent = 'Sincronizar ahora';
     }
+    refresh(); // actualiza "Sincronizado hace…"
   });
 }

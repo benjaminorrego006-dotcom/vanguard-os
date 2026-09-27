@@ -5,6 +5,7 @@ import { parseQuickGasto } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
 import { diaKeyDe, diasEntre, formatFechaCorta, fechaLocalDe, sumarDias } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
+import { getEstadoSincronizacion } from '../core/sync.js';
 import * as LabFinanzas from '../components/lab-finanzas.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
@@ -226,7 +227,7 @@ function renderHeroicRow({ id, color, label, value }) {
 // toca" de Entreno. "Después"
 // oculta esa tarjeta hasta mañana (ver ocultarHoy) y deja pasar a la
 // siguiente en la prioridad.
-async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesiones, rachaGlobal }) {
+async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincronizadoReciente, sesiones, rachaGlobal }) {
   const hoy = diaKeyDe(new Date());
 
   const tarjeta = ({ tipo, color, eyebrow, titulo, detalle, accion, vida = null }) => `
@@ -254,7 +255,9 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesion
     }
   }
 
-  if (hayDatosReales && backupNecesitaAviso(diasDesdeBackup) && !ocultaHoy('backup')) {
+  // Con sesión iniciada y una sync correcta hace menos de 7 días los datos
+  // ya tienen copia en la nube: no hace falta el aviso de respaldo.
+  if (hayDatosReales && !sincronizadoReciente && backupNecesitaAviso(diasDesdeBackup) && !ocultaHoy('backup')) {
     const esAlertaRoja = diasDesdeBackup !== null && diasDesdeBackup > BACKUP_ALERTA_ROJA_DIAS;
     return tarjeta({
       tipo: 'backup',
@@ -263,7 +266,7 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesion
       titulo: diasDesdeBackup === null
         ? 'Nunca has exportado un respaldo'
         : `Hace ${diasDesdeBackup} días sin respaldo`,
-      detalle: 'Tus datos viven solo en este teléfono. Sin respaldo, se pierden si borras la app o cambias de equipo.',
+      detalle: 'Tus datos viven solo en este dispositivo. Sin respaldo, se pierden si borras la app o cambias de equipo.',
       accion: 'Exportar respaldo'
     });
   }
@@ -339,7 +342,7 @@ export async function render() {
   // DESPUÉS (encadenada, no en paralelo) para que no avise de una que se
   // acaba de generar con el estado anterior al procesamiento.
   const budgetYProyeccion = db.getBudget().then(async b => [b, await db.getProyeccionRecurrentes()]);
-  const [[budget, alertasCaja], stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, diasDesdeBackup, plan] = await Promise.all([
+  const [[budget, alertasCaja], stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, diasDesdeBackup, plan, perfil, estadoSync] = await Promise.all([
     budgetYProyeccion,
     db.getDashboardStats(),
     db.getSesiones(),
@@ -349,7 +352,9 @@ export async function render() {
     db.getNotas(),
     db.getCategoriasNota(),
     getDiasDesdeUltimoBackup(),
-    db.getTareasPlan()
+    db.getTareasPlan(),
+    db.getProfile(),
+    getEstadoSincronizacion()
   ]);
   // Semana (Planificador): los de hoy van a la agenda; los de días
   // anteriores sin hacer, a las atrasadas junto con las de Tareas.
@@ -383,7 +388,10 @@ export async function render() {
   // ve el aviso de respaldo cuando no hay nada real que respaldar.
   // Reutiliza datos que este render() ya pidió arriba, sin consultas nuevas.
   const hayDatosReales = sesiones.length > 0 || habitos.length > 0 || tareas.length > 0 || budget.breakdown.length > 0;
-  const tarjetaContextualHtml = await renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sesiones, rachaGlobal });
+  const sincronizadoReciente = estadoSync.conSesion && estadoSync.ultimaSyncTs !== null
+    && diasEntre(diaKeyDe(new Date(estadoSync.ultimaSyncTs)), hoyIso) < 7;
+  const tarjetaContextualHtml = await renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincronizadoReciente, sesiones, rachaGlobal });
+  const nombre = (perfil?.nombre || '').trim();
   avisarPrimeraVidaSiCorresponde(rachaGlobal);
 
   const installBannerHtml = debeMostrarBannerInstalar() ? `
@@ -438,7 +446,7 @@ export async function render() {
            el del encabezado global de la app, ver index.html). -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px;">
         <div style="min-width: 0;">
-          <h1 style="font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.4px;">${saludoPorHora()}, Benjamín</h1>
+          <h1 style="font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.4px;">${saludoPorHora()}${nombre ? `, ${escapeHtml(nombre)}` : ''}</h1>
           <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">${escapeHtml(fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1))}</div>
         </div>
         <button id="chip-racha" class="tappable" aria-label="Racha de ${rachaGlobal.actual} ${rachaGlobal.actual === 1 ? 'día' : 'días'}, ${rachaGlobal.vidas} ${rachaGlobal.vidas === 1 ? 'vida extra' : 'vidas extra'}. Ver hábitos" style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 6px 12px 6px 10px; border-radius: 999px; cursor: pointer;">

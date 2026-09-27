@@ -554,6 +554,12 @@ export async function runFullSync() {
     await setSyncMeta({ ...meta, mirrorBackfillDone: true });
   }
 
+  // Hora de la última sync completa sin errores y con sesión (la muestra
+  // Configuración > Cuenta y decide si Hoy necesita el aviso de respaldo).
+  if (!push.error && !pull.error && await haySesion()) {
+    await setSyncMeta({ ...(await getSyncMeta()), ultimaSyncTs: Date.now() });
+  }
+
   if ((push.pushed > 0 || pull.pulled > 0) && typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('budget-updated'));
     window.dispatchEvent(new CustomEvent('vg-synced', { detail: { push, pull } }));
@@ -569,8 +575,26 @@ async function pushSingleEvent(event) {
   const { error } = await supabase.from('events').upsert([eventToRow(event, session.user.id)], { onConflict: 'id', ignoreDuplicates: true });
   if (error) { console.error('[sync] Error subiendo evento en tiempo real', error); reportError(error, 'sync:subir-en-vivo'); return; }
   const meta = await getSyncMeta();
-  if (event.ts > meta.lastPushedTs) await setSyncMeta({ ...meta, lastPushedTs: event.ts });
+  await setSyncMeta({ ...meta, lastPushedTs: Math.max(meta.lastPushedTs, event.ts), ultimaSyncTs: Date.now() });
   await mirrorEvent(event);
+}
+
+async function haySesion() {
+  if (!isSupabaseConfigured() || !navigator.onLine) return false;
+  const { data: { session } } = await getSupabase().auth.getSession();
+  return !!session;
+}
+
+// Para Hoy y Configuración > Cuenta: ¿hay sesión iniciada y cuándo fue la
+// última sync correcta? { conSesion, ultimaSyncTs } (ts en ms o null). Sin
+// Supabase configurado, o si el bundle no cargó, conSesion es false.
+export async function getEstadoSincronizacion() {
+  let listo = false;
+  try { listo = await cargarSupabase(); } catch (err) { listo = false; }
+  if (!listo || !isSupabaseConfigured()) return { conSesion: false, ultimaSyncTs: null };
+  const { data: { session } } = await getSupabase().auth.getSession();
+  const meta = await getSyncMeta();
+  return { conSesion: !!session, ultimaSyncTs: meta.ultimaSyncTs || null };
 }
 
 let initialized = false;

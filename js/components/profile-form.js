@@ -40,6 +40,11 @@ export function renderProfileForm() {
         <h2 id="profile-modal-title" style="margin-top: 0; font-size: 20px; font-weight: 700;">Tu Perfil</h2>
         <p style="color: var(--text-secondary); font-size: 13px; margin: -8px 0 20px 0;">Estos datos se usan para calcular tu IMC y tu gasto calórico estimado.</p>
 
+        <div class="input-group">
+          <label for="profile-nombre">Nombre (opcional)</label>
+          <input type="text" id="profile-nombre" autocomplete="given-name" maxlength="40" placeholder="Para saludarte en Hoy">
+        </div>
+
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="input-group">
             <label for="profile-peso">Peso (kg)</label>
@@ -118,6 +123,7 @@ export function setupProfileForm(onSaveCallback) {
     }
 
     await db.saveProfile({
+      nombre: document.getElementById('profile-nombre').value,
       pesoKg,
       estaturaCm,
       edad,
@@ -144,6 +150,7 @@ export async function openProfileForm() {
     btnCancel.textContent = 'Cancelar';
     btnCancel.dataset.modo = '';
     titleEl.innerText = 'Tu Perfil';
+    document.getElementById('profile-nombre').value = profile.nombre || '';
     document.getElementById('profile-peso').value = profile.pesoKg || '';
     document.getElementById('profile-estatura').value = profile.estaturaCm || '';
     document.getElementById('profile-edad').value = profile.edad || '';
@@ -154,6 +161,7 @@ export async function openProfileForm() {
     btnCancel.textContent = 'Ahora no';
     btnCancel.dataset.modo = 'onboarding';
     titleEl.innerText = '¡Bienvenido! Cuéntanos de ti';
+    document.getElementById('profile-nombre').value = '';
     document.getElementById('profile-peso').value = '';
     document.getElementById('profile-estatura').value = '';
     document.getElementById('profile-edad').value = '';
