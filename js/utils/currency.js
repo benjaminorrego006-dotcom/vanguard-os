@@ -46,14 +46,19 @@ function getFormatters() {
   return { standardFormatter, compactFormatter };
 }
 
-export function formatCurrency(amount) {
+// Negativos con el signo antes del símbolo ("-$10.000", no "$-10.000" como
+// lo deja Intl en es-CL). Se formatea el valor absoluto y se antepone el
+// signo, salvo que redondee a cero (-0,4 CLP es "$0", no "-$0").
+function formatearConSigno(formatter, amount) {
   const safeAmount = toSafeNumber(amount);
-  const { standardFormatter } = getFormatters();
-  return standardFormatter.format(safeAmount);
+  const texto = formatter.format(Math.abs(safeAmount));
+  return safeAmount < 0 && texto !== formatter.format(0) ? '-' + texto : texto;
+}
+
+export function formatCurrency(amount) {
+  return formatearConSigno(getFormatters().standardFormatter, amount);
 }
 
 export function formatCompactCurrency(amount) {
-  const safeAmount = toSafeNumber(amount);
-  const { compactFormatter } = getFormatters();
-  return compactFormatter.format(safeAmount);
+  return formatearConSigno(getFormatters().compactFormatter, amount);
 }
