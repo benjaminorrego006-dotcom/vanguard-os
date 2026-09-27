@@ -17,17 +17,17 @@ import * as LabTareas from './lab-tareas.js';
 import * as LabHabitos from './lab-habitos.js';
 import * as LabSemana from './lab-semana.js';
 
-// accentSoft recalculado del retinte de paleta (--cy/--am/--vi) — quedaban
-// con las tripletas rgb() del acento viejo, más saturado.
+// accent / accentSoft: tokens de css/variables.css (acento del módulo y su
+// fondo tenue) para el botón seleccionado del selector.
 const MODULOS = {
   // Revisión semanal: cruza todos los módulos, así que va neutra y primero.
-  semana: { label: 'Semana', accent: 'var(--t1)', accentSoft: 'rgba(200, 221, 228, 0.08)', mod: LabSemana },
-  entreno: { label: 'Entreno', accent: 'var(--cy)', accentSoft: 'rgba(79, 166, 179, 0.12)', mod: LabEntreno },
-  finanzas: { label: 'Finanzas', accent: 'var(--am)', accentSoft: 'rgba(217, 138, 61, 0.12)', mod: LabFinanzas },
-  tareas: { label: 'Tareas', accent: 'var(--vi)', accentSoft: 'rgba(115, 122, 180, 0.12)', mod: LabTareas },
+  semana: { label: 'Semana', accent: 'var(--text-primary)', accentSoft: 'var(--surface-2)', mod: LabSemana },
+  entreno: { label: 'Entreno', accent: 'var(--cy)', accentSoft: 'var(--cyb)', mod: LabEntreno },
+  finanzas: { label: 'Finanzas', accent: 'var(--am)', accentSoft: 'var(--amb)', mod: LabFinanzas },
+  tareas: { label: 'Tareas', accent: 'var(--vi)', accentSoft: 'var(--vib)', mod: LabTareas },
   // Mismo acento que Tareas (--vi): Hábitos ya comparte ese scope MK III
   // en el resto de la app, así que no inventa un color de módulo propio.
-  habitos: { label: 'Hábitos', accent: 'var(--vi)', accentSoft: 'rgba(115, 122, 180, 0.12)', mod: LabHabitos }
+  habitos: { label: 'Hábitos', accent: 'var(--vi)', accentSoft: 'var(--vib)', mod: LabHabitos }
 };
 const ORDEN_MODULOS = ['semana', 'entreno', 'finanzas', 'tareas', 'habitos'];
 
@@ -67,12 +67,12 @@ export function cleanupLaboratorio() {
 
 function renderSelectorModulo() {
   return `
-    <div style="display: flex; gap: 6px; margin-bottom: 16px;">
+    <div class="lab-modulos" role="group" aria-label="Módulos del Laboratorio">
       ${ORDEN_MODULOS.map(m => {
         const meta = MODULOS[m];
         const active = m === activeModulo;
         return `
-          <button type="button" class="lab-modulo-btn" data-modulo="${m}" aria-pressed="${active}" style="flex: 1 1 auto; min-width: 0; padding: 10px 4px; border-radius: 12px; border: 1px solid ${active ? meta.accent : 'var(--surface-border)'}; background: ${active ? meta.accentSoft : 'transparent'}; color: ${active ? meta.accent : 'var(--text-secondary)'}; font-weight: 700; font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${meta.label}</button>
+          <button type="button" class="lab-modulo-btn" data-modulo="${m}" aria-pressed="${active}" style="--lab-acento: ${meta.accent}; --lab-acento-suave: ${meta.accentSoft};">${meta.label}</button>
         `;
       }).join('')}
     </div>
@@ -104,6 +104,17 @@ export async function renderLaboratorio() {
 // laboratorio (#lab-section-content), no la vista de Inicio entera — un
 // cambio de pestaña acá no debe recalcular el reactor ni las filas.
 export function initLaboratorioListeners(refresh) {
+  // Si la fila hace scroll (pantallas angostas), el botón seleccionado queda
+  // a la vista sin mover la página (solo el scroll horizontal de la fila).
+  const seleccionado = document.querySelector('.lab-modulo-btn[aria-pressed="true"]');
+  const fila = seleccionado?.parentElement;
+  if (fila && fila.scrollWidth > fila.clientWidth) {
+    const izq = seleccionado.offsetLeft;
+    const der = izq + seleccionado.offsetWidth;
+    if (izq < fila.scrollLeft || der > fila.scrollLeft + fila.clientWidth) fila.scrollLeft = Math.max(0, der - fila.clientWidth);
+  }
+
+
   document.querySelectorAll('.lab-modulo-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const modulo = btn.getAttribute('data-modulo');

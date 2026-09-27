@@ -491,6 +491,48 @@ input[type="date"] { color-scheme: dark; }
   opacity: 0.45;
 }
 
+/* Selector de módulos del Laboratorio (MK III): chaflán en dos esquinas
+   opuestas, sin border-radius ni sombras. El acento del módulo llega por
+   --lab-acento / --lab-acento-suave (inline). Si no caben los 5 botones, la
+   fila hace scroll horizontal con snap y sin barra visible. El foco va con
+   un outline hacia adentro: el clip-path recortaría uno por fuera. */
+.lab-modulos {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.lab-modulos::-webkit-scrollbar { display: none; }
+.lab-modulo-btn {
+  flex: 1 0 auto;
+  scroll-snap-align: start;
+  padding: 10px 12px;
+  border: 1px solid var(--surface-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+}
+.lab-modulo-btn[aria-pressed="true"] {
+  border-color: var(--lab-acento);
+  background: var(--lab-acento-suave);
+  color: var(--lab-acento);
+}
+.lab-modulo-btn:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: -4px;
+}
+
 /* Laboratorio > Semana (revisión semanal). MK III: rectos, sin sombras;
    cada bloque lleva el acento de su módulo en el borde izquierdo (inline). */
 .semana-cabecera {
