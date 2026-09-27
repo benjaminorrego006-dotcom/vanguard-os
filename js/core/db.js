@@ -308,24 +308,167 @@ export function esMovimientoEntreSobres(t) {
   return t.type === 'Transfer' || t.type === 'Assignment';
 }
 
-// Saldo de cada sobre en un mes: asignado − gastado ± transferencias modelo
-// 'saldo' del mes, sobre `txsDelMes` (ya filtradas al mes con claveDiaDe).
-// Las transferencias antiguas (sin `modelo`) no entran acá: su efecto ya
-// está en assignedAmount. `transferencias` = neto del mes (+ recibido,
-// − enviado). Lo usan getBudget y la proyección de recurrentes.
-function saldosDeSobres(sobres, txsDelMes) {
-  return sobres.map(env => {
-    const assignedAmount = Number(env.assignedAmount) || 0;
-    let spent = 0;
-    let transferencias = 0;
-    txsDelMes.forEach(t => {
-      if (t.envelopeId === env.id && t.type === 'Gasto') spent += toSafeNumber(t.amount);
-      if (t.type === 'Transfer' && t.modelo === 'saldo') {
-        if (t.fromEnvelopeId === env.id) transferencias -= toSafeNumber(t.amount);
-        if (t.toEnvelopeId === env.id) transferencias += toSafeNumber(t.amount);
+// --- Saldos de sobres con arrastre (rollover R4) -------------------------
+// saldo(sobre, M) = arrastre(M) + asignado(M) − gastado(M) ± transferencias(M),
+// con arrastre(M) = saldo(sobre, M−1); los negativos también arrastran.
+// - Meses que cuentan: desde el primer mes con alguna transacción (de
+//   cualquier tipo, en toda la app) hasta M. El asignado solo se suma en
+//   meses con al menos una transacción; en los demás el saldo solo arrastra.
+//   No se usa createdAt (difiere entre dispositivos en los sobres por defecto).
+// - asignado(M): el assignedAmount vigente al cierre de M según los eventos
+//   del sobre (sobre_creado/sobre_actualizado como foto; sobre_transferencia
+//   y el borrado de una transferencia antigua como delta, igual que el
+//   replay). Antes de su sobre_creado el sobre no existe. Sin eventos rige
+//   su assignedAmount actual en todos los meses; sin sobre_creado, el valor
+//   anterior a su primer evento se deduce de ese evento. Si el log leído no
+//   llega al valor guardado (caché de eventos de hasta 5 s, o un sobre sin
+//   historia), la diferencia se aplica en el mes actual.
+// - gastado(M): Gastos del sobre con claveDiaDe(date) en M. Transferencias
+//   modelo 'saldo' restan/suman en su mes; las antiguas ya están en el asignado.
+// - Archivado: congelado desde el mes siguiente a archivadoEl (no suma
+//   asignado, gastos ni transferencias); desde el mes en que se desarchiva
+//   vuelve a contar.
+// Función pura: `eventos` es el store completo (se filtra acá; el índice por
+// sobre se memoiza por arreglo, y leerEventosCompartido comparte el arreglo
+// por render). Devuelve cada sobre con { saldo, arrastre, asignado, gastado,
+// transferencias } del mes pedido y, por compatibilidad, balance = saldo y
+// spent = gastado; assignedAmount sigue siendo el valor configurado hoy.
+const TIPOS_EVENTO_SOBRE = new Set(['sobre_creado', 'sobre_actualizado', 'sobre_transferencia', 'sobre_archivado', 'sobre_desarchivado', 'movimiento_eliminado']);
+const indiceSobresPorEventos = new WeakMap();
+
+function mesSiguiente(clave) {
+  let [y, m] = clave.split('-').map(Number);
+  m += 1;
+  if (m > 12) { m = 1; y += 1; }
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+
+// Por sobre, en orden de ts: { creadoMes, valores: [{ mes, fijo | delta }], archivo: [{ mes, archivado }] }.
+function indiceDeEventosDeSobres(eventos) {
+  const cacheado = indiceSobresPorEventos.get(eventos);
+  if (cacheado) return cacheado;
+  const porSobre = new Map();
+  const de = (id) => {
+    if (!porSobre.has(id)) porSobre.set(id, { creadoMes: null, valores: [], archivo: [] });
+    return porSobre.get(id);
+  };
+  const relevantes = eventos.filter(e => TIPOS_EVENTO_SOBRE.has(e.tipo)).sort((x, y) => x.ts - y.ts);
+  for (const e of relevantes) {
+    const mes = mesKeyDe(new Date(e.ts));
+    const p = e.payload || {};
+    switch (e.tipo) {
+      case 'sobre_creado': {
+        const s = de(e.entidadId);
+        if (!s.creadoMes) s.creadoMes = mes;
+        s.valores.push({ mes, fijo: Number(p.assignedAmount) || 0 });
+        break;
       }
-    });
-    return { ...env, assignedAmount, spent, transferencias, balance: assignedAmount - spent + transferencias };
+      case 'sobre_actualizado':
+        de(e.entidadId).valores.push({ mes, fijo: Number(p.assignedAmount) || 0 });
+        break;
+      case 'sobre_transferencia':
+        de(p.fromId).valores.push({ mes, delta: -toSafeNumber(p.amount) });
+        de(p.toId).valores.push({ mes, delta: toSafeNumber(p.amount) });
+        break;
+      case 'movimiento_eliminado':
+        if (p.type === 'Transfer' && p.modelo !== 'saldo') {
+          de(p.fromEnvelopeId).valores.push({ mes, delta: toSafeNumber(p.amount) });
+          de(p.toEnvelopeId).valores.push({ mes, delta: -toSafeNumber(p.amount) });
+        }
+        break;
+      case 'sobre_archivado':
+        de(e.entidadId).archivo.push({ mes: p.archivadoEl ? claveDiaDe(p.archivadoEl).slice(0, 7) : mes, archivado: true });
+        break;
+      case 'sobre_desarchivado':
+        de(e.entidadId).archivo.push({ mes, archivado: false });
+        break;
+    }
+  }
+  indiceSobresPorEventos.set(eventos, porSobre);
+  return porSobre;
+}
+
+export function calcularSaldosConArrastre(sobres, txs, eventos, mes, mesHoy = mesKeyDe(new Date())) {
+  // Un recorrido de las transacciones: meses con movimientos y, por
+  // sobre|mes, lo gastado y el neto de transferencias modelo 'saldo'.
+  const mesesConMovs = new Set();
+  const porSobreMes = new Map();
+  let primerMes = null;
+  const acum = (id, m) => {
+    const k = id + '|' + m;
+    if (!porSobreMes.has(k)) porSobreMes.set(k, { gastado: 0, transferencias: 0 });
+    return porSobreMes.get(k);
+  };
+  for (const t of txs) {
+    if (!t.date) continue;
+    const m = claveDiaDe(t.date).slice(0, 7);
+    if (m > mes) continue;
+    mesesConMovs.add(m);
+    if (!primerMes || m < primerMes) primerMes = m;
+    if (t.type === 'Gasto' && t.envelopeId) acum(t.envelopeId, m).gastado += toSafeNumber(t.amount);
+    else if (t.type === 'Transfer' && t.modelo === 'saldo') {
+      if (t.fromEnvelopeId) acum(t.fromEnvelopeId, m).transferencias -= toSafeNumber(t.amount);
+      if (t.toEnvelopeId) acum(t.toEnvelopeId, m).transferencias += toSafeNumber(t.amount);
+    }
+  }
+
+  const indice = indiceDeEventosDeSobres(eventos || []);
+  return sobres.map(env => {
+    const actual = Number(env.assignedAmount) || 0;
+    const ev = indice.get(env.id) || { creadoMes: null, valores: [], archivo: [] };
+    const valores = [...ev.valores];
+    const archivo = [...ev.archivo];
+
+    // Valor antes del primer evento (sobre sin sobre_creado).
+    let inicial = 0;
+    if (!ev.creadoMes) {
+      const iFijo = valores.findIndex(v => 'fijo' in v);
+      const deltas = (hasta) => valores.slice(0, hasta).reduce((s, v) => s + (v.delta || 0), 0);
+      inicial = iFijo === -1 ? actual - deltas(valores.length) : valores[iFijo].fijo - deltas(iFijo);
+    }
+    // Reconciliar con lo guardado hoy.
+    const final = valores.reduce((s, v) => ('fijo' in v ? v.fijo : s + v.delta), inicial);
+    if (final !== actual) valores.push({ mes: mesHoy, delta: actual - final });
+    const archivadoFinal = archivo.length ? archivo[archivo.length - 1].archivado : false;
+    if (!!env.archivado !== archivadoFinal) {
+      archivo.push({ mes: env.archivado && env.archivadoEl ? claveDiaDe(env.archivadoEl).slice(0, 7) : mesHoy, archivado: !!env.archivado });
+      archivo.sort((x, y) => (x.mes < y.mes ? -1 : x.mes > y.mes ? 1 : 0));
+    }
+
+    const vacio = { ...env, saldo: 0, arrastre: 0, asignado: 0, gastado: 0, transferencias: 0, balance: 0, spent: 0, assignedAmount: actual };
+    let desde = primerMes;
+    if (ev.creadoMes && (!desde || ev.creadoMes > desde)) desde = ev.creadoMes;
+    if (!desde || desde > mes) return vacio;
+
+    let vigente = inicial;
+    let iv = 0;
+    let archivado = false;
+    let ia = 0;
+    let saldo = 0;
+    let fila = null;
+    for (let k = desde; k <= mes; k = mesSiguiente(k)) {
+      while (iv < valores.length && valores[iv].mes <= k) {
+        const v = valores[iv++];
+        vigente = 'fijo' in v ? v.fijo : vigente + v.delta;
+      }
+      const archivadoAlCerrarAnterior = archivado;
+      let desarchivadoEsteMes = false;
+      while (ia < archivo.length && archivo[ia].mes <= k) {
+        const a = archivo[ia++];
+        if (a.mes === k && !a.archivado) desarchivadoEsteMes = true;
+        archivado = a.archivado;
+      }
+      const arrastre = saldo;
+      if (archivadoAlCerrarAnterior && !desarchivadoEsteMes) {
+        fila = { arrastre, asignado: 0, gastado: 0, transferencias: 0 };
+      } else {
+        const mov = porSobreMes.get(env.id + '|' + k) || { gastado: 0, transferencias: 0 };
+        const asignado = mesesConMovs.has(k) ? vigente : 0;
+        saldo = arrastre + asignado - mov.gastado + mov.transferencias;
+        fila = { arrastre, asignado, gastado: mov.gastado, transferencias: mov.transferencias };
+      }
+    }
+    return { ...env, ...fila, saldo, balance: saldo, spent: fila.gastado, assignedAmount: actual };
   });
 }
 
@@ -983,7 +1126,7 @@ export const db = {
   },
   // Transferencia entre sobres (modelo 'saldo'): mueve saldo SOLO en el mes
   // en que ocurre — resta en el origen y suma en el destino dentro de
-  // saldosDeSobres — y NO toca assignedAmount (el presupuesto de cada sobre
+  // calcularSaldosConArrastre — y NO toca assignedAmount (el presupuesto de cada sobre
   // no cambia). Solo se guarda la transacción Transfer con `modelo: 'saldo'`
   // y fecha como clave de día, sin evento sobre_transferencia: el replay
   // (movimiento_registrado) solo la guarda. Las transferencias antiguas (sin
@@ -2055,8 +2198,9 @@ export const db = {
     const hoy = diaKeyDe(new Date());
     const limite = sumarDias(hoy, 7);
     const mes = mesKeyDe(new Date());
-    const txsDelMes = (await idbGetArray('transacciones')).filter(t => t.date && claveDiaDe(t.date).startsWith(mes));
-    const disponible = new Map(saldosDeSobres(await this.getEnvelopes(), txsDelMes).map(e => [e.id, e]));
+    // Saldo con arrastre (R4): lo que de verdad queda en el sobre.
+    const txsTodas = await idbGetArray('transacciones');
+    const disponible = new Map(calcularSaldosConArrastre(await this.getEnvelopes(), txsTodas, await leerEventosCompartido(), mes).map(e => [e.id, e]));
 
     const proximas = recurring
       .filter(r => r.envelopeId && disponible.has(r.envelopeId))
@@ -2810,7 +2954,8 @@ export const db = {
 
     // Archivados (R3): fuera de envelopes (tarjetas, selectores, tope 50/30/20);
     // todosLosSobres los incluye para mostrar nombres en Movimientos/Recurrentes.
-    const todosLosSobres = saldosDeSobres(await this.getEnvelopes(), txs);
+    // Saldos con arrastre desde meses anteriores (R4).
+    const todosLosSobres = calcularSaldosConArrastre(await this.getEnvelopes(), txsAll, await leerEventosCompartido(), monthFilter);
     const envelopes = todosLosSobres.filter(e => !e.archivado);
     const envelopesArchivados = todosLosSobres.filter(e => e.archivado);
 
