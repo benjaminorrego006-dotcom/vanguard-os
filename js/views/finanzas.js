@@ -1096,7 +1096,7 @@ const renderResumenCharts = async (b) => {
         datasets: [{
           data: [prevMes, esteMes],
           backgroundColor: [palette.surfaceBorder, esteMes > prevMes ? palette.high : palette.low],
-          borderRadius: 8,
+          borderRadius: 0, // MK III: sin esquinas redondeadas
           maxBarThickness: 60
         }]
       },

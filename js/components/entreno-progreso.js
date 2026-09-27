@@ -112,7 +112,7 @@ function initTendenciaChart() {
     if (tendenciaChartInstance) tendenciaChartInstance.destroy();
     tendenciaChartInstance = new Chart(canvas, {
       type: 'bar',
-      data: { labels: labelsSemanas(serie.length), datasets: [{ data: serie, backgroundColor: palette.teal, borderRadius: 6, maxBarThickness: 28 }] },
+      data: { labels: labelsSemanas(serie.length), datasets: [{ data: serie, backgroundColor: palette.teal, borderRadius: 0, maxBarThickness: 28 }] },
       options: {
         ...opts,
         devicePixelRatio: hdPixelRatio(),

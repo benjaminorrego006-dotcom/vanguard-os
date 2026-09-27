@@ -70,7 +70,7 @@ function renderPaso2() {
     <div id="onboarding-inicial-paso-2" class="onboarding-inicial-paso" style="display: none;">
       <h2 style="margin: 0 0 10px 0; font-size: 20px; font-weight: 800; color: var(--text-primary); ${MONO}">Tus datos son solo tuyos</h2>
       <p style="color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; margin: 0 0 20px 0; ${SANS}">
-        Tus datos viven solo en este dispositivo. No hay cuenta ni nube: si borras la app o cambias de equipo sin haber exportado, se pierden. Exporta un respaldo cada tanto.
+        Tus datos viven en este dispositivo: si borras la app o cambias de equipo sin un respaldo, se pierden. Si quieres, puedes crear una cuenta opcional en Configuración para sincronizarlos entre tus dispositivos.
       </p>
       <button id="btn-onboarding-inicial-exportar" class="tappable" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 13px; font-size: 13px; font-weight: 700; cursor: pointer; margin-bottom: 20px; ${MONO} ${CHAFLAN_BTN}">Exportar respaldo ahora</button>
       <div style="display: flex; gap: 10px;">
