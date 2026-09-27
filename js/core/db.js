@@ -314,11 +314,16 @@ export function esMovimientoEntreSobres(t) {
 // - Meses que cuentan: desde el primer mes con alguna transacción (de
 //   cualquier tipo, en toda la app) hasta M. El asignado solo se suma en
 //   meses con al menos una transacción; en los demás el saldo solo arrastra.
+//   El mes actual siempre suma su asignado, aunque aún no tenga movimientos
+//   (R4b: la regla anterior aplica solo a meses pasados).
 //   No se usa createdAt (difiere entre dispositivos en los sobres por defecto).
 // - asignado(M): el assignedAmount vigente al cierre de M según los eventos
 //   del sobre (sobre_creado/sobre_actualizado como foto; sobre_transferencia
 //   y el borrado de una transferencia antigua como delta, igual que el
-//   replay). Antes de su sobre_creado el sobre no existe. Sin eventos rige
+//   replay). Un sobre existe desde el mes más temprano entre su sobre_creado
+//   y su primer movimiento propio (gasto o transferencia 'saldo'); antes de
+//   su sobre_creado usa el asignado de esa primera foto, así ningún gasto se
+//   ignora (R4b: la demo crea sobres hoy con gastos antiguos). Sin eventos rige
 //   su assignedAmount actual en todos los meses; sin sobre_creado, el valor
 //   anterior a su primer evento se deduce de ese evento. Si el log leído no
 //   llega al valor guardado (caché de eventos de hasta 5 s, o un sobre sin
@@ -343,13 +348,13 @@ function mesSiguiente(clave) {
   return `${y}-${String(m).padStart(2, '0')}`;
 }
 
-// Por sobre, en orden de ts: { creadoMes, valores: [{ mes, fijo | delta }], archivo: [{ mes, archivado }] }.
+// Por sobre, en orden de ts: { creadoMes, creadoValor, valores: [{ mes, fijo | delta }], archivo: [{ mes, archivado }] }.
 function indiceDeEventosDeSobres(eventos) {
   const cacheado = indiceSobresPorEventos.get(eventos);
   if (cacheado) return cacheado;
   const porSobre = new Map();
   const de = (id) => {
-    if (!porSobre.has(id)) porSobre.set(id, { creadoMes: null, valores: [], archivo: [] });
+    if (!porSobre.has(id)) porSobre.set(id, { creadoMes: null, creadoValor: 0, valores: [], archivo: [] });
     return porSobre.get(id);
   };
   const relevantes = eventos.filter(e => TIPOS_EVENTO_SOBRE.has(e.tipo)).sort((x, y) => x.ts - y.ts);
@@ -359,7 +364,7 @@ function indiceDeEventosDeSobres(eventos) {
     switch (e.tipo) {
       case 'sobre_creado': {
         const s = de(e.entidadId);
-        if (!s.creadoMes) s.creadoMes = mes;
+        if (!s.creadoMes) { s.creadoMes = mes; s.creadoValor = Number(p.assignedAmount) || 0; }
         s.valores.push({ mes, fijo: Number(p.assignedAmount) || 0 });
         break;
       }
@@ -392,11 +397,14 @@ export function calcularSaldosConArrastre(sobres, txs, eventos, mes, mesHoy = me
   // Un recorrido de las transacciones: meses con movimientos y, por
   // sobre|mes, lo gastado y el neto de transferencias modelo 'saldo'.
   const mesesConMovs = new Set();
+  const primerMovDeSobre = new Map();
   const porSobreMes = new Map();
   let primerMes = null;
   const acum = (id, m) => {
     const k = id + '|' + m;
     if (!porSobreMes.has(k)) porSobreMes.set(k, { gastado: 0, transferencias: 0 });
+    const previo = primerMovDeSobre.get(id);
+    if (!previo || m < previo) primerMovDeSobre.set(id, m);
     return porSobreMes.get(k);
   };
   for (const t of txs) {
@@ -415,12 +423,13 @@ export function calcularSaldosConArrastre(sobres, txs, eventos, mes, mesHoy = me
   const indice = indiceDeEventosDeSobres(eventos || []);
   return sobres.map(env => {
     const actual = Number(env.assignedAmount) || 0;
-    const ev = indice.get(env.id) || { creadoMes: null, valores: [], archivo: [] };
+    const ev = indice.get(env.id) || { creadoMes: null, creadoValor: 0, valores: [], archivo: [] };
     const valores = [...ev.valores];
     const archivo = [...ev.archivo];
 
-    // Valor antes del primer evento (sobre sin sobre_creado).
-    let inicial = 0;
+    // Valor antes del primer evento: con sobre_creado, su primera foto; sin
+    // él, se deduce del primer evento.
+    let inicial = ev.creadoValor;
     if (!ev.creadoMes) {
       const iFijo = valores.findIndex(v => 'fijo' in v);
       const deltas = (hasta) => valores.slice(0, hasta).reduce((s, v) => s + (v.delta || 0), 0);
@@ -436,9 +445,16 @@ export function calcularSaldosConArrastre(sobres, txs, eventos, mes, mesHoy = me
     }
 
     const vacio = { ...env, saldo: 0, arrastre: 0, asignado: 0, gastado: 0, transferencias: 0, balance: 0, spent: 0, assignedAmount: actual };
-    let desde = primerMes;
-    if (ev.creadoMes && (!desde || ev.creadoMes > desde)) desde = ev.creadoMes;
-    if (!desde || desde > mes) return vacio;
+    // Inicio del cálculo: el primer mes con movimientos (o el actual, que
+    // siempre suma su asignado); un sobre con sobre_creado, además, desde que
+    // existe: su creación o su primer movimiento propio, lo que sea antes.
+    let desde = primerMes && primerMes < mesHoy ? primerMes : mesHoy;
+    if (ev.creadoMes) {
+      const primerMov = primerMovDeSobre.get(env.id);
+      const existeDesde = primerMov && primerMov < ev.creadoMes ? primerMov : ev.creadoMes;
+      if (existeDesde > desde) desde = existeDesde;
+    }
+    if (desde > mes) return vacio;
 
     let vigente = inicial;
     let iv = 0;
@@ -463,7 +479,7 @@ export function calcularSaldosConArrastre(sobres, txs, eventos, mes, mesHoy = me
         fila = { arrastre, asignado: 0, gastado: 0, transferencias: 0 };
       } else {
         const mov = porSobreMes.get(env.id + '|' + k) || { gastado: 0, transferencias: 0 };
-        const asignado = mesesConMovs.has(k) ? vigente : 0;
+        const asignado = (mesesConMovs.has(k) || k === mesHoy) ? vigente : 0;
         saldo = arrastre + asignado - mov.gastado + mov.transferencias;
         fila = { arrastre, asignado, gastado: mov.gastado, transferencias: mov.transferencias };
       }
