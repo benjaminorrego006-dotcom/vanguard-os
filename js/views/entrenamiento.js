@@ -221,12 +221,24 @@ export async function render() {
         </div>
       </div>
     `
-    : `
-      <div class="card" style="padding: 20px; margin-bottom: 20px; text-align: center;">
-        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Todavía no tienes rutinas guardadas.</div>
-        ${rachaHtml}
+    : rutinas.length === 0
+    // Sin rutinas: estado vacío con acción. La vista principal no tiene
+    // categoría activa, así que se elige arriba (GYM por defecto) y los dos
+    // botones usan los mismos flujos que la lista de rutinas de esa categoría.
+    ? `
+      <div id="entreno-vacio" class="card card-hero" data-cat="gym" style="padding: 20px; margin-bottom: 20px;">
+        <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Entreno</div>
+        <h2 style="font-size: 19px; font-weight: 800; margin: 0 0 6px 0; color: var(--text-primary);">Arma tu primera rutina</h2>
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 14px 0; line-height: 1.45;">Genérala a tu medida según tus días y tu equipo, o créala a mano ejercicio por ejercicio.</p>
+        <div role="group" aria-label="Categoría" style="display: flex; gap: 6px; margin-bottom: 14px;">
+          ${['gym', 'calistenia', 'hiit'].map((cat, i) => `<button type="button" class="entreno-vacio-cat tappable" data-cat="${cat}" aria-pressed="${i === 0}" style="flex: 1; padding: 9px 4px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid ${i === 0 ? 'var(--accent-teal)' : 'var(--surface-border)'}; background: ${i === 0 ? 'color-mix(in srgb, var(--accent-teal) 14%, transparent)' : 'transparent'}; color: ${i === 0 ? 'var(--accent-teal)' : 'var(--text-secondary)'};">${catNames[cat]}</button>`).join('')}
+        </div>
+        <button id="btn-entreno-vacio-generar" type="button" class="btn-primary tappable" style="background: var(--accent-teal); color: #000; margin-bottom: 8px;">Generar mi rutina</button>
+        <button id="btn-entreno-vacio-manual" type="button" class="tappable" style="width: 100%; padding: 12px; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer;">Crear rutina a mano</button>
+        ${rachaHtml ? `<div style="margin-top: 12px;">${rachaHtml}</div>` : ''}
       </div>
-    `;
+    `
+    : (rachaHtml ? `<div style="margin-bottom: 20px;">${rachaHtml}</div>` : '');
 
   const sesionesEstaSemana = (resumenSemanal.gym || 0) + (resumenSemanal.calistenia || 0) + (resumenSemanal.hiit || 0);
 
@@ -561,6 +573,33 @@ mountListeners = () => {
       subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
     }
   };
+
+  // Estado vacío (sin rutinas): categoría elegida + "Generar mi rutina"
+  // (mismo generador que la lista de rutinas; al guardar lleva a esa lista)
+  // y "Crear rutina a mano" (formulario de la categoría; en HIIT, el de HIIT).
+  const vacio = document.getElementById('entreno-vacio');
+  if (vacio) {
+    vacio.querySelectorAll('.entreno-vacio-cat').forEach(btn => {
+      btn.addEventListener('click', () => {
+        vacio.dataset.cat = btn.dataset.cat;
+        vacio.querySelectorAll('.entreno-vacio-cat').forEach(b => {
+          const activo = b === btn;
+          b.setAttribute('aria-pressed', String(activo));
+          b.style.borderColor = activo ? 'var(--accent-teal)' : 'var(--surface-border)';
+          b.style.background = activo ? 'color-mix(in srgb, var(--accent-teal) 14%, transparent)' : 'transparent';
+          b.style.color = activo ? 'var(--accent-teal)' : 'var(--text-secondary)';
+        });
+      });
+    });
+    document.getElementById('btn-entreno-vacio-generar')?.addEventListener('click', () => openGeneradorConfigForm(vacio.dataset.cat));
+    document.getElementById('btn-entreno-vacio-manual')?.addEventListener('click', () => {
+      const cat = vacio.dataset.cat;
+      categoriaActiva = cat;
+      mainView.style.display = 'none';
+      subView.style.display = 'block';
+      goToForm(cat);
+    });
+  }
 
   const goToSession = async (rutina) => {
     if (currentViewController) currentViewController.abort();
