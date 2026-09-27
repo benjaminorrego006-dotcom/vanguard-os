@@ -299,17 +299,24 @@ function proximaFechaRecurrente(req) {
   return (base >= enMesBase || req.lastProcessed) ? claveEnMes(enMesBase, 1, req.dayOfMonth) : enMesBase;
 }
 
-// Saldo de cada sobre en un mes: asignado menos lo gastado desde ese sobre
-// en `txsDelMes` (ya filtradas al mes). Lo usan getBudget y la proyección
-// de recurrentes.
+// Saldo de cada sobre en un mes: asignado − gastado ± transferencias modelo
+// 'saldo' del mes, sobre `txsDelMes` (ya filtradas al mes con claveDiaDe).
+// Las transferencias antiguas (sin `modelo`) no entran acá: su efecto ya
+// está en assignedAmount. `transferencias` = neto del mes (+ recibido,
+// − enviado). Lo usan getBudget y la proyección de recurrentes.
 function saldosDeSobres(sobres, txsDelMes) {
   return sobres.map(env => {
     const assignedAmount = Number(env.assignedAmount) || 0;
     let spent = 0;
+    let transferencias = 0;
     txsDelMes.forEach(t => {
       if (t.envelopeId === env.id && t.type === 'Gasto') spent += toSafeNumber(t.amount);
+      if (t.type === 'Transfer' && t.modelo === 'saldo') {
+        if (t.fromEnvelopeId === env.id) transferencias -= toSafeNumber(t.amount);
+        if (t.toEnvelopeId === env.id) transferencias += toSafeNumber(t.amount);
+      }
     });
-    return { ...env, assignedAmount, spent, balance: assignedAmount - spent };
+    return { ...env, assignedAmount, spent, transferencias, balance: assignedAmount - spent + transferencias };
   });
 }
 
@@ -939,33 +946,33 @@ export const db = {
     await idbSetArray('envelopes', envs); this._triggerUpdate();
     await logEvent({ modulo: 'finanzas', tipo: 'sobre_eliminado', entidadId: id, payload: {} });
   },
+  // Transferencia entre sobres (modelo 'saldo'): mueve saldo SOLO en el mes
+  // en que ocurre — resta en el origen y suma en el destino dentro de
+  // saldosDeSobres — y NO toca assignedAmount (el presupuesto de cada sobre
+  // no cambia). Solo se guarda la transacción Transfer con `modelo: 'saldo'`
+  // y fecha como clave de día, sin evento sobre_transferencia: el replay
+  // (movimiento_registrado) solo la guarda. Las transferencias antiguas (sin
+  // `modelo`) sí habían modificado assignedAmount; siguen igual, incluida su
+  // reversión al borrarlas (deleteTransaction y replay de sync.js).
   async transferEnvelopeFunds(fromId, toId, amount) {
-    let envs = await this.getEnvelopes();
-    const fromIdx = envs.findIndex(e => e.id === fromId);
-    const toIdx = envs.findIndex(e => e.id === toId);
+    const envs = await this.getEnvelopes();
+    if (!envs.some(e => e.id === fromId) || !envs.some(e => e.id === toId)) return;
 
-    if (fromIdx > -1 && toIdx > -1) {
-      envs[fromIdx].assignedAmount = (Number(envs[fromIdx].assignedAmount) || 0) - amount;
-      envs[toIdx].assignedAmount = (Number(envs[toIdx].assignedAmount) || 0) + amount;
-      await idbSetArray('envelopes', envs);
-      this._triggerUpdate();
-      await logEvent({ modulo: 'finanzas', tipo: 'sobre_transferencia', payload: { fromId, toId, amount } });
-
-      let txs = await idbGetArray('transacciones');
-      const transferTx = {
-        id: generateId(),
-        date: new Date().toISOString(),
-        type: 'Transfer',
-        amount: amount,
-        label: 'Transferencia entre sobres',
-        fromEnvelopeId: fromId,
-        toEnvelopeId: toId
-      };
-      txs.push(transferTx);
-      await idbSetArray('transacciones', txs);
-      this._triggerUpdate();
-      await logEvent({ modulo: 'finanzas', tipo: 'movimiento_registrado', entidadId: transferTx.id, payload: transferTx });
-    }
+    const txs = await idbGetArray('transacciones');
+    const transferTx = {
+      id: generateId(),
+      date: diaKeyDe(new Date()),
+      type: 'Transfer',
+      modelo: 'saldo',
+      amount: amount,
+      label: 'Transferencia entre sobres',
+      fromEnvelopeId: fromId,
+      toEnvelopeId: toId
+    };
+    txs.push(transferTx);
+    await idbSetArray('transacciones', txs);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'movimiento_registrado', entidadId: transferTx.id, payload: transferTx });
   },
 
   // --- Recurring Expenses API ---
@@ -1119,8 +1126,10 @@ export const db = {
     await idbSetArray('transacciones', txs); this._triggerUpdate();
     await logEvent({ modulo: 'finanzas', tipo: 'movimiento_eliminado', entidadId: id, payload: tx });
 
-    // Revertir transferencia manualmente
-    if (tx.type === 'Transfer') {
+    // Revertir transferencia ANTIGUA (sin `modelo`: había modificado
+    // assignedAmount). Una transferencia modelo 'saldo' no tocó
+    // assignedAmount: borrar la transacción ya quita su efecto del mes.
+    if (tx.type === 'Transfer' && tx.modelo !== 'saldo') {
       let envs = await this.getEnvelopes();
       let fromIdx = envs.findIndex(e => e.id === tx.fromEnvelopeId);
       let toIdx = envs.findIndex(e => e.id === tx.toEnvelopeId);

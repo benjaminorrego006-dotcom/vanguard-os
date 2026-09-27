@@ -98,7 +98,9 @@ export async function applyRemoteEvent(event) {
         break;
       case 'movimiento_eliminado': {
         await idb.remove('transacciones', entidadId);
-        if (payload.type === 'Transfer') {
+        // Solo las transferencias antiguas (sin `modelo`) habían tocado
+        // assignedAmount; las de modelo 'saldo' no, y no se revierte nada.
+        if (payload.type === 'Transfer' && payload.modelo !== 'saldo') {
           const from = await idb.getOne('envelopes', payload.fromEnvelopeId);
           const to = await idb.getOne('envelopes', payload.toEnvelopeId);
           if (from) await idb.put('envelopes', { ...from, assignedAmount: (Number(from.assignedAmount) || 0) + Number(payload.amount) });
