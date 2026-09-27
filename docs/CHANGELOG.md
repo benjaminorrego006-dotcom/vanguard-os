@@ -1,5 +1,66 @@
 # Vanguard OS — Changelog
 
+## 27 sept 2026 — Revisión semanal (Tu semana)
+
+**`CACHE_NAME` final: `vanguard-os-v228`.** Resumen lunes–domingo (hora
+local) de Entreno, Finanzas, Tareas, Hábitos, racha/vidas y energía del
+Ritual, con hasta 2 observaciones cruzadas por reglas (sin IA). Todo se
+deriva del log y los stores; lo único que se guarda es qué semanas ya se
+revisaron en Hoy (evento `semana_revisada`). QA con Playwright en 375×812 y
+1280×800, zona `America/Santiago`, reloj simulado, contextos limpios sin
+Supabase (`supabase.co` bloqueado) y el respaldo
+`vanguard-backup-demo-3-meses-COMPLETO.json` importado por la UI.
+
+### Decisiones
+
+1. Por defecto, la última semana completa; flechas hacia atrás y hasta la semana en curso ("En curso").
+2. Laboratorio: botón "Semana" primero en el selector y seleccionado al entrar.
+3. Hoy: tarjeta "Tu semana" lunes y martes (la semana recién terminada), después del Ritual y antes del aviso de respaldo; desaparece con "Ver" o "Después".
+4. Gasto total en el resumen (variable al lado); las observaciones usan gasto variable (sin recurrentes) o solo Deseos.
+5. Comparaciones contra el promedio de las 4 semanas anteriores, con al menos 3 semanas con datos.
+6. Máximo 2 observaciones, nunca 2 del mismo módulo principal, primero la de mayor diferencia relativa. Tuteo y "coincide con", nunca "causa".
+7. El Planificador suma a tareas completadas, con "(N de Semana)".
+8. Energía "3,6 · 5 de 7 días"; sin días con Ritual no se muestra.
+
+### Fases
+
+| Fase | Commit | Caché | Qué cambia |
+|---|---|---|---|
+| S0 | — | — | Informe de solo lectura: funciones por semana/rango, datos por día, reglas propuestas y riesgos. |
+| S1 | `eb41a80` | v221 | `resumirSemana` (pura, en `db.js`) y `db.getResumenSemana(lunesKey)`: una lectura de `events` por render; bordes con claves de día; semana en curso parcial. Entreno, finanzas, tareas (Tareas + Planificador, netas), hábitos, racha/vidas al cierre, Ritual y `porDia`. |
+| S2 | `33d0002` | v222 | `js/core/observaciones-semana.js`: 8 reglas (energía y entreno, Deseos vs ritmo, Ritual y hábitos, gasto variable y entreno, tareas que entran/salen, día más activo, hábitos vs ritmo, vida extra). En la semana en curso, hoy entra al % de hábitos solo si ya tiene una marca. |
+| S2b | `0cc5e21` | v223 | Comparaciones entre grupos con al menos 4 días por grupo (la semana sola o, si no alcanza, las semanas con actividad de las 4 previas + la actual); magnitud con tope en 3 y desempate por días de datos; nuevo texto de "mejor día". |
+| S3 | `61880fe` | v224 | `js/components/lab-semana.js`: rango con flechas, tira L–D (activo / protegido / vacío / futuro), bloques por módulo (tocar uno lleva a su pestaña), observaciones y estado vacío; aria-labels con los números. |
+| S3b | `3244052` | v225 | Selector de módulos del Laboratorio en MK III (chaflán, tokens, 12,5 px, scroll horizontal con snap y sin barra a 375). |
+| S4 | `a7a8560` | v226 | Tarjeta "Tu semana" en Hoy con la primera observación (o "3 entrenos · $276.490 gastado · 5 tareas"); "Ver" abre el Laboratorio en esa semana; `semana_revisada` con replay y espejo en `sync.js`. |
+| S5 | `fe8b1aa` | v227 | Mono solo para las cifras (rango y porcentajes), pares número + texto sin partirse entre líneas, padding inferior con safe-area en el Laboratorio. |
+| S5 (QA) | este commit | v228 | QA final y documentación. |
+
+### Verificación con el respaldo
+
+Semana 14–20 sept: 3 de 3 sesiones · 177 min · volumen 19.067 · gasto
+$276.490 (variable $261.500), más gasto Supermercado $130.250 · 5 completadas
+(3 de Semana), 8 creadas, 1 atrasada · hábitos 45 % (mejor Meditar 10 min,
+más flojo Tomar agua) · racha 81 días, 2 vidas al cierre · Ritual 5 de 7 ·
+energía 3,6 · 5 de 7 días. Observaciones: "Gastaste $89.100 en Deseos: 2,9
+veces tu promedio de las 4 semanas anteriores ($30.700)." y "Los viernes son
+tus días más activos (11 entrenos y tareas en 5 semanas); los domingos, los
+más tranquilos (2)."
+
+QA final (S5):
+- Laboratorio abre en Semana 14–20; "›" lleva a 21–27 ("En curso", tira con el jueves 24 protegido y el domingo futuro); 13 veces "‹" llega a 22–28 jun (estado vacío); los bloques Entreno, Finanzas, Tareas y Hábitos llevan a su pestaña. A 375 el bloque General queda completo sobre la barra inferior.
+- Hoy: lunes 28 a las 10:00 va primero el Ritual; a las 15:00, "Tu semana · 21 – 27 sept"; "Después" la oculta y el martes no vuelve; el miércoles no aparece. "Ver" abre el Laboratorio en 21–27 (S4).
+- Cambio de horario: lunes 7 sept 2026 (el 6/9 no tiene 00:00) muestra 31 ago – 6 sept; domingo 4 abr 2027 (fin del horario de verano) muestra 22 – 28 mar; martes 6 abr 2027 muestra 29 mar – 4 abr. Siempre 7 días distintos, sin desplazarse ni duplicarse.
+- Offline tras recarga (service worker activo): Semana muestra 21–27 con sus 5 bloques y Hoy la tarjeta "Tu semana".
+- Replay desde `events` (sesiones, transacciones, tareas, planificador, rutinas, ritual, recurrentes, marcas de hábitos y semanas revisadas): mismas observaciones, mismas cifras y el mismo ocultamiento.
+- A 375 y 1280 sin scroll horizontal; border-radius 0 en bloques, flechas, selector, observaciones, tira y la tarjeta de Hoy con sus botones. ESLint `no-undef` limpio; consola sin errores.
+
+### Notas
+
+- Las observaciones son correlaciones de una sola persona en pocas semanas: se redactan como coincidencias y nunca como causa.
+- "Días objetivo" de Entreno sale de la configuración actual del generador (no hay historial de cambios).
+- El encabezado "Revisión semanal" de la tarjeta de Hoy usa el mismo estilo (mono) que los encabezados de todas las tarjetas contextuales.
+
 ## 27 sept 2026 — Pulido de Finanzas, textos, Entreno y detalles
 
 **`CACHE_NAME` final: `vanguard-os-v220`.** Diez commits entre `b8b8ea3`

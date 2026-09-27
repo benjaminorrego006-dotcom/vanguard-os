@@ -36,7 +36,7 @@ el resumen.
 
 ## Hecho
 
-Estado al 27 sept 2026 (`CACHE_NAME` v220). El detalle de cada tanda (commits,
+Estado al 27 sept 2026 (`CACHE_NAME` v228). El detalle de cada tanda (commits,
 caché y QA) está en `docs/CHANGELOG.md`.
 
 | | Estado |
@@ -57,16 +57,11 @@ caché y QA) está en `docs/CHANGELOG.md`.
 | Textos: tuteo, fecha, plurales, saludo con nombre, aviso de respaldo según la sync, comparación hasta el mismo día | hecho (v215–v217) |
 | Entreno sin rutinas (estado vacío con acciones), perfil y nivel desde una tarjeta, gráficos sin esquinas redondeadas | hecho (v218–v220) |
 | Publicación en GitHub Pages (PWA instalable, `start_url: "./"`, íconos PNG 192/512 y maskable) | hecha |
+| Revisión semanal (Tu semana): resumen lunes–domingo en Laboratorio > Semana, observaciones cruzadas por reglas y tarjeta de Hoy los lunes y martes | hecha (S1 `eb41a80` → S5, v221–v228) |
 
 ---
 
 ## Pendiente
-
-### Revisión semanal en el Laboratorio
-
-Una vista semanal que cruce los módulos a partir del log de eventos (entreno,
-hábitos, tareas, gastos): qué se hizo, qué quedó y patrones ("los jueves
-entrenas poco y gastas más"). Hoy `resumenSemanal` es solo un número.
 
 ### Recordatorios
 
