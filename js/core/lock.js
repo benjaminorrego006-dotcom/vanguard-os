@@ -106,7 +106,7 @@ function mountPinPrompt({ title, subtitle, onSubmit, onSuccess, errorMessage = '
       ]);
       const confirmed = await ConfirmDialog(
         'Borrar todos los datos del dispositivo',
-        `No hay forma de recuperar un PIN olvidado: la única salida es borrar todo. Vas a perder ${sesiones.length} sesiones de entreno, ${txs.length} movimientos de Finanzas, ${tareas.length} tareas y ${habitos.length} hábitos. Antes de borrar se exporta un respaldo automáticamente. No se puede deshacer.`,
+        `No hay forma de recuperar un PIN olvidado: la única salida es borrar todo. Vas a perder ${sesiones.length} sesi${sesiones.length === 1 ? 'ón' : 'ones'} de entreno, ${txs.length} movimiento${txs.length === 1 ? '' : 's'} de Finanzas, ${tareas.length} tarea${tareas.length === 1 ? '' : 's'} y ${habitos.length} hábito${habitos.length === 1 ? '' : 's'}. Antes de borrar se exporta un respaldo automáticamente. No se puede deshacer.`,
         { verb: 'Exportar respaldo y borrar todo' }
       );
       if (!confirmed) return;
@@ -160,7 +160,7 @@ export function mountSetPinFlow(onDone, onCancel) {
   const askConfirm = (firstPin) => {
     mountPinPrompt({
       title: 'Confirma tu PIN',
-      subtitle: 'Ingresalo de nuevo',
+      subtitle: 'Ingrésalo de nuevo',
       allowCancel: true,
       showForgot: false,
       onCancel,

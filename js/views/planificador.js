@@ -101,7 +101,7 @@ export async function render() {
       <div class="flex-between" style="margin-bottom: 16px;">
         <div>
           <h1 style="font-size: 30px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.5px;">Semana</h1>
-          <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${rango} · <span class="num">${hechas}</span>/<span class="num">${tareas.length}</span> completadas</div>
+          <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${rango} · <span class="num">${hechas}</span>/<span class="num">${tareas.length}</span> completada${tareas.length === 1 ? '' : 's'}</div>
         </div>
         <div class="icon-chip" style="width: 40px; height: 40px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary);">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg>

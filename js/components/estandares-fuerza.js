@@ -17,7 +17,7 @@ function renderSinDato(nombre) {
   return `
     <div class="card" style="padding: 16px; margin-bottom: 8px; border-left: 3px solid var(--surface-border); opacity: 0.7;">
       <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${nombre}</div>
-      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Sin registros todavía — anotalo en tu próxima sesión de GYM para ver dónde estás.</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Sin registros todavía — anótalo en tu próxima sesión de GYM para ver dónde estás.</div>
     </div>
   `;
 }
@@ -98,7 +98,7 @@ export async function renderEstandaresFuerza() {
   // dice al usuario qué nomenclatura tiene que usar al cargar sus series.
   const nombresExactosHtml = `
     <div class="card" style="padding: 14px 16px; margin-bottom: 16px; border-left: 3px solid var(--surface-border);">
-      <div style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.5;">Para que tus series cuenten acá, cargalas con estos nombres exactos: <b style="color: var(--text-primary);">${LEVANTAMIENTOS_ID.map(id => getEjercicioPorId(id)?.nombre).filter(Boolean).join(', ')}</b>.</div>
+      <div style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.5;">Para que tus series cuenten acá, cárgalas con estos nombres exactos: <b style="color: var(--text-primary);">${LEVANTAMIENTOS_ID.map(id => getEjercicioPorId(id)?.nombre).filter(Boolean).join(', ')}</b>.</div>
     </div>
   `;
 

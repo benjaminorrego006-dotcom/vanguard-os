@@ -331,8 +331,8 @@ async function renderLista() {
             <canvas id="tasks-donut-chart" width="56" height="56"></canvas>
           </div>
           <div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);"><span class="num">${tasks.filter(t => t.status === 'done').length}</span> de <span class="num">${tasks.length}</span> completadas</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;"><span class="num">${tasks.length - tasks.filter(t => t.status === 'done').length}</span> pendientes</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);"><span class="num">${tasks.filter(t => t.status === 'done').length}</span> de <span class="num">${tasks.length}</span> completada${tasks.length === 1 ? '' : 's'}</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;"><span class="num">${tasks.length - tasks.filter(t => t.status === 'done').length}</span> pendiente${tasks.length - tasks.filter(t => t.status === 'done').length === 1 ? '' : 's'}</div>
           </div>
         </div>
       ` : ''}

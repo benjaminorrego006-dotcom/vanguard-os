@@ -27,7 +27,7 @@ const PRIVACIDAD_LINK = `<p style="font-size: 12px; color: var(--text-secondary)
 export function renderAuthSection(session) {
   const estado = estadoSupabase();
   if (estado === 'no-configurado') {
-    return `<p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Todavía no está configurado el proyecto de Supabase — completá SUPABASE_URL y SUPABASE_ANON_KEY en js/core/supabase-client.js.</p>`;
+    return `<p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Todavía no está configurado el proyecto de Supabase — completa SUPABASE_URL y SUPABASE_ANON_KEY en js/core/supabase-client.js.</p>`;
   }
   if (estado !== 'listo') {
     // El bundle de Supabase no cargó: la app funciona igual, solo sin sync.
@@ -53,7 +53,7 @@ export function renderAuthSection(session) {
   return `
     <div class="input-group" style="margin-bottom: 12px;">
       <label for="auth-email">Email</label>
-      <input type="email" id="auth-email" autocomplete="email" placeholder="vos@ejemplo.com">
+      <input type="email" id="auth-email" autocomplete="email" placeholder="tu@ejemplo.com">
     </div>
     <div class="input-group" style="margin-bottom: 14px;">
       <label for="auth-password">Contraseña</label>
@@ -85,7 +85,7 @@ export function attachAuthListeners(containerId) {
 
   document.getElementById('btn-auth-signup')?.addEventListener('click', async () => {
     const { email, password } = readCreds();
-    if (!email || !password) return Toast('Completá email y contraseña', 'warning');
+    if (!email || !password) return Toast('Completa email y contraseña', 'warning');
     // emailRedirectTo explícito (en vez de dejar que Supabase caiga al
     // "Site URL" configurado en su dashboard, que en un proyecto nuevo
     // apunta a localhost por default): el link de confirmación del mail
@@ -103,7 +103,7 @@ export function attachAuthListeners(containerId) {
     // Con "Confirm email" activado (default en proyectos nuevos de Supabase),
     // signUp no deja sesión iniciada hasta que se confirma por mail.
     if (!data.session) {
-      Toast('Cuenta creada — confirmá tu email para poder iniciar sesión', 'success');
+      Toast('Cuenta creada — confirma tu email para poder iniciar sesión', 'success');
     } else {
       Toast('Cuenta creada e iniciada', 'success');
     }
@@ -112,7 +112,7 @@ export function attachAuthListeners(containerId) {
 
   document.getElementById('btn-auth-login')?.addEventListener('click', async () => {
     const { email, password } = readCreds();
-    if (!email || !password) return Toast('Completá email y contraseña', 'warning');
+    if (!email || !password) return Toast('Completa email y contraseña', 'warning');
     const { error } = await getSupabase().auth.signInWithPassword({ email, password });
     if (error) return Toast(error.message, 'error');
     Toast('Sesión iniciada', 'success');

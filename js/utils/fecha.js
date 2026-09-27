@@ -44,6 +44,10 @@ export const formatMes = (d) => {
   return f.toLocaleDateString('es-CL', { month: 'long' });
 };
 
+// Mayúscula solo en la primera letra ("Septiembre de 2026"). text-transform:
+// capitalize pone mayúscula a cada palabra ("Septiembre De 2026").
+export const conMayuscula = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
 // "3 sept · 14:30". hour12:false a propósito: 'es-CL' sin esa opción da
 // 12 horas con "a. m./p. m." (ej. "02:30 p. m."), no el formato 24h que
 // usa el resto de la app.

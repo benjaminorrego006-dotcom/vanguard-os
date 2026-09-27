@@ -81,7 +81,7 @@ export async function render() {
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Perfil, seguridad, respaldos y preferencias.</div>
       </div>
 
-      ${seccion('Cuenta', 'Sincronizá tus datos entre dispositivos con email y contraseña. Es opcional — la app sigue funcionando 100% offline sin esto.', `
+      ${seccion('Cuenta', 'Sincroniza tus datos entre dispositivos con email y contraseña. Es opcional — la app sigue funcionando 100% offline sin esto.', `
         <div id="cfg-auth-container">${renderAuthSection(authSession)}</div>
       `)}
 

@@ -329,7 +329,7 @@ export function renderPlantillaPreview(plantilla) {
           const nombre = getEjercicioPorId(ej.ejercicioId)?.nombre || ej.ejercicioId;
           const totalSeries = ej.series.length;
           const repStr = ej.series[0].reps;
-          html += `<div style="font-size: 14px; color: var(--text-primary);">• <b>${nombre}</b> <span style="color: var(--text-secondary);">— ${totalSeries} series x ${repStr} reps</span></div>`;
+          html += `<div style="font-size: 14px; color: var(--text-primary);">• <b>${nombre}</b> <span style="color: var(--text-secondary);">— ${totalSeries} serie${totalSeries === 1 ? '' : 's'} x ${repStr} reps</span></div>`;
         });
         html += `</div>`;
       });
@@ -385,7 +385,7 @@ export function initRutinasListaListeners(categoria, onNewRoutine, onStartSessio
       const confirmed = await ConfirmDialog(
         `Eliminar rutina${rutina ? ' ' + rutina.nombre : ''}`,
         totalSeries > 0
-          ? `Se perderá la configuración de sus ${totalSeries} series. No se puede deshacer.`
+          ? `Se perderá la configuración de ${totalSeries === 1 ? 'su serie' : `sus ${totalSeries} series`}. No se puede deshacer.`
           : 'No se puede deshacer.',
         { verb: 'Eliminar' }
       );
@@ -554,7 +554,7 @@ export function renderGeneradorPreview(plan, categoria) {
         `).join('')
       : dia.ejercicios.map(ej => `
           <div style="margin-bottom: 10px;">
-            <div style="font-size: 14px; color: var(--text-primary);">• <b>${ej.nombre}</b> <span style="color: var(--text-secondary);">— ${ej.series.length} series x ${ej.series[0].reps}</span></div>
+            <div style="font-size: 14px; color: var(--text-primary);">• <b>${ej.nombre}</b> <span style="color: var(--text-secondary);">— ${ej.series.length} serie${ej.series.length === 1 ? '' : 's'} x ${ej.series[0].reps}</span></div>
             <div style="font-size: 11px; color: var(--text-secondary); margin: 2px 0 0 14px;">${ej.motivo}</div>
           </div>
         `).join('');

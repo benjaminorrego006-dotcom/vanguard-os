@@ -591,7 +591,7 @@ export function mountListeners() {
       LabFinanzas.initTabListeners('desglose', refreshLab);
     } catch (err) {
       console.error('Error al cargar el Laboratorio de Inicio:', err);
-      labContent.innerHTML = `<div class="card" style="padding: 24px 20px; text-align: center; color: var(--text-secondary); font-size: 12.5px;">No se pudo cargar el gráfico. Probá de nuevo desde Más &gt; Laboratorio.</div>`;
+      labContent.innerHTML = `<div class="card" style="padding: 24px 20px; text-align: center; color: var(--text-secondary); font-size: 12.5px;">No se pudo cargar el gráfico. Prueba de nuevo desde Más &gt; Laboratorio.</div>`;
     }
   };
   // Carga diferida: recién cuando la sección entra en pantalla. Con el
@@ -836,7 +836,7 @@ export function mountListeners() {
   // no vivir ese modal en Inicio, se resuelve inline).
   const mostrarSelectorDeSobre = (parsed) => {
     if (!quickOpciones) return;
-    quickHint.textContent = 'Encontré más de un sobre posible — elegí cuál es:';
+    quickHint.textContent = 'Encontré más de un sobre posible — elige cuál es:';
     quickOpciones.innerHTML = parsed.matches.map((env, i) => `
       <button type="button" class="tappable qa-sobre-opcion" data-idx="${i}" style="background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer;">${escapeHtml(env.name)}</button>
     `).join('');

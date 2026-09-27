@@ -40,7 +40,7 @@ export function renderHiitRutinaForm() {
 
       <div class="input-group">
         <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Ejercicios del circuito (opcional)</div>
-        <div style="font-size: 11px; color: var(--text-secondary); margin: -4px 0 10px 0; line-height: 1.4;">Se usan para mostrar "Siguiente: ..." durante los descansos. Dejalo vacío si es solo un temporizador.</div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin: -4px 0 10px 0; line-height: 1.4;">Se usan para mostrar "Siguiente: ..." durante los descansos. Déjalo vacío si es solo un temporizador.</div>
         <div id="hiit-rf-ejercicios-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
         <button id="btn-hiit-rf-add-ejercicio" type="button" style="background: transparent; color: var(--text-secondary); border: 1px dashed var(--surface-border); padding: 8px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 13px;">+ Agregar ejercicio</button>
       </div>

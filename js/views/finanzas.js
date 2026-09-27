@@ -15,7 +15,7 @@ import { renderDonutChart, destroyAllDonuts } from '../components/donut-chart.js
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { escapeHtml } from '../utils/escape.js';
-import { mesKeyDe, formatFechaCorta, formatMes, fechaLocalDe, claveDiaDe } from '../utils/fecha.js';
+import { mesKeyDe, formatFechaCorta, formatMes, fechaLocalDe, claveDiaDe, conMayuscula } from '../utils/fecha.js';
 
 const editSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const transferSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
@@ -878,7 +878,7 @@ export const txHtml = (tx, envelopes) => {
         ${iconSvg}
       </div>
       <div class="fin-who">
-        <div class="fin-name" style="text-transform: capitalize;">${escapeHtml(displayLabel)}</div>
+        <div class="fin-name">${escapeHtml(conMayuscula(displayLabel))}</div>
         <div class="fin-meta">${subText}</div>
       </div>
       <div class="fin-amt" style="color: ${amountColor};">${amountPrefix}${formatCurrency(tx.amount)}</div>
@@ -1158,9 +1158,8 @@ export async function render() {
   await init();
 
   const formatMonth = (str) => {
-    const monthLabel = formatMes(new Date(str + '-01T00:00:00'));
-    const year = new Date(str + '-01T00:00:00').getFullYear();
-    return `${monthLabel} de ${year}`;
+    const [anio, mes] = str.split('-').map(Number);
+    return conMayuscula(`${formatMes(new Date(anio, mes - 1, 1))} de ${anio}`);
   };
   
   const balanceSafe = b.remaining;
@@ -1293,7 +1292,7 @@ export async function render() {
           <h1 style="font-size: 30px; font-weight: 800; margin: 0; letter-spacing: -0.5px; color: var(--text-primary);">Finanzas</h1>
           <div style="background: var(--surface-2); border: 1px solid var(--surface-border); padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            <span style="text-transform: capitalize;">${formatMonth(currentMonth)}</span>
+            <span>${formatMonth(currentMonth)}</span>
           </div>
         </div>
       </div>

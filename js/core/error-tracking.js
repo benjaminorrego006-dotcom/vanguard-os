@@ -13,7 +13,7 @@
 //    sesiones) y beforeSend limpia la URL: al confirmar el email la URL
 //    lleva #access_token=... y no puede salir de este dispositivo.
 //
-// Para activarlo: pegá el DSN de tu proyecto de Sentry (tipo "Browser
+// Para activarlo: pega el DSN de tu proyecto de Sentry (tipo "Browser
 // JavaScript") en SENTRY_DSN. El DSN es público por diseño, va en el
 // cliente. Vacío = todo esto queda inerte.
 const SENTRY_DSN = '';

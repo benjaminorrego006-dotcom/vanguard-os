@@ -43,7 +43,7 @@ const LEVANTAMIENTO_POR_RAMA = { rodilla: 'sentadilla', cadera: 'peso muerto', '
 // su propio predecesor en la progresión; si no tiene predecesor útil, se
 // asume 'principiante' (no 'intermedio'): sin evidencia real de que el
 // usuario ya progresó, "todos" significa "accesible en cualquier nivel
-// ajustando la carga", no "asumí que ya es intermedio". Juicio explícito,
+// ajustando la carga", no "asume que ya es intermedio". Juicio explícito,
 // no un dato medido.
 function normalizarNivel(nivelCatalogo, progresionDeId, visitados = new Set()) {
   if (nivelCatalogo === 'principiante' || nivelCatalogo === 'intermedio' || nivelCatalogo === 'avanzado') return nivelCatalogo;

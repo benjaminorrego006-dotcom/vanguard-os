@@ -767,7 +767,7 @@ export const CATALOGO_GYM = {
     posturaInicial: 'Acostado perpendicular a un banco (solo la parte alta de la espalda apoyada), mancuerna sostenida con ambas manos sobre el pecho.',
     pasosEjecucion: [
       'Con los codos ligeramente flexionados y fijos, baja la mancuerna en arco por detrás de la cabeza.',
-      'Sentí el estiramiento del pecho y el dorsal, luego regresa en el mismo arco.'
+      'Siente el estiramiento del pecho y el dorsal, luego regresa en el mismo arco.'
     ],
     erroresComunes: [
       'Doblar y estirar los codos durante el movimiento.',
@@ -1119,7 +1119,7 @@ export const CATALOGO_GYM = {
     posturaInicial: 'Sentado en la máquina, agarre pronado bien ancho, barra por detrás de la cabeza.',
     pasosEjecucion: [
       'Tira de la barra hacia la nuca, sin forzar el cuello hacia adelante.',
-      'Detente si sentís pinzamiento o molestia en el hombro — no es apto para todos.',
+      'Detente si sientes pinzamiento o molestia en el hombro — no es apto para todos.',
       'Regresa controladamente a extensión completa.'
     ],
     erroresComunes: [
@@ -1145,7 +1145,7 @@ export const CATALOGO_GYM = {
     posturaInicial: 'De pie o con una rodilla apoyada, frente a la polea alta, cuerda o barra recta sobre la cabeza, brazos casi extendidos.',
     pasosEjecucion: [
       'Con los codos ligeramente flexionados y fijos, baja los brazos en arco hasta la altura de los muslos.',
-      'Sentí el estiramiento y la contracción del dorsal, no de los tríceps.',
+      'Siente el estiramiento y la contracción del dorsal, no de los tríceps.',
       'Regresa controladamente a la posición inicial.'
     ],
     erroresComunes: [

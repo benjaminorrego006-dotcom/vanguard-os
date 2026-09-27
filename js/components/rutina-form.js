@@ -39,7 +39,7 @@ export function renderRutinaForm(categoria) {
       </div>
 
       <div style="background: color-mix(in srgb, var(--accent-teal) 10%, transparent); border-left: 3px solid var(--accent-teal); border-radius: 0 10px 10px 0; padding: 10px 12px; font-size: 11.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
-        Empezá a tipear y elegí de la lista para que tus series cuenten en <b style="color: var(--accent-teal);">Estándares de Fuerza</b> y en el <b style="color: var(--accent-teal);">Árbol de Progresión</b>. Podés seguir escribiendo cualquier nombre si preferís.
+        Empieza a escribir y elige de la lista para que tus series cuenten en <b style="color: var(--accent-teal);">Estándares de Fuerza</b> y en el <b style="color: var(--accent-teal);">Árbol de Progresión</b>. Puedes seguir escribiendo cualquier nombre si prefieres.
       </div>
 
       <button id="btn-add-ejercicio" type="button" class="tappable" style="width: 100%; padding: 13px; border-radius: 12px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 24px;">

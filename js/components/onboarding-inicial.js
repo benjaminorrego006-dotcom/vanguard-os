@@ -26,8 +26,10 @@ let paso = 1;
 const CHAFLAN_CARD = 'clip-path: polygon(0 9px, 9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%);';
 const CHAFLAN_BTN = 'clip-path: polygon(0 7px, 7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%);';
 const MONO = 'font-family: var(--font-mono-mk3);';
+// MK III reserva la monoespaciada para números y rótulos: los párrafos van en sans.
+const SANS = 'font-family: var(--font-body);';
 
-const MODULOS = ['Entreno', 'Finanzas', 'Tareas', 'Hábitos', 'Análisis'];
+const MODULOS = ['Entreno', 'Finanzas', 'Tareas', 'Hábitos', 'Laboratorio'];
 
 function renderDots() {
   return `
@@ -50,7 +52,7 @@ function renderPaso1() {
   return `
     <div id="onboarding-inicial-paso-1" class="onboarding-inicial-paso">
       <h2 style="margin: 0 0 10px 0; font-size: 20px; font-weight: 800; color: var(--text-primary); ${MONO}">Bienvenido a Vanguard</h2>
-      <p style="color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; margin: 0 0 20px 0; ${MONO}">
+      <p style="color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; margin: 0 0 20px 0; ${SANS}">
         Vanguard es tu sistema personal para entrenar, cuidar tu plata y organizar tu día a día, todo en un solo lugar y sin conexión a internet.
       </p>
       <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;">
@@ -67,7 +69,7 @@ function renderPaso2() {
   return `
     <div id="onboarding-inicial-paso-2" class="onboarding-inicial-paso" style="display: none;">
       <h2 style="margin: 0 0 10px 0; font-size: 20px; font-weight: 800; color: var(--text-primary); ${MONO}">Tus datos son solo tuyos</h2>
-      <p style="color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; margin: 0 0 20px 0; ${MONO}">
+      <p style="color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; margin: 0 0 20px 0; ${SANS}">
         Tus datos viven solo en este teléfono. No hay cuenta ni nube: si borras la app o cambias de equipo sin haber exportado, se pierden. Exporta un respaldo cada tanto.
       </p>
       <button id="btn-onboarding-inicial-exportar" class="tappable" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 13px; font-size: 13px; font-weight: 700; cursor: pointer; margin-bottom: 20px; ${MONO} ${CHAFLAN_BTN}">Exportar respaldo ahora</button>
@@ -82,23 +84,23 @@ function renderPaso2() {
 function renderPaso3Instrucciones() {
   if (window.__vgInstall && window.__vgInstall.deferredPrompt) {
     return `
-      <p style="color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; margin: 0 0 20px 0; ${MONO}">
+      <p style="color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; margin: 0 0 20px 0; ${SANS}">
         Instalada se siente como una app de verdad: ícono propio en tu pantalla de inicio, sin la barra del navegador encima.
       </p>
       <button id="btn-onboarding-inicial-instalar" class="tappable" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 13px; font-size: 13px; font-weight: 700; cursor: pointer; margin-bottom: 20px; ${MONO} ${CHAFLAN_BTN}">Instalar Vanguard</button>
     `;
   }
   return `
-    <p style="color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; margin: 0 0 14px 0; ${MONO}">
+    <p style="color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; margin: 0 0 14px 0; ${SANS}">
       Instalada se siente como una app de verdad: ícono propio en tu pantalla de inicio, sin la barra del navegador encima.
     </p>
     <div style="background: var(--surface-2); border: 1px solid var(--surface-border); padding: 12px 14px; margin-bottom: 10px; ${CHAFLAN_BTN}">
       <div style="font-size: 11px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; ${MONO}">Chrome Android</div>
-      <div style="font-size: 12.5px; color: var(--text-secondary); ${MONO}">Menú (⋮) → Instalar app.</div>
+      <div style="font-size: 12.5px; color: var(--text-secondary); ${SANS}">Menú (⋮) → Instalar app.</div>
     </div>
     <div style="background: var(--surface-2); border: 1px solid var(--surface-border); padding: 12px 14px; margin-bottom: 20px; ${CHAFLAN_BTN}">
       <div style="font-size: 11px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; ${MONO}">Safari iPhone</div>
-      <div style="font-size: 12.5px; color: var(--text-secondary); ${MONO}">Compartir → Agregar a inicio.</div>
+      <div style="font-size: 12.5px; color: var(--text-secondary); ${SANS}">Compartir → Agregar a inicio.</div>
     </div>
   `;
 }

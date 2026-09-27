@@ -70,7 +70,7 @@ async function renderCategorias() {
 
   return `
     <div style="padding: 20px 20px 110px 20px; font-family: var(--font-body);">
-      ${cabecera('Anotaciones', `${cats.length} categorías · ${todas.length} notas`)}
+      ${cabecera('Anotaciones', `${cats.length} categoría${cats.length === 1 ? '' : 's'} · ${todas.length} nota${todas.length === 1 ? '' : 's'}`)}
       ${cats.length ? cats.map(fila).join('') : EmptyState('Sin categorías', 'Crea la primera para empezar a anotar.')}
       <div class="card" style="margin-top: 16px; padding: 16px;">
         <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Nueva categoría</label>

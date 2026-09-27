@@ -144,7 +144,7 @@ export function setupHabitoForm(onSaveCallback) {
     if (!nombre) return Toast('El nombre es requerido', 'warning');
 
     if (frecuenciaTipoActual === 'dias' && diasSeleccionados.size === 0) {
-      return Toast('Elegí al menos un día', 'warning');
+      return Toast('Elige al menos un día', 'warning');
     }
 
     const frecuencia = frecuenciaTipoActual === 'dias'
@@ -156,7 +156,7 @@ export function setupHabitoForm(onSaveCallback) {
     const tieneMeta = checkMeta.checked;
     const cantidad = parseFloat(document.getElementById('habito-meta-cantidad').value);
     const unidad = document.getElementById('habito-meta-unidad').value.trim();
-    if (tieneMeta && (!cantidad || cantidad <= 0)) return Toast('Ingresá una cantidad para la meta', 'warning');
+    if (tieneMeta && (!cantidad || cantidad <= 0)) return Toast('Ingresa una cantidad para la meta', 'warning');
     const meta = tieneMeta ? { cantidad, unidad: unidad || 'veces' } : null;
 
     const id = document.getElementById('habito-id').value;

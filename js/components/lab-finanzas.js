@@ -10,7 +10,7 @@ import { renderMiniChart } from './mini-chart.js';
 import { txHtml } from '../views/finanzas.js';
 import { EmptyState, ConfirmDialog } from '../utils/states.js';
 import { formatCurrency } from '../utils/currency.js';
-import { formatMes } from '../utils/fecha.js';
+import { formatMes, conMayuscula } from '../utils/fecha.js';
 
 export const TABS = [
   { id: 'desglose', label: 'Desglose' },
@@ -143,14 +143,14 @@ async function renderHitos() {
   const mesLabel = (mesStr) => {
     const [y, m] = mesStr.split('-');
     const mesDate = new Date(Number(y), Number(m) - 1, 1);
-    return `${formatMes(mesDate)} ${mesDate.getFullYear()}`;
+    return conMayuscula(`${formatMes(mesDate)} ${mesDate.getFullYear()}`);
   };
 
   const mesesHtml = mesesSinExceder.length === 0
     ? `<div style="font-size: 12.5px; color: var(--text-secondary);">Todavía no hay un mes completo sin excederte.</div>`
     : mesesSinExceder.map(m => `
         <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--surface-border);">
-          <span style="font-size: 13px; color: var(--text-primary); text-transform: capitalize;">${mesLabel(m.mes)}</span>
+          <span style="font-size: 13px; color: var(--text-primary);">${mesLabel(m.mes)}</span>
           <span style="font-size: 12px; color: var(--state-success); font-weight: 700;">✓ Sin excederte</span>
         </div>`).join('');
 
