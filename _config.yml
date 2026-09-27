@@ -1,0 +1,6 @@
+# GitHub Pages publica este repo con Jekyll. docs/ (plan, changelog, notas
+# internas) y CLAUDE.md no son parte de la app: se excluyen del sitio.
+# La app no depende de ningún archivo de docs/.
+exclude:
+  - docs/
+  - CLAUDE.md

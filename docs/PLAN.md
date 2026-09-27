@@ -1,7 +1,8 @@
 # Vanguard OS — Plan de trabajo
 
-Guardar en la raíz del worktree `dashboard-mk3` y commitear. Sirve para que
-cualquier sesión nueva de Claude Code retome sin explicaciones.
+Sirve para que cualquier sesión nueva de Claude Code retome sin explicaciones.
+Las reglas completas y vigentes están en `CLAUDE.md` (raíz del repo); acá va
+el resumen.
 
 ---
 
@@ -9,7 +10,8 @@ cualquier sesión nueva de Claude Code retome sin explicaciones.
 
 - Vanilla JS, ES Modules, sin bundlers. Imports relativos SIEMPRE con `.js`
 - Persistencia: IndexedDB vía `js/core/idb.js`, siempre a través de `db.js`.
-  Nadie fuera de `db.js` importa `idb.js` directo.
+  Nadie fuera de `db.js` importa `idb.js` directo, salvo `sync.js` (motor de
+  replay, excepción documentada al inicio del archivo).
 - Toda mutación nueva emite su `logEvent({modulo, tipo, entidadId, payload})`.
   Los agregados (racha, heatmap, insignias) se DERIVAN del log — nunca se
   guardan como campo aparte.
@@ -20,7 +22,8 @@ cualquier sesión nueva de Claude Code retome sin explicaciones.
   Los tokens viven en `css/variables.css`; `components.css` los aplica con
   clases scopeadas (`html.mk3-entreno`, etc.) que `app.js` alterna por vista.
 - Render por `innerHTML`: reasignar listeners después de cada render.
-- Retrocompatibilidad de datos: app local sin backend. Si se corrompe un
+- Retrocompatibilidad de datos: IndexedDB es la fuente de verdad en cada
+  dispositivo (Supabase solo replica el log). Si se corrompe un
   store, el usuario pierde todo. Migrar, nunca asumir.
 - Al crear archivos nuevos: agregarlos a `PRECACHE_URLS` en `sw.js` Y subir
   `CACHE_NAME`. Sin lo segundo el navegador sigue sirviendo el caché viejo.
@@ -33,55 +36,55 @@ cualquier sesión nueva de Claude Code retome sin explicaciones.
 
 ## Hecho
 
+Estado al 27 sept 2026 (`CACHE_NAME` v220). El detalle de cada tanda (commits,
+caché y QA) está en `docs/CHANGELOG.md`.
+
 | | Estado |
 |---|---|
 | Fase 1 — Persistencia de almacenamiento + recordatorio de respaldo | hecha |
-| Fase 2 — Escapado de HTML | hecha, verificada con Playwright |
-| Limpieza A — auditar `PRECACHE_URLS`, `CACHE_NAME` a v20 | hecha (`2912c4f`) |
-| Limpieza B — borrar `metas.js` y `ripple.js` (código muerto) | hecha |
-| Limpieza C — "Análisis" como 5º ítem de la navbar | hecha (`dcfb0a2`) |
-| Fase 3 — Tareas recurrentes (diaria/semanal/mensual) | hecha (`7aba0f3`), migración IndexedDB v1→v2 |
-| Fase 4 — Rollover de sobres (Finanzas): arrastre (opción A), negativos incluidos; eliminar pasa a archivar | hecha (R2 `88efe44` → R5 `1afc101`, v210). Decisiones y QA en `docs/CHANGELOG.md` ("Arrastre de saldos de sobres") |
-
-Verificado en navegador con Playwright MCP + Claude in Chrome: migración
-preserva datos, navbar de 5 ítems entra a 375px y 1280px, recurrentes no
-inflan la racha, escapado funciona.
-
-Hay datos de prueba en IndexedDB (una recurrente y sus 2 instancias) que se
-dejaron a propósito.
+| Fase 2 — Escapado de HTML | hecha |
+| Limpiezas A–C (`PRECACHE_URLS`, código muerto, navbar) | hechas (`2912c4f`, `dcfb0a2`) |
+| Fase 3 — Tareas recurrentes | hecha (`7aba0f3`); después se eliminaron las recurrentes de Tareas (`2c3f93e`) |
+| Nueva distribución: 5 pestañas, menú ☰, Hoy reordenado, riel responsive | hecha (v158–v166) |
+| Sistema de nivel de Entreno v2: generador por nivel, árbol de progresión derivado del catálogo con prerrequisitos (reemplaza la antigua "Fase 5 — árbol de calistenia"), sugerencias de avance, desbloqueo | hecho (25 sept) |
+| Revisión del catálogo de ejercicios (176 → 182, acceso cruzado gym/calistenia) | hecha (26 sept) |
+| Vida extra de la racha global | hecha (26 sept, v189–v197) |
+| Fechas locales y cambio de horario (DST) en rachas, hábitos y Finanzas | hecho (26 sept) |
+| Finanzas: fixes A–F (fechas, recurrentes, proyección, ids deterministas, alerta MK III, respaldo completo) | hechos (v191–v196) |
+| Sync activa con Supabase (tabla `events` + espejos) y bundle vendorizado (`js/vendor/supabase-js-2.116.0.js`) | hecha (`b628a77`, `71dbd0b`, `6dfa105`) |
+| Fase 4 — Arrastre de saldos de sobres (R1–R5, archivar en vez de eliminar) | hecho (`88efe44` → `1afc101`, v205–v210) |
+| Pulido de Finanzas (signo de negativos, sobregiro acumulado, onboarding tras restaurar, proyección del mes siguiente) | hecho (v211–v214) |
+| Textos: tuteo, fecha, plurales, saludo con nombre, aviso de respaldo según la sync, comparación hasta el mismo día | hecho (v215–v217) |
+| Entreno sin rutinas (estado vacío con acciones), perfil y nivel desde una tarjeta, gráficos sin esquinas redondeadas | hecho (v218–v220) |
+| Publicación en GitHub Pages (PWA instalable, `start_url: "./"`, íconos PNG 192/512 y maskable) | hecha |
 
 ---
 
 ## Pendiente
 
-### FASE 5 — Árbol de calistenia con prerrequisitos
+### Revisión semanal en el Laboratorio
 
-`js/core/progresiones-calistenia.js` tiene 4 familias como listas lineales
-(flexiones, dominadas, fondos, sentadillas) con `getProgressionLevel()`. Solo
-la usa `rutina-session.js`.
+Una vista semanal que cruce los módulos a partir del log de eventos (entreno,
+hábitos, tareas, gastos): qué se hizo, qué quedó y patrones ("los jueves
+entrenas poco y gastas más"). Hoy `resumenSemanal` es solo un número.
 
-a) **Prerrequisitos.** Convertir las listas en un árbol donde cada paso
-   declara qué necesita antes. Hoy la progresión es implícita (posición en el
-   array); debe ser explícita, porque las ramas se bifurcan: después de
-   dominadas estrictas, el camino a la dominada a una mano no es el mismo que
-   el camino a la dominada lastrada.
+### Recordatorios
 
-b) **Criterio de avance.** Un paso no se marca como superado hasta que el
-   historial registre N series limpias del paso anterior. Proponer el N y
-   justificarlo. Usar `getHistorialEjercicio()` y el log de eventos.
+Avisos de hábitos, tareas y cobros recurrentes. **Requieren un servidor de
+push** (Web Push con claves VAPID y un backend que envíe): una PWA sin
+servidor no puede notificar con la app cerrada. Decidir el backend antes de
+implementar.
 
-c) **Ramas que faltan:** CORE (hollow body, plancha, L-sit) y ESTÁTICOS
-   (handstand, front lever, muscle-up). Son la razón por la que la gente hace
-   calistenia y hoy no están.
+### Dificultad de tareas
 
-d) **Vista del árbol** en Entreno. Paso bloqueado atenuado, con prerrequisitos
-   visibles. MK III, cian.
+Campo de dificultad/esfuerzo por tarea (y su uso en la agenda de Hoy y en
+Laboratorio). Retrocompatible: las tareas existentes sin el campo siguen
+funcionando.
 
-Restricciones: sin XP, sin niveles, sin tiers, sin copy de videojuego — el
-código ya declara esa decisión. Los nombres en `PROGRESIONES` deben seguir
-coincidiendo con `ejercicios-catalogo.js` y las plantillas, o
-`getProgressionLevel()` deja de encontrar el ejercicio. No cambiar su firma
-sin actualizar `rutina-session.js`.
+### Pomodoro
+
+Temporizador de foco asociado a una tarea, con su registro en el log de
+eventos.
 
 ### FASE 6 — Medidas corporales históricas y fotos de progreso
 
@@ -91,8 +94,8 @@ a) Store nuevo: fecha, peso, circunferencias (cintura, pecho, brazo, muslo —
    opcionales). Gráfico de evolución reutilizando `utils/charts.js`.
 b) Fotos como **Blob** en IndexedDB, NO base64 (infla ~33%). Redimensionar
    antes de guardar vía canvas. Definir tope de resolución.
-c) Incluirlas en `exportAllData()`/`importAllData()`. Un JSON con fotos puede
-   pesar mucho — proponer cómo manejarlo antes de implementar.
+c) Incluirlas en el respaldo. Un JSON con fotos puede pesar mucho — proponer
+   cómo manejarlo antes de implementar.
 
 ### FASE 7 — Calentamiento y timer de descanso por ejercicio
 
@@ -103,90 +106,37 @@ b) **Timer por ejercicio:** hoy `restTimerSecs` es global. Permitir override
    por ejercicio, con el global como default. Las rutinas existentes no tienen
    el campo — deben seguir funcionando cayendo al global.
 
----
+### Más ejercicios (N7, N8)
 
-## Publicación (después de las fases, o antes si se prefiere)
+- **N8. Windshield wipers** (calistenia, core, avanzado, aislamiento): falta
+  en el catálogo.
+- **N7. Puente de glúteo a una pierna** (calistenia, cadera, intermedio): ya
+  está en `js/core/ejercicios-catalogo-calistenia.js`; revisar que su ficha
+  coincida con la propuesta antes de darlo por cerrado.
 
-Objetivo: que la app funcione en celular, tablet y PC. Ya es una PWA, solo
-falta publicarla.
+### Code review
 
-### Arreglar el manifest primero
-
-`manifest.json` tiene dos problemas que rompen la instalación:
-
-1. `"start_url": "/"` asume que la app vive en la raíz del dominio. En GitHub
-   Pages estará en un subdirectorio → la app instalada abriría en el lugar
-   equivocado. Debe ser `"./"`.
-2. Un solo ícono SVG declarado como 192x192 con `purpose: "any maskable"`.
-   Chrome pide un PNG de 512x512 para instalación completa, y un SVG con
-   emoji se recorta mal como maskable en Android. Generar PNGs reales de
-   192x192 y 512x512, y separar `purpose: "any"` de `purpose: "maskable"`.
-
-### Publicar
-
-1. Crear repo en GitHub (cuenta ya existe). **No** inicializarlo con README —
-   choca con el historial local.
-2. Push desde el worktree.
-3. Activar GitHub Pages en Settings → Pages.
-4. Verificar desde celular: abrir la URL en Chrome → "Agregar a pantalla de
-   inicio" → confirmar que abre en standalone, funciona offline y el ícono se
-   ve bien.
-5. Verificar en tablet: el breakpoint es 768px, así que una tablet horizontal
-   cae en "escritorio" y vertical puede caer en cualquiera. Nunca se ha
-   revisado.
-
-### Lo que publicar NO resuelve
-
-IndexedDB es local a cada navegador. Usar la app en PC y celular = **dos bases
-separadas que no se sincronizan**. La única forma de mover datos hoy es
-exportar el JSON e importarlo en el otro dispositivo.
-
-Sincronización real requiere backend (Firebase, Supabase, PHP+MySQL) y deja de
-ser offline-first puro. Decisión a tomar después de usarla un tiempo con
-export/import manual, no antes.
+Quedan 2 hallazgos abiertos en `docs/PENDIENTES-CODE-REVIEW.md`.
 
 ---
 
-## Mejoras identificadas, sin fase asignada
+## Ideas sin fase asignada
 
 Vienen de comparar con apps de referencia (Strong, Hevy, YNAB, Todoist,
-Habitify, Way of Life). Ordenadas por impacto:
+Habitify, Way of Life):
 
-1. **Estado "omitido" en racha/heatmap.** Hoy es binario: hiciste o no. Un día
-   de descanso planificado rompe la racha igual que un día de flojera, lo que
-   desalienta el descanso correcto. Tres estados (sí / no / omitido) es
-   estándar en la categoría. Encaja perfecto: sería un tipo de evento nuevo en
-   el log, sin tocar nada más.
-
-2. **Notas contextuales en el heatmap.** Ya existe `notas` en sesiones de
-   entreno (`db.js` ~888). Falta extenderlo a tareas/transacciones y sobre
-   todo **mostrarlas al pasar sobre una celda del heatmap**. Hoy el heatmap
-   dice cuánto, no por qué.
-
-3. **Revisión semanal.** `resumenSemanal` existe pero es un número perdido
-   entre otros. Con el log cruzando tres módulos se puede responder algo que
-   ninguna app comercial puede: "los jueves entrenas poco y gastas más".
-
-4. **Gastos anuales prorrateados** en Finanzas (patente, seguro, matrícula).
-   Los recurrentes actuales son mensuales puros.
-
-5. Accesibilidad: cero `aria-*` y cero `role=` en todo el proyecto. Modales
-   sin `role="dialog"` ni foco atrapado; botones de solo ícono sin nombre
-   accesible.
-
-6. Manejo global de errores: no hay `window.onerror` ni listener de
-   `unhandledrejection`. Si un `await` falla en un `mountListeners`, la vista
-   queda a medio pintar sin explicación.
-
-7. Deuda menor: `css/tokens-mk3.css` quedó muerto (no enlazado, duplica lo que
-   ya hace `variables.css`, y su comentario de cabecera miente). Inter se
-   carga desde Google Fonts pero la regla `html.mk3-* *` la anula con
-   `!important`, así que se descarga sin usarse.
+1. **Estado "omitido" en racha/heatmap** (sí / no / omitido): un descanso
+   planificado no debería contar igual que un día sin actividad. La vida extra
+   cubre parte del problema, pero no el descanso planificado.
+2. **Notas contextuales en el heatmap:** mostrar por qué, no solo cuánto.
+3. **Gastos anuales prorrateados** en Finanzas (patente, seguro, matrícula).
 
 ### Decisiones de diseño tomadas — no revisar
 
-- **Sin gamificación RPG** (XP, niveles, tiers, mascota). El código ya lo dice.
+- **Sin gamificación RPG** (XP, tiers, mascota).
 - **Sin métrica compuesta de "fuerza del hábito".** La racha simple es más
   honesta que un número que nadie entiende.
 - **PWA, no nativo ni PHP.** Un solo código para los tres dispositivos.
-  Android Studio daría solo Android; PHP haría perder el offline.
+- **Offline-first con sync opcional:** IndexedDB es la fuente de verdad en
+  cada dispositivo; Supabase replica el log de eventos. La app funciona igual
+  sin cuenta.

@@ -1,5 +1,49 @@
 # Vanguard OS — Changelog
 
+## 27 sept 2026 — Pulido de Finanzas, textos, Entreno y detalles
+
+**`CACHE_NAME` final: `vanguard-os-v220`.** Diez commits entre `b8b8ea3`
+(v211) y `d69a511` (v220), cada uno con su propio bump de caché. Verificado
+con Playwright en 375×812 y 1280×800, zona `America/Santiago`, reloj
+simulado, contextos limpios y el respaldo `vanguard-backup-demo-3-meses-COMPLETO.json`
+importado por la UI. Las pruebas bloquean `supabase.co`; la sesión, cuando
+hace falta, es un stub del bundle de Supabase (nunca se inicia sesión real).
+
+### Pulido de Finanzas
+
+| Commit | Caché | Qué cambia |
+|---|---|---|
+| `b8b8ea3` | v211 | Montos negativos con el signo antes del símbolo: `-$10.000` (Intl en es-CL dejaba `$-10.000`; el compacto era inconsistente). Un solo lugar en `utils/currency.js` para `formatCurrency` y `formatCompactCurrency`; lo que redondea a cero queda `$0`. |
+| `079b855` | v212 | Tarjeta de sobre con disponible negativo: "Sobregiro de $66.200 acumulado" en rojo y barra al 100 % en vez de "$0 de $-66.200". Con disponible exactamente 0 queda la línea normal (un sobre vacío no es alerta). |
+| `3dcd4ed` | v213 | Restaurar un respaldo (formato nuevo y antiguo) marca el onboarding inicial como completado con `marcarOnboardingInicialCompletado`, salvo que el respaldo traiga su propia marca. |
+| `e35d5e2` | v214 | Alerta de flujo de caja: un cobro del mes siguiente dentro de la ventana de 7 días se compara contra el saldo proyectado (lo que arrastra este mes + asignado del mes siguiente). El 26/9, Spotify del 3/10 ya no avisa; el Gimnasio del 28/9 sí (faltan $16.410). |
+
+### Textos, saludo y comparación mensual
+
+| Commit | Caché | Qué cambia |
+|---|---|---|
+| `bf8ef28` | v215 | Voseo → tuteo en toda la app (Completa, Elige, Ingresa, Déjalo, Ingrésalo, Puedes, Siente, Sincroniza, Prueba, Revisa…); "Septiembre de 2026" en vez de "Septiembre De 2026" (`conMayuscula` en `fecha.js` reemplaza `text-transform: capitalize`, también en Movimientos y Laboratorio); plurales con 1 (nota, categoría, completada, pendiente, serie, sesión…); onboarding: "Análisis" → "Laboratorio" y párrafos en sans-serif. |
+| `d5653f0` | v216 | Perfil con "Nombre" opcional: Hoy saluda "Buenas tardes, Ana" o, sin nombre, a secas (antes "Benjamín" fijo). Tarjeta de respaldo: "en este dispositivo". Con sesión de Supabase y una sync correcta hace menos de 7 días, Hoy no muestra el aviso de respaldo; Configuración > Cuenta dice "Sincronizado hace X" (`sync.js` guarda `ultimaSyncTs` y expone `getEstadoSincronizacion`). |
+| `f94a360` | v217 | "Gastaste X% más/menos": el mes en curso se compara con el anterior hasta el mismo día (1–26 sept vs 1–26 ago; si el anterior es más corto, hasta su último día); un mes cerrado sigue completo contra completo. Con el respaldo: +3 % (contra agosto completo) → +14 %. El texto dice "a esta altura del mes pasado" y el gráfico "Gasto vs. mes anterior" usa el mismo corte. |
+
+### Entreno y detalles
+
+| Commit | Caché | Qué cambia |
+|---|---|---|
+| `77b982f` | v218 | Entreno sin rutinas: "Arma tu primera rutina" con selector GYM / Calistenia / HIIT, "Generar mi rutina" (generador existente) y "Crear rutina a mano" (formulario de la categoría; en HIIT, el de HIIT). |
+| `2d59a3d` | v219 | El formulario de perfil y el de nivel ya no se abren solos al entrar a Entreno: una tarjeta "Completa tu perfil para calcular tu nivel e IMC" con "Completar" y/o "Definir mi nivel"; "Ahora no" la oculta hasta el día siguiente (localStorage con `diaKeyDe`). |
+| `d69a511` | v220 | Onboarding paso 2 menciona la cuenta opcional para sincronizar entre dispositivos (ya no dice "No hay cuenta ni nube"). Gráficos de Chart.js con `borderRadius: 0` (Gasto vs. mes anterior, Tendencia de Entreno, donuts). |
+
+## 26–27 sept 2026 — Sync vendorizada, tareas, demo y sesiones (v200–v204)
+
+| Commit | Caché | Qué cambia |
+|---|---|---|
+| `6dfa105` | v200 | Supabase desde un bundle local (`js/vendor/supabase-js-2.116.0.js`, en `PRECACHE_URLS`) cargado con `import()` dinámico por `cargarSupabase()`: si esm.sh caía, la app no arrancaba. Sin el bundle, la sync queda desactivada y el resto sigue igual. |
+| `e44a38d` | v201 | Crear o editar una tarea a "Hecho" pone `completedAt` y emite `tarea_completada` (cuenta en las rachas); volver a otro estado limpia `completedAt`. |
+| `7c22874` | v202 | Reabrir una tarea emite `tarea_reabierta` y le quita la actividad a ese día en la racha global y la de Tareas (estado neto por tarea y día), igual que desmarcar un hábito. |
+| `3cc5967` | v203 | Configuración > "Datos de prueba": `cargarDatosDemo()` (`js/core/datos-demo.js`) borra lo que haya en el dispositivo y siembra unos 60 días de datos en los 4 módulos con las funciones de `db.js` (todo con `logEvent`), previa confirmación. Bloqueado con sesión de Supabase iniciada. |
+| `e1b9fb5` | v204 | Fix `checked` en sesiones: las series guardadas no llevaban `checked` y las sugerencias de nivel exigían `checked === true`, así que nunca sugerían subir. Las series nuevas llevan `checked: true`; una serie sin el campo (sesiones ya guardadas) cuenta como marcada. |
+
 ## 27 sept 2026 — Arrastre de saldos de sobres
 
 **`CACHE_NAME` final: `vanguard-os-v210`.** Seis commits entre `88efe44` (v205)
