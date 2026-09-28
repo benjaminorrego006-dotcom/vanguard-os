@@ -19,6 +19,7 @@ import { Toast, hayModalAbierto } from '../utils/states.js';
 import { renderProgreso, initProgresoListeners, setContextoCategoria, cleanup as cleanupProgreso } from '../components/entreno-progreso.js';
 import { renderMiniChart } from '../components/mini-chart.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
+import { renderSesionesHistorial, initSesionesHistorialListeners } from '../components/sesiones-historial.js';
 
 // Placeholder hasta que exista el sistema de nivel del backlog (onboarding
 // de nivel dedicado, filtrado de rutinas por nivel, detección automática de
@@ -42,7 +43,7 @@ function ocultarTarjetaPerfilHoy() {
 const TIEMPO_ENTRENANDO_PILL ={ 'menos-1': 'Nivel: recién empezando', '1-3': 'Nivel: intermedio', 'mas-3': 'Nivel: experimentado' };
 
 let categoriaActiva = null;
-let viewState = 'main'; // 'main', 'rutinas', 'form', 'session', 'progreso'
+let viewState = 'main'; // 'main', 'rutinas', 'form', 'session', 'progreso', 'historial'
 let rutinaActualId = null;
 let currentViewController = null;
 
@@ -164,6 +165,10 @@ export function cleanup() {
 }
 
 function onPopStateEntrenamiento(e) {
+  // Un atrás que cae en la entrada de otro modal (ej. se cerró la
+  // confirmación y queda el detalle de una sesión del historial debajo)
+  // no sale de la sub-vista: ese modal sigue abierto sobre ella.
+  if (e.state && e.state.modalId) return;
   if (viewState !== 'main' && (!e.state || !e.state.entrenoSubView)) {
     entrenoRespondiendoAPopstate = true;
     cleanupSessionTimer();
@@ -364,6 +369,7 @@ export async function render() {
           </div>
         </div>
 
+        ${sesiones.length > 0 ? '<a id="link-historial-sesiones" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal); text-decoration: none; padding: 8px 0;">Historial de sesiones →</a>' : ''}
         <a id="link-ver-progreso-completo" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal); text-decoration: none; padding: 8px 0 24px 0;">Ver progreso completo →</a>
       </div>
 
@@ -409,6 +415,8 @@ mountListeners = () => {
       if (rutina) goToSession(rutina);
     });
   }
+
+  document.getElementById('link-historial-sesiones')?.addEventListener('click', (e) => { e.preventDefault(); goToHistorial(); });
 
   const linkVerProgresoCompleto = document.getElementById('link-ver-progreso-completo');
   if (linkVerProgresoCompleto) {
@@ -532,6 +540,28 @@ mountListeners = () => {
     } catch (err) {
       console.error('Error renderizando Progreso:', err);
       subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${err.message}</div>`;
+    }
+  };
+
+  // Historial de sesiones (ver components/sesiones-historial.js): lista por
+  // semana y detalle con Eliminar. Volver lleva a 'main', que se repinta
+  // entero (una sesión eliminada cambia racha, anillos y volumen).
+  const goToHistorial = async () => {
+    if (currentViewController) currentViewController.abort();
+    currentViewController = new AbortController();
+    const signal = currentViewController.signal;
+
+    viewState = 'historial';
+    empujarHistorialSiHaceFalta();
+    mainView.style.display = 'none';
+    subView.style.display = 'block';
+
+    try {
+      subContent.innerHTML = await renderSesionesHistorial();
+      initSesionesHistorialListeners(signal);
+    } catch (err) {
+      console.error('Error renderizando el historial:', err);
+      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${escapeHtml(err.message)}</div>`;
     }
   };
 

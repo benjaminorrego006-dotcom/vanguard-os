@@ -31,20 +31,34 @@ body {
   width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
   background: transparent; border: none; color: var(--text-secondary); cursor: pointer;
 }
-/* Modales de onboarding de Entreno (perfil y nivel): dejan libre la
+/* Modales de onboarding de Entreno (perfil y nivel) y el detalle de una
+   sesión del historial: dejan libre la
    navegación — barra inferior en móvil, riel en tablet/PC — para que se
    pueda tocar otra pestaña con el modal abierto (navegar lo cierra, ver
    forgetOpenModals en history.js). El overlay normal cubre toda la pantalla
    con z-index 3000, por encima de la navegación (1000). */
-#profile-modal .modal-content, #nivel-onboarding-modal .modal-content { max-height: 100% !important; }
+#profile-modal .modal-content, #nivel-onboarding-modal .modal-content, #sesion-detalle-modal .modal-content { max-height: 100% !important; }
 @media (max-width: 767px) {
-  #profile-modal, #nivel-onboarding-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); }
+  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); }
 }
 @media (min-width: 768px) {
-  #profile-modal, #nivel-onboarding-modal { left: 72px; }
+  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal { left: 72px; }
 }
 @media (min-width: 1024px) {
-  #profile-modal, #nivel-onboarding-modal { left: 220px; }
+  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal { left: 220px; }
+}
+/* Detalle de una sesión: Eliminar/Editar quedan fijos al pie aunque la
+   sesión sea larga. El sticky se mide dentro del relleno inferior de
+   .modal-content, así que la barra baja y cubre ese relleno (sin él, las
+   series se ven pasar por debajo de los botones). */
+#sesion-detalle-modal .sesion-detalle-acciones {
+  position: sticky;
+  bottom: calc(-28px - env(safe-area-inset-bottom));
+  padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  margin-bottom: calc(-28px - env(safe-area-inset-bottom));
+}
+@media (min-width: 640px) {
+  #sesion-detalle-modal .sesion-detalle-acciones { bottom: -30px; padding-bottom: 30px; margin-bottom: -30px; }
 }
 
 /* Panel lateral: el overlay lo pega a la derecha; los ids ganan sobre los

@@ -111,6 +111,68 @@ export function Toast(message, type = 'info', duration = 2500) {
   setTimeout(dismiss, duration);
 }
 
+// Aviso con una acción ("Sesión eliminada · Deshacer"). Reutilizable: va
+// al mismo #toast-container (encima de la barra inferior y a la derecha
+// del riel), MK III (recto, sin sombra) y con el acento que pida cada
+// módulo. Uno a la vez: uno nuevo cierra el anterior. El tiempo se pausa
+// mientras el foco está adentro, así se alcanza con teclado. Devuelve
+// { cerrar } por si el llamador necesita quitarlo antes.
+let toastAccionActual = null;
+export function ToastAccion(mensaje, { accion, alAccion, duracion = 6000, color = 'var(--cy)' } = {}) {
+  const container = document.getElementById('toast-container');
+  if (!container) return { cerrar() {} };
+  if (toastAccionActual) toastAccionActual.cerrar();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast-accion';
+  toast.style.cssText = `
+    background: var(--surface-1);
+    border: 1px solid var(--surface-border);
+    border-left: 3px solid ${color};
+    color: var(--text-primary);
+    padding: 4px 6px 4px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  `;
+  toast.innerHTML = `<span class="toast-accion-texto"></span>${accion ? `<button type="button" class="toast-accion-btn" style="background: transparent; border: none; color: ${color}; font: inherit; font-weight: 700; min-height: 44px; padding: 0 10px; cursor: pointer;"></button>` : ''}`;
+  toast.querySelector('.toast-accion-texto').textContent = mensaje;
+  const btn = toast.querySelector('.toast-accion-btn');
+  if (btn) btn.textContent = accion;
+  container.appendChild(toast);
+  requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; });
+
+  let timer = null;
+  let cerrado = false;
+  const cerrar = () => {
+    if (cerrado) return;
+    cerrado = true;
+    clearTimeout(timer);
+    if (toastAccionActual && toastAccionActual.toast === toast) toastAccionActual = null;
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 200);
+  };
+  const programar = () => { clearTimeout(timer); timer = setTimeout(cerrar, duracion); };
+  toast.addEventListener('focusin', () => clearTimeout(timer));
+  toast.addEventListener('focusout', () => { if (!cerrado) programar(); });
+  if (btn) {
+    btn.addEventListener('click', () => {
+      cerrar();
+      if (alAccion) alAccion();
+    });
+  }
+  programar();
+  toastAccionActual = { toast, cerrar };
+  return { cerrar };
+}
+
 // FIX: unificado a ConfirmDialog(title, message) -> Promise<boolean>.
 // Antes había 3 firmas incompatibles usadas en distintos archivos
 // (objeto {title,message,onConfirm} en states.js, (msg, callback) en backup.js,
