@@ -24,6 +24,7 @@
 import * as idb from './idb.js';
 import { getSupabase, isSupabaseConfigured, cargarSupabase } from './supabase-client.js';
 import { reportError } from './error-tracking.js';
+import { estadoNetoSesion } from './sesiones-estado.js';
 
 const SYNC_META_KEY = 'syncMeta';
 
@@ -164,9 +165,21 @@ export async function applyRemoteEvent(event) {
       case 'rutina_eliminada':
         await idb.remove('rutinas', entidadId);
         break;
+      // Sesiones: el store refleja el estado neto de TODOS los eventos de la
+      // sesión (sesiones-estado.js), no solo el que llega. Así una
+      // eliminación gana aunque llegue antes que la creación y dos
+      // dispositivos quedan iguales con cualquier orden de llegada.
       case 'sesion_registrada':
-        await idb.put('sesiones', { ...payload, id: entidadId });
+      case 'sesion_editada':
+      case 'sesion_eliminada':
+      case 'sesion_restaurada': {
+        const eventosSesion = await idb.getAllByIndex('events', 'entidadId', entidadId);
+        if (!eventosSesion.some(e => e.id === event.id)) eventosSesion.push(event);
+        const { sesion, vigente } = estadoNetoSesion(eventosSesion);
+        if (vigente) await idb.put('sesiones', sesion);
+        else await idb.remove('sesiones', entidadId);
         break;
+      }
 
       // --- Entreno: singletons ---
       case 'perfil_actualizado':
@@ -363,7 +376,8 @@ function mirrorTargetFor(event) {
     case 'meta_eliminada': return { store: 'goals', id: entidadId, deleted: true };
     case 'rutina_creada': return { store: 'rutinas', id: entidadId };
     case 'rutina_eliminada': return { store: 'rutinas', id: entidadId, deleted: true };
-    case 'sesion_registrada': return { store: 'sesiones', id: entidadId };
+    case 'sesion_registrada': case 'sesion_editada': case 'sesion_restaurada': return { store: 'sesiones', id: entidadId };
+    case 'sesion_eliminada': return { store: 'sesiones', id: entidadId, deleted: true };
     case 'perfil_actualizado': return { store: 'singletons', id: 'profile' };
     case 'generador_config_actualizada': return { store: 'singletons', id: 'entrenoGeneradorConfig' };
     case 'nivel_entrenamiento_actualizado':

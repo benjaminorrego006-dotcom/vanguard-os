@@ -3,6 +3,7 @@ import * as idb from './idb.js';
 import { mesKeyDe, diaKeyDe, diasEntre, sumarDias, claveDiaDe, fechaLocalDe, compararFechas } from '../utils/fecha.js';
 import { EQUIPO_OPCIONES } from './trainingConfig.js';
 import { generarObservaciones } from './observaciones-semana.js';
+import { estadoNetoSesion, sesionesVigentesDesdeEventos } from './sesiones-estado.js';
 
 function toSafeNumber(value) {
   const n = Number(value);
@@ -551,7 +552,12 @@ function payloadReabierta(completedAt) {
   return completedAt ? { fecha: claveDiaDe(completedAt) } : {};
 }
 
-function actividadGlobalPorDia(eventos) {
+// Sesiones de Entreno: cuentan las vigentes (última versión, sin las
+// eliminadas; ver sesiones-estado.js) en el día de su fecha. Con
+// { historica: true } cuentan todas las sesion_registrada en su día
+// original, sin descontar eliminaciones ni ediciones de fecha: es la
+// actividad de las insignias, que no se pierden.
+function actividadGlobalPorDia(eventos, { historica = false } = {}) {
   const porDia = new Map();
   const sumar = (dia) => porDia.set(dia, (porDia.get(dia) || 0) + 1);
 
@@ -569,7 +575,12 @@ function actividadGlobalPorDia(eventos) {
     });
   marcasNetas.forEach(sumar);
 
-  eventos.forEach(e => { if (TIPOS_ACTIVIDAD_POR_TS.has(e.tipo)) sumar(diaKeyDe(new Date(e.ts))); });
+  eventos.forEach(e => {
+    if (!TIPOS_ACTIVIDAD_POR_TS.has(e.tipo)) return;
+    if (e.tipo === 'sesion_registrada' && !historica) return; // van por sesionesVigentesDesdeEventos
+    sumar(diaKeyDe(new Date(e.ts)));
+  });
+  if (!historica) sesionesVigentesDesdeEventos(eventos).forEach(s => sumar(claveDiaDe(s.fecha)));
   return porDia;
 }
 
@@ -1918,6 +1929,75 @@ export const db = {
     return newSesion;
   },
 
+  // Editar una sesión: fecha (no futura), duración, notas y series/ejercicios.
+  // `cambios.fecha` puede ser una clave de día ('YYYY-MM-DD', se conserva la
+  // hora original) o un ISO. Guarda la sesión completa y emite sesion_editada
+  // con ella (el replay deja la última versión). Todo lo derivado se
+  // recalcula solo: el store cambia y el evento vacía la caché.
+  async editarSesion(id, cambios = {}) {
+    const sesiones = await idbGetArray('sesiones');
+    const idx = sesiones.findIndex(s => s.id === id);
+    if (idx === -1) return { ok: false, error: 'no-existe' };
+    const actual = sesiones[idx];
+    let fecha = actual.fecha;
+    if (cambios.fecha) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(cambios.fecha)) {
+        const [y, m, d] = cambios.fecha.split('-').map(Number);
+        const original = fechaLocalDe(actual.fecha);
+        fecha = new Date(y, m - 1, d, original.getHours(), original.getMinutes()).toISOString();
+      } else {
+        fecha = new Date(cambios.fecha).toISOString();
+      }
+      if (claveDiaDe(fecha) > diaKeyDe(new Date())) return { ok: false, error: 'fecha-futura' };
+    }
+    const editada = {
+      ...actual,
+      fecha,
+      ...(cambios.duracionMin !== undefined ? { duracionMin: Math.max(0, toSafeNumber(cambios.duracionMin)) } : {}),
+      ...(cambios.notas !== undefined ? { notas: String(cambios.notas || '') } : {}),
+      ...(cambios.ejercicios !== undefined ? {
+        ejercicios: cambios.ejercicios.map(ej => ({
+          ejercicioId: ej.ejercicioId !== undefined ? ej.ejercicioId : getIdPorNombreExacto(ej.nombre),
+          nombre: ej.nombre,
+          series: ej.series || []
+        }))
+      } : {})
+    };
+    sesiones[idx] = editada;
+    await idbSetArray('sesiones', sesiones);
+    await logEvent({ modulo: 'entreno', tipo: 'sesion_editada', entidadId: id, payload: editada });
+    this._triggerUpdate();
+    return { ok: true, sesion: editada };
+  },
+
+  // Eliminar una sesión: sale del store y queda la lápida sesion_eliminada
+  // (en replay y sync gana aunque llegue antes que la creación). Las
+  // insignias ya ganadas no se pierden; la racha sí se recalcula.
+  async eliminarSesion(id) {
+    const sesiones = await idbGetArray('sesiones');
+    const sesion = sesiones.find(s => s.id === id);
+    if (!sesion) return { ok: false, error: 'no-existe' };
+    await idbSetArray('sesiones', sesiones.filter(s => s.id !== id));
+    await logEvent({ modulo: 'entreno', tipo: 'sesion_eliminada', entidadId: id, payload: { fecha: sesion.fecha, nombreRutina: sesion.nombreRutina } });
+    this._triggerUpdate();
+    return { ok: true, sesion };
+  },
+
+  // Deshacer una eliminación: vuelve la última versión de la sesión (del log)
+  // con sesion_restaurada; el evento de eliminación no se borra.
+  async restaurarSesion(id) {
+    const eventos = await idb.getAllByIndex('events', 'entidadId', id);
+    const { sesion, vigente } = estadoNetoSesion(eventos);
+    if (!sesion) return { ok: false, error: 'no-existe' };
+    if (vigente) return { ok: true, sesion };
+    const sesiones = (await idbGetArray('sesiones')).filter(s => s.id !== id);
+    sesiones.push(sesion);
+    await idbSetArray('sesiones', sesiones);
+    await logEvent({ modulo: 'entreno', tipo: 'sesion_restaurada', entidadId: id, payload: sesion });
+    this._triggerUpdate();
+    return { ok: true, sesion };
+  },
+
   // --- PERFIL DE USUARIO ---
   async getProfile() {
     return idbGetSingleton('profile', null);
@@ -2166,10 +2246,11 @@ export const db = {
   // de eventos ('sesion_registrada') en vez de leer el store de sesiones
   // directamente — mismo resultado, pero es la fuente que pidió usarse para
   // este tipo de agregado.
+  // Sesiones vigentes (sin las eliminadas, cada una en la fecha de su
+  // última versión), con la lectura compartida de events.
   async getRachaGeneral() {
-    const eventos = await idb.getAll('events');
-    const sesionEventos = eventos.filter(e => e.modulo === 'entreno' && e.tipo === 'sesion_registrada');
-    return calcularRachaDesdeDias(diasUnicosDesdeEventos(sesionEventos));
+    const vigentes = sesionesVigentesDesdeEventos(await leerEventosCompartido());
+    return calcularRachaDesdeDias(diasUnicosDesdeFechas(vigentes.map(s => claveDiaDe(s.fecha))));
   },
 
   // Racha de productividad de Tareas: días consecutivos con al menos una
@@ -2259,7 +2340,16 @@ export const db = {
   // derivada del log de eventos ('sesion_registrada'), no de iterar el
   // store de sesiones a mano en la vista (como hacía antes entrenamiento.js).
   async getActividadEntrenoPorDia(year, month) {
-    const { countByDay, eventsByDay } = await this.getActividadPorDia('entreno', 'sesion_registrada', year, month);
+    // Sesiones vigentes (sin las eliminadas, en la fecha de su última versión).
+    const countByDay = {};
+    const eventsByDay = {};
+    sesionesVigentesDesdeEventos(await leerEventosCompartido()).forEach(s => {
+      const d = fechaLocalDe(s.fecha);
+      if (d.getFullYear() !== year || d.getMonth() !== month) return;
+      const day = d.getDate();
+      countByDay[day] = (countByDay[day] || 0) + 1;
+      (eventsByDay[day] = eventsByDay[day] || []).push(s);
+    });
     const CATEGORY_LABELS = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
     const detailByDay = {};
     Object.keys(eventsByDay).forEach(day => {
@@ -2365,13 +2455,17 @@ export const db = {
     ]);
 
     const primeraMetaCumplida = goals.some(g => g.completed);
+    // Insignias sobre la actividad histórica: sesiones eliminadas o con la
+    // fecha editada siguen contando, así una insignia ganada no se pierde
+    // (la racha visible sí se recalcula).
     const diezSesiones = eventos.filter(e => e.modulo === 'entreno' && e.tipo === 'sesion_registrada').length >= 10;
+    const maxHistorica = calcularRachaConVidas(new Set(actividadGlobalPorDia(eventos, { historica: true }).keys()), diaKeyDe(new Date())).maxHistorica;
 
     const mesSinExceder = (await this.getMesesSinExceder(6)).length > 0;
 
     return [
       // "Alguna vez llegó a 7": no se vuelve a bloquear al cortarse la racha.
-      { id: 'racha_7', label: '7 días de racha', unlocked: racha.maxHistorica >= 7 },
+      { id: 'racha_7', label: '7 días de racha', unlocked: Math.max(racha.maxHistorica, maxHistorica) >= 7 },
       { id: 'primera_meta', label: 'Primera meta cumplida', unlocked: primeraMetaCumplida },
       { id: 'mes_sin_exceder', label: 'Mes de presupuesto sin excederte', unlocked: mesSinExceder },
       { id: 'diez_sesiones', label: '10 sesiones de entrenamiento', unlocked: diezSesiones }
@@ -2578,16 +2672,17 @@ export const db = {
   // no de `sesion.fecha`) sin agregar nada: lo necesita el mapa muscular
   // MK III para pesar cada aporte según qué tan reciente es (fatiga con
   // recuperación de 48h, ver calcularFatigaPorGrupo en mk3-muscle-map.js).
+  // Sobre las sesiones vigentes (última versión, sin las eliminadas), con la
+  // lectura compartida de events; `ts` es la fecha de la sesión.
   async getEventosEjercicioPorCategoria(categoria) {
-    const eventosRaw = await idb.getAll('events');
+    const vigentes = sesionesVigentesDesdeEventos(await leerEventosCompartido());
     const rutinas = await idbGetArray('rutinas');
     const catMap = {};
     rutinas.forEach(r => catMap[r.id] = r.categoria);
 
     const salida = [];
-    eventosRaw.forEach(e => {
-      if (e.modulo !== 'entreno' || e.tipo !== 'sesion_registrada') return;
-      const sesion = e.payload || {};
+    vigentes.forEach(sesion => {
+      const e = { ts: new Date(sesion.fecha).getTime(), entidadId: sesion.id };
       let cat = catMap[sesion.rutinaId];
       if (!cat && sesion.nombreRutina) {
         const n = sesion.nombreRutina.toLowerCase();
