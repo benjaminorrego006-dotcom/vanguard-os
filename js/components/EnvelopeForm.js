@@ -106,9 +106,10 @@ export function initEnvelopeForm(db, refreshCallback) {
       } else {
         await db.createEnvelope({ name, category, icon, assignedAmount });
       }
-      
-      modal.style.display = 'none';
+
       Toast("Sobre guardado", "success");
+      if (!modal.isConnected) return; // vista cambiada mientras se guardaba
+      modal.style.display = 'none';
     }
   });
 

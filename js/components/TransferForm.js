@@ -122,11 +122,12 @@ export function initTransferForm(db, getBudgetFn, refreshCallback) {
       setTimeout(async () => {
         b = getBudgetFn();
         await db.transferEnvelopeFunds(fromId, toId, amount);
-        
+
+        Toast("Transferencia completada", "success");
+        if (!modal.isConnected) return; // vista cambiada mientras se guardaba
         btnSubmit.innerHTML = originalText;
         modal.style.display = 'none';
         modal.classList.remove('open');
-        Toast("Transferencia completada", "success");
         
       }, 500);
     }

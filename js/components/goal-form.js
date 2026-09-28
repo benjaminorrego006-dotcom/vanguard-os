@@ -107,7 +107,7 @@ export function initGoalForm(refreshCallback) {
   };
   const closeModal = (id) => {
     document.getElementById(id).classList.remove('open');
-    setTimeout(() => document.getElementById(id).style.display = 'none', 300);
+    setTimeout(() => { const el = document.getElementById(id); if (el) el.style.display = 'none'; }, 300);
   };
 
   modal.querySelector('.btn-close-modal').addEventListener('click', () => closeModal('goal-modal'));
@@ -213,8 +213,9 @@ export function initGoalForm(refreshCallback) {
       });
     }
 
-    closeModal('goal-modal');
     Toast(id ? 'Meta actualizada' : 'Meta creada', 'success');
+    if (!modal.isConnected) return; // vista cambiada mientras se guardaba
+    closeModal('goal-modal');
     if (refreshCallback) refreshCallback();
   });
 
@@ -234,8 +235,9 @@ export function initGoalForm(refreshCallback) {
     const amount = contributeDominio === 'entreno' ? (parseFloat(contributeInput.value) || 0) : milesToInt(contributeInput.value);
     if (!amount || amount <= 0 || !contributeGoalId) return;
     await db.contributeToGoal(contributeGoalId, amount);
-    closeModal('goal-contribute-modal');
     Toast('Progreso agregado', 'success');
+    if (!contributeModal.isConnected) return; // vista cambiada mientras se guardaba
+    closeModal('goal-contribute-modal');
     if (refreshCallback) refreshCallback();
   });
 

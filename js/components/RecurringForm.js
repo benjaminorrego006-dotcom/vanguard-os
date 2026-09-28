@@ -107,9 +107,10 @@ export function initRecurringForm(db, getBudgetFn, refreshCallback) {
       
       setTimeout(async () => {
         await db.createRecurring({ label, amount, envelopeId, dayOfMonth });
+        Toast("Gasto fijo configurado", "success");
+        if (!modal.isConnected) return; // vista cambiada mientras se guardaba
         btnSubmit.innerHTML = originalText;
         modal.style.display = 'none';
-        Toast("Gasto fijo configurado", "success");
 
       }, 500);
     }

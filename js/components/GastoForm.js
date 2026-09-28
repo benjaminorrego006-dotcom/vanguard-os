@@ -173,12 +173,17 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
           res = await db.addTransaction(payload);
         }
 
+        // Si mientras se guardaba se cambió de vista, el formulario ya no está
+        // en la página: el gasto quedó guardado y no hay nada que pintar.
+        if (!modal.isConnected) return;
         btnSubmit.innerHTML = originalText;
 
         // Confirmación visual (check + mensaje) antes de volver a la vista normal
         const overlay = document.getElementById('gasto-confirm-overlay');
+        if (!overlay) return;
         overlay.style.display = 'flex';
         setTimeout(() => {
+          if (!modal.isConnected) return;
           overlay.style.display = 'none';
           modal.style.display = 'none';
           modal.classList.remove('open');

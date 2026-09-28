@@ -139,12 +139,13 @@ export function initAhorroForm(db, getBudgetFn, refreshCallback) {
             res = await db.addTransaction({ type: 'Gasto', category: 'Savings', label, amount, goalId: null });
           }
         }
-        
+
+        Toast("Ahorro guardado", "success");
+        if (!modal.isConnected) return; // vista cambiada mientras se guardaba
         btnSubmit.innerHTML = originalText;
         modal.style.display = 'none';
         modal.classList.remove('open');
-        Toast("Ahorro guardado", "success");
-        
+
       }, 500);
     }
   });

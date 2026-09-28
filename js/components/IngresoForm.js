@@ -103,12 +103,16 @@ export function initIngresoForm(db, getBudgetFn, refreshCallback) {
         if (id) res = await db.updateTransaction(id, { type: 'Ingreso', category: 'Income', label, amount, goalId: null });
         else res = await db.addTransaction({ type: 'Ingreso', category: 'Income', label, amount, goalId: null });
 
+        // Vista cambiada mientras se guardaba: el ingreso quedó guardado.
+        if (!modal.isConnected) return;
         btnSubmit.innerHTML = originalText;
 
         // Confirmación visual (check + mensaje) antes de volver a la vista normal
         const overlay = document.getElementById('ingreso-confirm-overlay');
+        if (!overlay) return;
         overlay.style.display = 'flex';
         setTimeout(() => {
+          if (!modal.isConnected) return;
           overlay.style.display = 'none';
           modal.style.display = 'none';
           modal.classList.remove('open');
