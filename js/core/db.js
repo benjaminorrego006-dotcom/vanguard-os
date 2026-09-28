@@ -760,7 +760,10 @@ const memoCache = new Map();
 
 function memoize(fn) {
   return function (...args) {
-    const key = fn.name + '|' + JSON.stringify(args);
+    // El día de hoy entra en la clave: rachas, vidas y resúmenes dependen de
+    // "hoy", y a medianoche no hay evento que invalide la caché (sin esto,
+    // un render dentro del TTL después de las 00:00 mostraba el día anterior).
+    const key = fn.name + '|' + diaKeyDe(new Date()) + '|' + JSON.stringify(args);
     const cached = memoCache.get(key);
     if (cached && cached.expiresAt > Date.now()) return cached.promise;
     const promise = Promise.resolve(fn.apply(this, args));
