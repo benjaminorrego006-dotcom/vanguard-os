@@ -167,7 +167,8 @@ export function horizontalBarValueLabelsPlugin(color, formatter = String) {
 
 // Misma idea que barValueLabelsPlugin, para charts de línea/puntos. `suffix`
 // opcional para series en porcentaje (Hábitos: "42%" en vez de "42").
-export function lineValueLabelsPlugin(color, suffix = '') {
+// formato (opcional): cómo escribir cada valor (ej. formatNumero para es-CL).
+export function lineValueLabelsPlugin(color, suffix = '', formato = (v) => v) {
   return {
     id: 'lineValueLabels',
     afterDatasetsDraw(chart) {
@@ -180,7 +181,7 @@ export function lineValueLabelsPlugin(color, suffix = '') {
       ctx.textAlign = 'center';
       meta.data.forEach((point, i) => {
         if (!data[i]) return;
-        ctx.fillText(`${data[i]}${suffix}`, point.x, point.y - 10);
+        ctx.fillText(`${formato(data[i])}${suffix}`, point.x, point.y - 10);
       });
       ctx.restore();
     }

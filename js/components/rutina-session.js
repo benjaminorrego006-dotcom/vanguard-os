@@ -308,7 +308,7 @@ export async function renderRutinaSession(rutina) {
         <dl class="sesion-hud-datos">
           <div><dt>Tiempo</dt><dd><span id="session-timer" class="num">00:00</span></dd></div>
           <div><dt>Series</dt><dd><span id="hud-series" class="num">0/0</span></dd></div>
-          <div><dt>Volumen</dt><dd><span id="hud-volumen" class="num">0</span> kg <span id="hud-volumen-var" class="sesion-hud-var num" hidden></span></dd></div>
+          <div><dt>Volumen</dt><dd><span id="hud-volumen" class="num">0</span><span id="hud-volumen-meta" class="sesion-hud-meta" hidden> de <span id="hud-volumen-previo" class="num"></span></span> kg <span id="hud-volumen-var" class="sesion-hud-var num" hidden></span></dd></div>
           <div><dt>Récords</dt><dd><span id="hud-records" class="num">0</span><span id="hud-record-ultimo" class="sesion-hud-ultimo"></span></dd></div>
         </dl>
       </div>
@@ -510,7 +510,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const reps = parseFloat(row.querySelector('.serie-reps').value) || 0;
     return peso > pr.pesoMax || (peso === 0 && pr.pesoMax === 0 && reps > pr.repsMax);
   };
-  const formatoKg = (n) => Number(n).toLocaleString('es-CL', { maximumFractionDigits: 1 });
+  const formatoKg = (n) => formatNumero(n);
 
   // Riel: progreso de cada pestaña ("2/3") y ✓ en las terminadas.
   const actualizarRiel = () => {
@@ -552,12 +552,17 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     }));
     seriesEl.textContent = `${hechas}/${total}`;
     const volumen = volumenDeSeries(marcadas);
-    document.getElementById('hud-volumen').textContent = formatoKg(volumen);
+    // Durante la sesión el volumen es un avance hacia la última sesión de
+    // esta rutina ("880 de 7.077 kg"); el ▲ % aparece solo al superarla
+    // (nunca un ▼ a mitad de sesión). Sin sesión previa, solo los kg.
+    document.getElementById('hud-volumen').textContent = formatNumero(volumen, { decimales: 0 });
+    const metaEl = document.getElementById('hud-volumen-meta');
     const varEl = document.getElementById('hud-volumen-var');
-    if (volumenRutinaPrevio && volumen > 0) {
-      const pct = Math.round(((volumen - volumenRutinaPrevio) / volumenRutinaPrevio) * 100);
-      varEl.textContent = `${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct)} %`;
-      varEl.classList.toggle('sesion-hud-var--sube', pct >= 0);
+    metaEl.hidden = !volumenRutinaPrevio;
+    if (volumenRutinaPrevio) document.getElementById('hud-volumen-previo').textContent = formatNumero(volumenRutinaPrevio, { decimales: 0 });
+    if (volumenRutinaPrevio && volumen > volumenRutinaPrevio) {
+      varEl.textContent = `▲ ${Math.round(((volumen - volumenRutinaPrevio) / volumenRutinaPrevio) * 100)} %`;
+      varEl.classList.add('sesion-hud-var--sube');
       varEl.hidden = false;
     } else {
       varEl.hidden = true;
@@ -1393,11 +1398,11 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
 
             const mensaje = pesoVal > 0
               ? (prevPeso > 0
-                  ? `🏆 ¡Nuevo récord! ${pesoVal}kg en ${escapeHtml(ejNombre)}, superaste tus ${prevPeso}kg anteriores.`
-                  : `🏆 ¡Nuevo récord! ${pesoVal}kg en ${escapeHtml(ejNombre)}.`)
+                  ? `🏆 ¡Nuevo récord! ${formatNumero(pesoVal)} kg en ${escapeHtml(ejNombre)}, superaste tus ${formatNumero(prevPeso)} kg anteriores.`
+                  : `🏆 ¡Nuevo récord! ${formatNumero(pesoVal)} kg en ${escapeHtml(ejNombre)}.`)
               : (prevReps > 0
-                  ? `🏆 ¡Nuevo récord! ${repsVal} reps en ${escapeHtml(ejNombre)}, superaste tus ${prevReps} reps anteriores.`
-                  : `🏆 ¡Nuevo récord! ${repsVal} reps en ${escapeHtml(ejNombre)}.`);
+                  ? `🏆 ¡Nuevo récord! ${formatNumero(repsVal)} reps en ${escapeHtml(ejNombre)}, superaste tus ${formatNumero(prevReps)} reps anteriores.`
+                  : `🏆 ¡Nuevo récord! ${formatNumero(repsVal)} reps en ${escapeHtml(ejNombre)}.`);
             Toast(mensaje, 'pr', 4000);
 
             pr.pesoMax = Math.max(pr.pesoMax, pesoVal);

@@ -3,6 +3,7 @@ import { db } from '../core/db.js';
 import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, lineValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatFechaCorta, formatFechaLarga } from '../utils/fecha.js';
+import { formatNumero } from '../utils/numero.js';
 
 const chartInstances = new Map(); // canvasId -> Chart instance (para destruir al re-togglear)
 
@@ -52,10 +53,10 @@ export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
   historial.forEach(d => {
     if (d.pesoMax > runningPesoMax) {
       runningPesoMax = d.pesoMax;
-      prEvents.push({ fecha: d.fecha, texto: `${d.pesoMax}kg × ${d.repsEnPesoMax || '?'}` });
+      prEvents.push({ fecha: d.fecha, texto: `${formatNumero(d.pesoMax)} kg × ${d.repsEnPesoMax || '?'}` });
     } else if (d.pesoMax === 0 && d.repsMax > runningRepsMax) {
       runningRepsMax = d.repsMax;
-      prEvents.push({ fecha: d.fecha, texto: `${d.repsMax} reps` });
+      prEvents.push({ fecha: d.fecha, texto: `${formatNumero(d.repsMax)} reps` });
     }
   });
   prEvents = prEvents.reverse().slice(0, 5);
@@ -84,12 +85,12 @@ export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
       <div style="display: flex; gap: 8px; margin-top: 14px;">
         ${max1RM > 0 ? `
           <div style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); border-radius: 12px; padding: 12px; text-align: center;">
-            <div class="num" style="font-size: 16px; font-weight: 800; color: var(--text-primary);">${max1RM}kg</div>
+            <div class="num" style="font-size: 16px; font-weight: 800; color: var(--text-primary);">${formatNumero(max1RM)} kg</div>
             <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">1RM estimado</div>
           </div>
         ` : ''}
         <div style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); border-radius: 12px; padding: 12px; text-align: center;">
-          <div class="num" style="font-size: 16px; font-weight: 800; color: var(--text-primary);">${ultimo.volumenTotal}</div>
+          <div class="num" style="font-size: 16px; font-weight: 800; color: var(--text-primary);">${formatNumero(ultimo.volumenTotal)}</div>
           <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">Volumen última sesión</div>
         </div>
       </div>
@@ -148,14 +149,14 @@ export async function initEjercicioDetalleChart(chartCanvasId, historial) {
       layout: { padding: { top: 20 } },
       plugins: {
         ...opts.plugins,
-        tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.parsed.y}${unidad}` } }
+        tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${formatNumero(ctx.parsed.y)}${unidad}` } }
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
         y: { display: false }
       }
     },
-    plugins: [lineValueLabelsPlugin(cssVar('--text-primary'))]
+    plugins: [lineValueLabelsPlugin(cssVar('--text-primary'), '', (v) => formatNumero(v))]
   });
   chartInstances.set(chartCanvasId, chart);
 

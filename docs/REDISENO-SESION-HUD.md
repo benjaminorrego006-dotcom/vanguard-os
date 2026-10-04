@@ -18,7 +18,7 @@ y superseries).
 | 3 — HUD | Hecha (79d5b8e, v247) |
 | 4 — Riel y un ejercicio por pantalla | Hecha (22f8f58, v248) |
 | 5 — Tabla, editor y botón principal | Hecha (73e3a1a, v249) |
-| 6 — Descanso en el HUD | Hecha (commit de la fase 6, v250) |
+| 6 — Descanso en el HUD | Hecha (da9ecdd, v250) |
 | 7 — Récord en vivo | Pendiente |
 | 8 — Resumen al finalizar | Pendiente |
 | 9 — QA y documentación | Pendiente |
@@ -93,7 +93,7 @@ Android la mate borra todo.
   "Tienes una sesión en curso · Torso A · 18 min" con **Retomar** y
   **Descartar** (ConfirmDialog). Retomar abre la sesión con todo restaurado.
   Un borrador de más de 12 h se ofrece igual pero diciendo la hora de inicio, y
-  al retomarlo pregunta si guardar con la duración real o con 60 min.
+  al guardarlo (Finalizar) pregunta si usar la duración real o 60 min.
 - Se borra al guardar la sesión o al descartarla.
 - El botón Atrás / volver ya no destruye la sesión: sale y el borrador queda.
 

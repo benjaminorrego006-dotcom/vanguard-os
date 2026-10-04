@@ -383,7 +383,6 @@ body {
    de la sesión, que normalmente dejan sitio a esa barra, bajan al borde. */
 @media (max-width: 767px) {
   html.entreno-sesion-activa #app-nav { display: none; }
-  html.entreno-sesion-activa #view-root { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
   html.entreno-sesion-activa #buscador-ejercicios-modal,
   html.entreno-sesion-activa #sesion-duracion-modal,
   html.entreno-sesion-activa #sesion-salir-modal { bottom: 0; }
@@ -537,7 +536,8 @@ body {
 .sesion-rpe-chip[aria-pressed="true"] { background: var(--cy); border-color: var(--cy); color: var(--bg); }
 .sesion-editor--vacio .sesion-editor-btn, .sesion-editor--vacio .sesion-rpe-chip { opacity: 0.4; cursor: default; }
 .sesion-editor .plate-popover { position: absolute; right: 8px; bottom: calc(100% + 4px); z-index: 20; padding: 10px; background: var(--surface-2); border: 1px solid var(--line); }
-.sesion-pie { position: sticky; bottom: calc(env(safe-area-inset-bottom) + 8px); z-index: 15; margin-top: 4px; padding: 8px 0 4px; background: var(--bg); }
+/* Pegado al borde (sin franja por la que se vea el contenido de abajo). */
+.sesion-pie { position: sticky; bottom: 0; z-index: 15; margin-top: 4px; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); background: var(--bg); }
 .sesion-pie .sesion-nav { margin-bottom: 8px; }
 .sesion-principal {
   width: 100%; min-height: 52px; padding: 0 14px; background: var(--cy); border: none; color: var(--bg);
@@ -576,3 +576,15 @@ body {
 .sesion-descanso-config button { width: 40px; height: 40px; padding: 0; background: transparent; border: 1px solid var(--cy3); color: var(--cy); font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; }
 .sesion-descanso-config-valor { min-width: 52px; text-align: center; }
 .sesion-descanso-btns button:focus-visible, .sesion-descanso-config button:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
+
+/* Sesión abierta: sin el relleno inferior de la vista (lo pone el pie fijo,
+   que así queda pegado al borde, en móvil y en PC). */
+html.entreno-sesion-activa #view-root { padding-bottom: 0; }
+/* Volumen del HUD: "880 de 7.077 kg". */
+.sesion-hud-meta { font-size: 12px; color: var(--text-secondary); }
+/* PC (≥1024 px): la sesión (HUD, riel, tabla, editor, pie) con un ancho
+   máximo de ~760 px, centrada. */
+@media (min-width: 1024px) {
+  #entrenamiento-sub-content .sesion-cabecera,
+  #entrenamiento-sub-content .sesion-cuerpo { max-width: 760px; margin-left: auto; margin-right: auto; }
+}
