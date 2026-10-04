@@ -9,16 +9,13 @@ import { renderSessionSummaryForm, askSessionSummary } from './session-summary-f
 import { escapeHtml } from '../utils/escape.js';
 import { guardarBorrador, borrarBorrador, esBorradorLargo } from '../utils/sesion-borrador.js';
 import { formatFechaCorta } from '../utils/fecha.js';
+import { formatNumero } from '../utils/numero.js';
 import { MuscleMap, sumarFatigaPorGrupo, expandirIntensidadPorMusculo, FATIGA_REFERENCIA } from './mk3-muscle-map.js';
 import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
 
 const trophySvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path></svg>`;
-const historySvg = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg>`;
 const trendUpSvg = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`;
-const arrowUpSvg = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px;"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`;
-const arrowDownSvg = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px;"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
 const clockSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -3px; margin-right: 6px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
-const warningSvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 4px; flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
 
 let timerInterval = null;
 let restTimerInterval = null;
@@ -28,6 +25,8 @@ let currentPRs = {};
 let currentSugerencias = {};
 let currentHistorial = {};
 let currentEstancamiento = {};
+// Última vez que se hizo cada ejercicio (db.getUltimoRegistro): columna "Anterior".
+let currentAnterior = {};
 let currentRestTimerSecs = 90;
 // HUD: volumen (kg) de la última sesión de esta misma rutina (null si no
 // hay) y los récords tal como estaban al abrir la sesión (currentPRs se
@@ -158,53 +157,42 @@ export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = 
   });
 }
 
-// Una fila de serie completa: la fila visible + su hint de 1RM como
-// hermano inmediato (initRutinaSessionListeners depende de
-// row.nextElementSibling para encontrarlo). Se usa tanto en el render
-// inicial como al agregar una serie nueva en vivo.
+// Una fila de la tabla de series (fase 5): # (chip con el tipo de serie y su
+// popover) · ANTERIOR (la serie con el mismo índice de la última vez) · KG ·
+// REPS · RPE · ✓. Los inputs siguen siendo la fuente que leen Finalizar, el
+// borrador y el HUD; el editor de abajo escribe en ellos.
 // Reps es texto (con teclado numérico): las plantillas de Calistenia traen
 // series por tiempo ("30s", "20s/lado") y un input type="number" las dejaba
 // vacías (y se guardaban sin reps).
-function renderSerieRowHtml(s, sIdx) {
+function renderSerieRowHtml(s, sIdx, anterior = null) {
   const tipo = s.tipo || 'normal';
   const tc = TIPO_COLORS[tipo] || TIPO_COLORS.normal;
-  const isNormal = tipo === 'normal' ? 'selected' : '';
-  const isCalentamiento = tipo === 'calentamiento' ? 'selected' : '';
-  const isFallo = tipo === 'fallo' ? 'selected' : '';
-  const isDropset = tipo === 'dropset' ? 'selected' : '';
-
-  const pesoInicial = parseFloat(s.peso) || 0;
-  const repsInicial = parseInt(s.reps) || 0;
-  const rm1Inicial = (pesoInicial > 0 && repsInicial > 0) ? db.estimar1RM(pesoInicial, repsInicial) : 0;
-
-  const fieldStyle = "flex: 1; min-width:0; box-sizing:border-box; height:44px; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-primary); text-align:center; font-size:15px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; padding: 0 4px;";
-  const rpeStyle = "flex: 0 0 48px; height:44px; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-primary); font-size:13px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align:center; text-align-last:center; appearance:none; -webkit-appearance:none; padding: 0;";
-
-  const row = `
-    <div class="serie-row" style="display: flex; align-items: center; gap: 6px; position: relative; margin-bottom: 6px;">
-      <select class="serie-tipo" style="display:none;">
-        <option value="normal" ${isNormal}>N</option>
-        <option value="calentamiento" ${isCalentamiento}>C</option>
-        <option value="fallo" ${isFallo}>F</option>
-        <option value="dropset" ${isDropset}>D</option>
-      </select>
-      <button type="button" class="serie-tipo-chip tappable" data-tipo="${tipo}" title="${TIPO_LABELS[tipo]}" style="flex-shrink:0; width: 32px; height: 44px; background: ${tc.bg}; border: 1px solid ${tc.border}; color: ${tc.color}; font-size: 13px; font-weight: 700; font-family: var(--font-mono); cursor: pointer; padding: 0;">${sIdx + 1}</button>
-      <input type="text" inputmode="numeric" class="serie-reps" value="${escapeHtml(String(s.reps ?? ''))}" aria-label="Repeticiones o segundos" style="${fieldStyle}">
-      <input type="number" step="0.5" inputmode="decimal" class="serie-peso" value="${s.peso}" style="${fieldStyle} flex: 1.25;">
-      <select class="serie-rpe" style="${rpeStyle}">
+  const n = sIdx + 1;
+  const opcionTipo = (v, l) => `<option value="${v}" ${tipo === v ? 'selected' : ''}>${l}</option>`;
+  const marcada = s.checked === true;
+  return `
+    <div class="serie-row">
+      <select class="serie-tipo" hidden aria-hidden="true">${opcionTipo('normal', 'N')}${opcionTipo('calentamiento', 'C')}${opcionTipo('fallo', 'F')}${opcionTipo('dropset', 'D')}</select>
+      <button type="button" class="serie-tipo-chip tappable" data-tipo="${tipo}" title="${TIPO_LABELS[tipo]}" aria-label="Serie ${n}, ${TIPO_LABELS[tipo]}. Cambiar tipo" style="background: ${tc.bg}; border: 1px solid ${tc.border}; color: ${tc.color};">${n}</button>
+      <span class="serie-anterior num" title="La última vez">${textoAnterior(anterior)}</span>
+      <input type="number" step="0.5" min="0" inputmode="decimal" class="serie-peso" value="${escapeHtml(String(s.peso ?? ''))}" aria-label="Kilos de la serie ${n}">
+      <input type="text" inputmode="numeric" class="serie-reps" value="${escapeHtml(String(s.reps ?? ''))}" aria-label="Repeticiones o segundos de la serie ${n}">
+      <select class="serie-rpe" aria-label="RPE de la serie ${n}">
         <option value="">-</option>
-        <option value="5" ${s.rpe == 5 ? 'selected' : ''}>5</option>
-        <option value="6" ${s.rpe == 6 ? 'selected' : ''}>6</option>
-        <option value="7" ${s.rpe == 7 ? 'selected' : ''}>7</option>
-        <option value="8" ${s.rpe == 8 ? 'selected' : ''}>8</option>
-        <option value="9" ${s.rpe == 9 ? 'selected' : ''}>9</option>
-        <option value="10" ${s.rpe == 10 ? 'selected' : ''}>10</option>
+        ${[5, 6, 7, 8, 9, 10].map(v => `<option value="${v}" ${s.rpe == v ? 'selected' : ''}>${v}</option>`).join('')}
       </select>
-      <button class="btn-check-serie" data-checked="${s.checked === true ? 'true' : 'false'}" style="flex-shrink:0; width: 44px; height: 44px; background: ${s.checked ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${s.checked ? 'var(--state-success)' : 'var(--text-secondary)'}; color: ${s.checked ? '#000' : 'var(--text-secondary)'}; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">✓</button>
+      <button type="button" class="btn-check-serie" data-checked="${marcada ? 'true' : 'false'}" aria-label="Marcar la serie ${n} como hecha" style="background: ${marcada ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${marcada ? 'var(--state-success)' : 'var(--text-secondary)'}; color: ${marcada ? '#000' : 'var(--text-secondary)'};">✓</button>
     </div>
-    <div class="serie-1rm-hint num" style="text-align: right; font-size: 10px; color: var(--text-disabled); margin: -2px 0 6px 38px; ${rm1Inicial > 0 ? '' : 'display: none;'}">1RM est. ~${rm1Inicial}kg</div>
   `;
-  return row;
+}
+
+// "57,5×10" de la serie anterior ("10 reps" si fue sin peso); vacío si no hay.
+function textoAnterior(serie) {
+  if (!serie) return '';
+  const peso = parseFloat(serie.peso) || 0;
+  const reps = formatNumero(serie.reps, { textoSiNoEsNumero: true });
+  if (!reps && !peso) return '';
+  return peso > 0 ? `${formatNumero(peso)}×${reps}` : `${reps} reps`;
 }
 
 // El id del contenedor de "Ver progreso" depende del nombre del ejercicio:
@@ -267,11 +255,13 @@ export async function renderRutinaSession(rutina) {
   volumenRutinaPrevio = previa ? volumenDeSeries((previa.ejercicios || []).flatMap(e => e.series || [])) : null;
   currentHistorial = {};
   currentEstancamiento = {};
+  currentAnterior = {};
   currentRestTimerSecs = await db.getRestTimerSecs();
   for (const ej of rutina.ejercicios) {
     currentHistorial[ej.nombre] = await db.getHistorialEjercicio(ej.nombre);
     currentSugerencias[ej.nombre] = await db.sugerirProgresion(ej.nombre);
     currentEstancamiento[ej.nombre] = await db.detectarEstancamiento(ej.nombre);
+    currentAnterior[ej.nombre] = await db.getUltimoRegistro(ej.nombre);
   }
 
 
@@ -307,8 +297,8 @@ export async function renderRutinaSession(rutina) {
     </section>
     ${renderRielEjercicios(rutina)}
     </div>
-    <div class="card" style="padding: 22px; border-radius: 20px;">
-      <div class="flex-between" style="margin-bottom: 20px;">
+    <div class="sesion-cuerpo">
+      <div class="flex-between" style="margin-bottom: 12px;">
         <div></div>
         <button id="btn-rest-timer-config" type="button" style="background: transparent; border: none; color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 0; display: flex; align-items: center; gap: 4px;">${clockSvg}Descanso: <span id="rest-timer-config-value" class="num">${currentRestTimerSecs}</span>s</button>
       </div>
@@ -331,13 +321,14 @@ export async function renderRutinaSession(rutina) {
   const totalEjercicios = rutina.ejercicios.length;
 
   for (const ej of rutina.ejercicios) {
-    const hist = currentHistorial[ej.nombre];
-    const ultimo = (hist && hist.length > 0) ? hist[hist.length - 1] : null;
+    const idx = rutina.ejercicios.indexOf(ej);
     const pr = currentPRs[ej.nombre.toLowerCase().trim()];
     const prog = getProgressionLevel(ej.nombre, ej.ejercicioId);
     const meta = metadataDeEjercicio(ej.nombre, ej.ejercicioId);
     const sug = currentSugerencias[ej.nombre];
     const estancado = currentEstancamiento[ej.nombre];
+    const anterior = currentAnterior[ej.nombre];
+    const tieneTecnica = meta && (meta.posturaInicial || (meta.pasosEjecucion && meta.pasosEjecucion.length));
 
     const esSegundoDelGrupo = !!ej.grupoId && gruposYaMostrados.has(ej.grupoId);
     if (ej.grupoId) gruposYaMostrados.add(ej.grupoId);
@@ -345,81 +336,93 @@ export async function renderRutinaSession(rutina) {
       ? `<div style="margin-bottom: 8px;"><span class="badge badge--medium">SUPERSERIE · sin descanso entre estos dos</span></div>`
       : '';
 
-    html += `
-      <div class="card ejercicio-sesion-block" id="sesion-ej-${rutina.ejercicios.indexOf(ej)}" role="tabpanel" data-ej-idx="${rutina.ejercicios.indexOf(ej)}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; ${esSegundoDelGrupo ? 'border-left: 2px solid var(--state-medium);' : ''}">
-        ${supChipHtml}
-
-        <div class="sesion-ej-rotulo">Ejercicio <span class="num">${rutina.ejercicios.indexOf(ej) + 1}</span> de <span class="num">${totalEjercicios}</span>${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular] ? ` · ${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular]}` : ''}</div>
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
-          <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
-            <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary); white-space: normal; line-height: 1.2; word-break: break-word;">${escapeHtml(ej.nombre)}</h3>
-            ${meta && (meta.posturaInicial || (meta.pasosEjecucion && meta.pasosEjecucion.length)) ? `<button class="btn-info-ejercicio" data-ejnombre="${escapeHtml(ej.nombre)}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); width:22px; height:22px; border-radius:50%; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></button>` : ''}
-          </div>
-          <button class="btn-plate-calc" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 6px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Calculadora de discos"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="8" y1="10" x2="8.01" y2="10"></line><line x1="12" y1="10" x2="12.01" y2="10"></line><line x1="16" y1="10" x2="16.01" y2="10"></line><line x1="8" y1="14" x2="8.01" y2="14"></line><line x1="12" y1="14" x2="12.01" y2="14"></line><line x1="16" y1="14" x2="16.01" y2="14"></line><line x1="8" y1="18" x2="16" y2="18"></line></svg></button>
-            <button class="btn-ver-progreso" data-ejnombre="${escapeHtml(ej.nombre)}" style="flex-shrink:0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 20px; white-space: nowrap; display: flex; align-items: center;">${trendUpSvg}Progreso</button>
-        </div>
-
-        <div id="progreso-container-${idSafeFragment(ej.nombre)}" style="display: none; width: 100%; margin-bottom: 8px;"></div>
-    `;
-
+    // Chips del ejercicio en una línea: récord, nivel de progresión,
+    // sugerencia (toca para aplicar a las series sin marcar) y estancamiento.
     const chips = [];
-
     if (pr && pr.pesoMax > 0) {
-      const rm = db.estimar1RM(pr.pesoMax, pr.repsMax || pr.repsEnPesoMax || 1); // fallback
-      chips.push(`<span class="num" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trophySvgSm}PR ${pr.pesoMax}kg${rm > 0 ? ` · 1RM ~${rm}kg` : ''}</span>`);
+      const rm = db.estimar1RM(pr.pesoMax, pr.repsMax || pr.repsEnPesoMax || 1);
+      chips.push(`<span class="sesion-chip">${trophySvgSm}PR <span class="num">${formatNumero(pr.pesoMax)}</span> kg${rm > 0 ? ` · 1RM ~<span class="num">${formatNumero(rm)}</span> kg` : ''}</span>`);
     } else if (pr && pr.pesoMax === 0 && pr.repsMax > 0) {
-      chips.push(`<span class="num" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trophySvgSm}PR ${pr.repsMax} reps</span>`);
+      chips.push(`<span class="sesion-chip">${trophySvgSm}PR <span class="num">${formatNumero(pr.repsMax)}</span> reps</span>`);
     }
-
-    if (ultimo) {
-      const ultimoTxt = ultimo.pesoMax > 0 ? `${ultimo.pesoMax}kg` : `${ultimo.repsMax || 0} reps`;
-      chips.push(`<span style="background: var(--surface-1); color: var(--text-secondary); border: 1px solid var(--surface-border); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px;">${historySvg}${ultimoTxt} · ${ultimo.volumenTotal} vol</span>`);
-    } else {
-      chips.push(`<span style="background: var(--surface-1); color: var(--text-disabled); border: 1px solid var(--surface-border); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px;">Primera vez</span>`);
-    }
-
     if (prog) {
-      chips.push(`<span style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${trendUpSvg}${RAMA_LABELS[prog.familia] || prog.familia} · Nv.${prog.nivelActual}/${prog.nivelTotal}</span>`);
+      chips.push(`<span class="sesion-chip">${trendUpSvg}${RAMA_LABELS[prog.familia] || prog.familia} · Nv.<span class="num">${prog.nivelActual}/${prog.nivelTotal}</span></span>`);
     }
-
-    html += `<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;">${chips.join('')}</div>`;
-
     if (sug) {
-      const sugText = sug.peso > 0 ? sug.peso + 'kg' : sug.reps + ' reps';
-      const sugIcon = sug.accion === 'aumentar' ? arrowUpSvg : arrowDownSvg;
-      html += `<button class="btn-sugerencia" data-ejnombre="${escapeHtml(ej.nombre)}" data-peso="${sug.peso}" data-reps="${sug.reps}" style="width: 100%; background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); padding: 9px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 6px;">${sugIcon}Sugerido: ${sugText} · toca para aplicar</button>`;
+      const sube = sug.accion === 'aumentar';
+      const valor = sug.peso > 0 ? `<span class="num">${formatNumero(sug.peso)}</span> kg` : `<span class="num">${formatNumero(sug.reps)}</span> reps`;
+      chips.push(`<button type="button" class="sesion-chip sesion-chip--accion btn-sugerencia tappable" data-ejnombre="${escapeHtml(ej.nombre)}" data-peso="${sug.peso}" data-reps="${sug.reps}" aria-label="Aplicar la sugerencia a las series sin marcar">${sube ? '↑ Sube' : '↓ Baja'} a ${valor}</button>`);
     }
-
     if (estancado) {
-      html += `<div style="display: flex; align-items: center; font-size: 11px; color: var(--state-medium); margin-bottom: 6px;">${warningSvgSm}Sin mejora en tus últimas 3 sesiones — prueba variar reps, descanso o el ejercicio.</div>`;
+      chips.push(`<button type="button" class="sesion-chip sesion-chip--ambar btn-estancado tappable" aria-expanded="false">Estancado <span class="num">3</span> ses.</button>`);
     }
-
-    html += `<div class="series-list" data-ejnombre="${escapeHtml(ej.nombre)}" style="display: flex; flex-direction: column;">`;
 
     html += `
-              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-          <div style="width: 32px; flex-shrink: 0;"></div>
-          <div style="flex: 1; font-size: 9px; color: var(--text-secondary); text-align: center;">REPS</div>
-          <div style="flex: 1.25; font-size: 9px; color: var(--text-secondary); text-align: center;">PESO</div>
-          <div style="flex: 0 0 48px; font-size: 9px; color: var(--text-secondary); text-align: center;">RPE</div>
-          <div style="width: 44px; flex-shrink: 0;"></div>
+      <div class="card ejercicio-sesion-block" id="sesion-ej-${idx}" role="tabpanel" data-ej-idx="${idx}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}"${esSegundoDelGrupo ? ' data-superserie-segundo="true"' : ''}>
+        ${supChipHtml}
+        <div class="sesion-ej-cabecera">
+          <div class="sesion-ej-titulo">
+            <div class="sesion-ej-rotulo">Ejercicio <span class="num">${idx + 1}</span> de <span class="num">${totalEjercicios}</span>${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular] ? ` · ${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular]}` : ''}</div>
+            <h3>${escapeHtml(ej.nombre)}</h3>
+          </div>
+          <div class="sesion-ej-menu-wrap">
+            <button type="button" class="btn-ej-menu tappable" aria-label="Más opciones de ${escapeHtml(ej.nombre)}" aria-haspopup="menu" aria-expanded="false">
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
+            </button>
+            <div class="sesion-ej-menu" role="menu" hidden>
+              ${tieneTecnica ? `<button type="button" role="menuitem" class="btn-info-ejercicio" data-ejnombre="${escapeHtml(ej.nombre)}">Técnica</button>` : ''}
+              <button type="button" role="menuitem" class="btn-ver-progreso" data-ejnombre="${escapeHtml(ej.nombre)}">Progreso</button>
+              <button type="button" role="menuitem" class="btn-plate-calc">Calculadora de discos</button>
+            </div>
+          </div>
         </div>
-      `;
-      ej.series.forEach((s, sIdx) => { html += renderSerieRowHtml(s, sIdx); });
-
-    html += `</div>`;
-    html += `<button type="button" class="btn-add-serie tappable" style="margin-top: 4px; width: 100%; padding: 8px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer;">+ Serie</button>`;
-    html += `</div>`;
+        <div id="progreso-container-${idSafeFragment(ej.nombre)}" style="display: none; width: 100%; margin-bottom: 8px;"></div>
+        ${chips.length ? `<div class="sesion-ej-chips">${chips.join('')}</div>` : ''}
+        ${estancado ? `<p class="sesion-ej-estancado" hidden>Sin mejora en tus últimas <span class="num">3</span> sesiones: prueba variar las reps, el descanso o el ejercicio.</p>` : ''}
+        <div class="serie-tabla-cab" aria-hidden="true"><span>#</span><span>Anterior</span><span>KG</span><span>Reps</span><span>RPE</span><span>✓</span></div>
+        <div class="series-list" data-ejnombre="${escapeHtml(ej.nombre)}">
+          ${ej.series.map((s, sIdx) => renderSerieRowHtml(s, sIdx, anterior && anterior.series ? anterior.series[sIdx] : null)).join('')}
+        </div>
+        <button type="button" class="btn-add-serie tappable">+ Serie</button>
+        <div class="sesion-editor" aria-label="Serie que toca">
+          <div class="sesion-editor-titulo">Serie <span class="num sesion-editor-n"></span><span class="sesion-editor-tipo"></span><span class="sesion-editor-1rm"></span></div>
+          <div class="sesion-editor-campos">
+            <div class="sesion-editor-campo">
+              <span class="sesion-editor-etq">KG</span>
+              <div class="sesion-editor-ctrl">
+                <button type="button" class="sesion-editor-btn tappable" data-campo="peso" data-paso="-2.5" aria-label="Restar 2,5 kg">−</button>
+                <output class="sesion-editor-valor num" data-campo="peso" tabindex="0" title="Mantén presionado para la calculadora de discos"></output>
+                <button type="button" class="sesion-editor-btn tappable" data-campo="peso" data-paso="2.5" aria-label="Sumar 2,5 kg">+</button>
+              </div>
+            </div>
+            <div class="sesion-editor-campo">
+              <span class="sesion-editor-etq">Reps</span>
+              <div class="sesion-editor-ctrl">
+                <button type="button" class="sesion-editor-btn tappable" data-campo="reps" data-paso="-1" aria-label="Restar 1 repetición">−</button>
+                <output class="sesion-editor-valor num" data-campo="reps"></output>
+                <button type="button" class="sesion-editor-btn tappable" data-campo="reps" data-paso="1" aria-label="Sumar 1 repetición">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="sesion-editor-rpe" role="group" aria-label="RPE de la serie">
+            <span class="sesion-editor-etq">RPE</span>
+            ${[6, 7, 8, 9, 10].map(v => `<button type="button" class="sesion-rpe-chip num tappable" data-rpe="${v}" aria-pressed="false">${v}</button>`).join('')}
+          </div>
+        </div>
+      </div>`;
   }
 
   html += `</div>`;
 
-  // Anterior / puntos / Siguiente (también se cambia con el riel o deslizando).
+  // Pie fijo abajo (zona del pulgar): ‹ · puntos · › y el botón principal.
   html += `
-    <div class="sesion-nav" ${rutina.ejercicios.length ? '' : 'hidden'}>
-      <button type="button" id="btn-ej-anterior" class="sesion-nav-btn tappable">‹ Anterior</button>
-      <div id="sesion-puntos" class="sesion-puntos" aria-hidden="true">${rutina.ejercicios.map(() => '<span></span>').join('')}</div>
-      <button type="button" id="btn-ej-siguiente" class="sesion-nav-btn tappable">Siguiente ›</button>
+    <div class="sesion-pie" ${rutina.ejercicios.length ? '' : 'hidden'}>
+      <div class="sesion-nav">
+        <button type="button" id="btn-ej-anterior" class="sesion-nav-btn tappable" aria-label="Ejercicio anterior">‹ Anterior</button>
+        <div id="sesion-puntos" class="sesion-puntos" aria-hidden="true">${rutina.ejercicios.map(() => '<span></span>').join('')}</div>
+        <button type="button" id="btn-ej-siguiente" class="sesion-nav-btn tappable" aria-label="Ejercicio siguiente">Siguiente ›</button>
+      </div>
+      <button type="button" id="btn-sesion-principal" class="sesion-principal tappable"></button>
     </div>
   </div>`;
 
@@ -539,7 +542,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     // terminó, la primera sin marcar de la sesión.
     const pendientes = (b) => Array.from(b.querySelectorAll('.serie-row')).filter(r => r.querySelector('.btn-check-serie').getAttribute('data-checked') !== 'true');
     const activo = bloques.find(b => Number(b.dataset.ejIdx) === ejercicioActivo);
-    const toca = (activo && pendientes(activo)[0]) || bloques.map(b => pendientes(b)[0]).find(Boolean) || null;
+    const toca = (activo && filaTocaDe(activo)) || bloques.map(b => pendientes(b)[0]).find(Boolean) || null;
     const segs = [];
     bloques.forEach((b, bi) => {
       b.querySelectorAll('.serie-row').forEach((row, ri) => {
@@ -558,7 +561,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   // borrador y "Añadir ejercicio" los leen igual); solo se ve el activo.
   const bloquesSesion = () => Array.from(document.querySelectorAll('.ejercicio-sesion-block'));
   const pendientesDe = (b) => Array.from(b.querySelectorAll('.btn-check-serie')).filter(c => c.getAttribute('data-checked') !== 'true').length;
-  let avanzarTrasDescanso = null; // índice del ejercicio que terminó; al acabar el descanso pasa al siguiente
+  let avanzarTrasDescanso = null; // { desde, hacia }: al acabar el descanso se pasa a "hacia" (o al siguiente si es null)
 
   const mostrarEjercicio = (idx, { foco = false } = {}) => {
     const bloques = bloquesSesion();
@@ -633,8 +636,227 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     }, { passive: true, signal });
   }
 
+  // --- Tabla, editor y botón principal (fase 5) --------------------------
+  const esCalistenia = rutina.categoria === 'calistenia';
+  const estaMarcada = (row) => row.querySelector('.btn-check-serie').getAttribute('data-checked') === 'true';
+  // La fila que toca: la elegida (tocándola) si sigue sin marcar; si no, la
+  // primera sin marcar del ejercicio. null si ya están todas hechas.
+  const filaTocaDe = (b) => {
+    if (!b) return null;
+    const elegida = b.querySelector('.serie-row--toca');
+    if (elegida && !estaMarcada(elegida)) return elegida;
+    return Array.from(b.querySelectorAll('.serie-row')).find(r => !estaMarcada(r)) || null;
+  };
+  const fijarToca = (b, row) => {
+    b.querySelectorAll('.serie-row--toca').forEach(r => r.classList.remove('serie-row--toca'));
+    if (row) row.classList.add('serie-row--toca');
+  };
+  const bloqueActivo = () => bloquesSesion().find(b => Number(b.dataset.ejIdx) === ejercicioActivo) || null;
+  // Corrida de superserie del bloque (bloques consecutivos con su grupoId).
+  const corridaDe = (b) => {
+    const g = b.dataset.grupoId;
+    const bloques = bloquesSesion();
+    if (!g) return [b];
+    let i = bloques.indexOf(b), j = i;
+    while (i > 0 && bloques[i - 1].dataset.grupoId === g) i--;
+    while (j < bloques.length - 1 && bloques[j + 1].dataset.grupoId === g) j++;
+    return bloques.slice(i, j + 1);
+  };
+  const nombreCorto = (n) => (n || '').replace(/\s*\(.*\)\s*/g, ' ').trim();
+  const textoPeso = (v) => {
+    const peso = parseFloat(v) || 0;
+    if (peso === 0 && esCalistenia) return 'Corporal';
+    return formatNumero(peso);
+  };
+
+  // Editor de la fila que toca: KG −/+ (2,5), REPS −/+ (1) y RPE 6–10.
+  const actualizarEditor = (b) => {
+    const ed = b.querySelector('.sesion-editor');
+    if (!ed) return;
+    const row = filaTocaDe(b);
+    fijarToca(b, row);
+    ed.classList.toggle('sesion-editor--vacio', !row);
+    ed.querySelectorAll('button').forEach(x => { x.disabled = !row; });
+    if (!row) {
+      ed.querySelector('.sesion-editor-n').textContent = '';
+      ed.querySelector('.sesion-editor-tipo').textContent = 'Todas las series hechas';
+      ed.querySelector('.sesion-editor-1rm').textContent = '';
+      ed.querySelectorAll('.sesion-editor-valor').forEach(o => { o.textContent = '–'; });
+      ed.querySelectorAll('.sesion-rpe-chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
+      return;
+    }
+    const rows = Array.from(b.querySelectorAll('.serie-row'));
+    const tipo = row.querySelector('.serie-tipo').value;
+    const peso = row.querySelector('.serie-peso').value;
+    const reps = row.querySelector('.serie-reps').value;
+    const rpe = row.querySelector('.serie-rpe').value;
+    ed.querySelector('.sesion-editor-n').textContent = String(rows.indexOf(row) + 1);
+    ed.querySelector('.sesion-editor-tipo').textContent = tipo !== 'normal' ? ` · ${TIPO_LABELS[tipo]}` : '';
+    const p = parseFloat(peso) || 0, r = parseInt(reps) || 0;
+    const rm = p > 0 && r > 0 ? db.estimar1RM(p, r) : 0;
+    ed.querySelector('.sesion-editor-1rm').innerHTML = rm > 0 ? ` · 1RM ~<span class="num">${formatNumero(rm)}</span> kg` : '';
+    ed.querySelector('.sesion-editor-valor[data-campo="peso"]').textContent = textoPeso(peso);
+    ed.querySelector('.sesion-editor-valor[data-campo="reps"]').textContent = formatNumero(reps, { textoSiNoEsNumero: true }) || '0';
+    ed.querySelectorAll('.sesion-rpe-chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.rpe === rpe)));
+  };
+
+  // Botón principal: completar la serie que toca (en superserie, completar y
+  // pasar al siguiente de la corrida), "Siguiente ejercicio" o "Finalizar".
+  const actualizarPrincipal = () => {
+    const btn = document.getElementById('btn-sesion-principal');
+    if (!btn) return;
+    const b = bloqueActivo();
+    const bloques = bloquesSesion();
+    const row = filaTocaDe(b);
+    btn.classList.remove('sesion-principal--ss');
+    if (b && row) {
+      const n = Array.from(b.querySelectorAll('.serie-row')).indexOf(row) + 1;
+      const peso = parseFloat(row.querySelector('.serie-peso').value) || 0;
+      const repsTxt = formatNumero(row.querySelector('.serie-reps').value, { textoSiNoEsNumero: true }) || '0';
+      const carga = peso > 0 ? `${formatNumero(peso)} kg × ${repsTxt}` : `${esCalistenia ? 'Corporal' : '0 kg'} × ${repsTxt}`;
+      const corrida = corridaDe(b);
+      const sig = corrida[corrida.indexOf(b) + 1];
+      if (sig) {
+        btn.dataset.modo = 'superserie';
+        btn.classList.add('sesion-principal--ss');
+        btn.textContent = `✓ Completar y pasar a ${nombreCorto(sig.dataset.ejNombre)} →`;
+      } else {
+        btn.dataset.modo = 'completar';
+        btn.innerHTML = `✓ Completar serie <span class="num">${n}</span> · <span class="num">${escapeHtml(carga)}</span>`;
+      }
+    } else if (b && bloques.indexOf(b) < bloques.length - 1) {
+      btn.dataset.modo = 'siguiente';
+      btn.textContent = 'Siguiente ejercicio →';
+    } else {
+      btn.dataset.modo = 'finalizar';
+      btn.textContent = 'Finalizar sesión';
+    }
+  };
+
+  // Valor nuevo para un campo del editor: el paso sobre lo que tenga la fila
+  // (reps por tiempo como "30s" conservan su sufijo). Nunca negativo.
+  const pasoCampo = (valor, paso) => {
+    const m = String(valor ?? '').match(/^(\d+(?:[.,]\d+)?)(.*)$/);
+    const base = m ? parseFloat(m[1].replace(',', '.')) : 0;
+    const sufijo = m ? m[2] : '';
+    const nuevo = Math.max(0, Math.round((base + paso) * 100) / 100);
+    return `${nuevo}${sufijo}`;
+  };
+  const escribir = (input, valor, evento = 'input') => {
+    input.value = valor;
+    input.dispatchEvent(new Event(evento, { bubbles: true }));
+  };
+
+  const zonaEjercicios = document.getElementById('sesion-ejercicios');
+  if (zonaEjercicios) {
+    zonaEjercicios.addEventListener('click', (e) => {
+      const b = e.target.closest('.ejercicio-sesion-block');
+      if (!b) return;
+      const pasoBtn = e.target.closest('.sesion-editor-btn');
+      if (pasoBtn) {
+        const row = filaTocaDe(b);
+        if (!row) return;
+        const input = row.querySelector(pasoBtn.dataset.campo === 'peso' ? '.serie-peso' : '.serie-reps');
+        escribir(input, pasoCampo(input.value, Number(pasoBtn.dataset.paso)));
+        return;
+      }
+      const chipRpe = e.target.closest('.sesion-rpe-chip');
+      if (chipRpe) {
+        const row = filaTocaDe(b);
+        if (!row) return;
+        const sel = row.querySelector('.serie-rpe');
+        escribir(sel, sel.value === chipRpe.dataset.rpe ? '' : chipRpe.dataset.rpe, 'change');
+        return;
+      }
+      // Tocar una fila (fuera de ✓ y del chip de tipo) la vuelve la que toca.
+      const row = e.target.closest('.serie-row');
+      if (row && !e.target.closest('.btn-check-serie, .serie-tipo-chip, .tipo-serie-popover') && !estaMarcada(row)) {
+        fijarToca(b, row);
+        guardar();
+      }
+    }, { signal });
+    zonaEjercicios.addEventListener('focusin', (e) => {
+      const row = e.target.closest('.serie-row');
+      const b = e.target.closest('.ejercicio-sesion-block');
+      if (row && b && !estaMarcada(row) && e.target.matches('input, select')) { fijarToca(b, row); guardar(); }
+    }, { signal });
+
+    // Mantener presionado el KG del editor abre la calculadora de discos.
+    let presion = null;
+    zonaEjercicios.addEventListener('pointerdown', (e) => {
+      const valor = e.target.closest('.sesion-editor-valor[data-campo="peso"]');
+      if (!valor) return;
+      const b = valor.closest('.ejercicio-sesion-block');
+      presion = setTimeout(() => {
+        const row = filaTocaDe(b);
+        abrirCalculadora(b, row ? parseFloat(row.querySelector('.serie-peso').value) || 0 : 0);
+      }, 500);
+    }, { signal });
+    const soltar = () => { clearTimeout(presion); presion = null; };
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => zonaEjercicios.addEventListener(ev, soltar, { signal }));
+  }
+
+  // Calculadora de discos (desde ⋯ o manteniendo presionado el KG).
+  const abrirCalculadora = (b, peso) => {
+    document.querySelectorAll('.plate-popover').forEach(p => p.remove());
+    const popover = document.createElement('div');
+    popover.className = 'plate-popover';
+    popover.innerHTML = renderPlateCalculatorPopover(calcularDiscos(peso), 20);
+    (b.querySelector('.sesion-editor') || b).appendChild(popover);
+    setTimeout(() => popover.remove(), 4000);
+  };
+
+  // Menú ⋯ de cada ejercicio (Técnica, Progreso, Calculadora de discos).
+  const cerrarMenus = () => document.querySelectorAll('.sesion-ej-menu').forEach(m => {
+    m.hidden = true;
+    m.parentElement.querySelector('.btn-ej-menu')?.setAttribute('aria-expanded', 'false');
+  });
+  document.querySelectorAll('.btn-ej-menu').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const menu = btn.parentElement.querySelector('.sesion-ej-menu');
+      const abrir = menu.hidden;
+      cerrarMenus();
+      menu.hidden = !abrir;
+      btn.setAttribute('aria-expanded', String(abrir));
+      if (abrir) menu.querySelector('button')?.focus();
+    });
+  });
+  document.querySelectorAll('.sesion-ej-menu button').forEach(item => item.addEventListener('click', () => setTimeout(cerrarMenus, 0)));
+  document.addEventListener('click', (e) => { if (!e.target.closest('.sesion-ej-menu-wrap')) cerrarMenus(); }, { signal });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.querySelector('.sesion-ej-menu:not([hidden])')) { e.stopPropagation(); cerrarMenus(); } }, { signal, capture: true });
+
+  // Chip de estancamiento: muestra el texto completo.
+  document.querySelectorAll('.btn-estancado').forEach(btn => btn.addEventListener('click', () => {
+    const p = btn.closest('.ejercicio-sesion-block').querySelector('.sesion-ej-estancado');
+    if (!p) return;
+    p.hidden = !p.hidden;
+    btn.setAttribute('aria-expanded', String(!p.hidden));
+  }));
+
+  document.getElementById('btn-sesion-principal')?.addEventListener('click', () => {
+    const btn = document.getElementById('btn-sesion-principal');
+    const b = bloqueActivo();
+    const modo = btn.dataset.modo;
+    if ((modo === 'completar' || modo === 'superserie') && b) {
+      const row = filaTocaDe(b);
+      if (!row) return;
+      const corrida = corridaDe(b);
+      const sig = modo === 'superserie' ? corrida[corrida.indexOf(b) + 1] : null;
+      row.querySelector('.btn-check-serie').click();
+      if (sig) mostrarEjercicio(Number(sig.dataset.ejIdx));
+    } else if (modo === 'siguiente') {
+      moverEjercicio(1);
+    } else if (modo === 'finalizar') {
+      document.getElementById('btn-finalizar-sesion')?.click();
+    }
+  }, { signal });
+
   const guardar = () => {
     if (!document.getElementById('btn-finalizar-sesion')) return; // la vista ya no está
+    const activo = bloqueActivo();
+    if (activo) actualizarEditor(activo);
+    actualizarPrincipal();
     actualizarHud();
     actualizarRiel();
     guardarBorrador({
@@ -785,8 +1007,11 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   // Al terminar (o cerrar) el descanso, si el ejercicio activo quedó
   // terminado, se pasa al siguiente.
   const alTerminarDescanso = () => {
-    if (avanzarTrasDescanso !== null && avanzarTrasDescanso === ejercicioActivo) pasarAlSiguiente(avanzarTrasDescanso);
+    const pendiente = avanzarTrasDescanso;
     avanzarTrasDescanso = null;
+    if (!pendiente || pendiente.desde !== ejercicioActivo) return;
+    if (pendiente.hacia !== null) mostrarEjercicio(pendiente.hacia);
+    else pasarAlSiguiente(pendiente.desde);
   };
 
   const startRestTimer = (seconds) => {
@@ -833,15 +1058,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       marcarActivo(btn);
       guardar();
 
-      const originalHtml = btn.innerHTML;
-      btn.innerHTML = '✓ Aplicado';
-      btn.style.borderColor = 'var(--state-success)';
-      btn.style.color = 'var(--state-success)';
-      setTimeout(() => {
-        btn.innerHTML = originalHtml;
-        btn.style.borderColor = 'var(--accent-teal)';
-        btn.style.color = 'var(--accent-teal)';
-      }, 2000);
+      const original = btn.innerHTML;
+      btn.textContent = '✓ Aplicado';
+      setTimeout(() => { btn.innerHTML = original; }, 2000);
     });
   });
 
@@ -917,42 +1136,14 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   });
 
   document.querySelectorAll('.btn-plate-calc').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      // El botón vive en el header del ejercicio, no dentro de una fila de
-      // serie (closest('.serie-row') siempre daba null acá y tiraba el
-      // click entero) — usamos el peso más alto entre las series de este
-      // ejercicio, que es el caso de uso real de una calculadora de discos
-      // (cargar la barra para la serie de trabajo, no una de calentamiento).
+    btn.addEventListener('click', () => {
       const card = btn.closest('.ejercicio-sesion-block');
       let peso = 0;
-      if (card) {
-        card.querySelectorAll('.serie-row').forEach(row => {
-          const p = parseFloat(row.querySelector('.serie-peso').value) || 0;
-          if (p > peso) peso = p;
-        });
-      }
-
-      const discos = calcularDiscos(peso);
-      const html = renderPlateCalculatorPopover(discos, 20);
-
-      const popover = document.createElement('div');
-      popover.innerHTML = html;
-      popover.style.position = 'absolute';
-      popover.style.bottom = '110%';
-      popover.style.right = '0';
-      popover.style.background = 'var(--surface-2)';
-      popover.style.padding = '10px';
-      popover.style.borderRadius = '12px';
-      popover.style.border = '1px solid var(--surface-border)';
-      popover.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
-      popover.style.zIndex = '20';
-
-      document.querySelectorAll('.plate-popover').forEach(p => p.remove());
-
-      popover.className = 'plate-popover';
-      btn.parentElement.appendChild(popover);
-
-      setTimeout(() => popover.remove(), 4000);
+      card.querySelectorAll('.serie-row').forEach(row => {
+        const p = parseFloat(row.querySelector('.serie-peso').value) || 0;
+        if (p > peso) peso = p;
+      });
+      abrirCalculadora(card, peso);
     });
   });
 
@@ -1026,6 +1217,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       marcarActivo(btn);
       if (isChecked) {
         btn.setAttribute('data-checked', 'false');
+        // Desmarcar es para rehacerla: pasa a ser la que toca.
+        const bloqueFila = row.closest('.ejercicio-sesion-block');
+        if (bloqueFila) fijarToca(bloqueFila, row);
         btn.style.background = 'var(--surface-2)';
         btn.style.color = 'var(--text-secondary)';
         btn.style.borderColor = 'var(--text-secondary)';
@@ -1063,10 +1257,16 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         // Última serie del ejercicio: pasa solo al siguiente; al instante si
         // es una superserie (sin descanso entre ellos), si no al terminar el
         // descanso.
-        if (pendientesDe(ejContainer) === 0) {
-          const idxTerminado = Number(ejContainer.dataset.ejIdx);
-          if (!esUltimoDeLaSuperserie) setTimeout(() => pasarAlSiguiente(idxTerminado), 350);
-          else avanzarTrasDescanso = idxTerminado;
+        const idxMarcado = Number(ejContainer.dataset.ejIdx);
+        if (pendientesDe(ejContainer) === 0 && !esUltimoDeLaSuperserie) {
+          setTimeout(() => pasarAlSiguiente(idxMarcado), 350);
+        } else if (esUltimoDeLaSuperserie) {
+          // Superserie: tras el descanso se vuelve al primero de la corrida
+          // que tenga series pendientes; si no queda ninguna, al siguiente.
+          const corrida = corridaDe(ejContainer);
+          const vuelta = corrida.length > 1 ? corrida.find(b => pendientesDe(b) > 0) : null;
+          if (vuelta) avanzarTrasDescanso = { desde: idxMarcado, hacia: Number(vuelta.dataset.ejIdx) };
+          else if (pendientesDe(ejContainer) === 0) avanzarTrasDescanso = { desde: idxMarcado, hacia: null };
         }
         const pesoVal = parseFloat(pesoInput.value) || 0;
         const repsVal = parseFloat(repsInput.value) || 0;
@@ -1122,14 +1322,16 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
 
   document.querySelectorAll('.btn-add-serie').forEach(btn => {
     btn.addEventListener('click', () => {
-      const seriesList = btn.previousElementSibling;
-      if (!seriesList || !seriesList.classList.contains('series-list')) return;
+      const bloque = btn.closest('.ejercicio-sesion-block');
+      const seriesList = bloque && bloque.querySelector('.series-list');
+      if (!seriesList) return;
       const rows = seriesList.querySelectorAll('.serie-row');
       const last = rows[rows.length - 1];
       const seed = last
         ? { tipo: 'normal', reps: last.querySelector('.serie-reps').value, peso: last.querySelector('.serie-peso').value, rpe: null, checked: false }
         : { tipo: 'normal', reps: '', peso: '', rpe: null, checked: false };
-      seriesList.insertAdjacentHTML('beforeend', renderSerieRowHtml(seed, rows.length));
+      const ant = currentAnterior[bloque.dataset.ejNombre];
+      seriesList.insertAdjacentHTML('beforeend', renderSerieRowHtml(seed, rows.length, ant && ant.series ? ant.series[rows.length] : null));
       const newRows = seriesList.querySelectorAll('.serie-row');
       wireSerieRow(newRows[newRows.length - 1]);
       marcarActivo(btn);

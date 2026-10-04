@@ -16,8 +16,8 @@ y superseries).
 | 1 — Borrador de sesión | Hecha (c35e30f, v243) |
 | 2 — Pantalla completa y orden | Hecha (cb99484, v246) |
 | 3 — HUD | Hecha (79d5b8e, v247) |
-| 4 — Riel y un ejercicio por pantalla | Hecha (commit de la fase 4, v248) |
-| 5 — Tabla, editor y botón principal | Pendiente |
+| 4 — Riel y un ejercicio por pantalla | Hecha (22f8f58, v248) |
+| 5 — Tabla, editor y botón principal | Hecha (commit de la fase 5, v249) |
 | 6 — Descanso en el HUD | Pendiente |
 | 7 — Récord en vivo | Pendiente |
 | 8 — Resumen al finalizar | Pendiente |
