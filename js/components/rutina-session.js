@@ -157,6 +157,9 @@ export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = 
 // hermano inmediato (initRutinaSessionListeners depende de
 // row.nextElementSibling para encontrarlo). Se usa tanto en el render
 // inicial como al agregar una serie nueva en vivo.
+// Reps es texto (con teclado numérico): las plantillas de Calistenia traen
+// series por tiempo ("30s", "20s/lado") y un input type="number" las dejaba
+// vacías (y se guardaban sin reps).
 function renderSerieRowHtml(s, sIdx) {
   const tipo = s.tipo || 'normal';
   const tc = TIPO_COLORS[tipo] || TIPO_COLORS.normal;
@@ -181,7 +184,7 @@ function renderSerieRowHtml(s, sIdx) {
         <option value="dropset" ${isDropset}>D</option>
       </select>
       <button type="button" class="serie-tipo-chip tappable" data-tipo="${tipo}" title="${TIPO_LABELS[tipo]}" style="flex-shrink:0; width: 32px; height: 44px; background: ${tc.bg}; border: 1px solid ${tc.border}; color: ${tc.color}; font-size: 13px; font-weight: 700; font-family: var(--font-mono); cursor: pointer; padding: 0;">${sIdx + 1}</button>
-      <input type="number" inputmode="numeric" class="serie-reps" value="${s.reps}" style="${fieldStyle}">
+      <input type="text" inputmode="numeric" class="serie-reps" value="${escapeHtml(String(s.reps ?? ''))}" aria-label="Repeticiones o segundos" style="${fieldStyle}">
       <input type="number" step="0.5" inputmode="decimal" class="serie-peso" value="${s.peso}" style="${fieldStyle} flex: 1.25;">
       <select class="serie-rpe" style="${rpeStyle}">
         <option value="">-</option>

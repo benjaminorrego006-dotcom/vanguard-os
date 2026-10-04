@@ -13,6 +13,9 @@ import { CATEGORY_COLORS } from '../core/trainingConfig.js';
 import { abrirBuscadorEjercicios, TIPO_LABELS } from './rutina-session.js';
 
 const SEMANAS_POR_PAGINA = 8;
+// Serie por tiempo (plantillas de Calistenia): "30s", "20s/lado", "45 s".
+const REPS_TIEMPO = /^\d+(?:[.,]\d+)?\s*s(?:\s*\/\s*lado)?$/i;
+const esNumero = (v) => String(v).trim() !== '' && Number.isFinite(Number(v));
 const CATEGORIAS = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
 
 let semanasVisibles = SEMANAS_POR_PAGINA;
@@ -116,7 +119,7 @@ function renderDetalle(s, categoria) {
           const marcada = sr.checked !== false;
           return `<li style="display: flex; gap: 10px; font-size: 13px; color: ${marcada ? 'var(--text-primary)' : 'var(--text-secondary)'};">
             <span style="width: 56px; color: var(--text-secondary);">Serie <span class="num">${i + 1}</span></span>
-            <span>${peso > 0 ? `<span class="num">${escapeHtml(String(sr.peso))}</span> kg × ` : ''}<span class="num">${escapeHtml(String(sr.reps ?? 0))}</span> reps${tipo}${marcada ? '' : ' · sin marcar'}</span>
+            <span>${peso > 0 ? `<span class="num">${escapeHtml(String(sr.peso))}</span> kg × ` : ''}<span class="num">${escapeHtml(String(sr.reps ?? 0))}</span>${esNumero(sr.reps ?? 0) ? ' reps' : ''}${tipo}${marcada ? '' : ' · sin marcar'}</span>
           </li>`;
         }).join('')}
       </ol>
@@ -195,7 +198,7 @@ function filaSerieEdicion(sr, ei, si, nombreEj) {
         </div>
         <div style="min-width: 0;">
           <label for="${pre}-reps" style="${ESTILO_ETIQUETA}">Reps</label>
-          <input id="${pre}-reps" class="ed-campo num" type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(sr.reps)}" data-ej="${ei}" data-sr="${si}" data-prop="reps" aria-label="Repeticiones ${de}" style="${ESTILO_INPUT}">
+          <input id="${pre}-reps" class="ed-campo num" type="text" inputmode="numeric" value="${escapeHtml(sr.reps)}" data-ej="${ei}" data-sr="${si}" data-prop="reps" aria-label="Repeticiones ${de}" style="${ESTILO_INPUT}">
         </div>
         <label style="display: flex; align-items: center; gap: 6px; min-height: 44px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
           <input type="checkbox" class="ed-campo" data-ej="${ei}" data-sr="${si}" data-prop="checked" ${sr.checked ? 'checked' : ''} aria-label="Serie ${n} de ${escapeHtml(nombreEj)} marcada" style="width: 20px; height: 20px; accent-color: var(--cy); margin: 0;">
@@ -256,6 +259,8 @@ function renderEdicion(s, b) {
 // no pudo leer como número (validity.badInput).
 function validarBorrador(b, ilegibles = []) {
   const noNegativo = (v) => v === '' || (Number.isFinite(Number(v)) && Number(v) >= 0);
+  // Reps: número o una serie por tiempo como "30s" o "20s/lado".
+  const repsValidas = (v) => noNegativo(v) || REPS_TIEMPO.test(v);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(b.fecha)) return { mensaje: 'Elige una fecha.', campo: 'ed-fecha' };
   if (b.fecha > diaKeyDe(new Date())) return { mensaje: 'La fecha no puede ser futura.', campo: 'ed-fecha' };
   if (ilegibles.includes('ed-duracion') || b.duracionMin.trim() === '' || !noNegativo(b.duracionMin.trim())) {
@@ -270,8 +275,9 @@ function validarBorrador(b, ilegibles = []) {
     for (let si = 0; si < ej.series.length; si++) {
       for (const prop of ['peso', 'reps']) {
         const id = `ed-${ei}-${si}-${prop}`;
-        if (ilegibles.includes(id) || !noNegativo(ej.series[si][prop].trim())) {
-          return { mensaje: 'El peso y las repeticiones tienen que ser números, 0 o más.', campo: id };
+        const v = ej.series[si][prop].trim();
+        if (ilegibles.includes(id) || !(prop === 'reps' ? repsValidas(v) : noNegativo(v))) {
+          return { mensaje: prop === 'reps' ? 'Las repeticiones tienen que ser un número (0 o más) o segundos, como 30s.' : 'El peso tiene que ser un número, 0 o más.', campo: id };
         }
       }
     }
@@ -283,7 +289,8 @@ function validarBorrador(b, ilegibles = []) {
 // que los guarda la sesión en vivo) y la fecha como clave de día (editarSesion
 // conserva la hora original).
 function cambiosDe(b) {
-  const limpio = (v) => (v.trim() === '' ? '' : String(Number(v)));
+  // Números normalizados; una serie por tiempo ("30s") queda como se escribió.
+  const limpio = (v) => (v.trim() === '' ? '' : esNumero(v) ? String(Number(v)) : v.trim());
   return {
     fecha: b.fecha,
     duracionMin: Math.round(Number(b.duracionMin)),
