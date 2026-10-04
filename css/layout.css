@@ -450,3 +450,41 @@ body {
 .sesion-hud-seg--hecha { background: var(--cy); border-color: var(--cy); }
 .sesion-hud-seg--record { background: var(--am); border-color: var(--am); }
 .sesion-hud-seg--toca { border-color: var(--cy); }
+
+/* Riel de ejercicios (fase 4): pestañas bajo el HUD con scroll horizontal;
+   la activa en cian, las terminadas con ✓; superseries en un marco ámbar. */
+.sesion-riel {
+  display: flex; align-items: stretch; gap: 6px; margin-top: 10px;
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.sesion-riel::-webkit-scrollbar { display: none; }
+.sesion-tab {
+  flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+  min-height: 40px; padding: 0 10px; max-width: 170px;
+  background: var(--surface-1); border: 1px solid var(--line); color: var(--text-secondary);
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.sesion-tab-nombre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sesion-tab-prog { font-size: 11px; }
+.sesion-tab-check { color: var(--cy); font-weight: 800; }
+.sesion-tab--hecha { color: var(--text-primary); }
+.sesion-tab--activa { border-color: var(--cy); color: var(--cy); background: var(--cyp); }
+.sesion-tab--mas { min-width: 40px; justify-content: center; font-size: 18px; font-weight: 700; color: var(--cy); }
+.sesion-tab:focus-visible { outline: 2px solid var(--cy); outline-offset: -2px; }
+.sesion-riel-ss { flex-shrink: 0; display: flex; flex-direction: column; border: 1px solid var(--am); padding: 2px 4px 4px; }
+.sesion-riel-ss-etq { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--am); margin: 0 2px 2px; }
+.sesion-riel-ss-tabs { display: flex; gap: 4px; }
+.sesion-riel-ss .sesion-tab { min-height: 34px; }
+
+/* Un ejercicio a la vez: los demás bloques quedan en el DOM, ocultos. */
+.sesion-ejercicios { display: flex; flex-direction: column; gap: 16px; margin-bottom: 12px; touch-action: pan-y; }
+.ejercicio-sesion-block[hidden] { display: none !important; }
+.sesion-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.sesion-nav-btn {
+  min-height: 44px; padding: 0 14px; background: transparent; border: 1px solid var(--line);
+  color: var(--text-primary); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.sesion-nav-btn:disabled { color: var(--text-disabled); cursor: default; }
+.sesion-puntos { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
+.sesion-puntos span { width: 6px; height: 6px; background: var(--line); }
+.sesion-puntos span.activo { background: var(--cy); }

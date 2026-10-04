@@ -226,6 +226,39 @@ function volumenDeSeries(series) {
   }, 0);
 }
 
+// Riel de ejercicios bajo el HUD: una pestaña por ejercicio (nombre corto y
+// progreso "2/3", ✓ al terminar), las superseries juntas en un marco ámbar
+// "SUPERSERIE A, B…" y al final "+" (añadir ejercicio, el mismo buscador).
+function renderRielEjercicios(rutina) {
+  const letras = new Map();
+  const corto = (n) => n.replace(/\s*\(.*\)\s*/g, ' ').trim();
+  const tab = (ej, i) => {
+    const total = (ej.series || []).length;
+    const hechas = (ej.series || []).filter(s => s.checked === true).length;
+    return `<button type="button" class="sesion-tab tappable" role="tab" data-ej-idx="${i}" aria-controls="sesion-ej-${i}" aria-selected="false" tabindex="-1" title="${escapeHtml(ej.nombre)}">
+        <span class="sesion-tab-check" aria-hidden="true"${total > 0 && hechas === total ? '' : ' hidden'}>✓</span>
+        <span class="sesion-tab-nombre">${escapeHtml(corto(ej.nombre))}</span>
+        <span class="sesion-tab-prog num">${hechas}/${total}</span>
+      </button>`;
+  };
+  let html = '';
+  for (let i = 0; i < rutina.ejercicios.length; i++) {
+    const ej = rutina.ejercicios[i];
+    if (!ej.grupoId) { html += tab(ej, i); continue; }
+    // Corrida de ejercicios consecutivos con el mismo grupoId.
+    let j = i;
+    while (j + 1 < rutina.ejercicios.length && rutina.ejercicios[j + 1].grupoId === ej.grupoId) j++;
+    if (j === i) { html += tab(ej, i); continue; }
+    if (!letras.has(ej.grupoId)) letras.set(ej.grupoId, String.fromCharCode(65 + letras.size));
+    html += `<div class="sesion-riel-ss" role="presentation"><span class="sesion-riel-ss-etq">SUPERSERIE ${letras.get(ej.grupoId)}</span><div class="sesion-riel-ss-tabs">`;
+    for (let k = i; k <= j; k++) html += tab(rutina.ejercicios[k], k);
+    html += '</div></div>';
+    i = j;
+  }
+  html += `<button type="button" id="btn-add-ejercicio-live" class="sesion-tab sesion-tab--mas tappable" aria-label="Añadir ejercicio">+</button>`;
+  return `<nav id="sesion-riel" class="sesion-riel" role="tablist" aria-label="Ejercicios de la sesión">${html}</nav>`;
+}
+
 export async function renderRutinaSession(rutina) {
   // Preload data
   currentPRs = await db.getPRs();
@@ -272,6 +305,7 @@ export async function renderRutinaSession(rutina) {
       </div>
       <div id="hud-segmentos" class="sesion-hud-segmentos" role="img" aria-label="Series de la sesión"></div>
     </section>
+    ${renderRielEjercicios(rutina)}
     </div>
     <div class="card" style="padding: 22px; border-radius: 20px;">
       <div class="flex-between" style="margin-bottom: 20px;">
@@ -280,7 +314,7 @@ export async function renderRutinaSession(rutina) {
       </div>
   `;
 
-  html += `<div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">`;
+  html += `<div id="sesion-ejercicios" class="sesion-ejercicios">`;
 
 
   // Ejercicios que comparten grupoId (asignado al agrupar en superserie en
@@ -312,7 +346,7 @@ export async function renderRutinaSession(rutina) {
       : '';
 
     html += `
-      <div class="card ejercicio-sesion-block" data-ej-idx="${rutina.ejercicios.indexOf(ej)}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; ${esSegundoDelGrupo ? 'border-left: 2px solid var(--state-medium);' : ''}">
+      <div class="card ejercicio-sesion-block" id="sesion-ej-${rutina.ejercicios.indexOf(ej)}" role="tabpanel" data-ej-idx="${rutina.ejercicios.indexOf(ej)}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; ${esSegundoDelGrupo ? 'border-left: 2px solid var(--state-medium);' : ''}">
         ${supChipHtml}
 
         <div class="sesion-ej-rotulo">Ejercicio <span class="num">${rutina.ejercicios.indexOf(ej) + 1}</span> de <span class="num">${totalEjercicios}</span>${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular] ? ` · ${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular]}` : ''}</div>
@@ -380,9 +414,13 @@ export async function renderRutinaSession(rutina) {
 
   html += `</div>`;
 
-  
+  // Anterior / puntos / Siguiente (también se cambia con el riel o deslizando).
   html += `
-    <button id="btn-add-ejercicio-live" class="tappable" style="width: 100%; padding: 15px; border-radius: 14px; background: var(--surface-2); color: var(--text-primary); font-size: 15px; font-weight: 700; border: 1px dashed var(--surface-border); cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Añadir Ejercicio</button>
+    <div class="sesion-nav" ${rutina.ejercicios.length ? '' : 'hidden'}>
+      <button type="button" id="btn-ej-anterior" class="sesion-nav-btn tappable">‹ Anterior</button>
+      <div id="sesion-puntos" class="sesion-puntos" aria-hidden="true">${rutina.ejercicios.map(() => '<span></span>').join('')}</div>
+      <button type="button" id="btn-ej-siguiente" class="sesion-nav-btn tappable">Siguiente ›</button>
+    </div>
   </div>`;
 
   // Floating timer. Sticky en vez de fixed: fixed centra contra el
@@ -443,6 +481,20 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   };
   const formatoKg = (n) => Number(n).toLocaleString('es-CL', { maximumFractionDigits: 1 });
 
+  // Riel: progreso de cada pestaña ("2/3") y ✓ en las terminadas.
+  const actualizarRiel = () => {
+    bloquesSesion().forEach(b => {
+      const tab = document.querySelector(`.sesion-tab[data-ej-idx="${b.dataset.ejIdx}"]`);
+      if (!tab) return;
+      const total = b.querySelectorAll('.btn-check-serie').length;
+      const hechas = total - pendientesDe(b);
+      const terminada = total > 0 && hechas === total;
+      tab.querySelector('.sesion-tab-prog').textContent = `${hechas}/${total}`;
+      tab.classList.toggle('sesion-tab--hecha', terminada);
+      tab.querySelector('.sesion-tab-check').hidden = !terminada;
+    });
+  };
+
   // HUD: tiempo (lo mueve el intervalo), series hechas/total, volumen con la
   // variación contra la última sesión de esta rutina, récords y la barra
   // segmentada (una marca por serie; cian = hecha, ámbar = récord, borde
@@ -501,9 +553,90 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     segEl.setAttribute('aria-label', `${hechas} de ${total} series hechas${records.size ? `, ${records.size} ${records.size === 1 ? 'récord' : 'récords'}` : ''}`);
   };
 
+  // --- Un ejercicio a la vez (fase 4) -----------------------------------
+  // Todos los .ejercicio-sesion-block siguen en el DOM (Finalizar, el
+  // borrador y "Añadir ejercicio" los leen igual); solo se ve el activo.
+  const bloquesSesion = () => Array.from(document.querySelectorAll('.ejercicio-sesion-block'));
+  const pendientesDe = (b) => Array.from(b.querySelectorAll('.btn-check-serie')).filter(c => c.getAttribute('data-checked') !== 'true').length;
+  let avanzarTrasDescanso = null; // índice del ejercicio que terminó; al acabar el descanso pasa al siguiente
+
+  const mostrarEjercicio = (idx, { foco = false } = {}) => {
+    const bloques = bloquesSesion();
+    if (!bloques.length) return;
+    const destino = bloques.find(b => Number(b.dataset.ejIdx) === idx) || bloques[0];
+    ejercicioActivo = Number(destino.dataset.ejIdx);
+    avanzarTrasDescanso = null;
+    bloques.forEach(b => { b.hidden = b !== destino; });
+    document.querySelectorAll('.sesion-tab[data-ej-idx]').forEach(t => {
+      const activa = Number(t.dataset.ejIdx) === ejercicioActivo;
+      t.classList.toggle('sesion-tab--activa', activa);
+      t.setAttribute('aria-selected', String(activa));
+      t.tabIndex = activa ? 0 : -1;
+      if (activa) t.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+    const pos = bloques.indexOf(destino);
+    document.querySelectorAll('#sesion-puntos span').forEach((p, i) => p.classList.toggle('activo', i === pos));
+    const ant = document.getElementById('btn-ej-anterior');
+    const sig = document.getElementById('btn-ej-siguiente');
+    if (ant) ant.disabled = pos === 0;
+    if (sig) sig.disabled = pos === bloques.length - 1;
+    document.getElementById('view-root')?.scrollTo(0, 0);
+    if (foco) document.querySelector(`.sesion-tab[data-ej-idx="${ejercicioActivo}"]`)?.focus();
+    guardar();
+  };
+  const moverEjercicio = (delta) => {
+    const bloques = bloquesSesion();
+    const pos = bloques.findIndex(b => Number(b.dataset.ejIdx) === ejercicioActivo);
+    const destino = bloques[pos + delta];
+    if (destino) mostrarEjercicio(Number(destino.dataset.ejIdx));
+  };
+  // Siguiente ejercicio después de uno terminado: el próximo en la rutina;
+  // si era el último, el primero que tenga series pendientes.
+  const pasarAlSiguiente = (desdeIdx) => {
+    const bloques = bloquesSesion();
+    const pos = bloques.findIndex(b => Number(b.dataset.ejIdx) === desdeIdx);
+    const siguiente = bloques[pos + 1] || bloques.find(b => pendientesDe(b) > 0);
+    if (siguiente && Number(siguiente.dataset.ejIdx) !== desdeIdx) mostrarEjercicio(Number(siguiente.dataset.ejIdx));
+  };
+
+  document.querySelectorAll('.sesion-tab[data-ej-idx]').forEach(t => {
+    t.addEventListener('click', () => mostrarEjercicio(Number(t.dataset.ejIdx)));
+  });
+  // Teclado en el riel: flechas izquierda/derecha.
+  document.getElementById('sesion-riel')?.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    if (!e.target.closest('.sesion-tab[data-ej-idx]')) return;
+    e.preventDefault();
+    moverEjercicio(e.key === 'ArrowRight' ? 1 : -1);
+    document.querySelector(`.sesion-tab[data-ej-idx="${ejercicioActivo}"]`)?.focus();
+  }, { signal });
+  document.getElementById('btn-ej-anterior')?.addEventListener('click', () => moverEjercicio(-1), { signal });
+  document.getElementById('btn-ej-siguiente')?.addEventListener('click', () => moverEjercicio(1), { signal });
+
+  // Deslizar a izquierda/derecha sobre el ejercicio: solo si el gesto es
+  // claramente horizontal (más de 60 px y el doble de lo vertical), así no
+  // compite con el scroll vertical.
+  const zonaSwipe = document.getElementById('sesion-ejercicios');
+  if (zonaSwipe) {
+    let inicioToque = null;
+    zonaSwipe.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) { inicioToque = null; return; }
+      inicioToque = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }, { passive: true, signal });
+    zonaSwipe.addEventListener('touchend', (e) => {
+      if (!inicioToque) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - inicioToque.x;
+      const dy = t.clientY - inicioToque.y;
+      inicioToque = null;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)) moverEjercicio(dx < 0 ? 1 : -1);
+    }, { passive: true, signal });
+  }
+
   const guardar = () => {
     if (!document.getElementById('btn-finalizar-sesion')) return; // la vista ya no está
     actualizarHud();
+    actualizarRiel();
     guardarBorrador({
       rutinaId: rutina.id,
       nombreRutina: rutina.nombre,
@@ -640,30 +773,39 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
 
   const floatEl = document.getElementById('floating-rest-timer');
   const textEl = document.getElementById('rest-timer-text');
-  
+
   if (floatEl) {
     floatEl.addEventListener('click', () => {
       if (restTimerInterval) clearInterval(restTimerInterval);
       floatEl.style.display = 'none';
+      alTerminarDescanso();
     });
   }
+
+  // Al terminar (o cerrar) el descanso, si el ejercicio activo quedó
+  // terminado, se pasa al siguiente.
+  const alTerminarDescanso = () => {
+    if (avanzarTrasDescanso !== null && avanzarTrasDescanso === ejercicioActivo) pasarAlSiguiente(avanzarTrasDescanso);
+    avanzarTrasDescanso = null;
+  };
 
   const startRestTimer = (seconds) => {
     if (!floatEl || !textEl) return;
     if (restTimerInterval) clearInterval(restTimerInterval);
-    
+
     let timeRemaining = seconds;
     floatEl.style.display = 'flex';
     const mInit = String(Math.floor(seconds / 60)).padStart(2, '0');
     const sInit = String(seconds % 60).padStart(2, '0');
     textEl.innerText = `${mInit}:${sInit}`;
-    
+
     restTimerInterval = setInterval(() => {
       timeRemaining--;
       if (timeRemaining <= 0) {
         clearInterval(restTimerInterval);
         floatEl.style.display = 'none';
         playBeep();
+        alTerminarDescanso();
       } else {
         const m = String(Math.floor(timeRemaining / 60)).padStart(2, '0');
         const s = String(timeRemaining % 60).padStart(2, '0');
@@ -672,12 +814,12 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     }, 1000);
   };
 
-  
+
   document.querySelectorAll('.btn-sugerencia').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const peso = parseFloat(btn.getAttribute('data-peso')) || 0;
       const reps = parseInt(btn.getAttribute('data-reps')) || 0;
-      
+
       const card = btn.closest('.ejercicio-sesion-block');
       const rows = card.querySelectorAll('.serie-row');
       rows.forEach(row => {
@@ -687,7 +829,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
           if (reps > 0) row.querySelector('.serie-reps').value = reps;
         }
       });
-      
+
       marcarActivo(btn);
       guardar();
 
@@ -703,7 +845,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     });
   });
 
-  
+
   document.querySelectorAll('.btn-info-ejercicio').forEach(btn => {
     btn.addEventListener('click', () => {
       const nombre = btn.getAttribute('data-ejnombre');
@@ -792,7 +934,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
 
       const discos = calcularDiscos(peso);
       const html = renderPlateCalculatorPopover(discos, 20);
-      
+
       const popover = document.createElement('div');
       popover.innerHTML = html;
       popover.style.position = 'absolute';
@@ -804,12 +946,12 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       popover.style.border = '1px solid var(--surface-border)';
       popover.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
       popover.style.zIndex = '20';
-      
+
       document.querySelectorAll('.plate-popover').forEach(p => p.remove());
-      
+
       popover.className = 'plate-popover';
       btn.parentElement.appendChild(popover);
-      
+
       setTimeout(() => popover.remove(), 4000);
     });
   });
@@ -918,6 +1060,14 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         const siguienteBloque = bloquesOrden[bloquesOrden.indexOf(ejContainer) + 1] || null;
         const esUltimoDeLaSuperserie = !grupoId || !siguienteBloque || siguienteBloque.dataset.grupoId !== grupoId;
         if (esUltimoDeLaSuperserie) startRestTimer(currentRestTimerSecs);
+        // Última serie del ejercicio: pasa solo al siguiente; al instante si
+        // es una superserie (sin descanso entre ellos), si no al terminar el
+        // descanso.
+        if (pendientesDe(ejContainer) === 0) {
+          const idxTerminado = Number(ejContainer.dataset.ejIdx);
+          if (!esUltimoDeLaSuperserie) setTimeout(() => pasarAlSiguiente(idxTerminado), 350);
+          else avanzarTrasDescanso = idxTerminado;
+        }
         const pesoVal = parseFloat(pesoInput.value) || 0;
         const repsVal = parseFloat(repsInput.value) || 0;
 
@@ -995,16 +1145,16 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       try {
         const elegido = await openExercisePicker();
         if (!elegido || !elegido.nombre || !elegido.nombre.trim()) return;
-        
+
         // Lo que hay en pantalla, en el orden de la rutina (data-ej-idx).
         rutina.ejercicios = leerEjerciciosDelDom();
-        
+
         // Del catálogo llega con su id; "Añadir de todas formas", con id null.
         rutina.ejercicios.push({ ejercicioId: elegido.id, nombre: elegido.nombre.trim(), series: [{reps: '', peso: ''}] });
-        
+
         const subContent = document.getElementById('entrenamiento-sub-content');
         if (!subContent) throw new Error("subContent no existe");
-        
+
         const newHtml = await renderRutinaSession(rutina);
         subContent.innerHTML = newHtml;
         // El cronómetro sigue desde el mismo inicio (antes se reiniciaba).
@@ -1045,10 +1195,10 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   if (btnFinalizar) {
     btnFinalizar.addEventListener('click', async () => {
       let duracionMin = Math.max(1, Math.floor((new Date() - startTime) / 60000));
-      
+
       const ejerciciosLog = [];
       const bloques = document.querySelectorAll('.ejercicio-sesion-block');
-      
+
       bloques.forEach(b => {
         const nombre = b.getAttribute('data-ej-nombre');
         // Sin data-ej-id (ejercicios de la rutina), registrarSesion lo
@@ -1057,7 +1207,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         const ejercicioId = idAttr === null ? undefined : (idAttr || null);
         const seriesRows = b.querySelectorAll('.serie-row');
         const seriesCompletadas = [];
-        
+
         seriesRows.forEach(row => {
           const btn = row.querySelector('.btn-check-serie');
           if (btn.getAttribute('data-checked') === 'true') {
@@ -1070,12 +1220,12 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
             seriesCompletadas.push({ tipo, reps, peso, rpe, checked: true });
           }
         });
-        
+
         if (seriesCompletadas.length > 0) {
           ejerciciosLog.push({ ...(ejercicioId !== undefined ? { ejercicioId } : {}), nombre, series: seriesCompletadas });
         }
       });
-      
+
       if (ejerciciosLog.length === 0) {
         const confirmed = await ConfirmDialog('Terminar sesión vacía', 'No has completado ninguna serie — no se va a registrar nada.', { verb: 'Terminar', danger: false });
         if (!confirmed) {
@@ -1114,10 +1264,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   // muscular refleja las series ya marcadas.
   guardar();
   recalcularMapaSesion();
-  if (Number.isInteger(opciones.ejercicioActivo)) {
-    const bloque = document.querySelector(`.ejercicio-sesion-block[data-ej-idx="${opciones.ejercicioActivo}"]`);
-    if (bloque) requestAnimationFrame(() => bloque.scrollIntoView({ block: 'start' }));
-  }
+  mostrarEjercicio(ejercicioActivo);
 }
 
 // Modal de opciones de la sesión (.modal-overlay con id: history.js le da

@@ -15,8 +15,8 @@ y superseries).
 | 0 — "Hoy toca → Empezar" | Hecha (0e92260) |
 | 1 — Borrador de sesión | Hecha (c35e30f, v243) |
 | 2 — Pantalla completa y orden | Hecha (cb99484, v246) |
-| 3 — HUD | Hecha (commit de la fase 3, v247) |
-| 4 — Riel y un ejercicio por pantalla | Pendiente |
+| 3 — HUD | Hecha (79d5b8e, v247) |
+| 4 — Riel y un ejercicio por pantalla | Hecha (commit de la fase 4, v248) |
 | 5 — Tabla, editor y botón principal | Pendiente |
 | 6 — Descanso en el HUD | Pendiente |
 | 7 — Récord en vivo | Pendiente |
