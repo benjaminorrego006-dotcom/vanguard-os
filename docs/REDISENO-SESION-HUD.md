@@ -19,8 +19,8 @@ y superseries).
 | 4 — Riel y un ejercicio por pantalla | Hecha (22f8f58, v248) |
 | 5 — Tabla, editor y botón principal | Hecha (73e3a1a, v249) |
 | 6 — Descanso en el HUD | Hecha (da9ecdd, v250) |
-| 7 — Récord en vivo | Hecha (commit de la fase 7, v252) |
-| 8 — Resumen al finalizar | Pendiente |
+| 7 — Récord en vivo | Hecha (28e1cdc, v252) |
+| 8 — Resumen al finalizar | Hecha (commit de la fase 8, v253) |
 | 9 — QA y documentación | Pendiente |
 
 Actualiza esta tabla (hash del commit) al cerrar cada fase.

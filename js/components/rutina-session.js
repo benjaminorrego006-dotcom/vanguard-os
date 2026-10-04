@@ -5,7 +5,6 @@ import { calcularDiscos, renderPlateCalculatorPopover } from './plate-calculator
 import { getProgressionLevel, RAMA_LABELS } from '../core/progresiones.js';
 import { metadataDeEjercicio, CATALOGO_EJERCICIOS, grupoMuscularParaMapa, GRUPO_MUSCULAR_LABELS } from '../core/ejercicios-catalogo.js';
 import { ConfirmDialog } from '../utils/states.js';
-import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
 import { escapeHtml } from '../utils/escape.js';
 import { guardarBorrador, borrarBorrador, esBorradorLargo } from '../utils/sesion-borrador.js';
 import { formatFechaCorta } from '../utils/fecha.js';
@@ -461,7 +460,8 @@ export async function renderRutinaSession(rutina) {
   </div>`;
 
 
-  html += renderSessionSummaryForm();
+  // Resumen al finalizar (fase 8): se pinta al tocar Finalizar.
+  html += '<section id="sesion-resumen" class="sesion-resumen" hidden aria-label="Resumen de la sesión"></section>';
 
   return html;
 }
@@ -990,6 +990,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   // inventar un evento nuevo solo para esto.
   // HUD: dos mapas mini (frente y espalda) con la misma fatiga en vivo.
   const mapasHud = [];
+  let intensidadesSesion = {}; // último mapa en vivo (también lo usa el resumen)
   let fatigaBasePorGrupo = {};
   const mapaFrenteEl = document.getElementById('hud-mapa-frente');
   const mapaEspaldaEl = document.getElementById('hud-mapa-espalda');
@@ -1032,6 +1033,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     for (const [grupo, val] of Object.entries(combinado)) fatigaNormalizada[grupo] = Math.min(1, val / FATIGA_REFERENCIA);
 
     const porMusculo = expandirIntensidadPorMusculo(fatigaNormalizada, GRUPOS_MUSCULARES);
+    intensidadesSesion = porMusculo;
     mapasHud.forEach(m => m.setIntensidades(porMusculo));
   }
 
@@ -1503,6 +1505,184 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     salir();
   }, { signal });
 
+  // --- Resumen al finalizar (fase 8, solo GYM y Calistenia) ---------------
+  // Vista dentro de la misma sub-vista, con su propia entrada de historial:
+  // Atrás (o "Volver a la sesión") vuelve a la sesión sin perder nada.
+  // "Guardar sesión" llama a registrarSesion con la misma forma de siempre.
+  let resumenAbierto = false;
+  let mapasResumen = [];
+  const contResumen = document.getElementById('sesion-resumen');
+
+  const esperarAtras = () => new Promise(res => {
+    const t = setTimeout(res, 500);
+    window.addEventListener('popstate', () => { clearTimeout(t); res(); }, { once: true });
+  });
+  const variacionHtml = (actual, previo) => {
+    if (!previo || previo <= 0) return '';
+    const pct = Math.round(((actual - previo) / previo) * 100);
+    return ` <span class="sesion-resumen-var${pct >= 0 ? ' sesion-resumen-var--sube' : ''}">${pct >= 0 ? '▲' : '▼'} <span class="num">${Math.abs(pct)}</span> %</span>`;
+  };
+  const textoDuracion = (min) => {
+    const h = Math.floor(min / 60), m = min % 60;
+    return h > 0 ? `<span class="num">${h}</span> h <span class="num">${m}</span> min` : `<span class="num">${m}</span> min`;
+  };
+
+  const cerrarResumen = () => {
+    if (!contResumen) return;
+    resumenAbierto = false;
+    mapasResumen.forEach(m => m.destroy());
+    mapasResumen = [];
+    contResumen.hidden = true;
+    contResumen.innerHTML = '';
+    document.querySelectorAll('.sesion-cabecera, .sesion-cuerpo').forEach(el => { el.hidden = false; });
+    document.getElementById('view-root')?.scrollTo(0, 0);
+  };
+  window.addEventListener('popstate', (e) => {
+    if (resumenAbierto && !(e.state && e.state.sesionResumen)) cerrarResumen();
+  }, { signal });
+  if (signal) signal.addEventListener('abort', () => { mapasResumen.forEach(m => m.destroy()); mapasResumen = []; });
+
+  const abrirResumen = ({ duracionMin, ejerciciosLog }) => {
+    if (!contResumen) return;
+    if (descanso) terminarDescanso({ sonar: false });
+    const bloques = bloquesSesion();
+    const marcadasDe = (b) => Array.from(b.querySelectorAll('.serie-row')).filter(estaMarcada);
+    const todasMarcadas = bloques.flatMap(marcadasDe);
+    const serieDe = (row) => ({ peso: row.querySelector('.serie-peso').value, reps: row.querySelector('.serie-reps').value, rpe: row.querySelector('.serie-rpe').value });
+    const total = bloques.reduce((n, b) => n + b.querySelectorAll('.serie-row').length, 0);
+    const volumen = volumenDeSeries(todasMarcadas.map(serieDe));
+    const rpes = todasMarcadas.map(r => Number(r.querySelector('.serie-rpe').value)).filter(v => v > 0);
+    const rpeProm = rpes.length ? formatNumero(rpes.reduce((a, b) => a + b, 0) / rpes.length) : null;
+
+    // Récords de la sesión: la mejor serie récord de cada ejercicio.
+    const records = [];
+    bloques.forEach(b => {
+      const pr = prsAlAbrir[(b.dataset.ejNombre || '').toLowerCase().trim()];
+      const rs = marcadasDe(b).filter(r => esRecord(b, r));
+      if (!rs.length) return;
+      const mejor = rs.reduce((m, r) => ((parseFloat(r.querySelector('.serie-peso').value) || 0) > (parseFloat(m.querySelector('.serie-peso').value) || 0) ? r : m), rs[0]);
+      const peso = parseFloat(mejor.querySelector('.serie-peso').value) || 0;
+      const reps = parseFloat(mejor.querySelector('.serie-reps').value) || 0;
+      const valor = peso > 0 ? `<span class="num">${formatNumero(peso)}</span> kg` : `<span class="num">${formatNumero(reps)}</span> reps`;
+      const antes = peso > 0 ? (pr.pesoMax > 0 ? ` (antes <span class="num">${formatNumero(pr.pesoMax)}</span>)` : '') : (pr.repsMax > 0 ? ` (antes <span class="num">${formatNumero(pr.repsMax)}</span>)` : '');
+      records.push(`<li>★ ${escapeHtml(b.dataset.ejNombre)} · ${valor}${antes}</li>`);
+    });
+
+    // Por ejercicio: volumen y variación contra la última vez de ese ejercicio.
+    const filasEj = bloques.filter(b => marcadasDe(b).length).map(b => {
+      const vol = volumenDeSeries(marcadasDe(b).map(serieDe));
+      const ant = currentAnterior[b.dataset.ejNombre];
+      const volAnt = ant && ant.series ? volumenDeSeries(ant.series) : 0;
+      const n = marcadasDe(b).length;
+      return `<tr>
+        <th scope="row">${escapeHtml(b.dataset.ejNombre)}</th>
+        <td><span class="num">${n}</span></td>
+        <td>${vol > 0 ? `<span class="num">${formatNumero(vol, { decimales: 0 })}</span> kg` : '—'}</td>
+        <td>${vol > 0 && volAnt > 0 ? variacionHtml(vol, volAnt).trim() : '—'}</td>
+      </tr>`;
+    }).join('');
+
+    const dia = startTime.toLocaleDateString('es-CL', { weekday: 'short' }).replace('.', '');
+    contResumen.innerHTML = `
+      <header class="sesion-barra sesion-resumen-barra">
+        <div class="sesion-barra-titulo">
+          <h2 id="sesion-resumen-titulo" tabindex="-1">Sesión completada</h2>
+          <div>${escapeHtml(rutina.nombre)} · ${escapeHtml(dia)} <span class="num">${escapeHtml(formatFechaCorta(startTime))}</span></div>
+        </div>
+      </header>
+      <section class="card card-hero sesion-hud sesion-resumen-hero" aria-label="Resumen de la sesión">
+        <dl class="sesion-hud-datos">
+          <div><dt>Duración</dt><dd>${textoDuracion(duracionMin)}</dd></div>
+          <div><dt>Volumen</dt><dd><span class="num">${formatNumero(volumen, { decimales: 0 })}</span> kg${variacionHtml(volumen, volumenRutinaPrevio)}</dd></div>
+          <div><dt>Series</dt><dd><span class="num">${todasMarcadas.length}/${total}</span></dd></div>
+          <div><dt>RPE promedio</dt><dd>${rpeProm ? `<span class="num">${rpeProm}</span>` : '—'}</dd></div>
+        </dl>
+      </section>
+      <section class="sesion-resumen-cuerpo" aria-label="Músculos y récords">
+        <div class="sesion-resumen-mapas"><div id="resumen-mapa-frente"></div><div id="resumen-mapa-espalda"></div></div>
+        <div class="sesion-resumen-records">
+          <h3>Récords</h3>
+          ${records.length ? `<ul>${records.join('')}</ul>` : '<p>Sin récords esta vez.</p>'}
+        </div>
+      </section>
+      <section class="sesion-resumen-tabla" aria-labelledby="sesion-resumen-por-ej">
+        <h3 id="sesion-resumen-por-ej">Por ejercicio</h3>
+        <table>
+          <thead><tr><th scope="col">Ejercicio</th><th scope="col">Series</th><th scope="col">Volumen</th><th scope="col">vs anterior</th></tr></thead>
+          <tbody>${filasEj}</tbody>
+        </table>
+      </section>
+      <section class="sesion-resumen-nota">
+        <label for="sesion-resumen-notas">Nota (opcional)</label>
+        <textarea id="sesion-resumen-notas" rows="2" placeholder="¿Cómo te sentiste?"></textarea>
+        <div class="sesion-resumen-rpe" role="group" aria-label="RPE de la sesión">
+          <span>RPE de la sesión</span>
+          <div>${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => `<button type="button" class="sesion-rpe-chip num tappable" data-rpe-sesion="${v}" aria-pressed="false">${v}</button>`).join('')}</div>
+        </div>
+      </section>
+      <div class="sesion-resumen-acciones">
+        <button type="button" id="btn-resumen-guardar" class="sesion-principal tappable">Guardar sesión</button>
+        <div>
+          <button type="button" id="btn-resumen-volver" class="sesion-nav-btn tappable">Volver a la sesión</button>
+          <button type="button" id="btn-resumen-descartar" class="sesion-nav-btn tappable">Descartar</button>
+        </div>
+      </div>`;
+    document.querySelectorAll('.sesion-cabecera, .sesion-cuerpo').forEach(el => { el.hidden = true; });
+    contResumen.hidden = false;
+    resumenAbierto = true;
+    history.pushState({ entrenoSubView: true, sesionResumen: true }, '');
+    document.getElementById('view-root')?.scrollTo(0, 0);
+
+    // Mapas de frente y espalda (más grandes) con la fatiga de la sesión.
+    const fr = document.getElementById('resumen-mapa-frente');
+    const es = document.getElementById('resumen-mapa-espalda');
+    if (fr && es) {
+      mapasResumen = [
+        new MuscleMap(fr, { vista: VISTA.FRENTE, intensidades: intensidadesSesion, claseContenedor: 'mk3-muscle-map--resumen' }),
+        new MuscleMap(es, { vista: VISTA.ESPALDA, intensidades: intensidadesSesion, claseContenedor: 'mk3-muscle-map--resumen' })
+      ];
+    }
+
+    let rpeSesion = null;
+    contResumen.querySelectorAll('[data-rpe-sesion]').forEach(chip => chip.addEventListener('click', () => {
+      rpeSesion = rpeSesion === Number(chip.dataset.rpeSesion) ? null : Number(chip.dataset.rpeSesion);
+      contResumen.querySelectorAll('[data-rpe-sesion]').forEach(c => c.setAttribute('aria-pressed', String(Number(c.dataset.rpeSesion) === rpeSesion)));
+    }));
+
+    document.getElementById('btn-resumen-volver').addEventListener('click', () => history.back());
+
+    document.getElementById('btn-resumen-guardar').addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      cleanupSessionTimer();
+      await db.registrarSesion({
+        rutinaId: rutina.id,
+        nombreRutina: rutina.nombre,
+        duracionMin,
+        completado: true,
+        ejercicios: ejerciciosLog,
+        rpe: rpeSesion,
+        notas: (document.getElementById('sesion-resumen-notas').value || '').trim()
+      });
+      borrarBorrador();
+      // Se suelta la entrada del resumen (goToMain suelta la de la sub-vista).
+      resumenAbierto = false;
+      if (history.state && history.state.sesionResumen) { const atras = esperarAtras(); history.back(); await atras; }
+      if (onSuccess) onSuccess();
+    });
+
+    document.getElementById('btn-resumen-descartar').addEventListener('click', async () => {
+      const ok = await ConfirmDialog('¿Descartar la sesión?', 'Se pierden las series de esta sesión y no se guarda nada.', { verb: 'Descartar' });
+      if (history.state && history.state.modalId === 'global-confirm-modal') await esperarAtras();
+      if (!ok) { document.getElementById('btn-resumen-descartar')?.focus(); return; }
+      borrarBorrador();
+      resumenAbierto = false;
+      if (history.state && history.state.sesionResumen) { const atras = esperarAtras(); history.back(); await atras; }
+      if (opciones.onSalir) opciones.onSalir();
+    });
+
+    requestAnimationFrame(() => document.getElementById('sesion-resumen-titulo')?.focus());
+  };
+
   const btnFinalizar = document.getElementById('btn-finalizar-sesion');
   if (btnFinalizar) {
     btnFinalizar.addEventListener('click', async () => {
@@ -1553,21 +1733,16 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         if (eleccion === '60') duracionMin = 60;
       }
 
-      const summary = await askSessionSummary();
-
-      cleanupSessionTimer();
-      await db.registrarSesion({
-        rutinaId: rutina.id,
-        nombreRutina: rutina.nombre,
-        duracionMin,
-        completado: true,
-        ejercicios: ejerciciosLog,
-        rpe: summary.rpe,
-        notas: summary.notas
-      });
-      borrarBorrador();
-
-      if (onSuccess) onSuccess();
+      if (ejerciciosLog.length === 0) {
+        // Sin series marcadas (ya confirmado arriba): se registra como antes,
+        // sin pantalla de resumen.
+        cleanupSessionTimer();
+        await db.registrarSesion({ rutinaId: rutina.id, nombreRutina: rutina.nombre, duracionMin, completado: true, ejercicios: ejerciciosLog, rpe: null, notas: '' });
+        borrarBorrador();
+        if (onSuccess) onSuccess();
+        return;
+      }
+      abrirResumen({ duracionMin, ejerciciosLog });
     });
   }
 

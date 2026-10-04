@@ -160,7 +160,8 @@ export function cleanup() {
   // por goToMain() — hay que soltar esa entrada (mismo criterio que
   // forgetOpenModals en history.js) para no dejar un "atrás" fantasma.
   if (entrenoHistorialEmpujado && history.state && history.state.entrenoSubView) {
-    history.back();
+    // Con el resumen de la sesión abierto hay dos entradas (sub-vista + resumen).
+    if (history.state.sesionResumen) history.go(-2); else history.back();
   }
   entrenoHistorialEmpujado = false;
   viewState = 'main';
