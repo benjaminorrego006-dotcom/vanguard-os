@@ -375,3 +375,51 @@ body {
 #splash-screen { transition: opacity 300ms ease-out; opacity: 1; }
 #splash-screen.splash-hidden { opacity: 0; pointer-events: none; }
 
+
+/* --- Sesión activa de Entreno ("Cabina HUD", docs/REDISENO-SESION-HUD.md) ---
+   Pantalla completa en móvil: mientras hay una sesión de GYM/Calistenia
+   abierta, entrenamiento.js pone .entreno-sesion-activa en <html> y la
+   barra inferior se oculta (el riel de tablet/PC se queda). Los modales
+   de la sesión, que normalmente dejan sitio a esa barra, bajan al borde. */
+@media (max-width: 767px) {
+  html.entreno-sesion-activa #app-nav { display: none; }
+  html.entreno-sesion-activa #view-root { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  html.entreno-sesion-activa #buscador-ejercicios-modal,
+  html.entreno-sesion-activa #sesion-duracion-modal,
+  html.entreno-sesion-activa #sesion-salir-modal { bottom: 0; }
+  html.entreno-sesion-activa #toast-container { bottom: calc(env(safe-area-inset-bottom) + 24px) !important; }
+}
+#sesion-salir-modal .modal-content { max-height: 100% !important; }
+@media (min-width: 768px) { #sesion-salir-modal { left: 72px; } }
+@media (min-width: 1024px) { #sesion-salir-modal { left: 220px; } }
+@media (max-width: 767px) { #sesion-salir-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); } }
+
+/* Barra superior de la sesión: ✕ · rutina y categoría · Finalizar. Queda
+   fija arriba mientras se hace scroll. */
+.sesion-barra {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  margin: -20px 0 16px 0; padding: 10px 0;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.sesion-barra-salir {
+  width: 44px; height: 44px; flex-shrink: 0; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--line); color: var(--text-secondary); cursor: pointer;
+}
+.sesion-barra-titulo { flex: 1; min-width: 0; }
+.sesion-barra-titulo h2 {
+  margin: 0; font-size: 17px; font-weight: 800; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sesion-barra-titulo div { font-size: 11px; font-weight: 600; color: var(--cy); margin-top: 1px; }
+.sesion-barra-finalizar {
+  flex-shrink: 0; min-height: 44px; padding: 0 18px;
+  background: var(--cy); border: none; color: var(--bg);
+  font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px) !important;
+}
+.sesion-barra-salir:focus-visible { outline: 2px solid var(--cy); outline-offset: 2px; }
+.sesion-barra-finalizar:focus-visible { filter: drop-shadow(0 0 0 var(--t1)) drop-shadow(0 0 2px var(--t1)); }
+/* Rótulo sobre el nombre de cada ejercicio: posición en la rutina y grupo. */
+.sesion-ej-rotulo { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px; }

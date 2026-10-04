@@ -3,7 +3,7 @@ import { playBeep } from '../core/audio.js';
 import { renderEjercicioDetalle, initEjercicioDetalleChart } from './ejercicio-detalle.js';
 import { calcularDiscos, renderPlateCalculatorPopover } from './plate-calculator.js';
 import { getProgressionLevel, RAMA_LABELS } from '../core/progresiones.js';
-import { metadataDeEjercicio, CATALOGO_EJERCICIOS, agruparPorGrupoMuscular, grupoMuscularParaMapa } from '../core/ejercicios-catalogo.js';
+import { metadataDeEjercicio, CATALOGO_EJERCICIOS, grupoMuscularParaMapa, GRUPO_MUSCULAR_LABELS } from '../core/ejercicios-catalogo.js';
 import { ConfirmDialog, Toast } from '../utils/states.js';
 import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
 import { escapeHtml } from '../utils/escape.js';
@@ -224,31 +224,29 @@ export async function renderRutinaSession(rutina) {
   }
 
 
+  const CATEGORIA_LABEL = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
+  // Barra superior de la sesión (pantalla completa: en móvil la barra
+  // inferior se oculta mientras está abierta, ver entrenamiento.js).
   let html = `
-    <div class="card" style="padding: 22px; border-radius: 20px;">
-      <div class="flex-between" style="margin-bottom: 4px;">
-        <h2 style="font-size: 21px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.3px;">${escapeHtml(rutina.nombre)}</h2>
-        <div id="session-timer" class="num" style="font-size: 16px; font-weight: 700; color: var(--text-primary);">00:00</div>
+    <header id="sesion-barra" class="sesion-barra">
+      <button type="button" id="btn-sesion-salir" class="sesion-barra-salir tappable" aria-label="Salir de la sesión">
+        <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <div class="sesion-barra-titulo">
+        <h2>${escapeHtml(rutina.nombre)}</h2>
+        ${CATEGORIA_LABEL[rutina.categoria] ? `<div>${CATEGORIA_LABEL[rutina.categoria]}</div>` : ''}
       </div>
+      <button type="button" id="btn-finalizar-sesion" class="sesion-barra-finalizar tappable">Finalizar</button>
+    </header>
+    <div class="card" style="padding: 22px; border-radius: 20px;">
       <div class="flex-between" style="margin-bottom: 20px;">
-        <div></div>
+        <div style="font-size: 12px; color: var(--text-secondary);">Tiempo <span id="session-timer" class="num" style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-left: 4px;">00:00</span></div>
         <button id="btn-rest-timer-config" type="button" style="background: transparent; border: none; color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 0; display: flex; align-items: center; gap: 4px;">${clockSvg}Descanso: <span id="rest-timer-config-value" class="num">${currentRestTimerSecs}</span>s</button>
       </div>
   `;
 
-  html += `
-    <div class="card" style="padding: 12px; border-radius: 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px;">
-      <div id="session-muscle-map" style="flex-shrink: 0;"></div>
-      <div style="flex: 1; min-width: 0;">
-        <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">Fatiga en vivo</div>
-        <div id="session-muscle-map-leyenda" class="mk3-muscle-map-leyenda" style="text-align: left; min-height: 1em;"></div>
-      </div>
-    </div>
-  `;
-
   html += `<div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">`;
 
-  const gruposMuscular = agruparPorGrupoMuscular(rutina.ejercicios, ej => metadataDeEjercicio(ej.nombre, ej.ejercicioId).grupoMuscular);
 
   // Ejercicios que comparten grupoId (asignado al agrupar en superserie en
   // Crear Rutina) se ejecutan sin descanso entre sí — ver el chip dentro de
@@ -257,23 +255,13 @@ export async function renderRutinaSession(rutina) {
   // el primero se ve como cualquier otro (mismo criterio visual que el
   // mockup: "Press de Banca" normal, "Press Inclinado" marcado).
   //
-  // Declarado FUERA del loop de secciones por grupo muscular a propósito:
-  // una superserie muy común empareja músculos distintos (ej. pecho +
-  // bíceps, cuádriceps + isquiotibiales) — si este Set se reiniciara por
-  // sección, el segundo ejercicio de esa superserie caería en una sección
-  // distinta a la del primero y nunca se reconocería como "segundo del
-  // grupo", perdiendo el chip y el corte de descanso silenciosamente.
+  // Los ejercicios van en el orden de la rutina (antes se agrupaban por
+  // grupo muscular, que separaba las superseries); el grupo es un rótulo
+  // sobre el nombre.
   const gruposYaMostrados = new Set();
+  const totalEjercicios = rutina.ejercicios.length;
 
-  for (const seccion of gruposMuscular) {
-    html += `
-      <div style="display: flex; align-items: center; gap: 8px; margin: 4px 0 -6px 0;">
-        <div style="width: 4px; height: 15px; background: var(--accent-teal); border-radius: 2px;"></div>
-        <span style="font-size: 12px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent-teal);">${seccion.label}</span>
-      </div>
-    `;
-
-    for (const ej of seccion.items) {
+  for (const ej of rutina.ejercicios) {
     const hist = currentHistorial[ej.nombre];
     const ultimo = (hist && hist.length > 0) ? hist[hist.length - 1] : null;
     const pr = currentPRs[ej.nombre.toLowerCase().trim()];
@@ -292,6 +280,7 @@ export async function renderRutinaSession(rutina) {
       <div class="card ejercicio-sesion-block" data-ej-idx="${rutina.ejercicios.indexOf(ej)}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; ${esSegundoDelGrupo ? 'border-left: 2px solid var(--state-medium);' : ''}">
         ${supChipHtml}
 
+        <div class="sesion-ej-rotulo">Ejercicio <span class="num">${rutina.ejercicios.indexOf(ej) + 1}</span> de <span class="num">${totalEjercicios}</span>${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular] ? ` · ${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular]}` : ''}</div>
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
           <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
             <h3 style="font-size: 16px; font-weight: 700; margin: 0; color: var(--text-primary); white-space: normal; line-height: 1.2; word-break: break-word;">${escapeHtml(ej.nombre)}</h3>
@@ -352,16 +341,13 @@ export async function renderRutinaSession(rutina) {
     html += `</div>`;
     html += `<button type="button" class="btn-add-serie tappable" style="margin-top: 4px; width: 100%; padding: 8px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer;">+ Serie</button>`;
     html += `</div>`;
-    }
   }
 
   html += `</div>`;
 
   
   html += `
-    <button id="btn-add-ejercicio-live" class="tappable" style="width: 100%; padding: 15px; border-radius: 14px; background: var(--surface-2); color: var(--text-primary); font-size: 15px; font-weight: 700; border: 1px dashed var(--surface-border); cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Añadir Ejercicio</button><button id="btn-finalizar-sesion" class="btn-primary tappable" style="background: var(--accent-teal);">
-      Finalizar Sesión
-    </button>
+    <button id="btn-add-ejercicio-live" class="tappable" style="width: 100%; padding: 15px; border-radius: 14px; background: var(--surface-2); color: var(--text-primary); font-size: 15px; font-weight: 700; border: 1px dashed var(--surface-border); cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Añadir Ejercicio</button>
   </div>`;
 
   // Floating timer. Sticky en vez de fixed: fixed centra contra el
@@ -920,7 +906,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         subContent.innerHTML = newHtml;
         // El cronómetro sigue desde el mismo inicio (antes se reiniciaba).
         if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-        initRutinaSessionListeners(rutina, onSuccess, signal, { inicio: startTime.getTime(), ejercicioActivo: rutina.ejercicios.length - 1 });
+        initRutinaSessionListeners(rutina, onSuccess, signal, { inicio: startTime.getTime(), ejercicioActivo: rutina.ejercicios.length - 1, onSalir: opciones.onSalir });
       } catch (err) {
         document.getElementById('entrenamiento-sub-content').innerHTML = "<div style='color:red; padding: 20px;'><h1>ERROR!</h1><p>" + err.message + "</p><pre>" + err.stack + "</pre></div>";
       }
@@ -931,6 +917,26 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       }, 50);
     }
   }
+
+  // ✕ de la barra superior: sale y el borrador queda. Con series marcadas
+  // pregunta antes (Salir / Descartar sesión / Cancelar).
+  document.getElementById('btn-sesion-salir')?.addEventListener('click', async () => {
+    const salir = () => { if (opciones.onSalir) opciones.onSalir(); };
+    if (!document.querySelector('.btn-check-serie[data-checked="true"]')) { salir(); return; }
+    const eleccion = await preguntarOpciones({
+      id: 'sesion-salir-modal',
+      titulo: '¿Salir?',
+      texto: 'Tu sesión queda guardada como borrador.',
+      opciones: [
+        { valor: 'salir', html: 'Salir', principal: true },
+        { valor: 'descartar', html: 'Descartar sesión' },
+        { valor: '', html: 'Cancelar', neutro: true }
+      ]
+    });
+    if (!eleccion) return;
+    if (eleccion === 'descartar') borrarBorrador();
+    salir();
+  }, { signal });
 
   const btnFinalizar = document.getElementById('btn-finalizar-sesion');
   if (btnFinalizar) {
@@ -1011,32 +1017,30 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   }
 }
 
-// Duración de una sesión retomada después de más de 12 h: la real o 60 min.
-// Resuelve 'real', '60' o null (Atrás o Cancelar: vuelve a la sesión).
-// .modal-overlay con id: history.js le da su entrada, así Atrás lo cierra.
-function preguntarDuracionLarga(inicio, duracionRealMin) {
+// Modal de opciones de la sesión (.modal-overlay con id: history.js le da
+// su entrada, así Atrás lo cierra y resuelve null). Deja libre la barra
+// inferior y el riel (layout.css). Resuelve el valor elegido o null.
+function preguntarOpciones({ id, titulo, texto, opciones }) {
   return new Promise((resolve) => {
-    document.getElementById('sesion-duracion-modal')?.remove();
-    const h = Math.floor(duracionRealMin / 60);
-    const m = duracionRealMin % 60;
-    const realTxt = h > 0 ? `${h} h ${m} min` : `${m} min`;
-    const dia = inicio.toLocaleDateString('es-CL', { weekday: 'short' }).replace('.', '');
-    const hora = inicio.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
+    document.getElementById(id)?.remove();
     const overlay = document.createElement('div');
-    overlay.id = 'sesion-duracion-modal';
+    overlay.id = id;
     overlay.className = 'modal-overlay';
     overlay.style.zIndex = '6000';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-labelledby', 'sesion-duracion-titulo');
+    overlay.setAttribute('aria-labelledby', id + '-titulo');
+    const estilo = (o) => o.principal
+      ? 'background: var(--cy); border: 1px solid var(--cy); color: var(--bg); font-weight: 800;'
+      : o.neutro
+        ? 'background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); font-weight: 700;'
+        : 'background: transparent; border: 1px solid var(--cy); color: var(--cy); font-weight: 700;';
     overlay.innerHTML = `
       <div class="modal-content" style="padding: 22px;">
-        <h3 id="sesion-duracion-titulo" style="margin: 0 0 6px 0; font-size: 18px; font-weight: 800; color: var(--text-primary);">¿Qué duración guardo?</h3>
-        <p style="margin: 0 0 16px 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary);">Esta sesión empezó el ${escapeHtml(dia)} <span class="num">${escapeHtml(formatFechaCorta(inicio))}</span> a las <span class="num">${escapeHtml(hora)}</span>, hace más de <span class="num">12</span> horas.</p>
+        <h3 id="${id}-titulo" style="margin: 0 0 6px 0; font-size: 18px; font-weight: 800; color: var(--text-primary);">${titulo}</h3>
+        <p style="margin: 0 0 16px 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary);">${texto}</p>
         <div style="display: flex; flex-direction: column; gap: 8px;">
-          <button type="button" data-duracion="60" class="tappable" style="min-height: 44px; background: var(--cy); border: 1px solid var(--cy); color: var(--bg); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;">Usar <span class="num">60</span> min</button>
-          <button type="button" data-duracion="real" class="tappable" style="min-height: 44px; background: transparent; border: 1px solid var(--cy); color: var(--cy); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Usar la duración real · <span class="num">${realTxt}</span></button>
-          <button type="button" data-duracion="" class="tappable" style="min-height: 44px; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Cancelar</button>
+          ${opciones.map(o => `<button type="button" data-valor="${o.valor}" class="tappable" style="min-height: 44px; font: inherit; font-size: 14px; cursor: pointer; ${estilo(o)}">${o.html}</button>`).join('')}
         </div>
       </div>`;
     const rootDiv = document.querySelector('#view-root > div') || document.body;
@@ -1044,18 +1048,43 @@ function preguntarDuracionLarga(inicio, duracionRealMin) {
     overlay.classList.add('open');
 
     let listo = false;
-    const fin = (valor) => {
+    const terminar = async (valor) => {
       if (listo) return;
       listo = true;
       window.removeEventListener('popstate', alAtras);
+      const porBoton = overlay.classList.contains('open');
       overlay.classList.remove('open');
       overlay.remove();
+      // Cerrado por un botón: history.js suelta su entrada con un back()
+      // asíncrono; se espera para que quien siga (salir, guardar) no lo pise.
+      if (porBoton && history.state && history.state.modalId === id) {
+        await new Promise(res => { const t = setTimeout(res, 500); window.addEventListener('popstate', () => { clearTimeout(t); res(); }, { once: true }); });
+      }
       resolve(valor || null);
     };
-    const alAtras = () => { if (!overlay.classList.contains('open')) fin(null); };
+    const alAtras = () => { if (!overlay.classList.contains('open')) terminar(null); };
     window.addEventListener('popstate', alAtras);
-    overlay.querySelectorAll('button[data-duracion]').forEach(b => b.addEventListener('click', () => fin(b.dataset.duracion)));
-    requestAnimationFrame(() => overlay.querySelector('button[data-duracion="60"]').focus());
+    overlay.querySelectorAll('button[data-valor]').forEach(b => b.addEventListener('click', () => terminar(b.dataset.valor)));
+    requestAnimationFrame(() => overlay.querySelector('button[data-valor]')?.focus());
+  });
+}
+
+// Duración de una sesión retomada después de más de 12 h: la real o 60 min.
+function preguntarDuracionLarga(inicio, duracionRealMin) {
+  const h = Math.floor(duracionRealMin / 60);
+  const m = duracionRealMin % 60;
+  const realTxt = h > 0 ? `${h} h ${m} min` : `${m} min`;
+  const dia = inicio.toLocaleDateString('es-CL', { weekday: 'short' }).replace('.', '');
+  const hora = inicio.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return preguntarOpciones({
+    id: 'sesion-duracion-modal',
+    titulo: '¿Qué duración guardo?',
+    texto: `Esta sesión empezó el ${escapeHtml(dia)} <span class="num">${escapeHtml(formatFechaCorta(inicio))}</span> a las <span class="num">${escapeHtml(hora)}</span>, hace más de <span class="num">12</span> horas.`,
+    opciones: [
+      { valor: '60', html: 'Usar <span class="num">60</span> min', principal: true },
+      { valor: 'real', html: `Usar la duración real · <span class="num">${realTxt}</span>` },
+      { valor: '', html: 'Cancelar', neutro: true }
+    ]
   });
 }
 

@@ -12,6 +12,15 @@ contextos limpios sin Supabase (`supabase.co` bloqueado) y el respaldo
 | Fase | Caché | Qué cambia |
 |---|---|---|
 | 1 — Borrador | v243 | La sesión en curso se guarda en `localStorage` (`vanguard.sesionEnCurso`, `js/utils/sesion-borrador.js`) al empezar y con cada cambio (marcar, editar valores, tipo, RPE, sugerencia, + Serie, añadir ejercicio). No va al log ni a la sync: es estado de UI de un dispositivo y la sesión sigue naciendo con un solo `sesion_registrada`. El cronómetro parte del inicio guardado (antes se reiniciaba también al añadir un ejercicio). Tarjeta "Tienes una sesión en curso · Pull · 18 min" en Entreno con Retomar y Descartar; un borrador de más de 12 h muestra la hora de inicio y al guardar pregunta duración real o 60 min. Atrás y "Volver" ya no destruyen la sesión. Empezar otra con una en curso pide descartarla. Se borra al guardar o descartar. |
+| 2 — Pantalla completa y orden | v246 | En móvil la barra inferior se oculta mientras la sesión está abierta (clase `entreno-sesion-activa` en `<html>`; se quita al volver, con Atrás, al guardar, al descartar y al cambiar de vista); el riel de tablet/PC se queda. Barra superior fija: ✕ (con series marcadas pregunta "¿Salir? Tu sesión queda guardada como borrador" · Salir / Descartar sesión / Cancelar), rutina + categoría y Finalizar. Los ejercicios van en el orden de la rutina con el rótulo "Ejercicio 2 de 7 · Espalda" (se quitó la agrupación por grupo muscular, que separaba las superseries); las superseries siguen igual. Sin el bloque "Fatiga en vivo" (vuelve en el HUD). La sesión se abre arriba. |
+
+### Fase 2 — QA
+
+- 375: sin barra inferior durante la sesión (también al retomar) y la barra superior queda fija al hacer scroll; la barra inferior vuelve al salir con ✕ sin series, con Atrás, con ✕ → Salir (el borrador queda y aparece la tarjeta), con ✕ → Descartar sesión (borra el borrador), al cambiar de vista y al guardar con Finalizar. Atrás sobre la pregunta "¿Salir?" sigue en la sesión.
+- 1280: el riel se queda durante la sesión.
+- "Pull": el orden en pantalla es el de la rutina y los rótulos van de "Ejercicio 1 de 7 · Espalda" a "Ejercicio 7 de 7"; sin "Fatiga en vivo".
+- Superserie (rutina de prueba "QA Superserie": Press de Banca + Curl de Bíceps con el mismo `grupoId`, después Remo con Barra): quedan juntas y en orden, Curl con su chip "SUPERSERIE" (antes Curl caía en la sección "Brazos", después de Remo).
+- Regresión: QA de borrador, Hoy toca, buscador, catálogo, ejercicio libre, reps por tiempo y nombres viejos sin fallas (las que salían con "Volver" ahora usan ✕). ESLint `no-undef` limpio; consola limpia.
 
 ### Fase 1 — QA
 

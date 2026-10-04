@@ -151,6 +151,8 @@ export function cleanup() {
 
   window.removeEventListener('popstate', onPopStateEntrenamiento);
   entrenoPopstateEnganchado = false;
+  // Salir de Entreno con una sesión abierta: vuelve la barra inferior.
+  document.documentElement.classList.remove('entreno-sesion-activa');
   window.removeEventListener('budget-updated', onSyncActualizadoEntreno);
   entrenoSyncEnganchado = false;
   // Si había una sub-vista abierta con su entrada de historial empujada,
@@ -508,6 +510,7 @@ mountListeners = () => {
 
     categoriaActiva = null;
     viewState = 'main';
+    modoSesion(false);
     // Consume la entrada de historial empujada al entrar a la pila de
     // sub-vistas — salvo que ya estemos respondiendo a un popstate (el
     // atrás del sistema), donde esa entrada ya se está consumiendo sola.
@@ -546,8 +549,31 @@ mountListeners = () => {
   // hacía, así "Hoy toca → Empezar" pintaba la sesión en una vista oculta.
   const mostrarSubVista = () => {
     empujarHistorialSiHaceFalta();
+    modoSesion(false);
     mainView.style.display = 'none';
     subView.style.display = 'block';
+  };
+
+  // Sesión de GYM/Calistenia a pantalla completa: la clase en <html> oculta
+  // la barra inferior en móvil (el riel de tablet/PC se queda) y la sesión
+  // trae su propia barra superior, así que se oculta el "Volver" genérico.
+  // Se quita en todas las salidas: cualquier otra sub-vista (mostrarSubVista),
+  // goToMain (volver, Atrás, guardar, descartar) y cleanup (cambiar de vista).
+  const modoSesion = (activo) => {
+    document.documentElement.classList.toggle('entreno-sesion-activa', activo);
+    // Pantalla nueva: la sesión empieza arriba (no con el scroll de la lista).
+    if (activo) document.getElementById('view-root')?.scrollTo(0, 0);
+    const volver = document.getElementById('btn-entrenamiento-volver');
+    if (volver) volver.style.display = activo ? 'none' : 'flex';
+  };
+
+  // Salir de una sesión (✕, "Volver"): el borrador queda (ver
+  // sesion-borrador.js). Desde una lista de rutinas vuelve a ella; desde
+  // "Hoy toca" o "Retomar", a la principal.
+  const salirDeSesion = () => {
+    cleanupSessionTimer();
+    cleanupHiitTimer();
+    if (categoriaActiva) goToRutinas(categoriaActiva); else goToMain();
   };
 
   const goToRutinas = async (cat) => {
@@ -751,8 +777,9 @@ mountListeners = () => {
       if (borrador) {
         // Retomar: los ejercicios y series del borrador, y su hora de inicio.
         const retomada = { ...rutina, ejercicios: borrador.ejercicios };
+        modoSesion(true);
         subContent.innerHTML = await renderRutinaSession(retomada);
-        initRutinaSessionListeners(retomada, async () => goToMain(), signal, { inicio: borrador.inicio, ejercicioActivo: borrador.ejercicioActivo });
+        initRutinaSessionListeners(retomada, async () => goToMain(), signal, { inicio: borrador.inicio, ejercicioActivo: borrador.ejercicioActivo, onSalir: salirDeSesion });
       } else if (esDescansoActivo(rutina, rutina.categoria)) {
         subContent.innerHTML = renderDescansoActivoSesion(rutina);
         initDescansoActivoListeners(rutina, async () => goToMain(), signal);
@@ -760,8 +787,9 @@ mountListeners = () => {
         subContent.innerHTML = renderHiitTimer(rutina);
         initHiitTimerListeners(rutina, async () => goToMain(), signal);
       } else {
+        modoSesion(true);
         subContent.innerHTML = await renderRutinaSession(rutina);
-        initRutinaSessionListeners(rutina, async () => goToMain(), signal);
+        initRutinaSessionListeners(rutina, async () => goToMain(), signal, { onSalir: salirDeSesion });
       }
     } catch (err) {
       console.error('Error renderizando sesión:', err);
@@ -782,10 +810,8 @@ mountListeners = () => {
       if (viewState === 'form' || viewState === 'preview' || viewState === 'generador-preview') {
         goToRutinas(categoriaActiva);
       } else if (viewState === 'session') {
-        cleanupSessionTimer();
-        cleanupHiitTimer();
         // Desde "Hoy toca" de la principal no hay lista de rutinas detrás.
-        if (categoriaActiva) goToRutinas(categoriaActiva); else goToMain();
+        salirDeSesion();
       } else if (viewState === 'progreso' && categoriaActiva) {
         goToRutinas(categoriaActiva);
       } else {
