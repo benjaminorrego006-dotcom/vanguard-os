@@ -28,6 +28,7 @@ contextos limpios sin Supabase (`supabase.co` bloqueado) y el respaldo
 - Guardar con nota "Buena sesión" y RPE 7: un solo `sesion_registrada` con los mismos campos que una sesión guardada antes del cambio (las del respaldo; ahora con `checked: true` en cada serie, como desde la fase de nivel), nota, RPE y las series marcadas; borra el borrador y vuelve a Entreno sin entradas de historial colgando.
 - Descartar pide confirmación y no guarda; sin series marcadas sale "Terminar sesión vacía" como siempre. Calistenia también abre el resumen. HIIT sigue mostrando su modal.
 - 375 y 1280; regresión de fases 1–7 y QA anteriores sin fallas (guardan desde el resumen). ESLint `no-undef` limpio; consola limpia.
+- Arreglo (v254): Guardar y Descartar desde el resumen ya no esperan 500 ms fijos para soltar la entrada del resumen; esperan el `popstate` real de ese retroceso (y el de la confirmación, al descartar) antes de que `goToMain`/salir haga el suyo. Con la espera fija, en una máquina cargada los dos retrocesos se pisaban (2 fallas en 3 corridas a 1280). Tras el arreglo: 10/10 a 375 y 9/10 a 1280; la falla restante deja el hash en `#entrenamiento` con otra vista pintada, compatible con una carrera de render del router (`navigate()` sin guarda contra un render tardío), fuera de este alcance.
 
 ### Fase 7 — QA
 

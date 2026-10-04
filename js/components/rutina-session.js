@@ -1513,10 +1513,21 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   let mapasResumen = [];
   const contResumen = document.getElementById('sesion-resumen');
 
-  const esperarAtras = () => new Promise(res => {
-    const t = setTimeout(res, 500);
-    window.addEventListener('popstate', () => { clearTimeout(t); res(); }, { once: true });
-  });
+  // Retroceder del resumen sin temporizador: se espera el popstate real (un
+  // retroceso dentro del mismo documento siempre lo dispara) antes de que
+  // quien siga (goToMain, salir) haga su propio history.back(). Con una
+  // espera fija de 500 ms, si el popstate tardaba más, los dos retrocesos se
+  // pisaban y quedaba colgada la entrada del resumen.
+  const esperarPopstate = () => new Promise(res => window.addEventListener('popstate', () => res(), { once: true }));
+  const soltarEntradaResumen = async () => {
+    if (!(history.state && history.state.sesionResumen)) return;
+    const listo = esperarPopstate();
+    history.back();
+    await listo;
+  };
+  // history.js suelta la entrada de la confirmación con su propio back():
+  // se espera ese popstate (solo si la entrada sigue siendo la actual).
+  const esperarCierreConfirmacion = () => (history.state && history.state.modalId === 'global-confirm-modal' ? esperarPopstate() : Promise.resolve());
   const variacionHtml = (actual, previo) => {
     if (!previo || previo <= 0) return '';
     const pct = Math.round(((actual - previo) / previo) * 100);
@@ -1666,17 +1677,17 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       borrarBorrador();
       // Se suelta la entrada del resumen (goToMain suelta la de la sub-vista).
       resumenAbierto = false;
-      if (history.state && history.state.sesionResumen) { const atras = esperarAtras(); history.back(); await atras; }
+      await soltarEntradaResumen();
       if (onSuccess) onSuccess();
     });
 
     document.getElementById('btn-resumen-descartar').addEventListener('click', async () => {
       const ok = await ConfirmDialog('¿Descartar la sesión?', 'Se pierden las series de esta sesión y no se guarda nada.', { verb: 'Descartar' });
-      if (history.state && history.state.modalId === 'global-confirm-modal') await esperarAtras();
+      await esperarCierreConfirmacion();
       if (!ok) { document.getElementById('btn-resumen-descartar')?.focus(); return; }
       borrarBorrador();
       resumenAbierto = false;
-      if (history.state && history.state.sesionResumen) { const atras = esperarAtras(); history.back(); await atras; }
+      await soltarEntradaResumen();
       if (opciones.onSalir) opciones.onSalir();
     });
 
