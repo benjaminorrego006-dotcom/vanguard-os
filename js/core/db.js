@@ -1049,7 +1049,11 @@ function sortByCreatedAt(arr) {
 // en el array, solo para preservar el orden en que se mostraban en las
 // listas). Desde ahora en más, toda mutación nueva sí queda en el log.
 async function migrateFromLocalStorageIfNeeded() {
-  if (localStorage.getItem('vg_migrated_to_idb') === 'true') return;
+  // Sin localStorage (bloqueado por el navegador) no hay datos viejos que
+  // migrar: se sigue sin error.
+  let yaMigrado;
+  try { yaMigrado = localStorage.getItem('vg_migrated_to_idb') === 'true'; } catch (e) { return; }
+  if (yaMigrado) return;
 
   const isNumericLabel = (label) => /^\d+$/.test((label || '').trim());
 
@@ -1337,7 +1341,13 @@ export const db = {
   // vive en localStorage (no en IndexedDB), no hay ninguna razón real para
   // volverlas async.
   isPinEnabled() {
-    return localStorage.getItem('vglock_enabled') === 'true' && !!localStorage.getItem('vglock_hash');
+    // Sin localStorage no puede haber PIN guardado: la app arranca sin candado
+    // en vez de caerse en el primer render.
+    try {
+      return localStorage.getItem('vglock_enabled') === 'true' && !!localStorage.getItem('vglock_hash');
+    } catch (e) {
+      return false;
+    }
   },
   async setPin(pin) {
     const hash = await sha256Hex(pin);

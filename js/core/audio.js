@@ -22,7 +22,8 @@ export function playBeep() {
 
 export function speakPhase(texto) {
   if (!window.speechSynthesis) return;
-  const pref = localStorage.getItem('vg_hiit_voice');
+  let pref = null;
+  try { pref = localStorage.getItem('vg_hiit_voice'); } catch (e) { /* sin localStorage: voz activada */ }
   if (pref === 'off') return;
   
   // Cancel previous speech to avoid queue buildup

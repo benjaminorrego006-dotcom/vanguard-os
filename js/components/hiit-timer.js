@@ -139,10 +139,11 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
 
   const voiceToggle = document.getElementById('hiit-voice-toggle');
   if (voiceToggle) {
-    const pref = localStorage.getItem('vg_hiit_voice');
+    let pref = null;
+    try { pref = localStorage.getItem('vg_hiit_voice'); } catch (e) { /* sin localStorage: voz activada */ }
     voiceToggle.checked = (pref !== 'off');
     voiceToggle.addEventListener('change', (e) => {
-      localStorage.setItem('vg_hiit_voice', e.target.checked ? 'on' : 'off');
+      try { localStorage.setItem('vg_hiit_voice', e.target.checked ? 'on' : 'off'); } catch (err) { /* no se recuerda */ }
     });
   }
 

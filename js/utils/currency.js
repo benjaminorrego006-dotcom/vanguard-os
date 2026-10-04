@@ -2,12 +2,14 @@ let cachedCurrency = null;
 let standardFormatter = null;
 let compactFormatter = null;
 
+// Sin localStorage (bloqueado por el navegador) se usa CLP y el cambio de
+// moneda no se recuerda, pero la app sigue funcionando.
 export function getCurrency() {
-  return localStorage.getItem('vg_currency') || 'CLP';
+  try { return localStorage.getItem('vg_currency') || 'CLP'; } catch (e) { return 'CLP'; }
 }
 
 export function setCurrency(code) {
-  localStorage.setItem('vg_currency', code);
+  try { localStorage.setItem('vg_currency', code); } catch (e) { /* sin localStorage no se recuerda */ }
   cachedCurrency = null; // Invalidate cache
 }
 

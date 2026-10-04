@@ -25,7 +25,7 @@ contextos limpios sin Supabase (`supabase.co` bloqueado) y el respaldo
 ### Fase 1 — detectado, sin corregir
 
 - **Reps de tiempo en un campo numérico:** las plantillas de Calistenia traen reps como "30s" o "20s/lado"; el campo de reps de la sesión es `type="number"`, así que el navegador avisa ("cannot be parsed") y el campo queda vacío: esas series se guardan (y quedan en el borrador) sin reps. Pasa igual antes de esta fase.
-- **Con `localStorage` bloqueado del todo la app no arranca** (promesa rechazada sin manejar al iniciar), también antes de esta fase.
+- **Con `localStorage` bloqueado del todo la app no arranca** (promesa rechazada sin manejar al iniciar), también antes de esta fase. **Corregido (v244):** `isPinEnabled` (el candado del primer render), la migración inicial, la moneda (`currency.js`, que usa todo monto) y la preferencia de voz de HIIT (`audio.js`, `hiit-timer.js`) leen `localStorage` en try/catch con su valor por defecto (sin PIN, CLP, voz activada). Verificado con `localStorage` bloqueado del todo en 375 y 1280: Hoy, Tareas, Hábitos, Finanzas, Laboratorio, Configuración y Entreno cargan, una sesión de GYM se guarda y HIIT abre, con la consola limpia.
 
 ## 4 oct 2026 — Hoy toca, racha del primer render y nombres de ejercicios
 
