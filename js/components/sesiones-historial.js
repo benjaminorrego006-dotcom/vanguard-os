@@ -2,12 +2,15 @@
 // más reciente primero) con "Cargar más", y el detalle de cada sesión en un
 // modal (.modal-overlay + open, así el atrás del sistema lo cierra; ver
 // history.js) con Eliminar y Editar. Eliminar pide confirmación y deja un
-// aviso con "Deshacer" (db.restaurarSesion). Editar llega en la fase 3.
+// aviso con "Deshacer" (db.restaurarSesion). Editar abre el formulario en
+// el mismo modal y guarda con db.editarSesion; Cancelar, Atrás o Escape
+// vuelven al detalle (con "¿Descartar los cambios?" si hubo cambios).
 import { db } from '../core/db.js';
 import { claveDiaDe, fechaLocalDe, sumarDias, diaKeyDe, formatFechaCorta, conMayuscula } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { ConfirmDialog, ToastAccion, Toast } from '../utils/states.js';
 import { CATEGORY_COLORS } from '../core/trainingConfig.js';
+import { abrirBuscadorEjercicios, TIPO_LABELS } from './rutina-session.js';
 
 const SEMANAS_POR_PAGINA = 8;
 const CATEGORIAS = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
@@ -138,8 +141,159 @@ function renderDetalle(s, categoria) {
     <ul style="list-style: none; margin: 0 0 16px 0; padding: 0;">${ejercicios || '<li style="font-size: 13px; color: var(--text-secondary);">Sin series registradas.</li>'}</ul>
     <div class="sesion-detalle-acciones" style="display: flex; gap: 8px; background: var(--surface-1); padding-top: 12px; border-top: 1px solid var(--surface-border);">
       <button type="button" id="btn-sesion-eliminar" class="tappable" style="flex: 1; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Eliminar</button>
-      <button type="button" id="btn-sesion-editar" disabled aria-disabled="true" aria-label="Editar, próximamente" style="flex: 1; background: transparent; border: 1px solid var(--surface-border); color: var(--text-disabled); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: not-allowed;">Editar · Próximamente</button>
+      <button type="button" id="btn-sesion-editar" class="tappable" style="flex: 1; background: transparent; border: 1px solid var(--cy); color: var(--cy); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Editar</button>
     </div>`;
+}
+
+// --- Edición (mismo modal que el detalle) ---------------------------------
+
+// Copia editable de la sesión: fecha como clave de día y números como
+// texto (lo que muestran los inputs). Las series conservan sus otros campos
+// (rpe, etc.); `checked` se vuelve explícito (las antiguas no lo traen y
+// cuentan como marcadas).
+function borradorDe(s) {
+  return {
+    fecha: claveDiaDe(s.fecha),
+    duracionMin: String(s.duracionMin ?? 0),
+    notas: s.notas || '',
+    ejercicios: (s.ejercicios || []).map(ej => ({
+      ejercicioId: ej.ejercicioId,
+      nombre: ej.nombre,
+      series: (ej.series || []).map(sr => ({
+        ...sr,
+        tipo: sr.tipo || 'normal',
+        peso: sr.peso === undefined || sr.peso === null ? '' : String(sr.peso),
+        reps: sr.reps === undefined || sr.reps === null ? '' : String(sr.reps),
+        checked: sr.checked !== false
+      }))
+    }))
+  };
+}
+
+const ESTILO_INPUT = 'width: 100%; min-width: 0; box-sizing: border-box; min-height: 44px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px; font-size: 16px;';
+const ESTILO_ETIQUETA = 'display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;';
+
+function filaSerieEdicion(sr, ei, si, nombreEj) {
+  const n = si + 1;
+  const pre = `ed-${ei}-${si}`;
+  const de = `de la serie ${n} de ${escapeHtml(nombreEj)}`;
+  return `
+    <li class="ed-serie" style="border: 1px solid var(--surface-border); padding: 8px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 13px; color: var(--text-secondary); flex-shrink: 0;">Serie <span class="num">${n}</span></span>
+        <select id="${pre}-tipo" class="ed-campo" data-ej="${ei}" data-sr="${si}" data-prop="tipo" aria-label="Tipo ${de}" style="${ESTILO_INPUT} flex: 1; font-size: 14px;">
+          ${Object.entries(TIPO_LABELS).map(([v, l]) => `<option value="${v}" ${sr.tipo === v ? 'selected' : ''}>${l}</option>`).join('')}
+        </select>
+        <button type="button" class="ed-campo tappable" data-accion="quitar-serie" data-ej="${ei}" data-sr="${si}" aria-label="Quitar la serie ${n} de ${escapeHtml(nombreEj)}" style="width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+          <svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end;">
+        <div style="min-width: 0;">
+          <label for="${pre}-peso" style="${ESTILO_ETIQUETA}">Peso (kg)</label>
+          <input id="${pre}-peso" class="ed-campo num" type="number" inputmode="decimal" min="0" step="any" value="${escapeHtml(sr.peso)}" data-ej="${ei}" data-sr="${si}" data-prop="peso" aria-label="Peso en kilos ${de}" style="${ESTILO_INPUT}">
+        </div>
+        <div style="min-width: 0;">
+          <label for="${pre}-reps" style="${ESTILO_ETIQUETA}">Reps</label>
+          <input id="${pre}-reps" class="ed-campo num" type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(sr.reps)}" data-ej="${ei}" data-sr="${si}" data-prop="reps" aria-label="Repeticiones ${de}" style="${ESTILO_INPUT}">
+        </div>
+        <label style="display: flex; align-items: center; gap: 6px; min-height: 44px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
+          <input type="checkbox" class="ed-campo" data-ej="${ei}" data-sr="${si}" data-prop="checked" ${sr.checked ? 'checked' : ''} aria-label="Serie ${n} de ${escapeHtml(nombreEj)} marcada" style="width: 20px; height: 20px; accent-color: var(--cy); margin: 0;">
+          Marcada
+        </label>
+      </div>
+    </li>`;
+}
+
+function renderEdicion(s, b) {
+  const hoy = diaKeyDe(new Date());
+  const ejercicios = b.ejercicios.map((ej, ei) => {
+    const nombre = ej.nombre || 'Ejercicio';
+    return `
+      <li class="ed-ejercicio" style="padding: 12px 0; border-top: 1px solid var(--surface-border);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
+          <h3 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0; min-width: 0; overflow-wrap: anywhere;">${escapeHtml(nombre)}</h3>
+          <button type="button" class="ed-campo tappable" data-accion="quitar-ejercicio" data-ej="${ei}" aria-label="Quitar ${escapeHtml(nombre)} de la sesión" style="flex-shrink: 0; min-height: 44px; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 0 12px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;">Quitar</button>
+        </div>
+        <ol style="list-style: none; margin: 0 0 8px 0; padding: 0; display: flex; flex-direction: column; gap: 6px;">
+          ${ej.series.map((sr, si) => filaSerieEdicion(sr, ei, si, nombre)).join('')}
+        </ol>
+        <button type="button" class="ed-campo tappable" data-accion="agregar-serie" data-ej="${ei}" aria-label="Agregar una serie a ${escapeHtml(nombre)}" style="width: 100%; min-height: 44px; background: transparent; border: 1px dashed var(--cy3); color: var(--cy); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;">+ Agregar serie</button>
+      </li>`;
+  }).join('');
+  return `
+    <div style="margin-bottom: 12px;">
+      <div style="font-size: 12px; color: var(--cy); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Editar sesión</div>
+      <h2 id="sesion-detalle-titulo" style="font-size: 20px; font-weight: 800; margin: 4px 0 0 0; color: var(--text-primary);">${escapeHtml(s.nombreRutina || 'Entrenamiento')}</h2>
+    </div>
+    <form id="sesion-edicion-form" novalidate>
+      <div style="display: grid; grid-template-columns: 3fr 2fr; gap: 8px; margin-bottom: 12px;">
+        <div style="min-width: 0;">
+          <label for="ed-fecha" style="${ESTILO_ETIQUETA}">Fecha</label>
+          <input id="ed-fecha" class="ed-campo num" type="date" max="${hoy}" value="${escapeHtml(b.fecha)}" data-prop="fecha" style="${ESTILO_INPUT}">
+        </div>
+        <div style="min-width: 0;">
+          <label for="ed-duracion" style="${ESTILO_ETIQUETA}">Duración (min)</label>
+          <input id="ed-duracion" class="ed-campo num" type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(b.duracionMin)}" data-prop="duracionMin" style="${ESTILO_INPUT}">
+        </div>
+      </div>
+      <label for="ed-notas" style="${ESTILO_ETIQUETA}">Notas</label>
+      <textarea id="ed-notas" class="ed-campo" data-prop="notas" rows="2" style="${ESTILO_INPUT} font-family: inherit; resize: vertical; margin-bottom: 12px;">${escapeHtml(b.notas)}</textarea>
+      <ul style="list-style: none; margin: 0; padding: 0;">${ejercicios || '<li style="font-size: 13px; color: var(--text-secondary); padding: 12px 0; border-top: 1px solid var(--surface-border);">Sin ejercicios. Agrega al menos uno para guardar.</li>'}</ul>
+      <button type="button" class="ed-campo tappable" data-accion="agregar-ejercicio" style="width: 100%; min-height: 44px; margin: 4px 0 16px 0; background: transparent; border: 1px solid var(--cy); color: var(--cy); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">+ Agregar ejercicio</button>
+      <div class="sesion-detalle-acciones" style="background: var(--surface-1); padding-top: 12px; border-top: 1px solid var(--surface-border);">
+        <p id="sesion-edicion-error" role="alert" style="font-size: 13px; color: var(--rd); margin: 0;"></p>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="ed-campo tappable" data-accion="cancelar" style="flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Cancelar</button>
+          <button type="submit" class="ed-campo tappable" style="flex: 1; min-height: 44px; background: var(--cy); border: 1px solid var(--cy); color: var(--bg); padding: 12px; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;">Guardar</button>
+        </div>
+      </div>
+    </form>`;
+}
+
+// Primer problema del borrador (o null). Los números vienen como texto de
+// los inputs; `ilegibles` son los ids de inputs con texto que el navegador
+// no pudo leer como número (validity.badInput).
+function validarBorrador(b, ilegibles = []) {
+  const noNegativo = (v) => v === '' || (Number.isFinite(Number(v)) && Number(v) >= 0);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(b.fecha)) return { mensaje: 'Elige una fecha.', campo: 'ed-fecha' };
+  if (b.fecha > diaKeyDe(new Date())) return { mensaje: 'La fecha no puede ser futura.', campo: 'ed-fecha' };
+  if (ilegibles.includes('ed-duracion') || b.duracionMin.trim() === '' || !noNegativo(b.duracionMin.trim())) {
+    return { mensaje: 'La duración tiene que ser un número de minutos, 0 o más.', campo: 'ed-duracion' };
+  }
+  if (b.ejercicios.length === 0) return { mensaje: 'Agrega al menos un ejercicio para guardar.', campo: null };
+  for (let ei = 0; ei < b.ejercicios.length; ei++) {
+    const ej = b.ejercicios[ei];
+    if (ej.series.length === 0) {
+      return { mensaje: `${ej.nombre || 'Un ejercicio'} no tiene series: agrega una o quita el ejercicio.`, campo: null, agregarSerieDe: ei };
+    }
+    for (let si = 0; si < ej.series.length; si++) {
+      for (const prop of ['peso', 'reps']) {
+        const id = `ed-${ei}-${si}-${prop}`;
+        if (ilegibles.includes(id) || !noNegativo(ej.series[si][prop].trim())) {
+          return { mensaje: 'El peso y las repeticiones tienen que ser números, 0 o más.', campo: id };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// Lo que recibe db.editarSesion: números normalizados como texto (igual
+// que los guarda la sesión en vivo) y la fecha como clave de día (editarSesion
+// conserva la hora original).
+function cambiosDe(b) {
+  const limpio = (v) => (v.trim() === '' ? '' : String(Number(v)));
+  return {
+    fecha: b.fecha,
+    duracionMin: Math.round(Number(b.duracionMin)),
+    notas: b.notas.trim(),
+    ejercicios: b.ejercicios.map(ej => ({
+      ...(ej.ejercicioId !== undefined ? { ejercicioId: ej.ejercicioId } : {}),
+      nombre: ej.nombre,
+      series: ej.series.map(sr => ({ ...sr, peso: limpio(sr.peso), reps: limpio(sr.reps) }))
+    }))
+  };
 }
 
 export async function renderSesionesHistorial() {
@@ -147,7 +301,7 @@ export async function renderSesionesHistorial() {
   return `
     <div style="margin-bottom: 16px;">
       <h1 style="font-size: 26px; font-weight: 800; margin: 0; color: var(--text-primary);">Historial de sesiones</h1>
-      <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 0 0;">Toca una sesión para ver sus series o eliminarla.</p>
+      <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 0 0;">Toca una sesión para ver sus series, editarla o eliminarla.</p>
     </div>
     <div id="hist-lista">${await renderLista()}</div>
     <div id="sesion-detalle-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="sesion-detalle-titulo">
@@ -174,6 +328,12 @@ export function initSesionesHistorialListeners(signal) {
   if (!lista || !modal || !contenido) return;
 
   let origenFoco = null;
+  // Mientras se edita: { s, cat, borrador, inicial, ocupado }. `inicial` es
+  // el borrador recién abierto (JSON) para saber si hay cambios sin guardar;
+  // `ocupado` frena otras acciones mientras se espera una confirmación, el
+  // buscador o el guardado.
+  let edicion = null;
+
   const refrescarLista = async () => {
     if (!document.body.contains(lista)) return;
     lista.innerHTML = await renderLista();
@@ -181,9 +341,20 @@ export function initSesionesHistorialListeners(signal) {
   };
 
   const cerrarDetalle = () => {
+    edicion = null;
     modal.classList.remove('open');
     modal.style.display = 'none';
     if (origenFoco && document.body.contains(origenFoco)) origenFoco.focus();
+  };
+
+  const pintarDetalle = (s, cat, foco = 'btn-sesion-detalle-cerrar') => {
+    edicion = null;
+    contenido.innerHTML = renderDetalle(s, cat);
+    // Listeners del detalle: se reasignan en cada pintado (innerHTML nuevo).
+    document.getElementById('btn-sesion-detalle-cerrar').addEventListener('click', cerrarDetalle);
+    document.getElementById('btn-sesion-eliminar').addEventListener('click', () => eliminar(s));
+    document.getElementById('btn-sesion-editar').addEventListener('click', () => abrirEdicion(s, cat));
+    requestAnimationFrame(() => document.getElementById(foco)?.focus());
   };
 
   const abrirDetalle = async (id, boton) => {
@@ -192,13 +363,9 @@ export function initSesionesHistorialListeners(signal) {
     if (!s) { await refrescarLista(); return; }
     const cat = (rutinas.find(r => r.id === s.rutinaId) || {}).categoria;
     origenFoco = boton;
-    contenido.innerHTML = renderDetalle(s, cat);
-    // Listeners del detalle: se reasignan en cada apertura (innerHTML nuevo).
-    document.getElementById('btn-sesion-detalle-cerrar').addEventListener('click', cerrarDetalle);
-    document.getElementById('btn-sesion-eliminar').addEventListener('click', () => eliminar(s));
+    pintarDetalle(s, cat);
     modal.style.display = 'flex';
     modal.classList.add('open');
-    requestAnimationFrame(() => document.getElementById('btn-sesion-detalle-cerrar')?.focus());
   };
 
   const eliminar = async (s) => {
@@ -221,8 +388,183 @@ export function initSesionesHistorialListeners(signal) {
     });
   };
 
+  // --- Edición ---
+
+  // `foco`: id del elemento a enfocar o función que lo devuelve (después de
+  // quitar o agregar series y ejercicios el formulario se repinta entero).
+  const pintarEdicion = (foco) => {
+    const scroll = contenido.scrollTop;
+    contenido.innerHTML = renderEdicion(edicion.s, edicion.borrador);
+    contenido.scrollTop = scroll;
+    if (!foco) return;
+    requestAnimationFrame(() => {
+      const el = typeof foco === 'function' ? foco() : document.getElementById(foco);
+      el?.focus();
+    });
+  };
+
+  const abrirEdicion = (s, cat) => {
+    const borrador = borradorDe(s);
+    edicion = { s, cat, borrador, inicial: JSON.stringify(borrador), ocupado: false };
+    contenido.scrollTop = 0;
+    pintarEdicion('ed-fecha');
+  };
+
+  const hayCambios = () => !!edicion && JSON.stringify(edicion.borrador) !== edicion.inicial;
+
+  // ConfirmDialog no se resuelve si el atrás (o Escape) lo cierra por
+  // history.js: en ese caso cuenta como "seguir editando".
+  const confirmarDescartar = () => new Promise(resolve => {
+    let listo = false;
+    const fin = (v) => {
+      if (listo) return;
+      listo = true;
+      window.removeEventListener('popstate', alAtras);
+      resolve(v);
+    };
+    const alAtras = () => {
+      if (!document.getElementById('global-confirm-modal')?.classList.contains('open')) fin(false);
+    };
+    window.addEventListener('popstate', alAtras);
+    ConfirmDialog('¿Descartar los cambios?', 'Lo que cambiaste en esta sesión no se guarda.', { verb: 'Descartar', danger: false }).then(fin);
+  });
+
+  // Cancelar, Atrás, Escape o tocar fuera: vuelve al detalle, preguntando
+  // antes si hay cambios sin guardar.
+  const salirDeEdicion = async () => {
+    if (!edicion || edicion.ocupado) return;
+    if (hayCambios()) {
+      const actual = edicion;
+      actual.ocupado = true;
+      const ok = await confirmarDescartar();
+      await esperarRetrocesoDe('global-confirm-modal');
+      if (edicion !== actual) return;
+      actual.ocupado = false;
+      if (!ok) { contenido.querySelector('[data-accion="cancelar"]')?.focus(); return; }
+    }
+    pintarDetalle(edicion.s, edicion.cat, 'btn-sesion-editar');
+  };
+
+  // El atrás del sistema (y Escape, que history.js convierte en atrás)
+  // cierra el modal antes de llegar acá. En edición se reabre: con el
+  // buscador encima solo se cierra el buscador; si no, se sale de la
+  // edición al detalle (no se cierra todo de golpe).
+  window.addEventListener('popstate', () => {
+    if (!edicion || modal.classList.contains('open') || !document.body.contains(modal)) return;
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+    const cerrarBuscador = document.getElementById('close-picker');
+    if (cerrarBuscador) { cerrarBuscador.click(); return; }
+    salirDeEdicion();
+  }, { signal });
+
+  // Cada input actualiza el borrador; los repintados (agregar o quitar)
+  // parten de él.
+  const alEditarCampo = (e) => {
+    const el = e.target;
+    if (!edicion || !el.classList || !el.classList.contains('ed-campo') || !el.dataset.prop) return;
+    const valor = el.type === 'checkbox' ? el.checked : el.value;
+    if (el.dataset.ej !== undefined) edicion.borrador.ejercicios[Number(el.dataset.ej)].series[Number(el.dataset.sr)][el.dataset.prop] = valor;
+    else edicion.borrador[el.dataset.prop] = valor;
+    el.removeAttribute('aria-invalid');
+  };
+  contenido.addEventListener('input', alEditarCampo, { signal });
+  contenido.addEventListener('change', alEditarCampo, { signal });
+
+  contenido.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-accion]');
+    if (!btn || !edicion || edicion.ocupado) return;
+    const b = edicion.borrador;
+    const ei = Number(btn.dataset.ej);
+    const si = Number(btn.dataset.sr);
+    switch (btn.dataset.accion) {
+      case 'quitar-serie': {
+        b.ejercicios[ei].series.splice(si, 1);
+        pintarEdicion(() => {
+          const quitar = contenido.querySelectorAll(`[data-accion="quitar-serie"][data-ej="${ei}"]`);
+          return quitar[Math.min(si, quitar.length - 1)] || contenido.querySelector(`[data-accion="agregar-serie"][data-ej="${ei}"]`);
+        });
+        break;
+      }
+      case 'agregar-serie': {
+        const series = b.ejercicios[ei].series;
+        const ultima = series[series.length - 1];
+        series.push({ tipo: 'normal', peso: ultima ? ultima.peso : '', reps: ultima ? ultima.reps : '', checked: true });
+        pintarEdicion(`ed-${ei}-${series.length - 1}-peso`);
+        break;
+      }
+      case 'quitar-ejercicio': {
+        b.ejercicios.splice(ei, 1);
+        pintarEdicion(() => {
+          const quitar = contenido.querySelectorAll('[data-accion="quitar-ejercicio"]');
+          return quitar[Math.min(ei, quitar.length - 1)] || contenido.querySelector('[data-accion="agregar-ejercicio"]');
+        });
+        break;
+      }
+      case 'agregar-ejercicio': {
+        const actual = edicion;
+        actual.ocupado = true;
+        const elegido = await abrirBuscadorEjercicios({ permitirPersonalizado: false, conId: true });
+        if (edicion !== actual) return;
+        actual.ocupado = false;
+        if (!elegido) { contenido.querySelector('[data-accion="agregar-ejercicio"]')?.focus(); return; }
+        b.ejercicios.push({ ejercicioId: elegido.id, nombre: elegido.nombre, series: [{ tipo: 'normal', peso: '', reps: '', checked: true }] });
+        pintarEdicion(`ed-${b.ejercicios.length - 1}-0-peso`);
+        break;
+      }
+      case 'cancelar':
+        salirDeEdicion();
+        break;
+    }
+  }, { signal });
+
+  contenido.addEventListener('submit', async (e) => {
+    if (!edicion || e.target.id !== 'sesion-edicion-form') return;
+    e.preventDefault();
+    if (edicion.ocupado) return;
+    const msg = document.getElementById('sesion-edicion-error');
+    contenido.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
+    const ilegibles = [...contenido.querySelectorAll('input[type="number"]')].filter(i => i.validity.badInput).map(i => i.id);
+    const error = validarBorrador(edicion.borrador, ilegibles);
+    if (error) {
+      msg.textContent = error.mensaje;
+      const campo = error.campo && document.getElementById(error.campo);
+      if (campo) {
+        campo.setAttribute('aria-invalid', 'true');
+        campo.setAttribute('aria-describedby', 'sesion-edicion-error');
+        campo.focus();
+      } else if (error.agregarSerieDe !== undefined) {
+        contenido.querySelector(`[data-accion="agregar-serie"][data-ej="${error.agregarSerieDe}"]`)?.focus();
+      } else {
+        contenido.querySelector('[data-accion="agregar-ejercicio"]')?.focus();
+      }
+      return;
+    }
+    msg.textContent = '';
+    // Sin cambios no hay nada que registrar: vuelve al detalle.
+    if (!hayCambios()) { pintarDetalle(edicion.s, edicion.cat, 'btn-sesion-editar'); return; }
+
+    const actual = edicion;
+    actual.ocupado = true;
+    const res = await db.editarSesion(actual.s.id, cambiosDe(actual.borrador));
+    if (edicion !== actual) return;
+    actual.ocupado = false;
+    if (!res || !res.ok) {
+      msg.textContent = res && res.error === 'fecha-futura' ? 'La fecha no puede ser futura.' : 'No se pudo guardar la sesión. Inténtalo de nuevo.';
+      return;
+    }
+    ToastAccion('Sesión actualizada', { duracion: 3000 });
+    // La vista pudo cambiar mientras se guardaba: entonces no se toca el DOM.
+    if (!document.body.contains(modal)) return;
+    pintarDetalle(res.sesion, actual.cat, 'btn-sesion-editar');
+    // Si cambió la fecha, la lista la deja en su semana nueva.
+    await refrescarLista();
+    const fila = lista.querySelector(`.hist-sesion[data-id="${CSS.escape(actual.s.id)}"]`);
+    if (fila) origenFoco = fila;
+  }, { signal });
+
   // Delegación: la lista se repinta con innerHTML (Cargar más, eliminar,
-  // deshacer) y así no hay que volver a enganchar cada fila.
+  // deshacer, editar) y así no hay que volver a enganchar cada fila.
   lista.addEventListener('click', (e) => {
     const fila = e.target.closest('.hist-sesion');
     if (fila) { abrirDetalle(fila.getAttribute('data-id'), fila); return; }
@@ -236,6 +578,9 @@ export function initSesionesHistorialListeners(signal) {
     }
   }, { signal });
 
-  // Tocar fuera del contenido cierra el detalle.
-  modal.addEventListener('click', (e) => { if (e.target === modal) cerrarDetalle(); }, { signal });
+  // Tocar fuera del contenido cierra el detalle (en edición, sale al detalle).
+  modal.addEventListener('click', (e) => {
+    if (e.target !== modal) return;
+    if (edicion) salirDeEdicion(); else cerrarDetalle();
+  }, { signal });
 }

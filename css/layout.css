@@ -60,6 +60,11 @@ body {
 @media (min-width: 640px) {
   #sesion-detalle-modal .sesion-detalle-acciones { bottom: -30px; padding-bottom: 30px; margin-bottom: -30px; }
 }
+/* Edición de una sesión: foco cian visible y el campo con error en rojo
+   (el mensaje va en el pie, junto a Guardar). */
+#sesion-detalle-modal .ed-campo:focus-visible { outline: 2px solid var(--cy); outline-offset: 1px; }
+#sesion-detalle-modal .ed-campo[aria-invalid="true"] { border-color: var(--rd); }
+#sesion-edicion-error:not(:empty) { margin-bottom: 8px; }
 
 /* Panel lateral: el overlay lo pega a la derecha; los ids ganan sobre los
    ajustes de .modal-content (hoja inferior en móvil, tarjeta en ≥640px). */

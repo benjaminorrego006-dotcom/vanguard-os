@@ -33,13 +33,104 @@ let currentRestTimerSecs = 90;
 // siempre desperdiciaba una columna entera). El valor real sigue viviendo
 // en el <select class="serie-tipo"> oculto, para no tocar la lógica de
 // guardado/lectura de series que ya depende de su .value.
-const TIPO_LABELS = { normal: 'Normal', calentamiento: 'Calentamiento', fallo: 'Fallo', dropset: 'Dropset' };
+export const TIPO_LABELS = { normal: 'Normal', calentamiento: 'Calentamiento', fallo: 'Fallo', dropset: 'Dropset' };
 const TIPO_COLORS = {
   normal: { bg: 'var(--surface-1)', border: 'var(--surface-border)', color: 'var(--text-secondary)' },
   calentamiento: { bg: 'rgba(245,158,11,0.15)', border: 'var(--accent-orange)', color: 'var(--accent-orange)' },
   fallo: { bg: 'rgba(239,68,68,0.15)', border: 'var(--state-high)', color: 'var(--state-high)' },
   dropset: { bg: 'color-mix(in srgb, var(--accent-purple) 15%, transparent)', border: 'var(--accent-purple)', color: 'var(--accent-purple)' },
 };
+
+// Buscador del catálogo de ejercicios: el de "Añadir ejercicio" de la
+// sesión en vivo, compartido con la edición de una sesión del historial
+// (sesiones-historial.js). Devuelve una promesa con el nombre elegido o
+// null si se cierra. Opciones:
+// - permitirPersonalizado (true): sin resultados ofrece añadir el texto
+//   tal cual; la edición solo deja elegir del catálogo.
+// - conId (false): resuelve { id, nombre } con el id y el nombre del
+//   catálogo en vez del nombre mostrado.
+// Escape lo cierra sin pasar al atrás de los modales (history.js).
+export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = false } = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay open';
+    overlay.style.zIndex = '6000';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'picker-titulo');
+    overlay.innerHTML = `
+      <div class="modal-content" style="max-height: 80vh; display: flex; flex-direction: column; padding: 20px;">
+        <div class="flex-between" style="margin-bottom: 16px;">
+          <h3 id="picker-titulo" style="margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.3px;">Añadir Ejercicio</h3>
+          <button id="close-picker" aria-label="Cerrar" style="background: transparent; border: none; color: var(--text-disabled); font-size: 24px; cursor: pointer;">&times;</button>
+        </div>
+        <input type="text" id="picker-search" aria-label="Buscar ejercicio" placeholder="Buscar ejercicio (ej. Sentadilla)" style="width: 100%; padding: 13px 16px; border-radius: 14px; border: 1px solid var(--surface-border); background: var(--surface-2); color: var(--text-primary); margin-bottom: 16px; outline: none; box-sizing: border-box; font-size: 16px;">
+        <div id="picker-results" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
+    `;
+    // For desktop frame compatibility, append to #view-root > div if available, otherwise body
+    const rootDiv = document.querySelector('#view-root > div') || document.body;
+    rootDiv.appendChild(overlay);
+
+    const close = (val) => {
+      overlay.remove();
+      resolve(val);
+    };
+
+    document.getElementById('close-picker').onclick = () => close(null);
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      close(null);
+    });
+
+    const searchInput = document.getElementById('picker-search');
+    const resultsContainer = document.getElementById('picker-results');
+
+    const allEjercicios = Object.keys(CATALOGO_EJERCICIOS).map(k => ({
+      key: k,
+      nombre: k.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      musculo: CATALOGO_EJERCICIOS[k].grupoMuscular
+    }));
+
+    const renderResults = (query) => {
+      const q = query.toLowerCase().trim();
+      const matches = q ? allEjercicios.filter(e => e.nombre.toLowerCase().includes(q)) : allEjercicios.slice(0, 20);
+
+      if (matches.length === 0 && q) {
+        resultsContainer.innerHTML = `
+          <div style="text-align: center; color: var(--text-secondary); padding: 20px 0; font-size: 14px;">
+            No encontrado en el catálogo.
+            ${permitirPersonalizado ? `<br><br>
+            <button id="btn-custom-ej" class="tappable" style="background: var(--accent-teal); color: #000; border: none; padding: 10px 18px; border-radius: 12px; cursor: pointer; font-weight: 700; margin-top: 12px;">Añadir "${escapeHtml(q)}" de todas formas</button>` : ''}
+          </div>
+        `;
+        const btnCustom = document.getElementById('btn-custom-ej');
+        if (btnCustom) btnCustom.onclick = () => close(q);
+      } else {
+        resultsContainer.innerHTML = matches.map(e => `
+          <button type="button" class="picker-item tappable" data-key="${escapeHtml(e.key)}" data-nombre="${escapeHtml(e.nombre)}" style="width: 100%; flex-shrink: 0; text-align: left; font: inherit; color: var(--text-primary); padding: 13px 16px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <span style="font-weight: 600; font-size: 15px;">${escapeHtml(e.nombre)}</span>
+            <span style="font-size: 11px; color: var(--accent-teal); text-transform: uppercase; border: 1px solid var(--accent-teal); padding: 2px 6px; border-radius: 4px;">${e.musculo}</span>
+          </button>
+        `).join('');
+
+        resultsContainer.querySelectorAll('.picker-item').forEach(item => {
+          item.onclick = () => {
+            if (!conId) { close(item.getAttribute('data-nombre')); return; }
+            const ej = CATALOGO_EJERCICIOS[item.getAttribute('data-key')];
+            close({ id: ej.id, nombre: ej.nombre });
+          };
+        });
+      }
+    };
+
+    searchInput.oninput = (e) => renderResults(e.target.value);
+    renderResults(''); // initial render
+
+    setTimeout(() => searchInput.focus(), 100);
+  });
+}
 
 // Una fila de serie completa: la fila visible + su hint de 1RM como
 // hermano inmediato (initRutinaSessionListeners depende de
@@ -720,73 +811,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
     }, { signal });
   });
 
-    const openExercisePicker = () => {
-    return new Promise((resolve) => {
-      const overlay = document.createElement('div');
-      overlay.className = 'modal-overlay open';
-      overlay.style.zIndex = '6000';
-      overlay.innerHTML = `
-        <div class="modal-content" style="max-height: 80vh; display: flex; flex-direction: column; padding: 20px;">
-          <div class="flex-between" style="margin-bottom: 16px;">
-            <h3 style="margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.3px;">Añadir Ejercicio</h3>
-            <button id="close-picker" aria-label="Cerrar" style="background: transparent; border: none; color: var(--text-disabled); font-size: 24px; cursor: pointer;">&times;</button>
-          </div>
-          <input type="text" id="picker-search" placeholder="Buscar ejercicio (ej. Sentadilla)" style="width: 100%; padding: 13px 16px; border-radius: 14px; border: 1px solid var(--surface-border); background: var(--surface-2); color: var(--text-primary); margin-bottom: 16px; outline: none; box-sizing: border-box; font-size: 16px;">
-          <div id="picker-results" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
-        </div>
-      `;
-      // For desktop frame compatibility, append to #view-root > div if available, otherwise body
-      const rootDiv = document.querySelector('#view-root > div') || document.body;
-      rootDiv.appendChild(overlay);
-
-      const close = (val) => {
-        overlay.remove();
-        resolve(val);
-      };
-
-      document.getElementById('close-picker').onclick = () => close(null);
-
-      const searchInput = document.getElementById('picker-search');
-      const resultsContainer = document.getElementById('picker-results');
-      
-      const allEjercicios = Object.keys(CATALOGO_EJERCICIOS).map(k => ({
-        nombre: k.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-        musculo: CATALOGO_EJERCICIOS[k].grupoMuscular
-      }));
-
-      const renderResults = (query) => {
-        const q = query.toLowerCase().trim();
-        const matches = q ? allEjercicios.filter(e => e.nombre.toLowerCase().includes(q)) : allEjercicios.slice(0, 20);
-        
-        if (matches.length === 0 && q) {
-          resultsContainer.innerHTML = `
-            <div style="text-align: center; color: var(--text-secondary); padding: 20px 0; font-size: 14px;">
-              No encontrado en el catálogo. <br><br>
-              <button id="btn-custom-ej" class="tappable" style="background: var(--accent-teal); color: #000; border: none; padding: 10px 18px; border-radius: 12px; cursor: pointer; font-weight: 700; margin-top: 12px;">Añadir "${q}" de todas formas</button>
-            </div>
-          `;
-          const btnCustom = document.getElementById('btn-custom-ej');
-          if (btnCustom) btnCustom.onclick = () => close(q);
-        } else {
-          resultsContainer.innerHTML = matches.map(e => `
-            <div class="picker-item tappable" data-nombre="${escapeHtml(e.nombre)}" style="padding: 13px 16px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 600; font-size: 15px;">${escapeHtml(e.nombre)}</span>
-              <span style="font-size: 11px; color: var(--accent-teal); text-transform: uppercase; border: 1px solid var(--accent-teal); padding: 2px 6px; border-radius: 4px;">${e.musculo}</span>
-            </div>
-          `).join('');
-          
-          resultsContainer.querySelectorAll('.picker-item').forEach(item => {
-            item.onclick = () => close(item.getAttribute('data-nombre'));
-          });
-        }
-      };
-
-      searchInput.oninput = (e) => renderResults(e.target.value);
-      renderResults(''); // initial render
-      
-      setTimeout(() => searchInput.focus(), 100);
-    });
-  };
+  const openExercisePicker = () => abrirBuscadorEjercicios();
 
         const btnAddLive = document.getElementById('btn-add-ejercicio-live');
   if (btnAddLive) {
