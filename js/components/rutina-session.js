@@ -49,17 +49,21 @@ const TIPO_COLORS = {
 //   tal cual; la edición solo deja elegir del catálogo.
 // - conId (false): resuelve { id, nombre } con el id y el nombre del
 //   catálogo en vez del nombre mostrado.
-// Escape lo cierra sin pasar al atrás de los modales (history.js).
+// Es un .modal-overlay con id (#buscador-ejercicios-modal): history.js le
+// da su entrada de historial, así Atrás y Escape cierran solo el buscador,
+// y layout.css lo deja sin tapar la barra inferior ni el riel.
 export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = false } = {}) {
   return new Promise((resolve) => {
+    document.getElementById('buscador-ejercicios-modal')?.remove();
     const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay open';
+    overlay.id = 'buscador-ejercicios-modal';
+    overlay.className = 'modal-overlay';
     overlay.style.zIndex = '6000';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-labelledby', 'picker-titulo');
     overlay.innerHTML = `
-      <div class="modal-content" style="max-height: 80vh; display: flex; flex-direction: column; padding: 20px;">
+      <div class="modal-content" style="display: flex; flex-direction: column; padding: 20px;">
         <div class="flex-between" style="margin-bottom: 16px;">
           <h3 id="picker-titulo" style="margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.3px;">Añadir Ejercicio</h3>
           <button id="close-picker" aria-label="Cerrar" style="background: transparent; border: none; color: var(--text-disabled); font-size: 24px; cursor: pointer;">&times;</button>
@@ -71,18 +75,27 @@ export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = 
     // For desktop frame compatibility, append to #view-root > div if available, otherwise body
     const rootDiv = document.querySelector('#view-root > div') || document.body;
     rootDiv.appendChild(overlay);
+    // La clase se agrega después de insertarlo: history.js observa el cambio
+    // de "open" (no la inserción) para empujar la entrada de historial.
+    overlay.classList.add('open');
 
+    let cerrado = false;
     const close = (val) => {
+      if (cerrado) return;
+      cerrado = true;
+      window.removeEventListener('popstate', alAtras);
+      // Quitar "open" suelta su entrada de historial (history.js) antes de
+      // sacar el nodo.
+      overlay.classList.remove('open');
       overlay.remove();
       resolve(val);
     };
+    // Atrás (o Escape, que history.js convierte en atrás): history.js ya lo
+    // cerró; acá se saca el nodo y se resuelve sin elección.
+    const alAtras = () => { if (!overlay.classList.contains('open')) close(null); };
+    window.addEventListener('popstate', alAtras);
 
     document.getElementById('close-picker').onclick = () => close(null);
-    overlay.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      close(null);
-    });
 
     const searchInput = document.getElementById('picker-search');
     const resultsContainer = document.getElementById('picker-results');

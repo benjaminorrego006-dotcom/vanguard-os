@@ -446,15 +446,13 @@ export function initSesionesHistorialListeners(signal) {
   };
 
   // El atrás del sistema (y Escape, que history.js convierte en atrás)
-  // cierra el modal antes de llegar acá. En edición se reabre: con el
-  // buscador encima solo se cierra el buscador; si no, se sale de la
-  // edición al detalle (no se cierra todo de golpe).
+  // cierra el modal antes de llegar acá. En edición se reabre y se sale al
+  // detalle (no se cierra todo de golpe). Con el buscador encima, el atrás
+  // cierra solo el buscador (tiene su propia entrada) y no llega acá.
   window.addEventListener('popstate', () => {
     if (!edicion || modal.classList.contains('open') || !document.body.contains(modal)) return;
     modal.style.display = 'flex';
     modal.classList.add('open');
-    const cerrarBuscador = document.getElementById('close-picker');
-    if (cerrarBuscador) { cerrarBuscador.click(); return; }
     salirDeEdicion();
   }, { signal });
 
