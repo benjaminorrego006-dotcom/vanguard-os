@@ -14,7 +14,7 @@
 // usuario lo confirme (ver e: "No subirlo automáticamente. Sugerir.").
 import { db } from './db.js';
 import { getNivel } from './estandares-fuerza.js';
-import { CATALOGO_EJERCICIOS, getEjercicioPorId, getEjercicioMetadata, getIdPorNombreExacto } from './ejercicios-catalogo.js';
+import { CATALOGO_EJERCICIOS, getEjercicioPorId, getEjercicioMetadata, idDeEntradaEjercicio } from './ejercicios-catalogo.js';
 import { RAMA_ORDEN, RAMA_LABELS, ARBOL_PROGRESIONES, profundidadNodo, contarSeriesLimpias } from './progresiones.js';
 import { diaKeyDe, diasEntre, claveDiaDe } from '../utils/fecha.js';
 
@@ -41,10 +41,7 @@ const DIAS_AHORA_NO = 7; // cuánto dura un "Ahora no" antes de poder volver a s
 // primero y después el mismo fuzzy match que usa el mapa muscular
 // (getEjercicioMetadata). Sin match devuelve null.
 function idDeEntrada(ej) {
-  if (ej.ejercicioId) return ej.ejercicioId;
-  const exacto = getIdPorNombreExacto(ej.nombre);
-  if (exacto) return exacto;
-  return getEjercicioMetadata(ej.nombre).id || null;
+  return idDeEntradaEjercicio(ej) || getEjercicioMetadata(ej.nombre).id || null;
 }
 
 // Nivel efectivo de un ejercicio del catálogo: 'todos' no clasifica

@@ -330,7 +330,8 @@ const renderPRCard = (pr) => {
 
 async function renderRecords() {
   const prsObj = await db.getPRs();
-  const prsArray = Object.values(prsObj).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  // getPRs pone el mismo objeto bajo cada nombre del ejercicio: se deduplica.
+  const prsArray = [...new Set(Object.values(prsObj))].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 
   if (prsArray.length === 0) {
     return `<div>${EmptyState('Sin récords todavía', 'Registra sesiones con peso o repeticiones y tus PRs van a aparecer acá automáticamente.')}</div>`;

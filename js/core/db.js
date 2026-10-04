@@ -1,4 +1,4 @@
-import { getEjercicioMetadata, getEjercicioPorId, getIdPorNombreExacto, GRUPO_MUSCULAR_ORDEN } from './ejercicios-catalogo.js';
+import { getEjercicioMetadata, getEjercicioPorId, getIdPorNombreExacto, idCatalogoPorNombre, idDeEntradaEjercicio, metadataDeEjercicio, GRUPO_MUSCULAR_ORDEN } from './ejercicios-catalogo.js';
 import * as idb from './idb.js';
 import { mesKeyDe, diaKeyDe, diasEntre, sumarDias, claveDiaDe, fechaLocalDe, compararFechas } from '../utils/fecha.js';
 import { EQUIPO_OPCIONES } from './trainingConfig.js';
@@ -100,8 +100,11 @@ async function getSesionesConMigracionPerezosa() {
 // ejercicios personalizados que nunca van a resolver a un id — ver
 // getIdPorNombreExacto en ejercicios-catalogo.js). `nombreObjetivoLower` ya
 // viene en minúscula/trim, resuelto una sola vez por el caller.
+// El id de la entrada sale de idDeEntradaEjercicio: una entrada sin id con
+// un nombre viejo del catálogo ("Peso Muerto") cuenta para su ejercicio.
 function matchEjercicio(entry, nombreObjetivoLower, idObjetivo) {
-  if (entry.ejercicioId) return entry.ejercicioId === idObjetivo;
+  const id = idDeEntradaEjercicio(entry);
+  if (id) return id === idObjetivo;
   return entry.nombre.toLowerCase().trim() === nombreObjetivoLower;
 }
 
@@ -110,11 +113,7 @@ function matchEjercicio(entry, nombreObjetivoLower, idObjetivo) {
 // si no por nombre (getEjercicioMetadata, que sí hace fuzzy match — el mismo
 // comportamiento que ya tenía esto antes de Etapa 1 para texto libre).
 function resolverMetadataEjercicio(ej) {
-  if (ej.ejercicioId) {
-    const porId = getEjercicioPorId(ej.ejercicioId);
-    if (porId) return porId;
-  }
-  return getEjercicioMetadata(ej.nombre);
+  return metadataDeEjercicio(ej.nombre, ej.ejercicioId);
 }
 
 async function idbGetSingleton(key, defaultValue) {
@@ -1878,7 +1877,7 @@ export const db = {
   },
   async getUltimoRegistro(ejercicioNombre) {
     const nombreObjetivoLower = ejercicioNombre.toLowerCase().trim();
-    const idObjetivo = getIdPorNombreExacto(ejercicioNombre);
+    const idObjetivo = idCatalogoPorNombre(ejercicioNombre);
     const sesiones = (await getSesionesConMigracionPerezosa()).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
     for (let s of sesiones) {
       if (s.ejercicios) {
@@ -2177,7 +2176,7 @@ export const db = {
 
   async sugerirProgresion(ejercicioNombre) {
     const nomClean = ejercicioNombre.toLowerCase().trim();
-    const idObjetivo = getIdPorNombreExacto(ejercicioNombre);
+    const idObjetivo = idCatalogoPorNombre(ejercicioNombre);
     const sesiones = (await getSesionesConMigracionPerezosa()).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
 
     for (const s of sesiones) {
@@ -2799,8 +2798,12 @@ export const db = {
     sesiones.forEach(s => {
       if (s.ejercicios) {
         s.ejercicios.forEach(ej => {
-          const identidad = ej.ejercicioId ? `id:${ej.ejercicioId}` : `nombre:${ej.nombre.toLowerCase().trim()}`;
-          if (!grupos.has(identidad)) grupos.set(identidad, { ejercicioId: ej.ejercicioId || null, pesoMax: 0, repsMax: 0, fecha: s.fecha, nombres: new Set() });
+          // Sin id guardado, el id sale del nombre (nombre o clave del
+          // catálogo): "Peso Muerto" y "Peso Muerto Convencional" son un
+          // solo récord. Un ejercicio libre sigue agrupado por su nombre.
+          const id = idDeEntradaEjercicio(ej);
+          const identidad = id ? `id:${id}` : `nombre:${ej.nombre.toLowerCase().trim()}`;
+          if (!grupos.has(identidad)) grupos.set(identidad, { ejercicioId: id || null, pesoMax: 0, repsMax: 0, fecha: s.fecha, nombres: new Set() });
           const g = grupos.get(identidad);
           g.nombres.add(ej.nombre.trim());
 
@@ -2838,10 +2841,13 @@ export const db = {
       const nombreDisplay = catalogo ? catalogo.nombre : g.nombres.values().next().value;
       const grupoMuscular = catalogo ? catalogo.grupoMuscular : getEjercicioMetadata(nombreDisplay).grupoMuscular;
 
-      g.nombres.forEach(nombreVariante => {
-        const key = nombreVariante.toLowerCase().trim();
-        prs[key] = { nombre: nombreDisplay, pesoMax: g.pesoMax, repsMax: g.repsMax, fecha: g.fecha, grupoMuscular, favorito: favoritos.includes(key) };
-      });
+      // Un solo objeto por ejercicio bajo todas sus claves (las variantes
+      // guardadas y el nombre actual del catálogo, que es el que buscan
+      // Estándares de Fuerza y el nivel por rama): Récords lo muestra una vez.
+      const claves = new Set([...g.nombres].map(n => n.toLowerCase().trim()));
+      claves.add(nombreDisplay.toLowerCase().trim());
+      const pr = { nombre: nombreDisplay, pesoMax: g.pesoMax, repsMax: g.repsMax, fecha: g.fecha, grupoMuscular, favorito: [...claves].some(k => favoritos.includes(k)) };
+      claves.forEach(key => { prs[key] = pr; });
     });
     return prs;
   },
@@ -2865,7 +2871,7 @@ export const db = {
 
   async getHistorialEjercicio(nombre) {
     const nomClean = nombre.toLowerCase().trim();
-    const idObjetivo = getIdPorNombreExacto(nombre);
+    const idObjetivo = idCatalogoPorNombre(nombre);
     const sesiones = (await getSesionesConMigracionPerezosa()).sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
     const historial = [];
 

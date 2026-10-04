@@ -54,6 +54,46 @@ export function getIdPorNombreExacto(nombre) {
   return NOMBRE_A_ID.get(nombre.toLowerCase().trim()) || null;
 }
 
+// Nombre a id del catálogo AL LEER (no se guarda nada): reconoce el nombre
+// del catálogo y también su clave, sin distinguir mayúsculas, tildes ni
+// espacios de más. La clave es el id y, con mayúscula inicial, el nombre que
+// guardaba el buscador viejo de la sesión en vivo ("Peso Muerto" por "Peso
+// Muerto Convencional"): esas entradas quedaron con ejercicioId null.
+// getIdPorNombreExacto (arriba) sigue siendo lo que se usa al GUARDAR y en
+// la migración perezosa, así ninguna sesión guardada se reescribe.
+export function normalizarNombreEjercicio(nombre) {
+  return String(nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+}
+const NOMBRE_O_CLAVE_A_ID = new Map();
+Object.values(CATALOGO_EJERCICIOS).forEach(e => {
+  NOMBRE_O_CLAVE_A_ID.set(normalizarNombreEjercicio(e.nombre), e.id);
+});
+// Las claves después: si una clave coincidiera con el nombre de otro
+// ejercicio, gana el nombre.
+Object.entries(CATALOGO_EJERCICIOS).forEach(([clave, e]) => {
+  const k = normalizarNombreEjercicio(clave);
+  if (!NOMBRE_O_CLAVE_A_ID.has(k)) NOMBRE_O_CLAVE_A_ID.set(k, e.id);
+});
+export function idCatalogoPorNombre(nombre) {
+  if (!nombre) return null;
+  return NOMBRE_O_CLAVE_A_ID.get(normalizarNombreEjercicio(nombre)) || null;
+}
+
+// Id de catálogo de una entrada de ejercicio de sesión: el ejercicioId
+// guardado o, si no tiene (null/undefined), el que sale de su nombre. null
+// para un ejercicio libre. Lo comparten récords, historial, nivel,
+// sugerencias y mapa muscular.
+export function idDeEntradaEjercicio(ej) {
+  if (!ej) return null;
+  return ej.ejercicioId || idCatalogoPorNombre(ej.nombre);
+}
+
+// Metadata (grupo muscular, etc.) por id —el guardado o el que sale del
+// nombre— y, si no hay, la búsqueda aproximada de siempre.
+export function metadataDeEjercicio(nombre, ejercicioId = null) {
+  return getEjercicioPorId(ejercicioId || idCatalogoPorNombre(nombre)) || getEjercicioMetadata(nombre);
+}
+
 // Orden lógico y etiquetas para agrupar ejercicios por grupo muscular
 // dentro de una rutina/plantilla. 'otro' cubre ejercicios sueltos que el
 // usuario escribe a mano y no matchean el catálogo.

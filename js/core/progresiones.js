@@ -34,7 +34,7 @@
 // las trata como siempre satisfechas, porque bloquear una variante de
 // press hasta alcanzar un nivel de fuerza específico en el básico excede lo
 // que este árbol de "series limpias" está diseñado para verificar.
-import { CATALOGO_EJERCICIOS } from './ejercicios-catalogo.js';
+import { CATALOGO_EJERCICIOS, idCatalogoPorNombre } from './ejercicios-catalogo.js';
 
 function criterioAObjetivo(criterioAvance) {
   if (!criterioAvance || criterioAvance.tipo === 'ratio') return null;
@@ -143,6 +143,11 @@ function normalizarNombre(nombre) {
 // cuando haga falta sin cambiar nada hoy.
 export function getProgressionLevel(ejercicioNombre, ejercicioId = null) {
   let id = ejercicioId && ARBOL_PROGRESIONES[ejercicioId] ? ejercicioId : null;
+  // Sin id: el nombre del catálogo o su clave (nombres viejos del buscador).
+  if (!id) {
+    const porNombre = idCatalogoPorNombre(ejercicioNombre);
+    if (porNombre && ARBOL_PROGRESIONES[porNombre]) id = porNombre;
+  }
   if (!id) {
     const nombreNorm = normalizarNombre(ejercicioNombre);
     id = Object.keys(ARBOL_PROGRESIONES).find(

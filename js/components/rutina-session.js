@@ -3,7 +3,7 @@ import { playBeep } from '../core/audio.js';
 import { renderEjercicioDetalle, initEjercicioDetalleChart } from './ejercicio-detalle.js';
 import { calcularDiscos, renderPlateCalculatorPopover } from './plate-calculator.js';
 import { getProgressionLevel, RAMA_LABELS } from '../core/progresiones.js';
-import { getEjercicioMetadata, CATALOGO_EJERCICIOS, agruparPorGrupoMuscular, grupoMuscularParaMapa } from '../core/ejercicios-catalogo.js';
+import { metadataDeEjercicio, CATALOGO_EJERCICIOS, agruparPorGrupoMuscular, grupoMuscularParaMapa } from '../core/ejercicios-catalogo.js';
 import { ConfirmDialog, Toast } from '../utils/states.js';
 import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
 import { escapeHtml } from '../utils/escape.js';
@@ -240,7 +240,7 @@ export async function renderRutinaSession(rutina) {
 
   html += `<div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">`;
 
-  const gruposMuscular = agruparPorGrupoMuscular(rutina.ejercicios, ej => getEjercicioMetadata(ej.nombre).grupoMuscular);
+  const gruposMuscular = agruparPorGrupoMuscular(rutina.ejercicios, ej => metadataDeEjercicio(ej.nombre, ej.ejercicioId).grupoMuscular);
 
   // Ejercicios que comparten grupoId (asignado al agrupar en superserie en
   // Crear Rutina) se ejecutan sin descanso entre sí — ver el chip dentro de
@@ -269,8 +269,8 @@ export async function renderRutinaSession(rutina) {
     const hist = currentHistorial[ej.nombre];
     const ultimo = (hist && hist.length > 0) ? hist[hist.length - 1] : null;
     const pr = currentPRs[ej.nombre.toLowerCase().trim()];
-    const prog = getProgressionLevel(ej.nombre);
-    const meta = getEjercicioMetadata(ej.nombre);
+    const prog = getProgressionLevel(ej.nombre, ej.ejercicioId);
+    const meta = metadataDeEjercicio(ej.nombre, ej.ejercicioId);
     const sug = currentSugerencias[ej.nombre];
     const estancado = currentEstancamiento[ej.nombre];
 
@@ -413,7 +413,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
     document.querySelectorAll('.ejercicio-sesion-block').forEach(bloque => {
       const nombre = bloque.dataset.ejNombre;
       if (!nombre) return;
-      const clave = grupoMuscularParaMapa(getEjercicioMetadata(nombre).grupoMuscular);
+      const clave = grupoMuscularParaMapa(metadataDeEjercicio(nombre, bloque.getAttribute('data-ej-id')).grupoMuscular);
       if (!clave) return;
       const seriesMarcadas = bloque.querySelectorAll('.btn-check-serie[data-checked="true"]').length;
       if (seriesMarcadas <= 0) return;
@@ -552,7 +552,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
   document.querySelectorAll('.btn-info-ejercicio').forEach(btn => {
     btn.addEventListener('click', () => {
       const nombre = btn.getAttribute('data-ejnombre');
-      const meta = getEjercicioMetadata(nombre);
+      const meta = metadataDeEjercicio(nombre);
       if (!meta) return;
 
       const pasosHtml = (meta.pasosEjecucion && meta.pasosEjecucion.length)
