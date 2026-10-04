@@ -111,6 +111,9 @@ export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = 
 
     const renderResults = (query) => {
       const q = query.toLowerCase().trim();
+      // Lo que se guarda como ejercicio libre: tal como se escribió, solo sin
+      // espacios de más (la búsqueda sí compara en minúsculas).
+      const escrito = query.trim().replace(/\s+/g, ' ');
       const matches = q ? allEjercicios.filter(e => e.nombre.toLowerCase().includes(q)) : allEjercicios.slice(0, 20);
 
       if (matches.length === 0 && q) {
@@ -118,11 +121,11 @@ export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = 
           <div style="text-align: center; color: var(--text-secondary); padding: 20px 0; font-size: 14px;">
             No encontrado en el catálogo.
             ${permitirPersonalizado ? `<br><br>
-            <button id="btn-custom-ej" class="tappable" style="background: var(--accent-teal); color: #000; border: none; padding: 10px 18px; border-radius: 12px; cursor: pointer; font-weight: 700; margin-top: 12px;">Añadir "${escapeHtml(q)}" de todas formas</button>` : ''}
+            <button id="btn-custom-ej" class="tappable" style="background: var(--accent-teal); color: #000; border: none; padding: 10px 18px; border-radius: 12px; cursor: pointer; font-weight: 700; margin-top: 12px;">Añadir "${escapeHtml(escrito)}" de todas formas</button>` : ''}
           </div>
         `;
         const btnCustom = document.getElementById('btn-custom-ej');
-        if (btnCustom) btnCustom.onclick = () => close(conId ? { id: null, nombre: q } : q);
+        if (btnCustom) btnCustom.onclick = () => close(conId ? { id: null, nombre: escrito } : escrito);
       } else {
         resultsContainer.innerHTML = matches.map(e => `
           <button type="button" class="picker-item tappable" data-key="${escapeHtml(e.key)}" data-nombre="${escapeHtml(e.nombre)}" style="width: 100%; flex-shrink: 0; text-align: left; font: inherit; color: var(--text-primary); padding: 13px 16px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px;">

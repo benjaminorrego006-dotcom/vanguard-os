@@ -1,5 +1,36 @@
 # Vanguard OS — Changelog
 
+## 4 oct 2026 — Hoy toca, racha del primer render y nombres de ejercicios
+
+**`CACHE_NAME` final: `vanguard-os-v242`.** Cuatro arreglos de lo detectado
+en la QA de editar/eliminar sesiones, cada uno con su commit y su bump de
+caché. QA con Playwright en 375×812 y 1280×800, zona `America/Santiago`,
+reloj simulado, contextos limpios sin Supabase (`supabase.co` bloqueado) y
+el respaldo `vanguard-backup-demo-3-meses-COMPLETO.json` importado por la UI
+(para el punto 3, un respaldo de prueba local derivado de ese, con sesiones
+de id `null` y nombres viejos).
+
+| Commit | Caché | Qué cambia |
+|---|---|---|
+| `0e92260` | v239 | **"Hoy toca → Empezar" en la principal de Entreno abre la sesión visible.** `mostrarSubVista()` es el único lugar que muestra la sub-vista (con su entrada de historial) y oculta la principal; lo usan todas las sub-vistas. `goToSession` no lo hacía y pintaba la sesión en la vista oculta. "Volver" desde una sesión iniciada en la principal vuelve a la principal. La tarjeta "Hoy toca" de Hoy no inicia la sesión ("Ir a entrenar" lleva a la principal de Entreno) y no cambia. |
+| `b98724a` | v240 | **La racha de Hoy se lee después de procesar los recurrentes.** `getRachaGlobal` espera a `getBudget` (que genera los cobros vencidos); el resto de las lecturas sigue en paralelo. |
+| `d833526` | v241 | **Nombres antiguos → id del catálogo, al leer.** `idCatalogoPorNombre` (nombre del catálogo o su clave, sin distinguir mayúsculas, tildes ni espacios), `idDeEntradaEjercicio` y `metadataDeEjercicio` en `ejercicios-catalogo.js`, compartidas por Récords, Estándares de Fuerza y nivel por rama, historial (`matchEjercicio`), `getProgressionLevel`, sugerencias de nivel y el agrupado y mapa muscular de la sesión en vivo. `getPRs` agrupa por ese id y pone el mismo objeto bajo todas sus claves (incluido el nombre del catálogo); Récords deduplica. Al guardar y en la migración perezosa se sigue usando `getIdPorNombreExacto`: ninguna sesión se reescribe. |
+| este commit | v242 | **"Añadir de todas formas" guarda lo escrito**, sin espacios de más y sin pasarlo a minúsculas. |
+
+### QA
+
+- **Hoy toca:** Empezar desde la principal de Entreno abre la sesión visible; Atrás y "Volver" regresan a la principal sin dejar la sesión oculta en el DOM ni una entrada de historial colgando; terminarla la registra una sola vez (32 → 33). Desde Hoy: con el aviso de respaldo pospuesto, "Ir a entrenar" lleva a Entreno, Empezar abre la sesión visible, Atrás vuelve a Entreno y otro Atrás a Hoy.
+- **Racha (lunes 28 sept, con un recurrente que vence ese día):** el primer render de Hoy muestra 87 sin pasar por 86 (el chip se registra desde la carga) y lee `events` una vez; la versión anterior mostraba 86 y leía dos veces. Tres recargas no vuelven a procesar el recurrente (1 transacción, 1 `recurrente_procesado`, 1 `movimiento_registrado`).
+- **Nombres antiguos:** con sesiones de id `null` ("Peso Muerto" 180 × 5, "Flexiones", "Plancha", los 19 nombres viejos y "Remo inventado QA") más "Peso Muerto Convencional" 170 × 5 con id:
+  - Récords: una sola tarjeta "Peso Muerto Convencional 180kg × 5", ningún nombre viejo suelto y sin duplicados; el inventado sigue aparte.
+  - Estándares de Fuerza: 1RM de 210 kg, que sale del récord de 180 guardado con el nombre viejo (la versión anterior usaba el de 170: 198 kg).
+  - Árbol (rama Cadera): el nivel cuenta ese récord.
+  - Pista de nivel en la sesión en vivo: Peso Muerto, Flexiones, Plancha, Press Militar y Pistol Squat la muestran (antes ninguno); el inventado no la tiene. Los 12 de los 19 que están en el árbol la resuelven; los otros 7 no tienen nodo.
+  - Agrupado muscular: cada nombre viejo cae en su grupo y no en "Otros".
+  - Las sesiones guardadas quedan intactas (ids `null`) y el replay desde `events` da las mismas sesiones que el store.
+- **Ejercicio libre:** "  Remo en   TRX " queda como "Remo en TRX" en el botón, la sesión, lo guardado (id `null`), el detalle del historial y Récords.
+- Regresión: QA de edición, buscador, catálogo y fase 4 sin fallas. ESLint `no-undef` limpio; consola sin errores.
+
 ## 27 sept – 4 oct 2026 — Editar y eliminar sesiones de Entreno
 
 **`CACHE_NAME` final: `vanguard-os-v238`.** Desde el historial de sesiones
@@ -61,12 +92,14 @@ id válido), así que no se migró nada. En datos reales con esos 19 nombres:
 - `getProgressionLevel` (pista de progresión en la sesión en vivo) no reconoce 12 de ellos.
 - Sugerencias de nivel y mapa muscular sí los reconocen (búsqueda aproximada por la clave del catálogo).
 
-Propuesta sin implementar: indexar también las claves del catálogo en
+Propuesta original: indexar también las claves del catálogo en
 `getIdPorNombreExacto` (una clave es el nombre viejo en minúsculas, y como es
 el id no hay riesgo de falso positivo) y que la migración perezosa vuelva a
-intentar las entradas `null` cuyo nombre coincide con una clave.
+intentar las entradas `null` cuyo nombre coincide con una clave. Se implementó
+el 4 oct de otra forma, solo al leer (`idCatalogoPorNombre`), sin migrar ni
+reescribir sesiones.
 
-### Detectado en la QA, sin corregir
+### Detectado en la QA (corregido el 4 oct, ver la entrada de arriba)
 
 - **Hoy pinta la racha de antes en el primer render del día con un recurrente vencido** (la "racha 87 vs 86"). `dashboard.js` pide `getRachaGlobal()` en el mismo `Promise.all` que `getDashboardStats()` → `getBudget()` → `processRecurringTransactions()`, que genera el gasto recurrente de hoy (cuenta como actividad). La racha se lee antes de esa escritura y Hoy muestra 86 hasta el siguiente render (87). No es la caché: `63f7d06` arregló otro caso (medianoche). Propuesta: procesar los recurrentes antes de leer los agregados de Hoy.
 - **"Hoy toca → Empezar" en la vista principal de Entreno no muestra la sesión**: `goToSession` pinta la sesión en `#entrenamiento-sub-view` sin hacerlo visible (desde la lista de rutinas funciona porque la sub-vista ya está abierta).
