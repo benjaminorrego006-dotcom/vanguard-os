@@ -368,12 +368,18 @@ export async function render() {
   // getBudget procesa las recurrentes que vencieron; la proyección se pide
   // DESPUÉS (encadenada, no en paralelo) para que no avise de una que se
   // acaba de generar con el estado anterior al procesamiento.
-  const budgetYProyeccion = db.getBudget().then(async b => [b, await db.getProyeccionRecurrentes()]);
+  const presupuesto = db.getBudget();
+  const budgetYProyeccion = presupuesto.then(async b => [b, await db.getProyeccionRecurrentes()]);
+  // La racha (y con ella las vidas y la tarjeta contextual) se lee DESPUÉS
+  // de procesar las recurrentes: un cobro que vence hoy es actividad de hoy,
+  // y leída en paralelo Hoy mostraba la racha anterior (86 en vez de 87)
+  // hasta el siguiente render. El resto de las lecturas sigue en paralelo.
+  const rachaTrasRecurrentes = presupuesto.then(() => db.getRachaGlobal());
   const [[budget, alertasCaja], stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, diasDesdeBackup, plan, perfil, estadoSync] = await Promise.all([
     budgetYProyeccion,
     db.getDashboardStats(),
     db.getSesiones(),
-    db.getRachaGlobal(),
+    rachaTrasRecurrentes,
     db.getHabitos(),
     db.getTasks(),
     db.getNotas(),
