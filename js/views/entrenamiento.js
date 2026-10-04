@@ -478,6 +478,16 @@ mountListeners = () => {
     }
   };
 
+  // Toda sub-vista (rutinas, sesión, progreso, historial, formularios) se
+  // pinta en #entrenamiento-sub-view: este es el único lugar que la muestra
+  // y oculta la principal. Antes cada goTo* lo repetía y goToSession no lo
+  // hacía, así "Hoy toca → Empezar" pintaba la sesión en una vista oculta.
+  const mostrarSubVista = () => {
+    empujarHistorialSiHaceFalta();
+    mainView.style.display = 'none';
+    subView.style.display = 'block';
+  };
+
   const goToRutinas = async (cat) => {
     if (currentViewController) currentViewController.abort();
     currentViewController = new AbortController();
@@ -485,9 +495,7 @@ mountListeners = () => {
 
     categoriaActiva = cat;
     viewState = 'rutinas';
-    empujarHistorialSiHaceFalta();
-    mainView.style.display = 'none';
-    subView.style.display = 'block';
+    mostrarSubVista();
     
     try {
       subContent.innerHTML = await renderRutinasLista(cat);
@@ -525,9 +533,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'progreso';
-    empujarHistorialSiHaceFalta();
-    mainView.style.display = 'none';
-    subView.style.display = 'block';
+    mostrarSubVista();
     setContextoCategoria(categoria);
 
     const refreshProgreso = async () => {
@@ -552,9 +558,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'historial';
-    empujarHistorialSiHaceFalta();
-    mainView.style.display = 'none';
-    subView.style.display = 'block';
+    mostrarSubVista();
 
     try {
       subContent.innerHTML = await renderSesionesHistorial();
@@ -571,7 +575,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'preview';
-    empujarHistorialSiHaceFalta();
+    mostrarSubVista();
 
     try {
       subContent.innerHTML = renderPlantillaPreview(plantilla);
@@ -591,9 +595,7 @@ mountListeners = () => {
 
     categoriaActiva = cat;
     viewState = 'generador-preview';
-    empujarHistorialSiHaceFalta();
-    mainView.style.display = 'none';
-    subView.style.display = 'block';
+    mostrarSubVista();
 
     try {
       subContent.innerHTML = renderGeneradorPreview(plan, cat);
@@ -612,7 +614,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'form';
-    empujarHistorialSiHaceFalta();
+    mostrarSubVista();
 
     try {
       if (cat === 'hiit') {
@@ -653,8 +655,6 @@ mountListeners = () => {
     document.getElementById('btn-entreno-vacio-manual')?.addEventListener('click', () => {
       const cat = vacio.dataset.cat;
       categoriaActiva = cat;
-      mainView.style.display = 'none';
-      subView.style.display = 'block';
       goToForm(cat);
     });
   }
@@ -665,7 +665,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'session';
-    empujarHistorialSiHaceFalta();
+    mostrarSubVista();
 
     try {
       if (esDescansoActivo(rutina, rutina.categoria)) {
@@ -699,7 +699,8 @@ mountListeners = () => {
       } else if (viewState === 'session') {
         cleanupSessionTimer();
         cleanupHiitTimer();
-        goToRutinas(categoriaActiva);
+        // Desde "Hoy toca" de la principal no hay lista de rutinas detrás.
+        if (categoriaActiva) goToRutinas(categoriaActiva); else goToMain();
       } else if (viewState === 'progreso' && categoriaActiva) {
         goToRutinas(categoriaActiva);
       } else {
