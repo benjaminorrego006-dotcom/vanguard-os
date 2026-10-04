@@ -584,7 +584,7 @@ mountListeners = () => {
     categoriaActiva = cat;
     viewState = 'rutinas';
     mostrarSubVista();
-    
+
     try {
       subContent.innerHTML = await renderRutinasLista(cat);
     } catch (err) {
@@ -779,7 +779,7 @@ mountListeners = () => {
         const retomada = { ...rutina, ejercicios: borrador.ejercicios };
         modoSesion(true);
         subContent.innerHTML = await renderRutinaSession(retomada);
-        initRutinaSessionListeners(retomada, async () => goToMain(), signal, { inicio: borrador.inicio, ejercicioActivo: borrador.ejercicioActivo, onSalir: salirDeSesion });
+        initRutinaSessionListeners(retomada, async () => goToMain(), signal, { inicio: borrador.inicio, ejercicioActivo: borrador.ejercicioActivo, descanso: borrador.descanso, onSalir: salirDeSesion });
       } else if (esDescansoActivo(rutina, rutina.categoria)) {
         subContent.innerHTML = renderDescansoActivoSesion(rutina);
         initDescansoActivoListeners(rutina, async () => goToMain(), signal);

@@ -546,3 +546,33 @@ body {
 }
 .sesion-principal--ss { background: var(--am); }
 .sesion-principal:focus-visible, .sesion-editor-btn:focus-visible, .sesion-rpe-chip:focus-visible, .btn-ej-menu:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
+
+/* Descanso dentro del HUD (fase 6): anillo con la cuenta, lo que sigue,
+   −15 / +15 / Saltar y una línea con tiempo, series y volumen. */
+.sesion-hud--descanso .sesion-hud-fila { display: none; }
+.sesion-hud-descanso[hidden] { display: none; }
+.sesion-descanso-fila { display: flex; align-items: center; gap: 14px; }
+.sesion-descanso-anillo { position: relative; width: 84px; height: 84px; flex-shrink: 0; }
+.sesion-descanso-anillo svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.sesion-descanso-fondo { fill: none; stroke: var(--line); stroke-width: 4; }
+.sesion-descanso-arco { fill: none; stroke: var(--cy); stroke-width: 4; stroke-dasharray: 175.93; stroke-dashoffset: 0; transition: stroke-dashoffset 0.9s linear; }
+.sesion-descanso-cuenta { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.sesion-descanso-cuenta > .num { font-size: 20px; font-weight: 800; color: var(--text-primary); }
+.sesion-descanso-de { font-size: 10px; color: var(--text-secondary); }
+.sesion-descanso-info { flex: 1; min-width: 0; }
+.sesion-descanso-etq { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--cy); }
+.sesion-descanso-siguiente { margin: 2px 0 8px 0; font-size: 12px; line-height: 1.35; color: var(--text-primary); }
+.sesion-descanso-btns { display: flex; gap: 6px; }
+.sesion-descanso-btns button { flex: 1; min-height: 40px; padding: 0 6px; background: transparent; border: 1px solid var(--cy3); color: var(--cy); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.sesion-descanso-resumen { margin-top: 8px; font-size: 11px; color: var(--text-secondary); }
+.sesion-principal--descanso { opacity: 0.55; cursor: default; }
+.sesion-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Menú ⋯ de la barra superior: duración del descanso. */
+.sesion-barra-menu-wrap { position: relative; flex-shrink: 0; }
+.sesion-barra-menu { position: absolute; right: 0; top: 50px; z-index: 30; min-width: 230px; padding: 10px 12px; background: var(--surface-1); border: 1px solid var(--line); }
+.sesion-barra-menu[hidden] { display: none; }
+.sesion-descanso-config { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); }
+.sesion-descanso-config > span:first-child { flex: 1; }
+.sesion-descanso-config button { width: 40px; height: 40px; padding: 0; background: transparent; border: 1px solid var(--cy3); color: var(--cy); font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; }
+.sesion-descanso-config-valor { min-width: 52px; text-align: center; }
+.sesion-descanso-btns button:focus-visible, .sesion-descanso-config button:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }

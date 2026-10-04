@@ -15,10 +15,16 @@ import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
 
 const trophySvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path></svg>`;
 const trendUpSvg = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`;
-const clockSvg = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -3px; margin-right: 6px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
 
 let timerInterval = null;
 let restTimerInterval = null;
+// Wake Lock de la sesión (pantalla siempre encendida, fase 6).
+let wakeLockActual = null;
+function soltarPantallaEncendida() {
+  const lock = wakeLockActual;
+  wakeLockActual = null;
+  if (lock && !lock.released) lock.release().catch(() => { /* ya suelto */ });
+}
 let startTime = null;
 
 let currentPRs = {};
@@ -278,6 +284,19 @@ export async function renderRutinaSession(rutina) {
         <h2>${escapeHtml(rutina.nombre)}</h2>
         ${CATEGORIA_LABEL[rutina.categoria] ? `<div>${CATEGORIA_LABEL[rutina.categoria]}</div>` : ''}
       </div>
+      <div class="sesion-barra-menu-wrap">
+        <button type="button" id="btn-sesion-menu" class="sesion-barra-salir tappable" aria-label="Opciones de la sesión" aria-haspopup="true" aria-expanded="false">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
+        </button>
+        <div id="sesion-barra-menu" class="sesion-barra-menu" hidden>
+          <div class="sesion-descanso-config">
+            <span>Descanso</span>
+            <button type="button" class="btn-rest-minus tappable" aria-label="Restar 15 segundos al descanso">−</button>
+            <span class="sesion-descanso-config-valor"><span id="rest-timer-config-value" class="num">${currentRestTimerSecs}</span> s</span>
+            <button type="button" class="btn-rest-plus tappable" aria-label="Sumar 15 segundos al descanso">+</button>
+          </div>
+        </div>
+      </div>
       <button type="button" id="btn-finalizar-sesion" class="sesion-barra-finalizar tappable">Finalizar</button>
     </header>
     <section id="sesion-hud" class="card card-hero sesion-hud" aria-label="Panel de la sesión">
@@ -293,15 +312,30 @@ export async function renderRutinaSession(rutina) {
           <div><dt>Récords</dt><dd><span id="hud-records" class="num">0</span><span id="hud-record-ultimo" class="sesion-hud-ultimo"></span></dd></div>
         </dl>
       </div>
+      <div id="hud-descanso" class="sesion-hud-descanso" hidden>
+        <div class="sesion-descanso-fila">
+          <div class="sesion-descanso-anillo">
+            <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="sesion-descanso-fondo" cx="32" cy="32" r="28"></circle><circle id="hud-descanso-arco" class="sesion-descanso-arco" cx="32" cy="32" r="28"></circle></svg>
+            <div class="sesion-descanso-cuenta"><span id="hud-descanso-cuenta" class="num" role="timer">00:00</span><span class="sesion-descanso-de">de <span id="hud-descanso-total" class="num"></span></span></div>
+          </div>
+          <div class="sesion-descanso-info">
+            <div class="sesion-descanso-etq">Descanso</div>
+            <div id="hud-descanso-siguiente" class="sesion-descanso-siguiente"></div>
+            <div class="sesion-descanso-btns">
+              <button type="button" id="btn-descanso-menos" class="tappable" aria-label="Restar 15 segundos">−<span class="num">15</span></button>
+              <button type="button" id="btn-descanso-mas" class="tappable" aria-label="Sumar 15 segundos">+<span class="num">15</span></button>
+              <button type="button" id="btn-descanso-saltar" class="tappable">Saltar</button>
+            </div>
+          </div>
+        </div>
+        <div id="hud-descanso-resumen" class="sesion-descanso-resumen"></div>
+      </div>
+      <span id="hud-descanso-aviso" class="sesion-sr" aria-live="polite"></span>
       <div id="hud-segmentos" class="sesion-hud-segmentos" role="img" aria-label="Series de la sesión"></div>
     </section>
     ${renderRielEjercicios(rutina)}
     </div>
     <div class="sesion-cuerpo">
-      <div class="flex-between" style="margin-bottom: 12px;">
-        <div></div>
-        <button id="btn-rest-timer-config" type="button" style="background: transparent; border: none; color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 0; display: flex; align-items: center; gap: 4px;">${clockSvg}Descanso: <span id="rest-timer-config-value" class="num">${currentRestTimerSecs}</span>s</button>
-      </div>
   `;
 
   html += `<div id="sesion-ejercicios" class="sesion-ejercicios">`;
@@ -426,13 +460,6 @@ export async function renderRutinaSession(rutina) {
     </div>
   </div>`;
 
-  // Floating timer. Sticky en vez de fixed: fixed centra contra el
-  // viewport completo (incluye el ancho del sidebar en escritorio), sticky
-  // centra contra su propio contenedor (la columna de contenido ya
-  // centrada), que es lo que se ve visualmente como "la pantalla".
-  html += `<div id="floating-rest-timer" style="display: none; position: sticky; bottom: calc(90px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 2px solid var(--accent-teal); color: var(--text-primary); padding: 12px 24px; border-radius: 30px; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: 0 8px 16px rgba(0,0,0,0.5); z-index: 1000; cursor: pointer; align-items: center; gap: 8px; width: fit-content;">
-    ${clockSvg}<span id="rest-timer-text" class="num">01:00</span>
-  </div>`;
 
   html += renderSessionSummaryForm();
 
@@ -445,6 +472,7 @@ export async function renderRutinaSession(rutina) {
 export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones = {}) {
   startTime = new Date(typeof opciones.inicio === 'number' ? opciones.inicio : Date.now());
   let ejercicioActivo = Number.isInteger(opciones.ejercicioActivo) ? opciones.ejercicioActivo : 0;
+  let descanso = null; // { hasta (ms), total (s) } mientras corre el descanso
 
   // Estado de la sesión leído del DOM, en el orden de rutina.ejercicios
   // (data-ej-idx): los bloques se muestran agrupados por grupo muscular, así
@@ -709,6 +737,16 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const bloques = bloquesSesion();
     const row = filaTocaDe(b);
     btn.classList.remove('sesion-principal--ss');
+    btn.classList.toggle('sesion-principal--descanso', !!descanso);
+    if (descanso) {
+      // Atenuado: se puede seguir editando la serie siguiente; para seguir
+      // antes de tiempo está "Saltar" en el HUD.
+      btn.dataset.modo = 'descanso';
+      btn.setAttribute('aria-disabled', 'true');
+      btn.innerHTML = `Descansando… <span class="num">${mmss(restantes())}</span>`;
+      return;
+    }
+    btn.removeAttribute('aria-disabled');
     if (b && row) {
       const n = Array.from(b.querySelectorAll('.serie-row')).indexOf(row) + 1;
       const peso = parseFloat(row.querySelector('.serie-peso').value) || 0;
@@ -859,13 +897,15 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     actualizarPrincipal();
     actualizarHud();
     actualizarRiel();
+    pintarDescanso();
     guardarBorrador({
       rutinaId: rutina.id,
       nombreRutina: rutina.nombre,
       categoria: rutina.categoria,
       inicio: startTime.getTime(),
       ejercicios: leerEjerciciosDelDom(),
-      ejercicioActivo
+      ejercicioActivo,
+      descanso: descanso ? { hasta: descanso.hasta, total: descanso.total, avanzar: avanzarTrasDescanso } : null
     });
   };
   const marcarActivo = (el) => {
@@ -940,50 +980,6 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     mapasHud.forEach(m => m.setIntensidades(porMusculo));
   }
 
-  const btnRestConfig = document.getElementById('btn-rest-timer-config');
-  if (btnRestConfig) {
-    btnRestConfig.addEventListener('click', () => {
-      document.querySelectorAll('.rest-timer-config-popover').forEach(p => p.remove());
-
-      const popover = document.createElement('div');
-      popover.className = 'rest-timer-config-popover';
-      popover.innerHTML = `
-        <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Tiempo de descanso</div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
-          <button type="button" class="btn-rest-minus" style="width: 36px; height: 36px; border-radius: 50%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer;">−</button>
-          <span class="rest-config-display num" style="font-size: 20px; font-weight: 800; color: var(--text-primary); min-width: 48px; text-align: center;">${currentRestTimerSecs}s</span>
-          <button type="button" class="btn-rest-plus" style="width: 36px; height: 36px; border-radius: 50%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer;">+</button>
-        </div>
-      `;
-      popover.style.position = 'absolute';
-      popover.style.top = '100%';
-      popover.style.right = '0';
-      popover.style.marginTop = '6px';
-      popover.style.width = '220px';
-      popover.style.background = 'var(--surface-2)';
-      popover.style.padding = '14px';
-      popover.style.borderRadius = '14px';
-      popover.style.border = '1px solid var(--accent-teal)';
-      popover.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
-      popover.style.zIndex = '30';
-
-      btnRestConfig.parentElement.style.position = 'relative';
-      btnRestConfig.parentElement.appendChild(popover);
-
-      const display = popover.querySelector('.rest-config-display');
-      const valueLabel = document.getElementById('rest-timer-config-value');
-      const applyDelta = async (delta) => {
-        currentRestTimerSecs = Math.max(15, currentRestTimerSecs + delta);
-        display.textContent = `${currentRestTimerSecs}s`;
-        if (valueLabel) valueLabel.textContent = currentRestTimerSecs;
-        await db.setRestTimerSecs(currentRestTimerSecs);
-      };
-      popover.querySelector('.btn-rest-minus').addEventListener('click', () => applyDelta(-15));
-      popover.querySelector('.btn-rest-plus').addEventListener('click', () => applyDelta(15));
-
-      setTimeout(() => popover.remove(), 6000);
-    }, { signal });
-  }
 
   const timerDisplay = document.getElementById('session-timer');
   timerInterval = setInterval(() => {
@@ -993,19 +989,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     if (timerDisplay) timerDisplay.innerText = `${m}:${s}`;
   }, 1000);
 
-  const floatEl = document.getElementById('floating-rest-timer');
-  const textEl = document.getElementById('rest-timer-text');
-
-  if (floatEl) {
-    floatEl.addEventListener('click', () => {
-      if (restTimerInterval) clearInterval(restTimerInterval);
-      floatEl.style.display = 'none';
-      alTerminarDescanso();
-    });
-  }
-
-  // Al terminar (o cerrar) el descanso, si el ejercicio activo quedó
-  // terminado, se pasa al siguiente.
+  // Al terminar (o saltar) el descanso: si el ejercicio activo quedó
+  // terminado se pasa al siguiente (o, en superserie, de vuelta al primero
+  // de la corrida con series pendientes).
   const alTerminarDescanso = () => {
     const pendiente = avanzarTrasDescanso;
     avanzarTrasDescanso = null;
@@ -1014,30 +1000,137 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     else pasarAlSiguiente(pendiente.desde);
   };
 
-  const startRestTimer = (seconds) => {
-    if (!floatEl || !textEl) return;
-    if (restTimerInterval) clearInterval(restTimerInterval);
+  // --- Descanso dentro del HUD (fase 6) ---------------------------------
+  // La cuenta va contra una hora de término (hasta), no tick a tick: sigue
+  // siendo correcta si el navegador frena los temporizadores en segundo
+  // plano y se guarda en el borrador (al recargar, sigue contando).
+  const ARCO = 2 * Math.PI * 28;
+  const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const mss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const restantes = () => (descanso ? Math.max(0, Math.ceil((descanso.hasta - Date.now()) / 1000)) : 0);
 
-    let timeRemaining = seconds;
-    floatEl.style.display = 'flex';
-    const mInit = String(Math.floor(seconds / 60)).padStart(2, '0');
-    const sInit = String(seconds % 60).padStart(2, '0');
-    textEl.innerText = `${mInit}:${sInit}`;
-
-    restTimerInterval = setInterval(() => {
-      timeRemaining--;
-      if (timeRemaining <= 0) {
-        clearInterval(restTimerInterval);
-        floatEl.style.display = 'none';
-        playBeep();
-        alTerminarDescanso();
-      } else {
-        const m = String(Math.floor(timeRemaining / 60)).padStart(2, '0');
-        const s = String(timeRemaining % 60).padStart(2, '0');
-        textEl.innerText = `${m}:${s}`;
+  // Lo que viene después del descanso: el ejercicio al que se va a pasar (o
+  // el activo) y su serie que toca.
+  const textoSiguiente = () => {
+    let b = bloqueActivo();
+    if (avanzarTrasDescanso && avanzarTrasDescanso.desde === ejercicioActivo) {
+      const bloques = bloquesSesion();
+      if (avanzarTrasDescanso.hacia !== null) b = bloques.find(x => Number(x.dataset.ejIdx) === avanzarTrasDescanso.hacia) || b;
+      else {
+        const pos = bloques.findIndex(x => Number(x.dataset.ejIdx) === avanzarTrasDescanso.desde);
+        b = bloques[pos + 1] || bloques.find(x => pendientesDe(x) > 0) || b;
       }
-    }, 1000);
+    }
+    const row = filaTocaDe(b);
+    if (!b || !row) return 'Siguiente: terminar la sesión';
+    const n = Array.from(b.querySelectorAll('.serie-row')).indexOf(row) + 1;
+    const peso = parseFloat(row.querySelector('.serie-peso').value) || 0;
+    const reps = formatNumero(row.querySelector('.serie-reps').value, { textoSiNoEsNumero: true }) || '0';
+    const carga = peso > 0 ? `${formatNumero(peso)} kg × ${reps}` : `${esCalistenia ? 'Corporal' : '0 kg'} × ${reps}`;
+    return `Siguiente: ${nombreCorto(b.dataset.ejNombre)} · serie ${n} · ${carga}`;
   };
+
+  const pintarDescanso = () => {
+    const hud = document.getElementById('sesion-hud');
+    const panel = document.getElementById('hud-descanso');
+    if (!hud || !panel) return;
+    hud.classList.toggle('sesion-hud--descanso', !!descanso);
+    panel.hidden = !descanso;
+    if (!descanso) return;
+    const rest = restantes();
+    document.getElementById('hud-descanso-cuenta').textContent = mmss(rest);
+    document.getElementById('hud-descanso-total').textContent = mss(descanso.total);
+    document.getElementById('hud-descanso-arco').style.strokeDashoffset = String(ARCO * (1 - rest / Math.max(1, descanso.total)));
+    document.getElementById('hud-descanso-siguiente').textContent = textoSiguiente();
+    const seriesTxt = document.getElementById('hud-series')?.textContent || '';
+    const volTxt = document.getElementById('hud-volumen')?.textContent || '0';
+    document.getElementById('hud-descanso-resumen').innerHTML = `Tiempo <span class="num">${document.getElementById('session-timer')?.textContent || ''}</span> · Series <span class="num">${seriesTxt}</span> · <span class="num">${volTxt}</span> kg`;
+  };
+
+  const terminarDescanso = ({ sonar }) => {
+    if (restTimerInterval) { clearInterval(restTimerInterval); restTimerInterval = null; }
+    if (!descanso) return;
+    descanso = null;
+    if (sonar) {
+      playBeep();
+      try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) { /* sin vibración */ }
+    }
+    pintarDescanso();
+    guardar();
+    alTerminarDescanso();
+  };
+
+  const tickDescanso = () => {
+    if (!descanso) return;
+    if (restantes() <= 0) { terminarDescanso({ sonar: true }); return; }
+    pintarDescanso();
+    actualizarPrincipal();
+  };
+
+  // segundos: duración; opciones.hasta/total: retomar uno guardado.
+  const iniciarDescanso = (segundos, { hasta = null, total = null } = {}) => {
+    if (restTimerInterval) clearInterval(restTimerInterval);
+    descanso = { hasta: hasta || Date.now() + segundos * 1000, total: total || segundos };
+    pintarDescanso();
+    const aviso = document.getElementById('hud-descanso-aviso');
+    if (aviso) aviso.textContent = `Descanso de ${mss(descanso.total)}`;
+    restTimerInterval = setInterval(tickDescanso, 1000);
+    guardar();
+  };
+
+  document.getElementById('btn-descanso-menos')?.addEventListener('click', () => {
+    if (!descanso) return;
+    descanso.hasta -= 15000;
+    if (restantes() <= 0) terminarDescanso({ sonar: false }); else { pintarDescanso(); guardar(); }
+  }, { signal });
+  document.getElementById('btn-descanso-mas')?.addEventListener('click', () => {
+    if (!descanso) return;
+    descanso.hasta += 15000;
+    descanso.total += 15;
+    pintarDescanso();
+    guardar();
+  }, { signal });
+  document.getElementById('btn-descanso-saltar')?.addEventListener('click', () => terminarDescanso({ sonar: false }), { signal });
+
+  // Pantalla siempre encendida mientras la sesión está abierta (Wake Lock);
+  // se vuelve a pedir al volver a la app y se suelta al salir. Sin soporte,
+  // no pasa nada.
+  const pedirPantallaEncendida = async () => {
+    try {
+      if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+      if (wakeLockActual && !wakeLockActual.released) return;
+      wakeLockActual = await navigator.wakeLock.request('screen');
+    } catch (e) { /* sin permiso o sin soporte */ }
+  };
+  pedirPantallaEncendida();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && document.getElementById('sesion-hud')) pedirPantallaEncendida();
+  }, { signal });
+  if (signal) signal.addEventListener('abort', soltarPantallaEncendida);
+
+  // Ajuste de la duración del descanso (menú ⋯ de la barra superior).
+  const menuSesionBtn = document.getElementById('btn-sesion-menu');
+  const menuSesion = document.getElementById('sesion-barra-menu');
+  if (menuSesionBtn && menuSesion) {
+    const cerrar = () => { menuSesion.hidden = true; menuSesionBtn.setAttribute('aria-expanded', 'false'); };
+    menuSesionBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const abrir = menuSesion.hidden;
+      menuSesion.hidden = !abrir;
+      menuSesionBtn.setAttribute('aria-expanded', String(abrir));
+      if (abrir) menuSesion.querySelector('button')?.focus();
+    }, { signal });
+    document.addEventListener('click', (e) => { if (!e.target.closest('.sesion-barra-menu-wrap')) cerrar(); }, { signal });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menuSesion.hidden) { e.stopPropagation(); cerrar(); menuSesionBtn.focus(); } }, { signal, capture: true });
+    const valor = document.getElementById('rest-timer-config-value');
+    const ajustar = async (delta) => {
+      currentRestTimerSecs = Math.max(15, currentRestTimerSecs + delta);
+      if (valor) valor.textContent = String(currentRestTimerSecs);
+      await db.setRestTimerSecs(currentRestTimerSecs);
+    };
+    menuSesion.querySelector('.btn-rest-minus')?.addEventListener('click', () => ajustar(-15), { signal });
+    menuSesion.querySelector('.btn-rest-plus')?.addEventListener('click', () => ajustar(15), { signal });
+  }
 
 
   document.querySelectorAll('.btn-sugerencia').forEach(btn => {
@@ -1253,7 +1346,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         const bloquesOrden = Array.from(document.querySelectorAll('.ejercicio-sesion-block'));
         const siguienteBloque = bloquesOrden[bloquesOrden.indexOf(ejContainer) + 1] || null;
         const esUltimoDeLaSuperserie = !grupoId || !siguienteBloque || siguienteBloque.dataset.grupoId !== grupoId;
-        if (esUltimoDeLaSuperserie) startRestTimer(currentRestTimerSecs);
+        if (esUltimoDeLaSuperserie) iniciarDescanso(currentRestTimerSecs);
         // Última serie del ejercicio: pasa solo al siguiente; al instante si
         // es una superserie (sin descanso entre ellos), si no al terminar el
         // descanso.
@@ -1361,7 +1454,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         subContent.innerHTML = newHtml;
         // El cronómetro sigue desde el mismo inicio (antes se reiniciaba).
         if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-        initRutinaSessionListeners(rutina, onSuccess, signal, { inicio: startTime.getTime(), ejercicioActivo: rutina.ejercicios.length - 1, onSalir: opciones.onSalir });
+        const descansoEnCurso = descanso ? { hasta: descanso.hasta, total: descanso.total, avanzar: null } : null;
+        if (restTimerInterval) { clearInterval(restTimerInterval); restTimerInterval = null; }
+        initRutinaSessionListeners(rutina, onSuccess, signal, { inicio: startTime.getTime(), ejercicioActivo: rutina.ejercicios.length - 1, onSalir: opciones.onSalir, descanso: descansoEnCurso });
       } catch (err) {
         document.getElementById('entrenamiento-sub-content').innerHTML = "<div style='color:red; padding: 20px;'><h1>ERROR!</h1><p>" + err.message + "</p><pre>" + err.stack + "</pre></div>";
       }
@@ -1467,6 +1562,11 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   guardar();
   recalcularMapaSesion();
   mostrarEjercicio(ejercicioActivo);
+  if (opciones.descanso && opciones.descanso.hasta > Date.now()) {
+    iniciarDescanso(0, { hasta: opciones.descanso.hasta, total: opciones.descanso.total });
+    avanzarTrasDescanso = opciones.descanso.avanzar || null;
+    pintarDescanso();
+  }
 }
 
 // Modal de opciones de la sesión (.modal-overlay con id: history.js le da
@@ -1549,6 +1649,5 @@ export function cleanupSessionTimer() {
     clearInterval(restTimerInterval);
     restTimerInterval = null;
   }
-  const floatEl = document.getElementById('floating-rest-timer');
-  if (floatEl) floatEl.remove();
+  soltarPantallaEncendida();
 }
