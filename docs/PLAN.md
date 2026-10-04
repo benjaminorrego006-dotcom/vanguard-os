@@ -36,7 +36,7 @@ el resumen.
 
 ## Hecho
 
-Estado al 27 sept 2026 (`CACHE_NAME` v228). El detalle de cada tanda (commits,
+Estado al 4 oct 2026 (`CACHE_NAME` v238). El detalle de cada tanda (commits,
 caché y QA) está en `docs/CHANGELOG.md`.
 
 | | Estado |
@@ -58,6 +58,9 @@ caché y QA) está en `docs/CHANGELOG.md`.
 | Entreno sin rutinas (estado vacío con acciones), perfil y nivel desde una tarjeta, gráficos sin esquinas redondeadas | hecho (v218–v220) |
 | Publicación en GitHub Pages (PWA instalable, `start_url: "./"`, íconos PNG 192/512 y maskable) | hecha |
 | Revisión semanal (Tu semana): resumen lunes–domingo en Laboratorio > Semana, observaciones cruzadas por reglas y tarjeta de Hoy los lunes y martes | hecha (S1 `eb41a80` → S5, v221–v228) |
+| Code review: los 10 hallazgos cerrados (#6–#10 en v229–v232) | hecho (27 sept) |
+| Editar y eliminar sesiones de Entreno: historial por semana, detalle, eliminar con Deshacer, editar (fecha, duración, notas, series y ejercicios); caché memoizada con el día en la clave | hecho (`1f249f7` → fase 4, v233–v236) |
+| Buscador de ejercicios sin tapar la barra ni el riel (Atrás lo cierra) y sesión en vivo con id + nombre del catálogo | hecho (`37183bf`, `4239524`, v237–v238) |
 
 ---
 
@@ -109,9 +112,24 @@ b) **Timer por ejercicio:** hoy `restTimerSecs` es global. Permitir override
   está en `js/core/ejercicios-catalogo-calistenia.js`; revisar que su ficha
   coincida con la propuesta antes de darlo por cerrado.
 
+### Bugs detectados en la QA (sin corregir; el detalle está en el CHANGELOG del 4 oct)
+
+- **Racha de Hoy en el primer render del día con un recurrente vencido:** se lee en paralelo con `processRecurringTransactions` y muestra el valor de antes (86 en vez de 87) hasta el siguiente render. Propuesta: procesar los recurrentes antes de leer los agregados de Hoy.
+- **"Hoy toca → Empezar" (vista principal de Entreno) no muestra la sesión:** `goToSession` no hace visible `#entrenamiento-sub-view`.
+- **"Añadir de todas formas" guarda el nombre en minúsculas.**
+
+### Nombres antiguos de ejercicios sin id (propuesta, sin implementar)
+
+El buscador viejo guardaba 19 ejercicios con un nombre que no es el del
+catálogo y con id `null` (ej. "Peso Muerto"). El respaldo COMPLETO no tiene
+ninguno, pero en datos reales Récords los cuenta aparte y Estándares de
+Fuerza no los encuentra. Propuesta: indexar las claves del catálogo en
+`getIdPorNombreExacto` y que la migración perezosa reintente las entradas
+`null` cuyo nombre coincide con una clave.
+
 ### Code review
 
-Quedan 2 hallazgos abiertos en `docs/PENDIENTES-CODE-REVIEW.md`.
+Sin hallazgos abiertos (`docs/PENDIENTES-CODE-REVIEW.md`).
 
 ---
 

@@ -1,5 +1,88 @@
 # Vanguard OS — Changelog
 
+## 27 sept – 4 oct 2026 — Editar y eliminar sesiones de Entreno
+
+**`CACHE_NAME` final: `vanguard-os-v238`.** Desde el historial de sesiones
+se puede ver el detalle de cada sesión, eliminarla (con Deshacer) y
+editarla. Todo lo derivado (racha, actividad por día, últimos pesos, metas
+por sesiones, Laboratorio > Semana) sale de las sesiones vigentes según el
+log, que se calculan con `sesion_registrada`, `sesion_editada`,
+`sesion_eliminada` y `sesion_restaurada`. QA con Playwright en 375×812 y
+1280×800, zona `America/Santiago`, reloj simulado, contextos limpios sin
+Supabase (`supabase.co` bloqueado) y el respaldo
+`vanguard-backup-demo-3-meses-COMPLETO.json` importado por la UI.
+
+### Decisiones
+
+1. Eliminar: botón en el detalle → "¿Eliminar la sesión del lunes 21 sept?" → aviso "Sesión eliminada · Deshacer" durante 6 s (se pausa mientras tiene el foco). Deshacer emite `sesion_restaurada`; el evento de eliminación nunca se borra.
+2. En replay y sync, una eliminación gana aunque llegue antes que la creación (lápida por id). Los eventos de una sesión se ordenan por `ts` y, si empatan, por id del evento: dos dispositivos quedan idénticos con cualquier orden de llegada.
+3. Editar: fecha (no futura), duración, notas y series (peso, reps, tipo, marcada; agregar y quitar series y ejercicios). `sesion_editada` lleva la sesión completa y el replay deja la última versión.
+4. Las insignias ya ganadas no se pierden (se calculan sobre la actividad histórica); la racha sí se recalcula y puede bajar.
+5. Historial en la vista principal de Entreno: últimas 8 semanas con sesiones y "Cargar más".
+6. Editar una sesión de una semana ya revisada recalcula su resumen, pero no vuelve a mostrar la tarjeta "Tu semana".
+
+### Fases
+
+| Fase | Commit | Caché | Qué cambia |
+|---|---|---|---|
+| 1 | `1f249f7` | v233 | Motor: `sesiones-estado.js` (estado neto por sesión desde el log, compartido por `db.js` y el replay de `sync.js`), `db.editarSesion` / `eliminarSesion` / `restaurarSesion`. Racha global, racha de Entreno, actividad por día y últimos pesos usan las sesiones vigentes (lectura compartida de `events`, memoizada). |
+| Paso previo | `63f7d06` | v234 | El día de hoy entra en la clave de la caché memoizada: a medianoche ningún evento la invalida y un render dentro del TTL mostraba el día anterior. |
+| 2 | `34a61bb` | v235 | Historial por semana con "Cargar más", detalle en modal (sin tapar la barra ni el riel), Eliminar con confirmación y `ToastAccion` (aviso reutilizable con acción). |
+| 3 | `be9b5e0` | v236 | Editar en el mismo modal: validaciones (fecha futura, sin ejercicios, ejercicio sin series, números negativos o ilegibles), Cancelar/Atrás/Escape vuelven al detalle con "¿Descartar los cambios?" si hubo cambios, aviso "Sesión actualizada" y la sesión pasa a su semana nueva. El buscador de ejercicios de la sesión en vivo se exporta (`abrirBuscadorEjercicios`) y se usa tal cual. |
+| — | `37183bf` | v237 | El buscador de ejercicios es un `.modal-overlay` con id: deja libre la barra inferior y el riel, y Atrás o Escape cierran solo el buscador (sesión en vivo y edición). |
+| — | `4239524` | v238 | El buscador muestra el nombre real del catálogo y la sesión en vivo guarda `ejercicioId` + nombre del catálogo; "Añadir de todas formas" guarda id `null`. |
+| 4 | este commit | v238 | QA final y documentación. |
+
+### QA final (fase 4)
+
+Con el reloj en el lunes 28 sept 2026, 14:00:
+- Hoy muestra "Tu semana · 21 – 27 sept"; "Después" la oculta.
+- Eliminar el viernes 25 sept: confirmación con ese texto, aviso "Sesión eliminada · Deshacer" que se va solo a los ~6 s, la sesión sale del historial. La meta "36 entrenamientos" pasa de 32 a 31; Laboratorio > Semana 21–27 pasa de 3 a 2 sesiones (168 → 119 min); las insignias quedan iguales (ganadas: 7 días de racha, Mes de presupuesto sin excederte y 10 sesiones de entrenamiento); la tarjeta "Tu semana" no vuelve.
+- Eliminar el miércoles 23 y tocar "Deshacer": vuelve al historial y la meta vuelve a 31.
+- Editar el lunes 21 al 14 sept: "Sesión actualizada"; Semana 21–27 queda con 1 sesión y 14–20 con 4 (de 3 objetivo); la meta no cambia; la tarjeta no reaparece; insignias iguales.
+- Tras recargar: la eliminada sigue fuera, la restaurada sigue y la editada está en su semana nueva.
+- La racha global queda en 87 días en todo el recorrido: los días tocados tienen otra actividad (hábitos, tareas, Finanzas).
+- Edición (375 y 1280): foco inicial en Fecha y de vuelta en Editar al salir; sin scroll horizontal con el formulario lleno; "Atrás" sobre la confirmación sigue editando; la edición persiste tras recargar y deja un `sesion_editada`.
+- Buscador: barra y riel visibles en la sesión en vivo y en la edición; Atrás y Escape lo cierran sin salir de la sesión ni del formulario, y elegir no deja una entrada de historial colgando.
+- Catálogo: "Peso Muerto Convencional" agregado en una sesión en vivo queda con `ejercicioId: "peso muerto"`; Récords lo muestra (200 kg × 5) y la rama Cadera del Árbol sube de nivel (desbloquea Puente de Glúteo a una Pierna, Buenos Días y Peso Muerto con Piernas Rígidas). Un ejercicio libre queda con id `null` y aparece en Récords por su nombre.
+- Motor: el estado neto de una sesión da un solo resultado con cualquier orden de llegada (6, 24 y 720 órdenes probados) y una eliminación que llega antes que la creación gana.
+- ESLint `no-undef` limpio; consola sin errores.
+
+### Diagnóstico: ejercicios guardados sin id
+
+El buscador anterior armaba el nombre desde la clave del catálogo. De 182
+ejercicios, 97 se mostraban distinto, pero 78 solo cambiaban mayúsculas (la
+búsqueda exacta por nombre las ignora y les encuentra el id). Los otros 19
+(ej. "Peso Muerto" por "Peso Muerto Convencional", "Flexiones" por
+"Flexiones (Push-up)", "Plancha" por "Plancha (Plank)") se guardaban con id
+`null`. El respaldo COMPLETO no tiene ninguna entrada sin id (224 de 224 con
+id válido), así que no se migró nada. En datos reales con esos 19 nombres:
+- Récords los cuenta aparte (por nombre, no por id) y el nivel por Estándares de Fuerza no los encuentra (busca el récord por el nombre del catálogo).
+- `getProgressionLevel` (pista de progresión en la sesión en vivo) no reconoce 12 de ellos.
+- Sugerencias de nivel y mapa muscular sí los reconocen (búsqueda aproximada por la clave del catálogo).
+
+Propuesta sin implementar: indexar también las claves del catálogo en
+`getIdPorNombreExacto` (una clave es el nombre viejo en minúsculas, y como es
+el id no hay riesgo de falso positivo) y que la migración perezosa vuelva a
+intentar las entradas `null` cuyo nombre coincide con una clave.
+
+### Detectado en la QA, sin corregir
+
+- **Hoy pinta la racha de antes en el primer render del día con un recurrente vencido** (la "racha 87 vs 86"). `dashboard.js` pide `getRachaGlobal()` en el mismo `Promise.all` que `getDashboardStats()` → `getBudget()` → `processRecurringTransactions()`, que genera el gasto recurrente de hoy (cuenta como actividad). La racha se lee antes de esa escritura y Hoy muestra 86 hasta el siguiente render (87). No es la caché: `63f7d06` arregló otro caso (medianoche). Propuesta: procesar los recurrentes antes de leer los agregados de Hoy.
+- **"Hoy toca → Empezar" en la vista principal de Entreno no muestra la sesión**: `goToSession` pinta la sesión en `#entrenamiento-sub-view` sin hacerlo visible (desde la lista de rutinas funciona porque la sub-vista ya está abierta).
+- **"Añadir de todas formas" guarda el nombre en minúsculas** (el buscador pasa el texto ya normalizado): "Remo con toalla" queda "remo con toalla".
+
+## 27 sept 2026 — Code review: hallazgos #6–#10
+
+| # | Commit | Caché | Qué cambia |
+|---|---|---|---|
+| 6 | `6959ee6` | v229 | Editar una meta conserva el monto inicial y, si cambia, recalcula el progreso sin tocar los aportes. |
+| 7 | `e28f244` | v230 | Laboratorio > Finanzas > Hitos reutiliza el presupuesto de cada mes (de 127 a 50 lecturas de IndexedDB). |
+| 9 | `f790c1f` | v231 | Metas por sesiones: el progreso se deriva de las sesiones completadas desde la creación de la meta (el replay ya no la deja en 0). |
+| 10 | `3753d27` | v232 | Finanzas: los formularios no tocan el DOM si la vista cambió mientras guardaban. |
+
+El detalle de los 10 hallazgos está en `docs/PENDIENTES-CODE-REVIEW.md`.
+
 ## 27 sept 2026 — Revisión semanal (Tu semana)
 
 **`CACHE_NAME` final: `vanguard-os-v228`.** Resumen lunes–domingo (hora
