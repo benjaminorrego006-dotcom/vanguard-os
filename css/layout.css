@@ -700,17 +700,18 @@ html.entreno-sesion-activa #view-root > div { padding-bottom: 0 !important; }
 }
 
 /* Fase 9 (maqueta v2): bloque Récords con marco ámbar cuando hay récord en
-   la sesión y "+1 ahora" justo después de uno nuevo; línea de ayuda bajo el
-   HUD mientras corre el descanso. */
+   la sesión y "+1 ahora" justo después de uno nuevo; línea de ayuda bajo la
+   tabla mientras corre el descanso. */
 .sesion-hud-datos .sesion-hud-rec { margin: -4px; padding: 3px; border: 1px solid transparent; }
 .sesion-hud-datos .sesion-hud-rec--activo { border-color: var(--am); background: var(--amb); }
 .sesion-hud-rec--activo dt, .sesion-hud-rec--activo dd > .num:first-child { color: var(--am); }
 .sesion-hud-ultimo--ahora { font-weight: 700; }
-.sesion-descanso-ayuda { margin: 8px 0 0; padding: 8px 10px; border: 1px dashed var(--line); font-size: 12px; line-height: 1.35; color: var(--text-secondary); }
-.sesion-descanso-ayuda[hidden], .sesion-hud--compacto ~ .sesion-descanso-ayuda { display: none; }
+.sesion-descanso-ayuda { margin: 2px 0 6px; padding: 6px 10px; border: 1px dashed var(--line); font-size: 12px; line-height: 1.35; color: var(--text-secondary); }
+.sesion-descanso-ayuda[hidden] { display: none; }
 /* Chaflán del botón principal fijo y de "Guardar sesión" (.sesion-principal):
    la regla general de MK III quita el clip-path a todo botón de Entreno que no
    sea .btn-primary; el id de la vista le gana en especificidad. */
 #view-root .sesion-principal {
   clip-path: polygon(var(--chaflan) 0, 100% 0, 100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%, 0 100%, 0 var(--chaflan)) !important;
 }
+.sesion-hud-meta.sesion-hud-meta--sin-lugar, .sesion-hud-var.sesion-hud-meta--sin-lugar { display: none; }

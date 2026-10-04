@@ -36,7 +36,7 @@ el resumen.
 
 ## Hecho
 
-Estado al 4 oct 2026 (`CACHE_NAME` v256). El detalle de cada tanda (commits,
+Estado al 4 oct 2026 (`CACHE_NAME` v257). El detalle de cada tanda (commits,
 caché y QA) está en `docs/CHANGELOG.md`.
 
 | | Estado |
@@ -62,7 +62,7 @@ caché y QA) está en `docs/CHANGELOG.md`.
 | Editar y eliminar sesiones de Entreno: historial por semana, detalle, eliminar con Deshacer, editar (fecha, duración, notas, series y ejercicios); caché memoizada con el día en la clave | hecho (`1f249f7` → fase 4, v233–v236) |
 | Buscador de ejercicios sin tapar la barra ni el riel (Atrás lo cierra) y sesión en vivo con id + nombre del catálogo | hecho (`37183bf`, `4239524`, v237–v238) |
 | "Hoy toca → Empezar" visible, racha de Hoy tras procesar recurrentes, nombres antiguos → id del catálogo al leer, ejercicio libre con el nombre tal como se escribe | hecho (`0e92260` → v242) |
-| Sesión activa "Cabina HUD" (`docs/REDISENO-SESION-HUD.md`): borrador en localStorage, pantalla completa, HUD, riel y un ejercicio por pantalla, tabla + editor + botón principal, descanso en el HUD con pantalla encendida, récord en vivo y resumen al finalizar (GYM y Calistenia; HIIT y Descanso activo sin cambios). Además: la app arranca con localStorage bloqueado y las series por tiempo ("30s") se conservan | hecho (`c35e30f` → fase 9, v243–v256) |
+| Sesión activa "Cabina HUD" (`docs/REDISENO-SESION-HUD.md`): borrador en localStorage, pantalla completa, HUD, riel y un ejercicio por pantalla, tabla + editor + botón principal, descanso en el HUD con pantalla encendida, récord en vivo y resumen al finalizar (GYM y Calistenia; HIIT y Descanso activo sin cambios). Además: la app arranca con localStorage bloqueado y las series por tiempo ("30s") se conservan | hecho (`c35e30f` → cierre, v243–v257) |
 
 ---
 

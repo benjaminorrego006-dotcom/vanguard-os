@@ -25,7 +25,8 @@ superseries).
 | 8 — Resumen al finalizar | Hecha (0285ed0, v253) |
 | Arreglo: soltar el resumen con el popstate | Hecho (a29b1d8, v254) |
 | Ajuste: HUD compacto, sin Anterior/Siguiente en móvil, "Corporal" en GYM | Hecho (296f034, v255) |
-| 9 — QA y documentación | Hecha (commit de la fase 9, v256) |
+| 9 — QA y documentación | Hecha (1424f63, v256) |
+| Cierre: router, volumen, ayuda bajo la tabla, "○" | Hecho (commit de cierre, v257) |
 
 Actualiza esta tabla (hash del commit) al cerrar cada fase.
 

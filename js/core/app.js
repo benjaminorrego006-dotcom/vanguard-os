@@ -522,6 +522,11 @@ class Router {
     if (!esCallbackDeAuth && !yaEnDestino) location.hash = hashDestino;
 
     this.currentView = viewId;
+    // Id de esta navegación: si mientras se carga la vista llega otra
+    // (ej. Hoy → Entreno → Finanzas en menos de lo que tarda en importar),
+    // la más vieja no pinta encima de la actual al terminar tarde.
+    const navId = this.navSeq = (this.navSeq || 0) + 1;
+    const vigente = () => navId === this.navSeq;
 
     // Ritual cuelga de Hoy; Planificador de Tareas. Anotaciones,
     // Laboratorio y Configuración viven en el menú ☰ del encabezado y no
@@ -581,9 +586,13 @@ class Router {
       // resolver rutas relativas contra él no funciona de forma fiable.
       const viewUrl = new URL(`js/views/${viewId}.js`, location.href).href;
       const blobUrl = await loadModuleGraph(viewUrl, onProgress);
+      if (!vigente()) return;
       const module = await import(blobUrl);
+      if (!vigente()) return;
       this.currentModule = module;
-      this.root.innerHTML = await module.render();
+      const html = await module.render();
+      if (!vigente()) return;
+      this.root.innerHTML = html;
       if (typeof module.mountListeners === 'function') module.mountListeners();
       void this.root.offsetWidth;
       this.root.style.animation = 'fadeSlideIn var(--transition-view)';
@@ -592,6 +601,7 @@ class Router {
       // la versión para el usuario: qué pasó en simple, cómo seguir, y el
       // detalle crudo colapsado detrás de "Ver detalle" para quien lo
       // necesite (soporte, o el propio desarrollo).
+      if (!vigente()) return;
       console.error('Error al cargar la vista:', err);
       reportError(err, `vista:${viewId}`);
       const detalle = escapeHtml(String((err && (err.stack || err.message)) || err));

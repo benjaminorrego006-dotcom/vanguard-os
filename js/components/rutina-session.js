@@ -186,7 +186,7 @@ function renderSerieRowHtml(s, sIdx, anterior = null) {
         <option value="">-</option>
         ${[5, 6, 7, 8, 9, 10].map(v => `<option value="${v}" ${s.rpe == v ? 'selected' : ''}>${v}</option>`).join('')}
       </select>
-      <button type="button" class="btn-check-serie" data-checked="${marcada ? 'true' : 'false'}" aria-label="Marcar la serie ${n} como hecha" style="background: ${marcada ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${marcada ? 'var(--state-success)' : 'var(--text-secondary)'}; color: ${marcada ? 'var(--bg)' : 'var(--text-secondary)'};">✓</button>
+      <button type="button" class="btn-check-serie" data-checked="${marcada ? 'true' : 'false'}" aria-label="Marcar la serie ${n} como hecha" style="background: ${marcada ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${marcada ? 'var(--state-success)' : 'var(--text-secondary)'}; color: ${marcada ? 'var(--bg)' : 'var(--text-secondary)'};">${marcada ? '✓' : '○'}</button>
     </div>
   `;
 }
@@ -336,7 +336,6 @@ export async function renderRutinaSession(rutina) {
       <span id="hud-descanso-aviso" class="sesion-sr" aria-live="polite"></span>
       <div id="hud-segmentos" class="sesion-hud-segmentos" role="img" aria-label="Series de la sesión"></div>
     </section>
-    <p id="hud-descanso-ayuda" class="sesion-descanso-ayuda" hidden></p>
     ${renderRielEjercicios(rutina)}
     </div>
     <div class="sesion-cuerpo">
@@ -424,6 +423,7 @@ export async function renderRutinaSession(rutina) {
         <div class="series-list" data-ejnombre="${escapeHtml(ej.nombre)}">
           ${ej.series.map((s, sIdx) => renderSerieRowHtml(s, sIdx, anterior && anterior.series ? anterior.series[sIdx] : null)).join('')}
         </div>
+        <p class="sesion-descanso-ayuda" hidden></p>
         <button type="button" class="btn-add-serie tappable">+ Serie</button>
         <div class="sesion-editor" aria-label="Serie que toca">
           <div class="sesion-editor-titulo">Serie <span class="num sesion-editor-n"></span><span class="sesion-editor-tipo"></span><span class="sesion-editor-1rm"></span></div>
@@ -532,7 +532,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         const record = esRecord(b, row);
         row.classList.toggle('serie-row--pr', record);
         row.classList.toggle('serie-row--corporal', esCorporalBloque(b) && !((parseFloat(row.querySelector('.serie-peso').value) || 0) > 0));
-        btn.textContent = record ? '★' : '✓';
+        btn.textContent = record ? '★' : marcada ? '✓' : '○';
         btn.style.background = record ? 'var(--am)' : marcada ? 'var(--state-success)' : 'var(--surface-2)';
         btn.style.borderColor = record ? 'var(--am)' : marcada ? 'var(--state-success)' : 'var(--text-secondary)';
         btn.style.color = record ? 'var(--bg)' : marcada ? 'var(--bg)' : 'var(--text-secondary)';
@@ -582,6 +582,20 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     if (cuenta && descanso) cuenta.textContent = document.getElementById('hud-descanso-cuenta')?.textContent || '';
   };
 
+  // Si "X de Y kg" no cabe (375 px), el volumen queda solo "X kg". Se mide
+  // con el dato a la vista: en descanso o con el HUD compacto no tiene ancho,
+  // así que se vuelve a medir al terminar el descanso y al expandir el HUD.
+  const ajustarVolumen = () => {
+    const metaEl = document.getElementById('hud-volumen-meta');
+    const dd = metaEl ? metaEl.closest('dd') : null;
+    if (!dd || dd.clientWidth === 0) return;
+    const varEl = document.getElementById('hud-volumen-var');
+    metaEl.classList.remove('sesion-hud-meta--sin-lugar');
+    varEl?.classList.remove('sesion-hud-meta--sin-lugar');
+    if (dd.scrollWidth > dd.clientWidth + 1) metaEl.classList.add('sesion-hud-meta--sin-lugar');
+    if (dd.scrollWidth > dd.clientWidth + 1) varEl?.classList.add('sesion-hud-meta--sin-lugar');
+  };
+
   // HUD: tiempo (lo mueve el intervalo), series hechas/total, volumen con la
   // variación contra la última sesión de esta rutina, récords y la barra
   // segmentada (una marca por serie; cian = hecha, ámbar = récord, borde
@@ -623,6 +637,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     } else {
       varEl.hidden = true;
     }
+    ajustarVolumen();
     document.getElementById('hud-records').textContent = String(records.size);
     // Un récord nuevo: el bloque Récords del HUD se resalta un momento y se
     // anuncia (lector de pantalla).
@@ -718,6 +733,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     hud.classList.toggle('sesion-hud--compacto', compacto);
     actualizarLinea();
     if (compacto && cuerpo && vistaRaiz) vistaRaiz.scrollTop += cuerpo.getBoundingClientRect().top - antes;
+    if (!compacto) ajustarVolumen();
   };
   const alHacerScroll = () => {
     if (!vistaRaiz || !document.getElementById('sesion-hud')) return;
@@ -1154,11 +1170,13 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     return `Siguiente: ${nombreCorto(b.dataset.ejNombre)} · serie ${n} · ${carga}`;
   };
 
-  // Bajo el HUD en descanso: qué se puede hacer mientras corre la cuenta.
+  // Bajo la tabla del ejercicio activo, en descanso: qué se puede hacer
+  // mientras corre la cuenta (en los demás bloques queda oculta).
   const pintarAyudaDescanso = () => {
-    const ayuda = document.getElementById('hud-descanso-ayuda');
-    if (!ayuda) return;
     const b = bloqueActivo();
+    document.querySelectorAll('.sesion-descanso-ayuda').forEach(p => { if (!b || !b.contains(p)) p.hidden = true; });
+    const ayuda = b ? b.querySelector('.sesion-descanso-ayuda') : null;
+    if (!ayuda) return;
     const row = b ? filaTocaDe(b) : null;
     const tecnica = !!(b && b.querySelector('.btn-info-ejercicio'));
     const n = row ? Array.from(b.querySelectorAll('.serie-row')).indexOf(row) + 1 : 0;
@@ -1176,7 +1194,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     hud.classList.toggle('sesion-hud--descanso', !!descanso);
     panel.hidden = !descanso;
     pintarAyudaDescanso();
-    if (!descanso) return;
+    if (!descanso) { ajustarVolumen(); return; }
     const rest = restantes();
     document.getElementById('hud-descanso-cuenta').textContent = mmss(rest);
     document.getElementById('hud-descanso-total').textContent = mss(descanso.total);
@@ -1211,6 +1229,17 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   };
 
   // segundos: duración; opciones.hasta/total: retomar uno guardado.
+  // Al empezar el descanso el HUD crece y aparece la ayuda bajo la tabla: si
+  // eso deja el editor detrás del pie fijo (375 px), la vista baja lo justo.
+  const asegurarEditorVisible = () => {
+    const b = bloqueActivo();
+    const ed = b ? b.querySelector('.sesion-editor') : null;
+    const pie = document.querySelector('.sesion-pie');
+    if (!ed || !pie || !vistaRaiz || pie.hidden) return;
+    const falta = ed.getBoundingClientRect().bottom - pie.getBoundingClientRect().top;
+    if (falta > 0) vistaRaiz.scrollBy({ top: Math.ceil(falta) + 4, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  };
+
   const iniciarDescanso = (segundos, { hasta = null, total = null } = {}) => {
     if (restTimerInterval) clearInterval(restTimerInterval);
     descanso = { hasta: hasta || Date.now() + segundos * 1000, total: total || segundos };
@@ -1219,6 +1248,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     if (aviso) aviso.textContent = `Descanso de ${mss(descanso.total)}`;
     restTimerInterval = setInterval(tickDescanso, 1000);
     guardar();
+    requestAnimationFrame(asegurarEditorVisible);
   };
 
   document.getElementById('btn-descanso-menos')?.addEventListener('click', () => {
