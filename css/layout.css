@@ -588,3 +588,16 @@ html.entreno-sesion-activa #view-root { padding-bottom: 0; }
   #entrenamiento-sub-content .sesion-cabecera,
   #entrenamiento-sub-content .sesion-cuerpo { max-width: 760px; margin-left: auto; margin-right: auto; }
 }
+
+/* Récord en vivo (fase 7): fila ámbar con ★ y la línea "NUEVO PR" debajo;
+   el bloque Récords del HUD se resalta un momento. */
+.serie-row--pr { border-color: var(--am); background: var(--amb); }
+.serie-row--pr:has(.btn-check-serie[data-checked="true"]) > :not(.btn-check-serie):not(.tipo-serie-popover) { opacity: 1; }
+.serie-pr-nota { margin: -2px 0 6px 36px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--am); }
+.sesion-hud-dato--destello { animation: sesion-destello 1.5s ease-out; }
+@keyframes sesion-destello {
+  0%, 35% { background: var(--amb); outline: 1px solid var(--am); }
+  100% { background: transparent; outline: 1px solid transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .sesion-hud-dato--destello { animation: none; outline: 1px solid var(--am); } }
+.sesion-descanso-records { color: var(--am); font-weight: 700; }

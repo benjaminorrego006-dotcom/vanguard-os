@@ -4,7 +4,7 @@ import { renderEjercicioDetalle, initEjercicioDetalleChart } from './ejercicio-d
 import { calcularDiscos, renderPlateCalculatorPopover } from './plate-calculator.js';
 import { getProgressionLevel, RAMA_LABELS } from '../core/progresiones.js';
 import { metadataDeEjercicio, CATALOGO_EJERCICIOS, grupoMuscularParaMapa, GRUPO_MUSCULAR_LABELS } from '../core/ejercicios-catalogo.js';
-import { ConfirmDialog, Toast } from '../utils/states.js';
+import { ConfirmDialog } from '../utils/states.js';
 import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
 import { escapeHtml } from '../utils/escape.js';
 import { guardarBorrador, borrarBorrador, esBorradorLargo } from '../utils/sesion-borrador.js';
@@ -512,6 +512,39 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   };
   const formatoKg = (n) => formatNumero(n);
 
+  // Récord en vivo (fase 7): cada serie marcada que supera el récord que
+  // había al abrir la sesión se pinta en ámbar (★ en vez de ✓) con la línea
+  // "NUEVO PR · 45 kg (antes 42,5)" debajo. Lo demás vuelve a su estado.
+  const pintarRecords = () => {
+    document.querySelectorAll('.ejercicio-sesion-block').forEach(b => {
+      const pr = prsAlAbrir[(b.dataset.ejNombre || '').toLowerCase().trim()];
+      b.querySelectorAll('.serie-row').forEach((row, i) => {
+        const btn = row.querySelector('.btn-check-serie');
+        const marcada = btn.getAttribute('data-checked') === 'true';
+        const record = esRecord(b, row);
+        row.classList.toggle('serie-row--pr', record);
+        btn.textContent = record ? '★' : '✓';
+        btn.style.background = record ? 'var(--am)' : marcada ? 'var(--state-success)' : 'var(--surface-2)';
+        btn.style.borderColor = record ? 'var(--am)' : marcada ? 'var(--state-success)' : 'var(--text-secondary)';
+        btn.style.color = record ? 'var(--bg)' : marcada ? '#000' : 'var(--text-secondary)';
+        btn.setAttribute('aria-label', record ? `Serie ${i + 1}: nuevo récord. Desmarcar` : marcada ? `Desmarcar la serie ${i + 1}` : `Marcar la serie ${i + 1} como hecha`);
+        let nota = row.nextElementSibling && row.nextElementSibling.classList.contains('serie-pr-nota') ? row.nextElementSibling : null;
+        if (!record) { if (nota) nota.remove(); return; }
+        const peso = parseFloat(row.querySelector('.serie-peso').value) || 0;
+        const texto = peso > 0
+          ? `NUEVO PR · ${formatNumero(peso)} kg${pr.pesoMax > 0 ? ` (antes ${formatNumero(pr.pesoMax)})` : ''}`
+          : `NUEVO PR · ${formatNumero(parseFloat(row.querySelector('.serie-reps').value) || 0)} reps${pr.repsMax > 0 ? ` (antes ${formatNumero(pr.repsMax)})` : ''}`;
+        if (!nota) {
+          nota = document.createElement('div');
+          nota.className = 'serie-pr-nota';
+          row.after(nota);
+        }
+        nota.textContent = texto;
+      });
+    });
+  };
+  let recordsPrevios = null; // para resaltar el bloque Récords solo cuando sube
+
   // Riel: progreso de cada pestaña ("2/3") y ✓ en las terminadas.
   const actualizarRiel = () => {
     bloquesSesion().forEach(b => {
@@ -568,6 +601,22 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       varEl.hidden = true;
     }
     document.getElementById('hud-records').textContent = String(records.size);
+    // Un récord nuevo: el bloque Récords del HUD se resalta un momento y se
+    // anuncia (lector de pantalla).
+    if (recordsPrevios !== null && records.size > recordsPrevios) {
+      // También la línea del modo descanso (ahí no se ve el bloque Récords).
+      [document.getElementById('hud-records').closest('div'), document.getElementById('hud-descanso-resumen')].forEach(el => {
+        if (!el) return;
+        el.classList.remove('sesion-hud-dato--destello');
+        void el.offsetWidth;
+        el.classList.add('sesion-hud-dato--destello');
+        setTimeout(() => el.classList.remove('sesion-hud-dato--destello'), 1600);
+      });
+      const ultimoNuevo = [...records.entries()].sort((a, b) => b[1].ts - a[1].ts)[0];
+      const aviso = document.getElementById('hud-descanso-aviso');
+      if (aviso && ultimoNuevo) aviso.textContent = `Nuevo récord: ${ultimoNuevo[1].valor}${/reps/.test(ultimoNuevo[1].valor) ? '' : ' kg'} en ${ultimoNuevo[0]}`;
+    }
+    recordsPrevios = records.size;
     const ultimo = [...records.entries()].sort((a, b) => b[1].ts - a[1].ts)[0];
     document.getElementById('hud-record-ultimo').textContent = ultimo ? ` · ${ultimo[0].replace(/\s*\(.*\)\s*/g, ' ').trim()} ${ultimo[1].valor}` : '';
 
@@ -900,6 +949,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const activo = bloqueActivo();
     if (activo) actualizarEditor(activo);
     actualizarPrincipal();
+    pintarRecords();
     actualizarHud();
     actualizarRiel();
     pintarDescanso();
@@ -1049,7 +1099,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     document.getElementById('hud-descanso-siguiente').textContent = textoSiguiente();
     const seriesTxt = document.getElementById('hud-series')?.textContent || '';
     const volTxt = document.getElementById('hud-volumen')?.textContent || '0';
-    document.getElementById('hud-descanso-resumen').innerHTML = `Tiempo <span class="num">${document.getElementById('session-timer')?.textContent || ''}</span> · Series <span class="num">${seriesTxt}</span> · <span class="num">${volTxt}</span> kg`;
+    const nRec = Number(document.getElementById('hud-records')?.textContent || 0);
+    // En modo descanso el bloque Récords no se ve: los récords van en esta línea.
+    document.getElementById('hud-descanso-resumen').innerHTML = `Tiempo <span class="num">${document.getElementById('session-timer')?.textContent || ''}</span> · Series <span class="num">${seriesTxt}</span> · <span class="num">${volTxt}</span> kg${nRec > 0 ? ` · <span class="sesion-descanso-records"><span class="num">${nRec}</span> ${nRec === 1 ? 'récord' : 'récords'}</span>` : ''}`;
   };
 
   const terminarDescanso = ({ sonar }) => {
@@ -1328,9 +1380,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         btn.style.color = '#000';
         btn.style.borderColor = 'var(--state-success)';
 
-        // Live PR Check
         const ejContainer = row.closest('.card');
-        const ejNombre = ejContainer.querySelector('h3').innerText;
 
         // Superserie: sin descanso ENTRE los ejercicios agrupados — el
         // timer arranca recién al completar una serie del ÚLTIMO ejercicio
@@ -1366,49 +1416,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
           if (vuelta) avanzarTrasDescanso = { desde: idxMarcado, hacia: Number(vuelta.dataset.ejIdx) };
           else if (pendientesDe(ejContainer) === 0) avanzarTrasDescanso = { desde: idxMarcado, hacia: null };
         }
-        const pesoVal = parseFloat(pesoInput.value) || 0;
-        const repsVal = parseFloat(repsInput.value) || 0;
-
-        const pr = currentPRs[ejNombre.toLowerCase().trim()];
-        if (pr) {
-          let isPR = false;
-          if (pesoVal > pr.pesoMax) isPR = true;
-          else if (pesoVal === 0 && pr.pesoMax === 0 && repsVal > pr.repsMax) isPR = true;
-
-          if (isPR) {
-            const prevPeso = pr.pesoMax;
-            const prevReps = pr.repsMax;
-
-            const badge = document.createElement('div');
-            badge.innerHTML = `${trophySvgSm}Nuevo PR`;
-            badge.style.position = 'absolute';
-            badge.style.top = '-16px';
-            badge.style.right = '40px';
-            badge.style.background = 'var(--accent-teal)';
-            badge.style.color = '#000';
-            badge.style.fontSize = '10px';
-            badge.style.fontWeight = 'bold';
-            badge.style.padding = '3px 8px';
-            badge.style.borderRadius = '10px';
-            badge.style.display = 'flex';
-            badge.style.alignItems = 'center';
-            badge.style.zIndex = '10';
-
-            row.appendChild(badge);
-
-            const mensaje = pesoVal > 0
-              ? (prevPeso > 0
-                  ? `🏆 ¡Nuevo récord! ${formatNumero(pesoVal)} kg en ${escapeHtml(ejNombre)}, superaste tus ${formatNumero(prevPeso)} kg anteriores.`
-                  : `🏆 ¡Nuevo récord! ${formatNumero(pesoVal)} kg en ${escapeHtml(ejNombre)}.`)
-              : (prevReps > 0
-                  ? `🏆 ¡Nuevo récord! ${formatNumero(repsVal)} reps en ${escapeHtml(ejNombre)}, superaste tus ${formatNumero(prevReps)} reps anteriores.`
-                  : `🏆 ¡Nuevo récord! ${formatNumero(repsVal)} reps en ${escapeHtml(ejNombre)}.`);
-            Toast(mensaje, 'pr', 4000);
-
-            pr.pesoMax = Math.max(pr.pesoMax, pesoVal);
-            if (pesoVal === 0) pr.repsMax = Math.max(pr.repsMax, repsVal);
-          }
-        }
+        // El récord en vivo (fila ámbar, "NUEVO PR", HUD) lo pinta
+        // pintarRecords() desde guardar(), así también se revierte al
+        // desmarcar o al bajar el peso.
       }
       recalcularMapaSesion();
       guardar();
