@@ -29,6 +29,11 @@ let currentSugerencias = {};
 let currentHistorial = {};
 let currentEstancamiento = {};
 let currentRestTimerSecs = 90;
+// HUD: volumen (kg) de la última sesión de esta misma rutina (null si no
+// hay) y los récords tal como estaban al abrir la sesión (currentPRs se
+// actualiza en vivo al batir uno; para el HUD se compara contra el de antes).
+let volumenRutinaPrevio = null;
+let prsAlAbrir = {};
 
 // Tipo de serie: color del chip del número en vez de un selector visible
 // permanente (por fila casi siempre es "normal", así que mostrarlo
@@ -211,9 +216,22 @@ function renderSerieRowHtml(s, sIdx) {
 // ambos lados en vez de escapeHtml.
 const idSafeFragment = (nombre) => nombre.replace(/[^a-zA-Z0-9_-]/g, '');
 
+// Volumen en kg de un grupo de series: peso × reps de las que tienen peso
+// (las de peso corporal no suman kg). Reps puede traer texto ("10", "30s").
+function volumenDeSeries(series) {
+  return series.reduce((total, s) => {
+    const peso = parseFloat(s.peso) || 0;
+    const reps = parseInt(String(s.reps ?? '').match(/\d+/)?.[0] || '0');
+    return total + (peso > 0 ? peso * reps : 0);
+  }, 0);
+}
+
 export async function renderRutinaSession(rutina) {
   // Preload data
   currentPRs = await db.getPRs();
+  prsAlAbrir = JSON.parse(JSON.stringify(currentPRs));
+  const previa = (await db.getSesiones()).find(s => s.rutinaId === rutina.id);
+  volumenRutinaPrevio = previa ? volumenDeSeries((previa.ejercicios || []).flatMap(e => e.series || [])) : null;
   currentHistorial = {};
   currentEstancamiento = {};
   currentRestTimerSecs = await db.getRestTimerSecs();
@@ -228,6 +246,7 @@ export async function renderRutinaSession(rutina) {
   // Barra superior de la sesión (pantalla completa: en móvil la barra
   // inferior se oculta mientras está abierta, ver entrenamiento.js).
   let html = `
+    <div class="sesion-cabecera">
     <header id="sesion-barra" class="sesion-barra">
       <button type="button" id="btn-sesion-salir" class="sesion-barra-salir tappable" aria-label="Salir de la sesión">
         <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -238,9 +257,25 @@ export async function renderRutinaSession(rutina) {
       </div>
       <button type="button" id="btn-finalizar-sesion" class="sesion-barra-finalizar tappable">Finalizar</button>
     </header>
+    <section id="sesion-hud" class="card card-hero sesion-hud" aria-label="Panel de la sesión">
+      <div class="sesion-hud-fila">
+        <div class="sesion-hud-mapas">
+          <div id="hud-mapa-frente"></div>
+          <div id="hud-mapa-espalda"></div>
+        </div>
+        <dl class="sesion-hud-datos">
+          <div><dt>Tiempo</dt><dd><span id="session-timer" class="num">00:00</span></dd></div>
+          <div><dt>Series</dt><dd><span id="hud-series" class="num">0/0</span></dd></div>
+          <div><dt>Volumen</dt><dd><span id="hud-volumen" class="num">0</span> kg <span id="hud-volumen-var" class="sesion-hud-var num" hidden></span></dd></div>
+          <div><dt>Récords</dt><dd><span id="hud-records" class="num">0</span><span id="hud-record-ultimo" class="sesion-hud-ultimo"></span></dd></div>
+        </dl>
+      </div>
+      <div id="hud-segmentos" class="sesion-hud-segmentos" role="img" aria-label="Series de la sesión"></div>
+    </section>
+    </div>
     <div class="card" style="padding: 22px; border-radius: 20px;">
       <div class="flex-between" style="margin-bottom: 20px;">
-        <div style="font-size: 12px; color: var(--text-secondary);">Tiempo <span id="session-timer" class="num" style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-left: 4px;">00:00</span></div>
+        <div></div>
         <button id="btn-rest-timer-config" type="button" style="background: transparent; border: none; color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 0; display: flex; align-items: center; gap: 4px;">${clockSvg}Descanso: <span id="rest-timer-config-value" class="num">${currentRestTimerSecs}</span>s</button>
       </div>
   `;
@@ -396,8 +431,79 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
 
   // Borrador (ver utils/sesion-borrador.js): se guarda al empezar y con cada
   // cambio, así recargar, cerrar la app o salir con Atrás no pierde nada.
+  // Una serie es récord si está marcada y supera el récord que había al
+  // abrir la sesión (misma regla que el aviso de PR en vivo).
+  const esRecord = (bloque, row) => {
+    if (row.querySelector('.btn-check-serie').getAttribute('data-checked') !== 'true') return false;
+    const pr = prsAlAbrir[(bloque.dataset.ejNombre || '').toLowerCase().trim()];
+    if (!pr) return false;
+    const peso = parseFloat(row.querySelector('.serie-peso').value) || 0;
+    const reps = parseFloat(row.querySelector('.serie-reps').value) || 0;
+    return peso > pr.pesoMax || (peso === 0 && pr.pesoMax === 0 && reps > pr.repsMax);
+  };
+  const formatoKg = (n) => Number(n).toLocaleString('es-CL', { maximumFractionDigits: 1 });
+
+  // HUD: tiempo (lo mueve el intervalo), series hechas/total, volumen con la
+  // variación contra la última sesión de esta rutina, récords y la barra
+  // segmentada (una marca por serie; cian = hecha, ámbar = récord, borde
+  // cian = la que toca). Se actualiza en cada cambio, sin repintar la sesión.
+  const actualizarHud = () => {
+    const seriesEl = document.getElementById('hud-series');
+    if (!seriesEl) return;
+    const bloques = Array.from(document.querySelectorAll('.ejercicio-sesion-block'));
+    let total = 0, hechas = 0;
+    const marcadas = [];
+    const records = new Map(); // nombre -> { valor, ts }
+    bloques.forEach(b => b.querySelectorAll('.serie-row').forEach(row => {
+      total++;
+      if (row.querySelector('.btn-check-serie').getAttribute('data-checked') !== 'true') return;
+      hechas++;
+      marcadas.push({ peso: row.querySelector('.serie-peso').value, reps: row.querySelector('.serie-reps').value });
+      if (esRecord(b, row)) {
+        const peso = parseFloat(row.querySelector('.serie-peso').value) || 0;
+        const valor = peso > 0 ? formatoKg(peso) : `${parseInt(row.querySelector('.serie-reps').value) || 0} reps`;
+        const ts = Number(row.dataset.marcadaTs || 0);
+        const previo = records.get(b.dataset.ejNombre);
+        if (!previo || ts >= previo.ts) records.set(b.dataset.ejNombre, { valor, ts });
+      }
+    }));
+    seriesEl.textContent = `${hechas}/${total}`;
+    const volumen = volumenDeSeries(marcadas);
+    document.getElementById('hud-volumen').textContent = formatoKg(volumen);
+    const varEl = document.getElementById('hud-volumen-var');
+    if (volumenRutinaPrevio && volumen > 0) {
+      const pct = Math.round(((volumen - volumenRutinaPrevio) / volumenRutinaPrevio) * 100);
+      varEl.textContent = `${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct)} %`;
+      varEl.classList.toggle('sesion-hud-var--sube', pct >= 0);
+      varEl.hidden = false;
+    } else {
+      varEl.hidden = true;
+    }
+    document.getElementById('hud-records').textContent = String(records.size);
+    const ultimo = [...records.entries()].sort((a, b) => b[1].ts - a[1].ts)[0];
+    document.getElementById('hud-record-ultimo').textContent = ultimo ? ` · ${ultimo[0].replace(/\s*\(.*\)\s*/g, ' ').trim()} ${ultimo[1].valor}` : '';
+
+    // La que toca: la primera sin marcar del ejercicio activo; si ese ya
+    // terminó, la primera sin marcar de la sesión.
+    const pendientes = (b) => Array.from(b.querySelectorAll('.serie-row')).filter(r => r.querySelector('.btn-check-serie').getAttribute('data-checked') !== 'true');
+    const activo = bloques.find(b => Number(b.dataset.ejIdx) === ejercicioActivo);
+    const toca = (activo && pendientes(activo)[0]) || bloques.map(b => pendientes(b)[0]).find(Boolean) || null;
+    const segs = [];
+    bloques.forEach((b, bi) => {
+      b.querySelectorAll('.serie-row').forEach((row, ri) => {
+        const hecha = row.querySelector('.btn-check-serie').getAttribute('data-checked') === 'true';
+        const clase = hecha ? (esRecord(b, row) ? 'record' : 'hecha') : (row === toca ? 'toca' : 'pendiente');
+        segs.push(`<span class="sesion-hud-seg sesion-hud-seg--${clase}${ri === 0 && bi > 0 ? ' sesion-hud-seg--nuevo' : ''}"></span>`);
+      });
+    });
+    const segEl = document.getElementById('hud-segmentos');
+    segEl.innerHTML = segs.join('');
+    segEl.setAttribute('aria-label', `${hechas} de ${total} series hechas${records.size ? `, ${records.size} ${records.size === 1 ? 'récord' : 'récords'}` : ''}`);
+  };
+
   const guardar = () => {
     if (!document.getElementById('btn-finalizar-sesion')) return; // la vista ya no está
+    actualizarHud();
     guardarBorrador({
       rutinaId: rutina.id,
       nombreRutina: rutina.nombre,
@@ -432,20 +538,15 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   // serie en el log de eventos (registrarSesion en db.js emite un único
   // evento sesion_registrada al terminar), así que se lee de ahí en vez de
   // inventar un evento nuevo solo para esto.
-  const sessionMuscleMapEl = document.getElementById('session-muscle-map');
-  let sessionMuscleMap = null;
+  // HUD: dos mapas mini (frente y espalda) con la misma fatiga en vivo.
+  const mapasHud = [];
   let fatigaBasePorGrupo = {};
-  if (sessionMuscleMapEl) {
-    const leyendaEl = document.getElementById('session-muscle-map-leyenda');
-    const mostrarEnLeyenda = (info) => { if (leyendaEl) leyendaEl.textContent = info ? info.nombre : ''; };
-    sessionMuscleMap = new MuscleMap(sessionMuscleMapEl, {
-      vista: VISTA.FRENTE,
-      intensidades: {},
-      claseContenedor: 'mk3-muscle-map--sm',
-      onMuscleHover: mostrarEnLeyenda,
-      onMuscleClick: mostrarEnLeyenda,
-    });
-    if (signal) signal.addEventListener('abort', () => sessionMuscleMap.destroy());
+  const mapaFrenteEl = document.getElementById('hud-mapa-frente');
+  const mapaEspaldaEl = document.getElementById('hud-mapa-espalda');
+  if (mapaFrenteEl && mapaEspaldaEl) {
+    mapasHud.push(new MuscleMap(mapaFrenteEl, { vista: VISTA.FRENTE, intensidades: {}, claseContenedor: 'mk3-muscle-map--hud' }));
+    mapasHud.push(new MuscleMap(mapaEspaldaEl, { vista: VISTA.ESPALDA, intensidades: {}, claseContenedor: 'mk3-muscle-map--hud' }));
+    if (signal) signal.addEventListener('abort', () => mapasHud.forEach(m => m.destroy()));
 
     db.getEventosEjercicioPorCategoria(rutina.categoria).then(eventos => {
       fatigaBasePorGrupo = sumarFatigaPorGrupo(
@@ -458,7 +559,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   }
 
   function recalcularMapaSesion() {
-    if (!sessionMuscleMap) return;
+    if (!mapasHud.length) return;
     const enVivoPorGrupo = {};
     document.querySelectorAll('.ejercicio-sesion-block').forEach(bloque => {
       const nombre = bloque.dataset.ejNombre;
@@ -480,7 +581,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const fatigaNormalizada = {};
     for (const [grupo, val] of Object.entries(combinado)) fatigaNormalizada[grupo] = Math.min(1, val / FATIGA_REFERENCIA);
 
-    sessionMuscleMap.setIntensidades(expandirIntensidadPorMusculo(fatigaNormalizada, GRUPOS_MUSCULARES));
+    const porMusculo = expandirIntensidadPorMusculo(fatigaNormalizada, GRUPOS_MUSCULARES);
+    mapasHud.forEach(m => m.setIntensidades(porMusculo));
   }
 
   const btnRestConfig = document.getElementById('btn-rest-timer-config');
@@ -787,6 +889,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         btn.style.borderColor = 'var(--text-secondary)';
       } else {
         btn.setAttribute('data-checked', 'true');
+        row.dataset.marcadaTs = String(Date.now());
         btn.style.background = 'var(--state-success)';
         btn.style.color = '#000';
         btn.style.borderColor = 'var(--state-success)';

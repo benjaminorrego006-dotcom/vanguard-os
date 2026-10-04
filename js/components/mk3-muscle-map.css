@@ -69,6 +69,16 @@
   max-width: 150px;
 }
 
+/* Instancias mini del HUD de la sesión (frente y espalda, ~32 px): sin
+   fondo, sin chaflán propio (van dentro de la tarjeta del HUD) y sin la
+   sombra del SVG (MK III no usa sombras). */
+.mk3-muscle-map--hud {
+  padding: 0; gap: 0; background: transparent; clip-path: none;
+}
+.mk3-muscle-map--hud .mk3-muscle-map__svg {
+  width: 32px; max-width: 32px; filter: none;
+}
+
 /* Silueta de fondo borrosa: "glow" de cuerpo completo detras de las
    facetas, para que se perciba como un cuerpo y no como piezas. */
 .mk3-muscle-map__glow {

@@ -396,11 +396,15 @@ body {
 
 /* Barra superior de la sesión: ✕ · rutina y categoría · Finalizar. Queda
    fija arriba mientras se hace scroll. */
-.sesion-barra {
+.sesion-cabecera {
   position: sticky; top: 0; z-index: 20;
+  margin: -20px 0 16px 0; padding-bottom: 10px;
+  background: var(--bg);
+}
+.sesion-barra {
   display: flex; align-items: center; gap: 10px;
-  margin: -20px 0 16px 0; padding: 10px 0;
-  background: var(--bg); border-bottom: 1px solid var(--line);
+  padding: 10px 0; margin-bottom: 10px;
+  border-bottom: 1px solid var(--line);
 }
 .sesion-barra-salir {
   width: 44px; height: 44px; flex-shrink: 0; padding: 0;
@@ -423,3 +427,26 @@ body {
 .sesion-barra-finalizar:focus-visible { filter: drop-shadow(0 0 0 var(--t1)) drop-shadow(0 0 2px var(--t1)); }
 /* Rótulo sobre el nombre de cada ejercicio: posición en la rutina y grupo. */
 .sesion-ej-rotulo { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px; }
+
+/* HUD de la sesión (tarjeta principal con chaflán, .card-hero): mapas mini
+   de frente y espalda, datos y una barra con un segmento por serie. */
+.sesion-hud { padding: 12px 14px; margin: 0; }
+.sesion-hud-fila { display: flex; align-items: center; gap: 12px; }
+.sesion-hud-mapas { display: flex; gap: 4px; flex-shrink: 0; }
+.sesion-hud-datos {
+  flex: 1; min-width: 0; margin: 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px;
+}
+.sesion-hud-datos div { min-width: 0; }
+.sesion-hud-datos dt { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-secondary); }
+.sesion-hud-datos dd { margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sesion-hud-datos dd > .num:first-child { font-size: 18px; font-weight: 800; color: var(--text-primary); }
+.sesion-hud-var { font-size: 11px; color: var(--text-secondary); }
+.sesion-hud-var--sube { color: var(--cy); }
+.sesion-hud-ultimo { font-size: 11px; color: var(--am); }
+.sesion-hud-segmentos { display: flex; gap: 2px; margin-top: 10px; min-height: 6px; }
+.sesion-hud-seg { flex: 1 1 0; height: 6px; min-width: 2px; border: 1px solid var(--line); box-sizing: border-box; }
+.sesion-hud-seg--nuevo { margin-left: 5px; }
+.sesion-hud-seg--hecha { background: var(--cy); border-color: var(--cy); }
+.sesion-hud-seg--record { background: var(--am); border-color: var(--am); }
+.sesion-hud-seg--toca { border-color: var(--cy); }

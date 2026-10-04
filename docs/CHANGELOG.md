@@ -13,6 +13,16 @@ contextos limpios sin Supabase (`supabase.co` bloqueado) y el respaldo
 |---|---|---|
 | 1 — Borrador | v243 | La sesión en curso se guarda en `localStorage` (`vanguard.sesionEnCurso`, `js/utils/sesion-borrador.js`) al empezar y con cada cambio (marcar, editar valores, tipo, RPE, sugerencia, + Serie, añadir ejercicio). No va al log ni a la sync: es estado de UI de un dispositivo y la sesión sigue naciendo con un solo `sesion_registrada`. El cronómetro parte del inicio guardado (antes se reiniciaba también al añadir un ejercicio). Tarjeta "Tienes una sesión en curso · Pull · 18 min" en Entreno con Retomar y Descartar; un borrador de más de 12 h muestra la hora de inicio y al guardar pregunta duración real o 60 min. Atrás y "Volver" ya no destruyen la sesión. Empezar otra con una en curso pide descartarla. Se borra al guardar o descartar. |
 | 2 — Pantalla completa y orden | v246 | En móvil la barra inferior se oculta mientras la sesión está abierta (clase `entreno-sesion-activa` en `<html>`; se quita al volver, con Atrás, al guardar, al descartar y al cambiar de vista); el riel de tablet/PC se queda. Barra superior fija: ✕ (con series marcadas pregunta "¿Salir? Tu sesión queda guardada como borrador" · Salir / Descartar sesión / Cancelar), rutina + categoría y Finalizar. Los ejercicios van en el orden de la rutina con el rótulo "Ejercicio 2 de 7 · Espalda" (se quitó la agrupación por grupo muscular, que separaba las superseries); las superseries siguen igual. Sin el bloque "Fatiga en vivo" (vuelve en el HUD). La sesión se abre arriba. |
+| 3 — HUD | v247 | Tarjeta principal con chaflán (`.card-hero`) fija bajo la barra superior (`.sesion-cabecera`): mapas mini de frente y de espalda (dos `MuscleMap` de 32 px, `.mk3-muscle-map--hud`, sin sombra) con la fatiga en vivo de antes (48 h previas + series marcadas); Tiempo, Series hechas/total, Volumen en kg con ▲/▼ % contra la última sesión de la misma rutina (oculto sin sesión previa o sin volumen) y Récords (contador + el último, comparados contra el récord que había al abrir la sesión); barra segmentada con una marca por serie (cian hecha, ámbar récord, borde cian la que toca, vacía pendiente; espacio entre ejercicios). Todo se actualiza al marcar, desmarcar o editar, sin repintar la sesión. El tiempo pasa del encabezado al HUD; "Descanso: 90 s" queda debajo. |
+
+### Fase 3 — QA
+
+- "Pull" (última del respaldo: 7.077,5 kg): al abrir, 0/21 series, 0 kg sin variación, 0 récords, 21 segmentos con el primero como "la que toca" y mapas de frente y espalda de 32 px; el tiempo avanza.
+- Marcar 40 kg × 10: 1/21, 400 kg, "▼ 94 %", segmento hecho y el siguiente pasa a ser el que toca; el bloque es el mismo nodo (sin re-render).
+- 60 kg × 8 en Remo Invertido (récord previo 47,5): "Récords 1 · Remo Invertido con Pies Elevados 60", segmento ámbar, 880 kg. Al desmarcarlo se va del contador y del segmento.
+- Dos series de Jalón: el mapa de espalda pasa de 0 a 7,3 de intensidad total (el de frente sigue en 0); desmarcar todo vuelve contador, volumen, segmentos y mapa al inicio.
+- Editar el peso de una serie marcada actualiza el volumen; con scroll el HUD queda fijo bajo la barra; sin scroll horizontal; al recargar y retomar el HUD muestra lo marcado.
+- 375 y 1280; regresión de fases 1–2 y QA anteriores sin fallas. ESLint `no-undef` limpio; consola limpia.
 
 ### Fase 2 — QA
 
