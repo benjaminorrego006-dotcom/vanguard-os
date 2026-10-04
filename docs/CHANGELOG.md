@@ -1,5 +1,32 @@
 # Vanguard OS — Changelog
 
+## 4 oct 2026 — Sesión activa "Cabina HUD" (`docs/REDISENO-SESION-HUD.md`)
+
+Rediseño de la sesión activa de Entreno (GYM y Calistenia) por fases; el
+plan y su tabla de estado están en `docs/REDISENO-SESION-HUD.md`. QA con
+Playwright en 375×812 y 1280×800, zona `America/Santiago`, reloj simulado,
+contextos limpios sin Supabase (`supabase.co` bloqueado) y el respaldo
+`vanguard-backup-demo-3-meses-COMPLETO.json` importado por la UI. Capturas en
+`.playwright-mcp/hud-fN-*` (ignorada por Git).
+
+| Fase | Caché | Qué cambia |
+|---|---|---|
+| 1 — Borrador | v243 | La sesión en curso se guarda en `localStorage` (`vanguard.sesionEnCurso`, `js/utils/sesion-borrador.js`) al empezar y con cada cambio (marcar, editar valores, tipo, RPE, sugerencia, + Serie, añadir ejercicio). No va al log ni a la sync: es estado de UI de un dispositivo y la sesión sigue naciendo con un solo `sesion_registrada`. El cronómetro parte del inicio guardado (antes se reiniciaba también al añadir un ejercicio). Tarjeta "Tienes una sesión en curso · Pull · 18 min" en Entreno con Retomar y Descartar; un borrador de más de 12 h muestra la hora de inicio y al guardar pregunta duración real o 60 min. Atrás y "Volver" ya no destruyen la sesión. Empezar otra con una en curso pide descartarla. Se borra al guardar o descartar. |
+
+### Fase 1 — QA
+
+- GYM: 3 series marcadas, peso y reps editados, RPE y una serie agregada; tras recargar aparece la tarjeta ("Pull · 0 min · 3 series marcadas"); Retomar restaura todo (mismo estado por ejercicio) y el cronómetro sigue (6 s → 9 s); Atrás y "Volver" dejan el borrador; guardar borra la clave y registra una sola sesión (32 → 33) con las mismas claves que las del respaldo, solo las 3 series marcadas y los valores editados.
+- Descartar pide confirmación, quita la tarjeta y la clave, y no registra nada.
+- Calistenia (plantilla "Pecho — Primeros Pasos"): tarjeta tras recargar y Retomar restaura todo.
+- Borrador de 13 h (reloj adelantado): la tarjeta dice "desde el mié 30 sept, 15:00"; Finalizar pregunta "Usar 60 min" / "Usar la duración real · 13 h 29 min" / Cancelar; Atrás cierra la pregunta sin guardar; se guarda con la duración elegida (60 a 375, real a 1280) y se borra el borrador.
+- `localStorage` sin poder escribir (`QuotaExceededError`) o con la clave del borrador bloqueada (`SecurityError`): la sesión funciona igual, sin tarjeta y sin errores.
+- ESLint `no-undef` limpio; consola limpia salvo 5 avisos anteriores a esta fase (ver abajo).
+
+### Fase 1 — detectado, sin corregir
+
+- **Reps de tiempo en un campo numérico:** las plantillas de Calistenia traen reps como "30s" o "20s/lado"; el campo de reps de la sesión es `type="number"`, así que el navegador avisa ("cannot be parsed") y el campo queda vacío: esas series se guardan (y quedan en el borrador) sin reps. Pasa igual antes de esta fase.
+- **Con `localStorage` bloqueado del todo la app no arranca** (promesa rechazada sin manejar al iniciar), también antes de esta fase.
+
 ## 4 oct 2026 — Hoy toca, racha del primer render y nombres de ejercicios
 
 **`CACHE_NAME` final: `vanguard-os-v242`.** Cuatro arreglos de lo detectado

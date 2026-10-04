@@ -7,6 +7,8 @@ import { metadataDeEjercicio, CATALOGO_EJERCICIOS, agruparPorGrupoMuscular, grup
 import { ConfirmDialog, Toast } from '../utils/states.js';
 import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
 import { escapeHtml } from '../utils/escape.js';
+import { guardarBorrador, borrarBorrador, esBorradorLargo } from '../utils/sesion-borrador.js';
+import { formatFechaCorta } from '../utils/fecha.js';
 import { MuscleMap, sumarFatigaPorGrupo, expandirIntensidadPorMusculo, FATIGA_REFERENCIA } from './mk3-muscle-map.js';
 import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
 
@@ -284,7 +286,7 @@ export async function renderRutinaSession(rutina) {
       : '';
 
     html += `
-      <div class="card ejercicio-sesion-block" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; ${esSegundoDelGrupo ? 'border-left: 2px solid var(--state-medium);' : ''}">
+      <div class="card ejercicio-sesion-block" data-ej-idx="${rutina.ejercicios.indexOf(ej)}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; ${esSegundoDelGrupo ? 'border-left: 2px solid var(--state-medium);' : ''}">
         ${supChipHtml}
 
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
@@ -372,8 +374,64 @@ export async function renderRutinaSession(rutina) {
   return html;
 }
 
-export function initRutinaSessionListeners(rutina, onSuccess, signal) {
-  startTime = new Date();
+// opciones.inicio (ms): hora de inicio de la sesión; al retomar un borrador
+// (o repintar tras agregar un ejercicio) el cronómetro sigue desde ahí.
+// opciones.ejercicioActivo: índice del ejercicio que se estaba usando.
+export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones = {}) {
+  startTime = new Date(typeof opciones.inicio === 'number' ? opciones.inicio : Date.now());
+  let ejercicioActivo = Number.isInteger(opciones.ejercicioActivo) ? opciones.ejercicioActivo : 0;
+
+  // Estado de la sesión leído del DOM, en el orden de rutina.ejercicios
+  // (data-ej-idx): los bloques se muestran agrupados por grupo muscular, así
+  // que el orden en pantalla puede no ser el de la rutina.
+  const leerEjerciciosDelDom = () => {
+    const ejercicios = rutina.ejercicios.map(ej => ({
+      nombre: ej.nombre,
+      ...(ej.ejercicioId !== undefined ? { ejercicioId: ej.ejercicioId } : {}),
+      ...(ej.grupoId ? { grupoId: ej.grupoId } : {}),
+      series: (ej.series || []).map(s => ({ ...s }))
+    }));
+    document.querySelectorAll('.ejercicio-sesion-block').forEach(b => {
+      const ej = ejercicios[Number(b.dataset.ejIdx)];
+      if (!ej) return;
+      ej.series = Array.from(b.querySelectorAll('.serie-row')).map(row => ({
+        tipo: row.querySelector('.serie-tipo').value,
+        reps: row.querySelector('.serie-reps').value,
+        peso: row.querySelector('.serie-peso').value,
+        rpe: row.querySelector('.serie-rpe').value ? parseInt(row.querySelector('.serie-rpe').value) : null,
+        checked: row.querySelector('.btn-check-serie').getAttribute('data-checked') === 'true'
+      }));
+    });
+    return ejercicios;
+  };
+
+  // Borrador (ver utils/sesion-borrador.js): se guarda al empezar y con cada
+  // cambio, así recargar, cerrar la app o salir con Atrás no pierde nada.
+  const guardar = () => {
+    if (!document.getElementById('btn-finalizar-sesion')) return; // la vista ya no está
+    guardarBorrador({
+      rutinaId: rutina.id,
+      nombreRutina: rutina.nombre,
+      categoria: rutina.categoria,
+      inicio: startTime.getTime(),
+      ejercicios: leerEjerciciosDelDom(),
+      ejercicioActivo
+    });
+  };
+  const marcarActivo = (el) => {
+    const bloque = el && el.closest && el.closest('.ejercicio-sesion-block');
+    if (bloque) ejercicioActivo = Number(bloque.dataset.ejIdx);
+  };
+  document.addEventListener('input', (e) => {
+    if (!e.target.closest || !e.target.closest('.ejercicio-sesion-block')) return;
+    marcarActivo(e.target);
+    guardar();
+  }, { signal });
+  document.addEventListener('change', (e) => {
+    if (!e.target.closest || !e.target.closest('.ejercicio-sesion-block')) return;
+    marcarActivo(e.target);
+    guardar();
+  }, { signal });
 
   // Mapa muscular en vivo: parte de la fatiga ya acumulada por sesiones
   // anteriores (calculada una sola vez al abrir esta vista — el decaimiento
@@ -539,6 +597,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         }
       });
       
+      marcarActivo(btn);
+      guardar();
+
       const originalHtml = btn.innerHTML;
       btn.innerHTML = '✓ Aplicado';
       btn.style.borderColor = 'var(--state-success)';
@@ -729,6 +790,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
     if (!btn) return;
     btn.addEventListener('click', (e) => {
       const isChecked = btn.getAttribute('data-checked') === 'true';
+      marcarActivo(btn);
       if (isChecked) {
         btn.setAttribute('data-checked', 'false');
         btn.style.background = 'var(--surface-2)';
@@ -809,6 +871,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         }
       }
       recalcularMapaSesion();
+      guardar();
     });
   };
 
@@ -827,6 +890,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
       seriesList.insertAdjacentHTML('beforeend', renderSerieRowHtml(seed, rows.length));
       const newRows = seriesList.querySelectorAll('.serie-row');
       wireSerieRow(newRows[newRows.length - 1]);
+      marcarActivo(btn);
+      guardar();
     }, { signal });
   });
 
@@ -839,21 +904,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         const elegido = await openExercisePicker();
         if (!elegido || !elegido.nombre || !elegido.nombre.trim()) return;
         
-        const bloques = document.querySelectorAll('.ejercicio-sesion-block');
-        bloques.forEach((b, i) => {
-          if (!rutina.ejercicios[i]) return;
-          const seriesRows = b.querySelectorAll('.serie-row');
-          rutina.ejercicios[i].series = [];
-          seriesRows.forEach(row => {
-            rutina.ejercicios[i].series.push({
-               tipo: row.querySelector('.serie-tipo') ? row.querySelector('.serie-tipo').value : 'normal',
-               reps: row.querySelector('.serie-reps') ? row.querySelector('.serie-reps').value : '',
-               peso: row.querySelector('.serie-peso') ? row.querySelector('.serie-peso').value : '',
-               rpe: row.querySelector('.serie-rpe') ? row.querySelector('.serie-rpe').value : null,
-               checked: row.querySelector('.btn-check-serie') ? (row.querySelector('.btn-check-serie').getAttribute('data-checked') === 'true') : false
-            });
-          });
-        });
+        // Lo que hay en pantalla, en el orden de la rutina (data-ej-idx).
+        rutina.ejercicios = leerEjerciciosDelDom();
         
         // Del catálogo llega con su id; "Añadir de todas formas", con id null.
         rutina.ejercicios.push({ ejercicioId: elegido.id, nombre: elegido.nombre.trim(), series: [{reps: '', peso: ''}] });
@@ -863,11 +915,13 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         
         const newHtml = await renderRutinaSession(rutina);
         subContent.innerHTML = newHtml;
-        initRutinaSessionListeners(rutina, onSuccess, signal);
+        // El cronómetro sigue desde el mismo inicio (antes se reiniciaba).
+        if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        initRutinaSessionListeners(rutina, onSuccess, signal, { inicio: startTime.getTime(), ejercicioActivo: rutina.ejercicios.length - 1 });
       } catch (err) {
         document.getElementById('entrenamiento-sub-content').innerHTML = "<div style='color:red; padding: 20px;'><h1>ERROR!</h1><p>" + err.message + "</p><pre>" + err.stack + "</pre></div>";
       }
-    });// Auto-apertura si es Entrenamiento Libre y está vacío
+    }, { signal });// Auto-apertura si es Entrenamiento Libre y está vacío
     if (rutina.nombre === 'Entrenamiento Libre' && rutina.ejercicios.length === 0) {
       setTimeout(() => {
         btnAddLive.click();
@@ -878,7 +932,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
   const btnFinalizar = document.getElementById('btn-finalizar-sesion');
   if (btnFinalizar) {
     btnFinalizar.addEventListener('click', async () => {
-      const duracionMin = Math.max(1, Math.floor((new Date() - startTime) / 60000));
+      let duracionMin = Math.max(1, Math.floor((new Date() - startTime) / 60000));
       
       const ejerciciosLog = [];
       const bloques = document.querySelectorAll('.ejercicio-sesion-block');
@@ -917,6 +971,14 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         }
       }
 
+      // Un borrador de más de 12 h (se retomó al día siguiente, o quedó
+      // abierto): la duración real no suele ser la de la sesión.
+      if (esBorradorLargo({ inicio: startTime.getTime() })) {
+        const eleccion = await preguntarDuracionLarga(startTime, duracionMin);
+        if (!eleccion) return;
+        if (eleccion === '60') duracionMin = 60;
+      }
+
       const summary = await askSessionSummary();
 
       cleanupSessionTimer();
@@ -929,10 +991,69 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         rpe: summary.rpe,
         notas: summary.notas
       });
+      borrarBorrador();
 
       if (onSuccess) onSuccess();
     });
   }
+
+  // Estado inicial: una sesión recién empezada ya queda como borrador (salir
+  // con Atrás no la destruye); una retomada vuelve a su ejercicio y el mapa
+  // muscular refleja las series ya marcadas.
+  guardar();
+  recalcularMapaSesion();
+  if (Number.isInteger(opciones.ejercicioActivo)) {
+    const bloque = document.querySelector(`.ejercicio-sesion-block[data-ej-idx="${opciones.ejercicioActivo}"]`);
+    if (bloque) requestAnimationFrame(() => bloque.scrollIntoView({ block: 'start' }));
+  }
+}
+
+// Duración de una sesión retomada después de más de 12 h: la real o 60 min.
+// Resuelve 'real', '60' o null (Atrás o Cancelar: vuelve a la sesión).
+// .modal-overlay con id: history.js le da su entrada, así Atrás lo cierra.
+function preguntarDuracionLarga(inicio, duracionRealMin) {
+  return new Promise((resolve) => {
+    document.getElementById('sesion-duracion-modal')?.remove();
+    const h = Math.floor(duracionRealMin / 60);
+    const m = duracionRealMin % 60;
+    const realTxt = h > 0 ? `${h} h ${m} min` : `${m} min`;
+    const dia = inicio.toLocaleDateString('es-CL', { weekday: 'short' }).replace('.', '');
+    const hora = inicio.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const overlay = document.createElement('div');
+    overlay.id = 'sesion-duracion-modal';
+    overlay.className = 'modal-overlay';
+    overlay.style.zIndex = '6000';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'sesion-duracion-titulo');
+    overlay.innerHTML = `
+      <div class="modal-content" style="padding: 22px;">
+        <h3 id="sesion-duracion-titulo" style="margin: 0 0 6px 0; font-size: 18px; font-weight: 800; color: var(--text-primary);">¿Qué duración guardo?</h3>
+        <p style="margin: 0 0 16px 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary);">Esta sesión empezó el ${escapeHtml(dia)} <span class="num">${escapeHtml(formatFechaCorta(inicio))}</span> a las <span class="num">${escapeHtml(hora)}</span>, hace más de <span class="num">12</span> horas.</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button type="button" data-duracion="60" class="tappable" style="min-height: 44px; background: var(--cy); border: 1px solid var(--cy); color: var(--bg); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;">Usar <span class="num">60</span> min</button>
+          <button type="button" data-duracion="real" class="tappable" style="min-height: 44px; background: transparent; border: 1px solid var(--cy); color: var(--cy); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Usar la duración real · <span class="num">${realTxt}</span></button>
+          <button type="button" data-duracion="" class="tappable" style="min-height: 44px; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Cancelar</button>
+        </div>
+      </div>`;
+    const rootDiv = document.querySelector('#view-root > div') || document.body;
+    rootDiv.appendChild(overlay);
+    overlay.classList.add('open');
+
+    let listo = false;
+    const fin = (valor) => {
+      if (listo) return;
+      listo = true;
+      window.removeEventListener('popstate', alAtras);
+      overlay.classList.remove('open');
+      overlay.remove();
+      resolve(valor || null);
+    };
+    const alAtras = () => { if (!overlay.classList.contains('open')) fin(null); };
+    window.addEventListener('popstate', alAtras);
+    overlay.querySelectorAll('button[data-duracion]').forEach(b => b.addEventListener('click', () => fin(b.dataset.duracion)));
+    requestAnimationFrame(() => overlay.querySelector('button[data-duracion="60"]').focus());
+  });
 }
 
 export function cleanupSessionTimer() {

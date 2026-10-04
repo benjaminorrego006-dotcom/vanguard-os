@@ -15,7 +15,8 @@ import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
 import { formatFechaCorta, diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { detectarSugerencias } from '../core/sugerencias-nivel.js';
-import { Toast, hayModalAbierto } from '../utils/states.js';
+import { Toast, hayModalAbierto, ConfirmDialog } from '../utils/states.js';
+import { leerBorrador, borrarBorrador, esBorradorLargo } from '../utils/sesion-borrador.js';
 import { renderProgreso, initProgresoListeners, setContextoCategoria, cleanup as cleanupProgreso } from '../components/entreno-progreso.js';
 import { renderMiniChart } from '../components/mini-chart.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
@@ -188,6 +189,38 @@ function calcularUltimaSesionPorCategoria(sesiones, rutinasPorId) {
   return ultima;
 }
 
+// Tarjeta "Tienes una sesión en curso" (borrador en localStorage, ver
+// utils/sesion-borrador.js). Hasta 12 h muestra cuánto lleva; un borrador
+// más viejo muestra cuándo empezó (al guardarlo se pregunta la duración).
+function renderSesionEnCurso() {
+  const b = leerBorrador();
+  if (!b) return '';
+  const nombre = escapeHtml(b.nombreRutina || 'Entrenamiento');
+  let tiempo;
+  if (esBorradorLargo(b)) {
+    const inicio = new Date(b.inicio);
+    const dia = inicio.toLocaleDateString('es-CL', { weekday: 'short' }).replace('.', '');
+    const hora = inicio.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
+    tiempo = `desde el ${escapeHtml(dia)} <span class="num">${escapeHtml(formatFechaCorta(inicio))}</span>, <span class="num">${escapeHtml(hora)}</span>`;
+  } else {
+    const min = Math.max(0, Math.floor((Date.now() - b.inicio) / 60000));
+    tiempo = min >= 60
+      ? `<span class="num">${Math.floor(min / 60)}</span> h <span class="num">${min % 60}</span> min`
+      : `<span class="num">${min}</span> min`;
+  }
+  const marcadas = b.ejercicios.reduce((n, ej) => n + (ej.series || []).filter(s => s.checked).length, 0);
+  return `
+    <section id="entreno-sesion-en-curso" aria-label="Sesión en curso" style="background: var(--surface-1); border: 1px solid var(--cy3); border-left: 3px solid var(--cy); padding: 14px 16px; margin-bottom: 20px;">
+      <div style="font-size: 12px; color: var(--cy); font-weight: 700; margin-bottom: 4px;">Tienes una sesión en curso</div>
+      <div style="font-size: 16px; font-weight: 800; color: var(--text-primary);">${nombre} <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">· ${tiempo}</span></div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;"><span class="num">${marcadas}</span> ${marcadas === 1 ? 'serie marcada' : 'series marcadas'}</div>
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <button type="button" id="btn-sesion-en-curso-retomar" class="tappable" style="flex: 1; min-height: 44px; background: var(--cy); border: 1px solid var(--cy); color: var(--bg); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;">Retomar</button>
+        <button type="button" id="btn-sesion-en-curso-descartar" class="tappable" style="flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Descartar</button>
+      </div>
+    </section>`;
+}
+
 export async function render() {
   const [sesiones, rutinas, resumenSemanal, racha, profile] = await Promise.all([
     db.getSesiones(),
@@ -325,6 +358,8 @@ export async function render() {
           <input type="text" id="entreno-buscador" placeholder="Buscar ejercicio o rutina..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 20px 14px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-teal)'; this.style.boxShadow='0 0 0 4px color-mix(in srgb, var(--accent-teal) 18%, transparent)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
         </div>
 
+        ${renderSesionEnCurso()}
+
         ${hoyTocaHtml}
 
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
@@ -389,6 +424,14 @@ export async function render() {
 }
 
 mountListeners = () => {
+  // Tras recargar en medio de una sub-vista (ej. una sesión, que ahora se
+  // retoma desde su borrador), la entrada actual del historial sigue
+  // marcada como sub-vista aunque se vea la principal: sin esto, el primer
+  // Atrás después de entrar a otra sub-vista caería en esa entrada vieja y
+  // no volvería a la principal.
+  if (viewState === 'main' && !entrenoHistorialEmpujado && history.state && history.state.entrenoSubView) {
+    history.replaceState(null, '');
+  }
   if (!entrenoSyncEnganchado) {
     entrenoSyncEnganchado = true;
     window.addEventListener('budget-updated', onSyncActualizadoEntreno);
@@ -417,6 +460,25 @@ mountListeners = () => {
   }
 
   document.getElementById('link-historial-sesiones')?.addEventListener('click', (e) => { e.preventDefault(); goToHistorial(); });
+
+  // Sesión en curso (borrador): Retomar la abre con todo restaurado;
+  // Descartar pide confirmación y lo borra.
+  document.getElementById('btn-sesion-en-curso-retomar')?.addEventListener('click', async () => {
+    const borrador = leerBorrador();
+    if (!borrador) { refreshFull(); return; }
+    const rutinas = await db.getRutinas();
+    // La rutina pudo borrarse (o ser una sesión libre): con lo del borrador alcanza.
+    const base = rutinas.find(r => r.id === borrador.rutinaId)
+      || { id: borrador.rutinaId, nombre: borrador.nombreRutina || 'Entrenamiento', categoria: borrador.categoria || 'gym', ejercicios: [] };
+    goToSession(base, { borrador });
+  });
+  document.getElementById('btn-sesion-en-curso-descartar')?.addEventListener('click', async () => {
+    const borrador = leerBorrador();
+    const ok = await ConfirmDialog('¿Descartar la sesión en curso?', `Se pierden las series que marcaste${borrador && borrador.nombreRutina ? ` en ${borrador.nombreRutina}` : ''}.`, { verb: 'Descartar' });
+    if (!ok) { document.getElementById('btn-sesion-en-curso-descartar')?.focus(); return; }
+    borrarBorrador();
+    document.getElementById('entreno-sesion-en-curso')?.remove();
+  });
 
   const linkVerProgresoCompleto = document.getElementById('link-ver-progreso-completo');
   if (linkVerProgresoCompleto) {
@@ -659,7 +721,25 @@ mountListeners = () => {
     });
   }
 
-  const goToSession = async (rutina) => {
+  // opciones.borrador: retomar esa sesión en curso (GYM/Calistenia). Sin él,
+  // una sesión nueva de GYM/Calistenia con otra ya en curso pide descartarla
+  // antes (el borrador es uno solo y empezar otra lo reemplazaría).
+  const goToSession = async (rutina, opciones = {}) => {
+    const borrador = opciones.borrador || null;
+    const usaBorrador = (r) => !esDescansoActivo(r, r.categoria) && r.categoria !== 'hiit';
+    if (!borrador && usaBorrador(rutina)) {
+      const enCurso = leerBorrador();
+      if (enCurso) {
+        const ok = await ConfirmDialog('Ya tienes una sesión en curso', `Si empiezas ${rutina.nombre}, se descarta lo que llevas de ${enCurso.nombreRutina || 'la otra sesión'}.`, { verb: 'Descartar y empezar' });
+        // Que history.js suelte la entrada de la confirmación antes de
+        // empujar la de la sub-vista (si no, su back() se la lleva).
+        if (history.state && history.state.modalId === 'global-confirm-modal') {
+          await new Promise(res => { const t = setTimeout(res, 500); window.addEventListener('popstate', () => { clearTimeout(t); res(); }, { once: true }); });
+        }
+        if (!ok) return;
+        borrarBorrador();
+      }
+    }
     if (currentViewController) currentViewController.abort();
     currentViewController = new AbortController();
     const signal = currentViewController.signal;
@@ -668,7 +748,12 @@ mountListeners = () => {
     mostrarSubVista();
 
     try {
-      if (esDescansoActivo(rutina, rutina.categoria)) {
+      if (borrador) {
+        // Retomar: los ejercicios y series del borrador, y su hora de inicio.
+        const retomada = { ...rutina, ejercicios: borrador.ejercicios };
+        subContent.innerHTML = await renderRutinaSession(retomada);
+        initRutinaSessionListeners(retomada, async () => goToMain(), signal, { inicio: borrador.inicio, ejercicioActivo: borrador.ejercicioActivo });
+      } else if (esDescansoActivo(rutina, rutina.categoria)) {
         subContent.innerHTML = renderDescansoActivoSesion(rutina);
         initDescansoActivoListeners(rutina, async () => goToMain(), signal);
       } else if (rutina.categoria === 'hiit') {

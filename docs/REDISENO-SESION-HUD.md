@@ -13,7 +13,7 @@ y superseries).
 | Fase | Estado |
 | --- | --- |
 | 0 — "Hoy toca → Empezar" | Hecha (0e92260) |
-| 1 — Borrador de sesión | Pendiente |
+| 1 — Borrador de sesión | Hecha (commit de la fase 1, v243) |
 | 2 — Pantalla completa y orden | Pendiente |
 | 3 — HUD | Pendiente |
 | 4 — Riel y un ejercicio por pantalla | Pendiente |
