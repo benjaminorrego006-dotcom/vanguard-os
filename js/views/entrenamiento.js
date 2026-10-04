@@ -1,4 +1,5 @@
 import { db } from '../core/db.js';
+import { esperarSalidaDeModal } from '../core/history.js';
 import { renderRutinasLista, initRutinasListaListeners, renderPlantillaPreview, initPlantillaPreviewListeners, renderGeneradorPreview, initGeneradorPreviewListeners } from '../components/rutinas-lista.js';
 import { esDescansoActivo, renderDescansoActivoSesion, initDescansoActivoListeners } from '../components/descanso-activo.js';
 import { renderGeneradorConfigForm, setupGeneradorConfigForm, openGeneradorConfigForm } from '../components/generador-rutina-form.js';
@@ -760,9 +761,7 @@ mountListeners = () => {
         const ok = await ConfirmDialog('Ya tienes una sesión en curso', `Si empiezas ${rutina.nombre}, se descarta lo que llevas de ${enCurso.nombreRutina || 'la otra sesión'}.`, { verb: 'Descartar y empezar' });
         // Que history.js suelte la entrada de la confirmación antes de
         // empujar la de la sub-vista (si no, su back() se la lleva).
-        if (history.state && history.state.modalId === 'global-confirm-modal') {
-          await new Promise(res => { const t = setTimeout(res, 500); window.addEventListener('popstate', () => { clearTimeout(t); res(); }, { once: true }); });
-        }
+        await esperarSalidaDeModal('global-confirm-modal');
         if (!ok) return;
         borrarBorrador();
       }

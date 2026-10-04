@@ -6,6 +6,7 @@
 // el mismo modal y guarda con db.editarSesion; Cancelar, Atrás o Escape
 // vuelven al detalle (con "¿Descartar los cambios?" si hubo cambios).
 import { db } from '../core/db.js';
+import { esperarSalidaDeModal } from '../core/history.js';
 import { claveDiaDe, fechaLocalDe, sumarDias, diaKeyDe, formatFechaCorta, conMayuscula } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { ConfirmDialog, ToastAccion, Toast } from '../utils/states.js';
@@ -316,18 +317,6 @@ export async function renderSesionesHistorial() {
     </div>`;
 }
 
-// Espera a que termine el history.back() con que history.js suelta la
-// entrada de un modal recién cerrado (ej. el de confirmación): si se cierra
-// otro modal antes, su propio back() no encuentra su entrada y queda un
-// "atrás" fantasma.
-function esperarRetrocesoDe(modalId) {
-  if (!history.state || history.state.modalId !== modalId) return Promise.resolve();
-  return new Promise(resolve => {
-    const t = setTimeout(resolve, 500);
-    window.addEventListener('popstate', () => { clearTimeout(t); resolve(); }, { once: true });
-  });
-}
-
 export function initSesionesHistorialListeners(signal) {
   const lista = document.getElementById('hist-lista');
   const modal = document.getElementById('sesion-detalle-modal');
@@ -378,7 +367,9 @@ export function initSesionesHistorialListeners(signal) {
   const eliminar = async (s) => {
     const dia = diaLargo(s.fecha);
     const ok = await ConfirmDialog(`¿Eliminar la sesión del ${dia}?`, 'Se quita del historial y se recalculan tu racha, tus metas y tu volumen. Podrás deshacerlo durante unos segundos.', { verb: 'Eliminar' });
-    await esperarRetrocesoDe('global-confirm-modal');
+    // Que history.js suelte la entrada de la confirmación antes de cerrar
+    // otro modal (si no, el back() de ese no encuentra su entrada).
+    await esperarSalidaDeModal('global-confirm-modal');
     if (!ok) { document.getElementById('btn-sesion-eliminar')?.focus(); return; }
     const res = await db.eliminarSesion(s.id);
     cerrarDetalle();
@@ -444,7 +435,9 @@ export function initSesionesHistorialListeners(signal) {
       const actual = edicion;
       actual.ocupado = true;
       const ok = await confirmarDescartar();
-      await esperarRetrocesoDe('global-confirm-modal');
+      // Que history.js suelte la entrada de la confirmación antes de cerrar
+      // otro modal (si no, el back() de ese no encuentra su entrada).
+      await esperarSalidaDeModal('global-confirm-modal');
       if (edicion !== actual) return;
       actual.ocupado = false;
       if (!ok) { contenido.querySelector('[data-accion="cancelar"]')?.focus(); return; }

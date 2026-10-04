@@ -65,6 +65,18 @@ export function initModalHistory() {
   });
 }
 
+// Tras cerrar un modal por su botón, el observer de arriba suelta su entrada
+// con history.back(), que es asíncrono. Quien vaya a tocar el historial
+// después (empujar una sub-vista, otro back()) espera ese popstate real en
+// vez de un tiempo fijo: con una espera fija, en un equipo lento los dos
+// movimientos se pisaban. Si la entrada del modal ya no es la actual, no
+// hay nada que esperar. Un retroceso dentro del mismo documento siempre
+// dispara popstate, así que la promesa no queda colgada.
+export function esperarSalidaDeModal(modalId) {
+  if (!history.state || history.state.modalId !== modalId) return Promise.resolve();
+  return new Promise(resolve => window.addEventListener('popstate', () => resolve(), { once: true }));
+}
+
 // Llamado por el router antes de tirar el HTML de la vista saliente: si
 // esa vista tenía un modal abierto, su nodo va a desaparecer con el
 // innerHTML de la vista nueva sin pasar por su botón de cierre — hay que
