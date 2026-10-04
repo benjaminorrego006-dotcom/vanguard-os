@@ -635,3 +635,66 @@ html.entreno-sesion-activa #view-root { padding-bottom: 0; }
   #entrenamiento-sub-content .sesion-resumen { max-width: 760px; margin-left: auto; margin-right: auto; }
 }
 .sesion-resumen-tabla td { white-space: nowrap; }
+
+/* Ajuste: HUD compacto bajo 1024 px. Al bajar, una línea con tiempo ·
+   series · volumen · récords (o la cuenta del descanso y Saltar) y la barra
+   segmentada; en PC el HUD queda siempre completo. */
+.sesion-hud-linea { display: none; }
+/* El scroll lo compensa fijarCompacto (igual en Chrome y Safari). */
+html.entreno-sesion-activa #view-root { overflow-anchor: none; }
+@media (max-width: 1023px) {
+  .mk3-entreno .sesion-cabecera .sesion-hud.sesion-hud--compacto { padding: 7px 12px; }
+  .sesion-hud--compacto .sesion-hud-fila,
+  .sesion-hud--compacto .sesion-hud-descanso { display: none !important; }
+  .sesion-hud--compacto .sesion-hud-linea { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; animation: sesion-aparecer 0.18s ease-out; }
+  .sesion-hud-linea .num { color: var(--text-primary); font-weight: 700; }
+  .sesion-hud-linea-rec { color: var(--am); }
+  .sesion-hud-linea-rec .num { color: var(--am); }
+  .sesion-hud--compacto .sesion-hud-segmentos { margin-top: 4px; }
+  .sesion-hud-linea-descanso { display: none; }
+  .sesion-hud--compacto.sesion-hud--descanso .sesion-hud-linea-datos { display: none; }
+  .sesion-hud--compacto.sesion-hud--descanso .sesion-hud-linea-descanso { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; color: var(--cy); font-weight: 700; }
+  .sesion-hud--compacto.sesion-hud--descanso .sesion-hud-linea-descanso .num { color: var(--cy); font-size: 16px; margin-left: 6px; margin-right: auto; }
+  #btn-descanso-saltar-linea { height: 32px; margin: -4px 0; padding: 0 14px; background: transparent; border: 1px solid var(--cy3); color: var(--cy); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  #btn-descanso-saltar-linea:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
+}
+@keyframes sesion-aparecer { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sesion-hud--compacto .sesion-hud-linea { animation: none; } }
+/* Ajuste: bajo 768 px sin "‹ Anterior / Siguiente ›" (quedan pestañas,
+   deslizar y puntos); en tablet/PC se mantienen. */
+@media (max-width: 767px) {
+  #btn-ej-anterior, #btn-ej-siguiente { display: none; }
+  .sesion-pie .sesion-nav { justify-content: center; margin-bottom: 6px; }
+}
+/* Ajuste: peso 0 en un ejercicio de peso corporal → "Corporal" sobre el KG
+   de la tabla (el input conserva su valor; al enfocarlo se ve el número). */
+.serie-row .serie-kg { position: relative; min-width: 0; }
+.serie-corporal { display: none; }
+.serie-row--corporal .serie-corporal {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary);
+  font-size: 11px; font-weight: 600; pointer-events: none;
+}
+.serie-row--corporal .serie-kg:focus-within .serie-corporal { display: none; }
+/* Ajuste: a 375×812, con el editor abierto, la fila que toca, el editor y el
+   botón principal entran sin scroll. Bajo 768 px la sesión ocupa la pantalla
+   completa (como ya pasa con la barra inferior, también se oculta el
+   encabezado de la app; la barra de la sesión trae ✕ y ⋯) y se aprietan los
+   márgenes. */
+.sesion-editor-campos { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+/* "Corporal" en el editor: más chico para que entre entero entre − y +. */
+.sesion-editor-valor.sesion-editor-valor--texto { font-family: var(--font-body); font-size: 12px; font-weight: 700; letter-spacing: -0.2px; text-overflow: clip; }
+/* Sin el relleno inferior de la vista (era para la barra inferior): el pie
+   fijo queda pegado abajo también al final del scroll. */
+html.entreno-sesion-activa #view-root > div { padding-bottom: 0 !important; }
+@media (max-width: 767px) {
+  html.entreno-sesion-activa #app-header { display: none; }
+  html.entreno-sesion-activa .sesion-cabecera { padding-top: env(safe-area-inset-top); margin-bottom: 10px; padding-bottom: 8px; }
+  .sesion-cabecera .sesion-barra { padding: 6px 0; margin-bottom: 8px; }
+  .mk3-entreno .sesion-cabecera .sesion-hud { padding: 12px 14px; }
+  .mk3-entreno .sesion-ejercicios .ejercicio-sesion-block { padding: 14px 12px; }
+  .serie-row .serie-peso, .serie-row .serie-reps, .serie-row .serie-rpe, .serie-row .btn-check-serie, .serie-row .serie-tipo-chip { height: 36px; }
+  .sesion-editor { margin-top: 8px; padding: 10px 12px; }
+  .sesion-editor-rpe { margin-top: 8px; }
+  .sesion-editor-btn { width: 40px; }
+}

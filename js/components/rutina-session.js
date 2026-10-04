@@ -180,7 +180,7 @@ function renderSerieRowHtml(s, sIdx, anterior = null) {
       <select class="serie-tipo" hidden aria-hidden="true">${opcionTipo('normal', 'N')}${opcionTipo('calentamiento', 'C')}${opcionTipo('fallo', 'F')}${opcionTipo('dropset', 'D')}</select>
       <button type="button" class="serie-tipo-chip tappable" data-tipo="${tipo}" title="${TIPO_LABELS[tipo]}" aria-label="Serie ${n}, ${TIPO_LABELS[tipo]}. Cambiar tipo" style="background: ${tc.bg}; border: 1px solid ${tc.border}; color: ${tc.color};">${n}</button>
       <span class="serie-anterior num" title="La última vez">${textoAnterior(anterior)}</span>
-      <input type="number" step="0.5" min="0" inputmode="decimal" class="serie-peso" value="${escapeHtml(String(s.peso ?? ''))}" aria-label="Kilos de la serie ${n}">
+      <div class="serie-kg"><input type="number" step="0.5" min="0" inputmode="decimal" class="serie-peso" value="${escapeHtml(String(s.peso ?? ''))}" aria-label="Kilos de la serie ${n}"><span class="serie-corporal" aria-hidden="true">Corporal</span></div>
       <input type="text" inputmode="numeric" class="serie-reps" value="${escapeHtml(String(s.reps ?? ''))}" aria-label="Repeticiones o segundos de la serie ${n}">
       <select class="serie-rpe" aria-label="RPE de la serie ${n}">
         <option value="">-</option>
@@ -311,6 +311,10 @@ export async function renderRutinaSession(rutina) {
           <div><dt>Récords</dt><dd><span id="hud-records" class="num">0</span><span id="hud-record-ultimo" class="sesion-hud-ultimo"></span></dd></div>
         </dl>
       </div>
+      <div class="sesion-hud-linea">
+        <span id="hud-linea-datos" class="sesion-hud-linea-datos"></span>
+        <span class="sesion-hud-linea-descanso">Descanso <span id="hud-linea-cuenta" class="num">00:00</span><button type="button" id="btn-descanso-saltar-linea" class="tappable">Saltar</button></span>
+      </div>
       <div id="hud-descanso" class="sesion-hud-descanso" hidden>
         <div class="sesion-descanso-fila">
           <div class="sesion-descanso-anillo">
@@ -362,6 +366,9 @@ export async function renderRutinaSession(rutina) {
     const estancado = currentEstancamiento[ej.nombre];
     const anterior = currentAnterior[ej.nombre];
     const tieneTecnica = meta && (meta.posturaInicial || (meta.pasosEjecucion && meta.pasosEjecucion.length));
+    // Peso corporal: rutina de Calistenia, o ejercicio de Calistenia o sin
+    // carga externa (sin equipo, barra de dominadas, anillas), también en GYM.
+    const esCorporal = rutina.categoria === 'calistenia' || !!(meta && (meta.categoria === 'calistenia' || ['ninguno', 'barra-dominadas', 'anillas'].includes(meta.equipo)));
 
     const esSegundoDelGrupo = !!ej.grupoId && gruposYaMostrados.has(ej.grupoId);
     if (ej.grupoId) gruposYaMostrados.add(ej.grupoId);
@@ -391,7 +398,7 @@ export async function renderRutinaSession(rutina) {
     }
 
     html += `
-      <div class="card ejercicio-sesion-block" id="sesion-ej-${idx}" role="tabpanel" data-ej-idx="${idx}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}"${esSegundoDelGrupo ? ' data-superserie-segundo="true"' : ''}>
+      <div class="card ejercicio-sesion-block" id="sesion-ej-${idx}" role="tabpanel" data-ej-idx="${idx}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" data-peso-corporal="${esCorporal}"${esSegundoDelGrupo ? ' data-superserie-segundo="true"' : ''}>
         ${supChipHtml}
         <div class="sesion-ej-cabecera">
           <div class="sesion-ej-titulo">
@@ -523,6 +530,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         const marcada = btn.getAttribute('data-checked') === 'true';
         const record = esRecord(b, row);
         row.classList.toggle('serie-row--pr', record);
+        row.classList.toggle('serie-row--corporal', esCorporalBloque(b) && !((parseFloat(row.querySelector('.serie-peso').value) || 0) > 0));
         btn.textContent = record ? '★' : '✓';
         btn.style.background = record ? 'var(--am)' : marcada ? 'var(--state-success)' : 'var(--surface-2)';
         btn.style.borderColor = record ? 'var(--am)' : marcada ? 'var(--state-success)' : 'var(--text-secondary)';
@@ -557,6 +565,17 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       tab.classList.toggle('sesion-tab--hecha', terminada);
       tab.querySelector('.sesion-tab-check').hidden = !terminada;
     });
+  };
+
+  // Línea del HUD compacto (fase de ajuste): tiempo · series · volumen ·
+  // récords; en descanso, la cuenta regresiva y Saltar (ver CSS).
+  const actualizarLinea = () => {
+    const datos = document.getElementById('hud-linea-datos');
+    if (!datos) return;
+    const nRec = Number(document.getElementById('hud-records')?.textContent || 0);
+    datos.innerHTML = `<span class="num">${document.getElementById('session-timer')?.textContent || ''}</span> · <span class="num">${document.getElementById('hud-series')?.textContent || ''}</span> series · <span class="num">${document.getElementById('hud-volumen')?.textContent || '0'}</span> kg${nRec ? ` · <span class="sesion-hud-linea-rec">★ <span class="num">${nRec}</span></span>` : ''}`;
+    const cuenta = document.getElementById('hud-linea-cuenta');
+    if (cuenta && descanso) cuenta.textContent = document.getElementById('hud-descanso-cuenta')?.textContent || '';
   };
 
   // HUD: tiempo (lo mueve el intervalo), series hechas/total, volumen con la
@@ -665,10 +684,41 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const sig = document.getElementById('btn-ej-siguiente');
     if (ant) ant.disabled = pos === 0;
     if (sig) sig.disabled = pos === bloques.length - 1;
-    document.getElementById('view-root')?.scrollTo(0, 0);
+    document.getElementById('view-root')?.scrollTo(0, hudCompacto() ? 6 : 0);
     if (foco) document.querySelector(`.sesion-tab[data-ej-idx="${ejercicioActivo}"]`)?.focus();
     guardar();
   };
+  // --- HUD compacto (bajo 1024 px) ---------------------------------------
+  // Al bajar dentro de la sesión el HUD pasa a una línea (~48 px) y vuelve a
+  // expandirse arriba del todo. El cambio de alto de la cabecera fija se
+  // compensa en el scroll, así el contenido no salta; con histéresis
+  // (compacta pasados 160 px, expande en 4 px o menos) para que no oscile.
+  const vistaRaiz = document.getElementById('view-root');
+  const enPc = window.matchMedia('(min-width: 1024px)');
+  const hudCompacto = () => !!document.getElementById('sesion-hud')?.classList.contains('sesion-hud--compacto');
+  const fijarCompacto = (compacto) => {
+    const hud = document.getElementById('sesion-hud');
+    if (!hud || hudCompacto() === compacto) return;
+    // Se mide dónde queda el cuerpo de la sesión antes y después y se corrige
+    // la diferencia (Chrome ya ancla el scroll solo; Safari no).
+    const cuerpo = document.querySelector('.sesion-cuerpo');
+    const antes = cuerpo ? cuerpo.getBoundingClientRect().top : 0;
+    hud.classList.toggle('sesion-hud--compacto', compacto);
+    actualizarLinea();
+    if (compacto && cuerpo && vistaRaiz) vistaRaiz.scrollTop += cuerpo.getBoundingClientRect().top - antes;
+  };
+  const alHacerScroll = () => {
+    if (!vistaRaiz || !document.getElementById('sesion-hud')) return;
+    if (enPc.matches) { fijarCompacto(false); return; }
+    const resumen = document.getElementById('sesion-resumen');
+    if (resumen && !resumen.hidden) return;
+    const y = vistaRaiz.scrollTop;
+    if (!hudCompacto() && y > 160) fijarCompacto(true);
+    else if (hudCompacto() && y <= 4) fijarCompacto(false);
+  };
+  if (vistaRaiz) vistaRaiz.addEventListener('scroll', alHacerScroll, { passive: true, signal });
+  enPc.addEventListener('change', alHacerScroll, { signal });
+
   const moverEjercicio = (delta) => {
     const bloques = bloquesSesion();
     const pos = bloques.findIndex(b => Number(b.dataset.ejIdx) === ejercicioActivo);
@@ -719,7 +769,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   }
 
   // --- Tabla, editor y botón principal (fase 5) --------------------------
-  const esCalistenia = rutina.categoria === 'calistenia';
+  // Peso 0 en un ejercicio de peso corporal (GYM o Calistenia) se muestra "Corporal".
+  const esCorporalBloque = (b) => !!b && b.dataset.pesoCorporal === 'true';
   const estaMarcada = (row) => row.querySelector('.btn-check-serie').getAttribute('data-checked') === 'true';
   // La fila que toca: la elegida (tocándola) si sigue sin marcar; si no, la
   // primera sin marcar del ejercicio. null si ya están todas hechas.
@@ -745,9 +796,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     return bloques.slice(i, j + 1);
   };
   const nombreCorto = (n) => (n || '').replace(/\s*\(.*\)\s*/g, ' ').trim();
-  const textoPeso = (v) => {
+  const textoPeso = (v, b) => {
     const peso = parseFloat(v) || 0;
-    if (peso === 0 && esCalistenia) return 'Corporal';
+    if (peso === 0 && esCorporalBloque(b)) return 'Corporal';
     return formatNumero(peso);
   };
 
@@ -777,7 +828,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const p = parseFloat(peso) || 0, r = parseInt(reps) || 0;
     const rm = p > 0 && r > 0 ? db.estimar1RM(p, r) : 0;
     ed.querySelector('.sesion-editor-1rm').innerHTML = rm > 0 ? ` · 1RM ~<span class="num">${formatNumero(rm)}</span> kg` : '';
-    ed.querySelector('.sesion-editor-valor[data-campo="peso"]').textContent = textoPeso(peso);
+    const valorPeso = ed.querySelector('.sesion-editor-valor[data-campo="peso"]');
+    valorPeso.textContent = textoPeso(peso, b);
+    valorPeso.classList.toggle('sesion-editor-valor--texto', valorPeso.textContent === 'Corporal');
     ed.querySelector('.sesion-editor-valor[data-campo="reps"]').textContent = formatNumero(reps, { textoSiNoEsNumero: true }) || '0';
     ed.querySelectorAll('.sesion-rpe-chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.rpe === rpe)));
   };
@@ -805,7 +858,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       const n = Array.from(b.querySelectorAll('.serie-row')).indexOf(row) + 1;
       const peso = parseFloat(row.querySelector('.serie-peso').value) || 0;
       const repsTxt = formatNumero(row.querySelector('.serie-reps').value, { textoSiNoEsNumero: true }) || '0';
-      const carga = peso > 0 ? `${formatNumero(peso)} kg × ${repsTxt}` : `${esCalistenia ? 'Corporal' : '0 kg'} × ${repsTxt}`;
+      const carga = peso > 0 ? `${formatNumero(peso)} kg × ${repsTxt}` : `${esCorporalBloque(b) ? 'Corporal' : '0 kg'} × ${repsTxt}`;
       const corrida = corridaDe(b);
       const sig = corrida[corrida.indexOf(b) + 1];
       if (sig) {
@@ -953,6 +1006,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     actualizarHud();
     actualizarRiel();
     pintarDescanso();
+    actualizarLinea();
     guardarBorrador({
       rutinaId: rutina.id,
       nombreRutina: rutina.nombre,
@@ -1044,6 +1098,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const m = String(Math.floor(diff / 60)).padStart(2, '0');
     const s = String(diff % 60).padStart(2, '0');
     if (timerDisplay) timerDisplay.innerText = `${m}:${s}`;
+    actualizarLinea();
   }, 1000);
 
   // Al terminar (o saltar) el descanso: si el ejercicio activo quedó
@@ -1083,7 +1138,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const n = Array.from(b.querySelectorAll('.serie-row')).indexOf(row) + 1;
     const peso = parseFloat(row.querySelector('.serie-peso').value) || 0;
     const reps = formatNumero(row.querySelector('.serie-reps').value, { textoSiNoEsNumero: true }) || '0';
-    const carga = peso > 0 ? `${formatNumero(peso)} kg × ${reps}` : `${esCalistenia ? 'Corporal' : '0 kg'} × ${reps}`;
+    const carga = peso > 0 ? `${formatNumero(peso)} kg × ${reps}` : `${esCorporalBloque(b) ? 'Corporal' : '0 kg'} × ${reps}`;
     return `Siguiente: ${nombreCorto(b.dataset.ejNombre)} · serie ${n} · ${carga}`;
   };
 
@@ -1124,6 +1179,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     if (restantes() <= 0) { terminarDescanso({ sonar: true }); return; }
     pintarDescanso();
     actualizarPrincipal();
+    actualizarLinea();
   };
 
   // segundos: duración; opciones.hasta/total: retomar uno guardado.
@@ -1150,6 +1206,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     guardar();
   }, { signal });
   document.getElementById('btn-descanso-saltar')?.addEventListener('click', () => terminarDescanso({ sonar: false }), { signal });
+  document.getElementById('btn-descanso-saltar-linea')?.addEventListener('click', () => terminarDescanso({ sonar: false }), { signal });
 
   // Pantalla siempre encendida mientras la sesión está abierta (Wake Lock);
   // se vuelve a pedir al volver a la app y se suelta al salir. Sin soporte,
