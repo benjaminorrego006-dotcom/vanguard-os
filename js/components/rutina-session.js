@@ -47,8 +47,11 @@ const TIPO_COLORS = {
 // null si se cierra. Opciones:
 // - permitirPersonalizado (true): sin resultados ofrece añadir el texto
 //   tal cual; la edición solo deja elegir del catálogo.
-// - conId (false): resuelve { id, nombre } con el id y el nombre del
-//   catálogo en vez del nombre mostrado.
+// - conId (false): resuelve { id, nombre } (id del catálogo, o null si es
+//   un ejercicio libre de "Añadir de todas formas") en vez del nombre.
+// Muestra y devuelve el nombre real del catálogo (antes armaba uno desde
+// la clave, ej. "Peso Muerto" por "Peso Muerto Convencional", y la sesión
+// quedaba sin id).
 // Es un .modal-overlay con id (#buscador-ejercicios-modal): history.js le
 // da su entrada de historial, así Atrás y Escape cierran solo el buscador,
 // y layout.css lo deja sin tapar la barra inferior ni el riel.
@@ -102,7 +105,7 @@ export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = 
 
     const allEjercicios = Object.keys(CATALOGO_EJERCICIOS).map(k => ({
       key: k,
-      nombre: k.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      nombre: CATALOGO_EJERCICIOS[k].nombre,
       musculo: CATALOGO_EJERCICIOS[k].grupoMuscular
     }));
 
@@ -119,7 +122,7 @@ export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = 
           </div>
         `;
         const btnCustom = document.getElementById('btn-custom-ej');
-        if (btnCustom) btnCustom.onclick = () => close(q);
+        if (btnCustom) btnCustom.onclick = () => close(conId ? { id: null, nombre: q } : q);
       } else {
         resultsContainer.innerHTML = matches.map(e => `
           <button type="button" class="picker-item tappable" data-key="${escapeHtml(e.key)}" data-nombre="${escapeHtml(e.nombre)}" style="width: 100%; flex-shrink: 0; text-align: left; font: inherit; color: var(--text-primary); padding: 13px 16px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
@@ -278,7 +281,7 @@ export async function renderRutinaSession(rutina) {
       : '';
 
     html += `
-      <div class="card ejercicio-sesion-block" data-ej-nombre="${escapeHtml(ej.nombre)}" data-grupo-id="${ej.grupoId || ''}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; ${esSegundoDelGrupo ? 'border-left: 2px solid var(--state-medium);' : ''}">
+      <div class="card ejercicio-sesion-block" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" style="background: var(--surface-2); padding: 16px; border-radius: 16px; ${esSegundoDelGrupo ? 'border-left: 2px solid var(--state-medium);' : ''}">
         ${supChipHtml}
 
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
@@ -824,14 +827,14 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
     }, { signal });
   });
 
-  const openExercisePicker = () => abrirBuscadorEjercicios();
+  const openExercisePicker = () => abrirBuscadorEjercicios({ conId: true });
 
         const btnAddLive = document.getElementById('btn-add-ejercicio-live');
   if (btnAddLive) {
     btnAddLive.addEventListener('click', async () => {
       try {
-        const nom = await openExercisePicker();
-        if (!nom || !nom.trim()) return;
+        const elegido = await openExercisePicker();
+        if (!elegido || !elegido.nombre || !elegido.nombre.trim()) return;
         
         const bloques = document.querySelectorAll('.ejercicio-sesion-block');
         bloques.forEach((b, i) => {
@@ -849,7 +852,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
           });
         });
         
-        rutina.ejercicios.push({ nombre: nom.trim(), series: [{reps: '', peso: ''}] });
+        // Del catálogo llega con su id; "Añadir de todas formas", con id null.
+        rutina.ejercicios.push({ ejercicioId: elegido.id, nombre: elegido.nombre.trim(), series: [{reps: '', peso: ''}] });
         
         const subContent = document.getElementById('entrenamiento-sub-content');
         if (!subContent) throw new Error("subContent no existe");
@@ -878,6 +882,10 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
       
       bloques.forEach(b => {
         const nombre = b.getAttribute('data-ej-nombre');
+        // Sin data-ej-id (ejercicios de la rutina), registrarSesion lo
+        // resuelve por nombre; con él va el id del catálogo o null (libre).
+        const idAttr = b.getAttribute('data-ej-id');
+        const ejercicioId = idAttr === null ? undefined : (idAttr || null);
         const seriesRows = b.querySelectorAll('.serie-row');
         const seriesCompletadas = [];
         
@@ -895,7 +903,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal) {
         });
         
         if (seriesCompletadas.length > 0) {
-          ejerciciosLog.push({ nombre, series: seriesCompletadas });
+          ejerciciosLog.push({ ...(ejercicioId !== undefined ? { ejercicioId } : {}), nombre, series: seriesCompletadas });
         }
       });
       
