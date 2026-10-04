@@ -152,4 +152,11 @@
      valor para que la tarjeta principal, el botón primario y el FAB
      compartan el mismo lenguaje geométrico. */
   --chaflan: 12px;
+
+  /* Discos de la calculadora de discos (sesión de Entreno): los colores
+     reales de las placas olímpicas (rojo 25, azul 20, amarillo 15, verde
+     10, blanco 5), que el usuario reconoce; no son acentos ni alertas. */
+  --disco-25: #e53935; --disco-20: #1e88e5; --disco-15: #fdd835; --disco-10: #43a047;
+  --disco-5: #eeeeee; --disco-2-5: #212121; --disco-1-25: #757575; --disco-otro: #555555;
+  --disco-texto: #ffffff; --disco-texto-claro: #000000; --disco-barra: #bdbdbd; --disco-manga: #9e9e9e;
 }

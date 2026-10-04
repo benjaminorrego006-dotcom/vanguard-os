@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Mono;src:url(../../assets/fonts/ibm-plex-mono-400-latin.woff2);font-weight:400}
+@font-face{font-family:Mono;src:url(../../assets/fonts/ibm-plex-mono-700-latin.woff2);font-weight:700}
+@font-face{font-family:Inter;src:url(../../assets/fonts/inter-variable-latin.woff2);font-weight:100 900}
+@font-face{font-family:Grotesk;src:url(../../assets/fonts/space-grotesk-700-latin.woff2);font-weight:700}
+:root{--bg:#05070A;--panel:#0A1318;--line:#16323A;--cy:#4FA6B3;--cy2:#48747B;--cy3:#314E52;--cyb:#223538;--cyp:#0B1011;--am:#D98A3D;--ok:#22C55E;--rd:#C56056;--t1:#C8DDE4;--t2:#8CA9B4;--t3:#698692;--ch:12px;--mus:#d9871f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1a1d22;font-family:Inter,sans-serif;color:var(--t1);padding:28px;display:flex;gap:28px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:14px;width:390px}
+.lbl{font-family:Grotesk;font-size:22px;color:#fff}
+.lbl small{display:block;font-family:Inter;font-size:13px;color:#9aa;font-weight:400;margin-top:4px;line-height:1.45}
+.phone{width:390px;height:844px;background:var(--bg);position:relative;overflow:hidden;border:1px solid #2a2f36}
+.num{font-family:Mono;font-variant-numeric:tabular-nums}
+.ch{clip-path:polygon(var(--ch) 0,100% 0,100% calc(100% - var(--ch)),calc(100% - var(--ch)) 100%,0 100%,0 var(--ch))}
+.cap{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--t3);font-weight:700}
+/* header común */
+.hdr{position:absolute;top:0;left:0;right:0;background:var(--bg);border-bottom:1px solid var(--line);padding:14px 16px 12px;z-index:5}
+.hrow{display:flex;align-items:center;gap:10px}
+.x{width:34px;height:34px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:18px;flex-shrink:0}
+.rt{flex:1;min-width:0}
+.rt b{font-family:Grotesk;font-size:17px;display:block}
+.rt span{font-size:11px;color:var(--t3)}
+.tm{font-family:Mono;font-size:22px;font-weight:700;color:var(--t1)}
+.bar{height:4px;background:var(--cyb);margin-top:12px;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--cy)}
+.stats{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--t2)}
+.stats b{color:var(--t1);font-family:Mono}
+/* navbar */
+.nav{position:absolute;left:0;right:0;bottom:0;height:64px;border-top:1px solid var(--line);background:#070c0f;display:flex;justify-content:space-around;align-items:center;font-size:10px;color:var(--t3)}
+.nav .on{color:var(--cy)}
+/* filas serie */
+.sr{display:grid;grid-template-columns:30px 1fr 1.2fr 46px 46px;gap:6px;align-items:center;margin-bottom:6px}
+.sr>div{height:44px;background:var(--panel);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:Mono;font-size:15px}
+.sr .n{font-size:12px;color:var(--t2);font-weight:700}
+.sr .n.w{color:var(--am);border-color:var(--am);background:#271F16}
+.sr .ck{color:var(--t3)}
+.sr.done>div{opacity:.55}
+.sr.done .ck{background:var(--ok);border-color:var(--ok);color:#000;opacity:1}
+.sr.cur>div{border-color:var(--cy)}
+.sr.cur .ck{border-color:var(--cy);color:var(--cy)}
+.sh{display:grid;grid-template-columns:30px 1fr 1.2fr 46px 46px;gap:6px;font-size:9px;color:var(--t3);text-align:center;margin-bottom:4px;letter-spacing:.8px}
+.prev{font-size:10px;color:var(--t3);text-align:center;font-family:Mono}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:3px 8px;border:1px solid var(--line);color:var(--t2);font-weight:600}
+.chip.cy{color:var(--cy);border-color:var(--cy3)}
+.chip.am{color:var(--am);border-color:#634221}
+.btnp{background:var(--cy);color:#00110f;font-weight:800;font-size:15px;text-align:center;padding:15px}
+.tag{position:absolute;right:10px;padding:3px 7px;font-size:9.5px;font-weight:800;letter-spacing:.5px;background:#ffd84d;color:#000;z-index:20;font-family:Inter}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cy)}
+body{gap:24px}
+.phone{height:844px}
+.top{position:absolute;top:0;left:0;right:0;padding:12px 16px 0;display:flex;align-items:center;gap:10px}
+.hud{margin:10px 16px 0;background:var(--panel);border:1px solid var(--line);padding:12px;position:relative}
+.seg{display:flex;gap:2px;margin-top:10px}.seg i{flex:1;height:4px;background:var(--cyb)}.seg i.d{background:var(--cy)}.seg i.p{background:var(--am)}.seg i.c{background:var(--cy2);outline:1px solid var(--cy)}
+.rail{display:flex;gap:6px;margin:12px 16px 0;align-items:stretch}
+.tab{flex:1;border:1px solid var(--line);padding:7px 6px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;position:relative}
+.tab b{font-size:11px;font-weight:700;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tab.on{border-color:var(--cy);background:var(--cyb)}.tab.on b{color:var(--t1)}
+.tab.ok b{color:var(--t3)}
+.tab .k{font-family:Mono;font-size:10px;color:var(--t3)}
+.ss{position:absolute;z-index:3;white-space:nowrap;top:-7px;left:50%;transform:translateX(-50%);font-size:8.5px;font-weight:800;background:var(--am);color:#000;padding:1px 5px;letter-spacing:.5px}
+.tbl{display:grid;grid-template-columns:26px 1.3fr 1fr 1fr 38px 40px;gap:5px;align-items:center}
+.th{font-size:9px;color:var(--t3);letter-spacing:.8px;text-align:center;margin-bottom:5px}
+.td{height:38px;border:1px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:center;font-family:Mono;font-size:14px}
+.td.g{background:transparent;border-color:transparent;color:var(--t3);font-size:11.5px}
+.td.n{font-size:12px;color:var(--t2);font-weight:700}
+.td.ok{background:var(--ok);border-color:var(--ok);color:#000;font-weight:800}
+.row{display:contents}
+.done .td:not(.ok):not(.g){opacity:.5}
+.cur .td:not(.g){border-color:var(--cy)}
+.cur .td.ck{color:var(--cy)}
+.ed{margin-top:10px;border:1px solid var(--cy3);background:#08151a;padding:10px 12px}
+.stp{display:flex;align-items:center;gap:0;flex:1}
+.stp span{width:38px;height:44px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:18px}
+.stp div{flex:1;height:44px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:Mono;font-size:20px;font-weight:700}
+.rpe{display:flex;gap:4px;margin-top:8px;align-items:center}
+.rpe span{flex:1;height:30px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:Mono;font-size:12px;color:var(--t2)}
+.rpe span.on{border-color:var(--cy);color:var(--cy);background:var(--cyb)}
+.cta{position:absolute;left:16px;right:16px;bottom:22px}
+.pager{display:flex;justify-content:center;gap:5px;margin-bottom:10px}.pager i{width:5px;height:5px;background:var(--line)}.pager i.on{width:16px;background:var(--cy)}
+.note{font-size:12.5px;color:#b9c3c8;line-height:1.5;margin-top:2px}
+.note b{color:#fff}
+.pr{background:#271F16;border:1px solid var(--am);color:var(--am);font-size:10px;font-weight:800;padding:2px 6px;letter-spacing:.5px}
+</style></head><body>
+<script>
+function fig(side, I, w){ // I: {grupo: 0..1}
+  const c=v=>v>0?`rgba(217,135,31,${0.25+0.75*v})`:'#17303a';
+  const st='stroke="#2a4a54" stroke-width=".7"';
+  const F=`<circle cx="30" cy="8" r="6" fill="#17303a" ${st}/>
+  <path d="M18 18 Q30 14 42 18 L41 22 Q30 19 19 22Z" fill="${c(I.hombros||0)}" ${st}/>
+  <path d="M20 22 Q25 21 29.5 22 L29.5 33 Q24 34 20 31Z" fill="${c(I.pecho||0)}" ${st}/><path d="M40 22 Q35 21 30.5 22 L30.5 33 Q36 34 40 31Z" fill="${c(I.pecho||0)}" ${st}/>
+  <rect x="24" y="34" width="12" height="17" rx="2" fill="${c(I.core||0)}" ${st}/>
+  <path d="M13 21 Q17 19 19 22 L18 37 L13 37Z" fill="${c(I.biceps||0)}" ${st}/><path d="M47 21 Q43 19 41 22 L42 37 L47 37Z" fill="${c(I.biceps||0)}" ${st}/>
+  <path d="M12.5 38 L18 38 L17 52 L13 52Z" fill="${c(I.antebrazo||0)}" ${st}/><path d="M47.5 38 L42 38 L43 52 L47 52Z" fill="${c(I.antebrazo||0)}" ${st}/>
+  <path d="M21 53 L29.5 53 L28.5 82 L22 82Z" fill="${c(I.piernas||0)}" ${st}/><path d="M39 53 L30.5 53 L31.5 82 L38 82Z" fill="${c(I.piernas||0)}" ${st}/>
+  <path d="M22 85 L28 85 L27 108 L23 108Z" fill="#17303a" ${st}/><path d="M38 85 L32 85 L33 108 L37 108Z" fill="#17303a" ${st}/>`;
+  const B=`<circle cx="30" cy="8" r="6" fill="#17303a" ${st}/>
+  <path d="M22 16 Q30 13 38 16 L35 24 L30 27 L25 24Z" fill="${c(I.trapecio||I.espalda||0)}" ${st}/>
+  <path d="M18 18 L22 17 L24 25 L19 24Z" fill="${c(I.hombros||0)}" ${st}/><path d="M42 18 L38 17 L36 25 L41 24Z" fill="${c(I.hombros||0)}" ${st}/>
+  <path d="M20 25 L29.5 28 L29.5 44 L23 40Z" fill="${c(I.espalda||0)}" ${st}/><path d="M40 25 L30.5 28 L30.5 44 L37 40Z" fill="${c(I.espalda||0)}" ${st}/>
+  <rect x="25" y="44" width="10" height="7" rx="1" fill="${c((I.espalda||0)*.5)}" ${st}/>
+  <path d="M13 21 Q17 19 19 23 L18 37 L13 37Z" fill="${c(I.triceps||0)}" ${st}/><path d="M47 21 Q43 19 41 23 L42 37 L47 37Z" fill="${c(I.triceps||0)}" ${st}/>
+  <path d="M12.5 38 L18 38 L17 52 L13 52Z" fill="${c(I.antebrazo||0)}" ${st}/><path d="M47.5 38 L42 38 L43 52 L47 52Z" fill="${c(I.antebrazo||0)}" ${st}/>
+  <path d="M21 52 L29.5 52 L29.5 62 L21 61Z" fill="${c(I.gluteos||0)}" ${st}/><path d="M39 52 L30.5 52 L30.5 62 L39 61Z" fill="${c(I.gluteos||0)}" ${st}/>
+  <path d="M21.5 63 L29.5 63 L28.5 82 L22 82Z" fill="${c(I.piernas||0)}" ${st}/><path d="M38.5 63 L30.5 63 L31.5 82 L38 82Z" fill="${c(I.piernas||0)}" ${st}/>
+  <path d="M22 85 L28 85 L27 108 L23 108Z" fill="#17303a" ${st}/><path d="M38 85 L32 85 L33 108 L37 108Z" fill="#17303a" ${st}/>`;
+  return `<svg width="${w}" height="${w*1.85}" viewBox="0 0 60 111">${side==='f'?F:B}</svg>`;
+}
+document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[data-fig]').forEach(el=>{el.innerHTML=fig(el.dataset.fig,JSON.parse(el.dataset.i||'{}'),+el.dataset.w||34)});});
+</script>
+<!-- ===== 1 PRINCIPAL ===== -->
+<div class="col">
+<div class="lbl">1 · En serie<small>Pantalla completa (sin la barra de abajo): el HUD tiene mapa frente/espalda, volumen comparado con la última vez y una barra con <b>cada serie</b> de la sesión. La tabla trae la columna "Anterior" y abajo un editor con +/− grandes para la serie que toca.</small></div>
+<div class="phone">
+  <div class="top"><div class="x">✕</div><div class="rt"><b>Torso A</b><span>GYM · semana 3</span></div><div class="x" style="width:auto;padding:0 12px;font-size:12px;color:var(--cy);border-color:var(--cy3)">Finalizar</div></div>
+  <div style="position:absolute;top:58px;left:0;right:0">
+  <div class="hud ch">
+    <div style="display:flex;gap:12px;align-items:center">
+      <div style="display:flex;gap:2px"><div data-fig="f" data-w="32" data-i='{"pecho":0.9,"hombros":0.4,"biceps":0.15}'></div><div data-fig="b" data-w="32" data-i='{"espalda":0.3,"triceps":0.4,"hombros":0.3}'></div></div>
+      <div style="flex:1;display:grid;grid-template-columns:1.1fr 1fr;gap:6px 10px">
+        <div><div class="cap">Tiempo</div><div class="num" style="font-size:24px;font-weight:700;line-height:1.1">18:42</div></div>
+        <div><div class="cap">Series</div><div class="num" style="font-size:24px;font-weight:700;line-height:1.1">5<span style="color:var(--t3);font-size:14px">/12</span></div></div>
+        <div><div class="cap">Volumen</div><div class="num" style="font-size:16px;font-weight:700">2.340<span style="color:var(--t3);font-size:10px"> kg</span> <span style="font-size:10px;color:var(--cy)">▲6%</span></div></div>
+        <div><div class="cap">Récords</div><div class="num" style="font-size:16px;font-weight:700;color:var(--am)">1 <span style="font-size:10px;color:var(--t3);font-weight:400">Banca 72,5</span></div></div>
+      </div>
+    </div>
+    <div class="seg"><i class="d"></i><i class="d"></i><i class="p"></i><i class="d"></i><i style="width:6px;flex:0 0 4px;background:none"></i><i class="d"></i><i class="c"></i><i></i><i style="flex:0 0 4px;background:none"></i><i></i><i></i><i></i><i style="flex:0 0 4px;background:none"></i><i></i><i></i></div>
+  </div>
+  <div class="rail">
+    <div class="tab ok"><b>✓ Banca</b><span class="k">4/4</span></div>
+    <div class="tab on"><b>Remo</b><span class="k" style="color:var(--cy)">1/3</span></div>
+    <div class="tab" style="border-right-color:var(--am)"><span class="ss">A1</span><b>Militar</b><span class="k">0/3</span></div>
+    <div class="tab" style="border-left-color:var(--am)"><span class="ss">A2</span><b>Curl</b><span class="k">0/2</span></div>
+  </div>
+  <div style="padding:14px 16px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div><div class="cap">Ejercicio 2 de 4 · Espalda</div><div style="font-family:Grotesk;font-size:22px;margin-top:2px">Remo con Barra</div></div><div style="display:flex;gap:6px"><div class="x" style="width:32px;height:32px;font-size:13px">ⓘ</div><div class="x" style="width:32px;height:32px;font-size:14px">⋯</div></div></div>
+    <div style="display:flex;gap:6px;margin:8px 0 12px;flex-wrap:wrap"><span class="chip">PR 65 kg</span><span class="chip">Tracción H. · Nv 2/3</span><span class="chip cy">↑ Sube a 60 kg</span></div>
+    <div class="tbl">
+      <div class="th">#</div><div class="th">ANTERIOR</div><div class="th">KG</div><div class="th">REPS</div><div class="th">RPE</div><div class="th"></div>
+      <div class="row done"><div class="td n">1</div><div class="td g">57,5×10</div><div class="td">60</div><div class="td">10</div><div class="td">8</div><div class="td ok">✓</div></div>
+      <div class="row cur"><div class="td n">2</div><div class="td g">57,5×10</div><div class="td">60</div><div class="td">10</div><div class="td">–</div><div class="td ck">○</div></div>
+      <div class="row"><div class="td n">3</div><div class="td g">57,5×9</div><div class="td">60</div><div class="td">10</div><div class="td">–</div><div class="td" style="color:var(--t3)">○</div></div>
+    </div>
+    <div class="ed">
+      <div style="display:flex;gap:10px"><div style="flex:1"><div class="cap" style="margin-bottom:4px">Kg · serie 2</div><div class="stp"><span>−</span><div>60</div><span>+</span></div></div><div style="flex:1"><div class="cap" style="margin-bottom:4px">Reps</div><div class="stp"><span>−</span><div>10</div><span>+</span></div></div></div>
+      <div class="rpe"><span class="cap" style="flex:0 0 auto;border:none;margin-right:4px">RPE</span><span>6</span><span>7</span><span class="on">8</span><span>9</span><span>10</span></div>
+    </div>
+  </div>
+  </div>
+  <div class="cta"><div class="pager"><i></i><i class="on"></i><i></i><i></i></div><div class="btnp ch" style="font-size:16px">✓ Completar serie 2 · 60 kg × 10</div></div>
+</div></div>
+
+<!-- ===== 2 DESCANSO ===== -->
+<div class="col">
+<div class="lbl">2 · Descansando<small>El HUD se transforma en el temporizador (anillo + barra que se vacía), nunca tapa la tabla. Dice qué viene, vibra y suena al terminar, y la pantalla no se apaga mientras entrenas.</small></div>
+<div class="phone">
+  <div class="top"><div class="x">✕</div><div class="rt"><b>Torso A</b><span>GYM · semana 3</span></div><div class="x" style="width:auto;padding:0 12px;font-size:12px;color:var(--cy);border-color:var(--cy3)">Finalizar</div></div>
+  <div style="position:absolute;top:58px;left:0;right:0">
+  <div class="hud ch" style="border-color:var(--cy3);background:#08171c">
+    <div style="display:flex;gap:14px;align-items:center">
+      <svg width="104" height="104" viewBox="0 0 110 110"><circle cx="55" cy="55" r="47" fill="none" stroke="#223538" stroke-width="7"/><circle cx="55" cy="55" r="47" fill="none" stroke="#4FA6B3" stroke-width="7" stroke-dasharray="295" stroke-dashoffset="70" transform="rotate(-90 55 55)"/><text x="55" y="58" text-anchor="middle" font-family="Mono" font-size="24" font-weight="700" fill="#C8DDE4">01:09</text><text x="55" y="75" text-anchor="middle" font-family="Inter" font-size="8.5" fill="#698692" letter-spacing="1">DE 1:30</text></svg>
+      <div style="flex:1">
+        <div class="cap" style="color:var(--cy)">Descanso</div>
+        <div style="font-size:12px;color:var(--t2);margin:4px 0 2px">Siguiente</div>
+        <div style="font-size:14px;font-weight:700">Remo · serie 3</div>
+        <div class="num" style="font-size:13px;color:var(--t1)">60 kg × 10</div>
+        <div style="display:flex;gap:6px;margin-top:10px"><span class="x" style="width:auto;padding:0 9px;font-size:12px;height:30px">−15</span><span class="x" style="width:auto;padding:0 9px;font-size:12px;height:30px">+15</span><span class="x" style="width:auto;padding:0 9px;font-size:12px;height:30px;color:var(--t1)">Saltar</span></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:10.5px;color:var(--t3)"><span class="num">⏱ 20:05</span><span class="num">6/12 series</span><span class="num">Vol 2.940 ▲6%</span></div>
+  </div>
+  <div class="rail">
+    <div class="tab ok"><b>✓ Banca</b><span class="k">4/4</span></div>
+    <div class="tab on"><b>Remo</b><span class="k" style="color:var(--cy)">2/3</span></div>
+    <div class="tab" style="border-right-color:var(--am)"><span class="ss">A1</span><b>Militar</b><span class="k">0/3</span></div>
+    <div class="tab" style="border-left-color:var(--am)"><span class="ss">A2</span><b>Curl</b><span class="k">0/2</span></div>
+  </div>
+  <div style="padding:14px 16px 0">
+    <div><div class="cap">Ejercicio 2 de 4 · Espalda</div><div style="font-family:Grotesk;font-size:22px;margin-top:2px">Remo con Barra</div></div>
+    <div style="height:12px"></div>
+    <div class="tbl">
+      <div class="th">#</div><div class="th">ANTERIOR</div><div class="th">KG</div><div class="th">REPS</div><div class="th">RPE</div><div class="th"></div>
+      <div class="row done"><div class="td n">1</div><div class="td g">57,5×10</div><div class="td">60</div><div class="td">10</div><div class="td">8</div><div class="td ok">✓</div></div>
+      <div class="row done"><div class="td n">2</div><div class="td g">57,5×10</div><div class="td">60</div><div class="td">10</div><div class="td">8</div><div class="td ok">✓</div></div>
+      <div class="row cur"><div class="td n">3</div><div class="td g">57,5×9</div><div class="td">60</div><div class="td">10</div><div class="td">–</div><div class="td ck">○</div></div>
+    </div>
+    <div style="margin-top:14px;border:1px dashed var(--line);padding:10px 12px;font-size:12px;color:var(--t2);display:flex;gap:8px;align-items:center"><span style="color:var(--cy)">💡</span><span>Mientras descansas puedes ajustar la serie 3 o ver la técnica.</span></div>
+  </div>
+  </div>
+  <div class="cta"><div class="pager"><i></i><i class="on"></i><i></i><i></i></div><div style="height:50px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;font-weight:700">Descansando… 01:09</div></div>
+</div></div>
+
+<!-- ===== 3 SUPERSERIE + PR ===== -->
+<div class="col">
+<div class="lbl">3 · Superserie y récord<small>Las superseries se ven unidas en la barra (A1/A2) y el botón te lleva directo al otro ejercicio, sin descanso. Al batir un récord la fila se marca en ámbar y el HUD lo cuenta al instante.</small></div>
+<div class="phone">
+  <div class="top"><div class="x">✕</div><div class="rt"><b>Torso A</b><span>GYM · semana 3</span></div><div class="x" style="width:auto;padding:0 12px;font-size:12px;color:var(--cy);border-color:var(--cy3)">Finalizar</div></div>
+  <div style="position:absolute;top:58px;left:0;right:0">
+  <div class="hud ch">
+    <div style="display:flex;gap:12px;align-items:center">
+      <div style="display:flex;gap:2px"><div data-fig="f" data-w="32" data-i='{"pecho":0.9,"hombros":0.85,"biceps":0.35}'></div><div data-fig="b" data-w="32" data-i='{"espalda":0.75,"triceps":0.6,"hombros":0.7}'></div></div>
+      <div style="flex:1;display:grid;grid-template-columns:1.1fr 1fr;gap:6px 10px">
+        <div><div class="cap">Tiempo</div><div class="num" style="font-size:24px;font-weight:700;line-height:1.1">31:20</div></div>
+        <div><div class="cap">Series</div><div class="num" style="font-size:24px;font-weight:700;line-height:1.1">8<span style="color:var(--t3);font-size:14px">/12</span></div></div>
+        <div><div class="cap">Volumen</div><div class="num" style="font-size:16px;font-weight:700">4.200<span style="color:var(--t3);font-size:10px"> kg</span> <span style="font-size:10px;color:var(--cy)">▲9%</span></div></div>
+        <div style="background:#271F16;margin:-4px -6px;padding:4px 6px;border:1px solid #634221"><div class="cap" style="color:var(--am)">Récords</div><div class="num" style="font-size:16px;font-weight:700;color:var(--am)">2 <span style="font-size:10px">+1 ahora</span></div></div>
+      </div>
+    </div>
+    <div class="seg"><i class="d"></i><i class="d"></i><i class="p"></i><i class="d"></i><i style="flex:0 0 4px;background:none"></i><i class="d"></i><i class="d"></i><i class="d"></i><i style="flex:0 0 4px;background:none"></i><i class="p"></i><i></i><i></i><i style="flex:0 0 4px;background:none"></i><i class="c"></i><i></i></div>
+  </div>
+  <div class="rail">
+    <div class="tab ok"><b>✓ Banca</b><span class="k">4/4</span></div>
+    <div class="tab ok"><b>✓ Remo</b><span class="k">3/3</span></div>
+    <div style="flex:2;display:flex;border:1px solid var(--am);position:relative"><span class="ss">SUPERSERIE A</span>
+      <div class="tab on" style="border:none;border-right:1px solid #634221"><b>Militar</b><span class="k" style="color:var(--cy)">1/3</span></div>
+      <div class="tab" style="border:none;background:#0d1a1f"><b>Curl</b><span class="k">sigue</span></div>
+    </div>
+  </div>
+  <div style="padding:14px 16px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div><div class="cap" style="color:var(--am)">Superserie A · 1 de 2 · sin descanso</div><div style="font-family:Grotesk;font-size:22px;margin-top:2px">Press Militar</div></div><div style="display:flex;gap:6px"><div class="x" style="width:32px;height:32px;font-size:13px">ⓘ</div><div class="x" style="width:32px;height:32px;font-size:14px">⋯</div></div></div>
+    <div style="height:12px"></div>
+    <div class="tbl">
+      <div class="th">#</div><div class="th">ANTERIOR</div><div class="th">KG</div><div class="th">REPS</div><div class="th">RPE</div><div class="th"></div>
+      <div class="row"><div class="td n" style="border-color:var(--am);color:var(--am)">1</div><div class="td g">40×8</div><div class="td" style="border-color:var(--am)">45</div><div class="td" style="border-color:var(--am)">8</div><div class="td" style="border-color:var(--am)">9</div><div class="td ok" style="background:var(--am);border-color:var(--am)">★</div></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin:4px 0 6px"><span class="pr">🏆 NUEVO PR · 45 kg (antes 42,5)</span></div>
+    <div class="tbl">
+      <div class="row cur"><div class="td n">2</div><div class="td g">40×8</div><div class="td">45</div><div class="td">8</div><div class="td">–</div><div class="td ck">○</div></div>
+      <div class="row"><div class="td n">3</div><div class="td g">40×7</div><div class="td">45</div><div class="td">8</div><div class="td">–</div><div class="td" style="color:var(--t3)">○</div></div>
+    </div>
+    <div class="ed">
+      <div style="display:flex;gap:10px"><div style="flex:1"><div class="cap" style="margin-bottom:4px">Kg · serie 2</div><div class="stp"><span>−</span><div>45</div><span>+</span></div></div><div style="flex:1"><div class="cap" style="margin-bottom:4px">Reps</div><div class="stp"><span>−</span><div>8</div><span>+</span></div></div></div>
+    </div>
+  </div>
+  </div>
+  <div class="cta"><div class="pager"><i></i><i></i><i class="on"></i><i></i></div><div class="btnp ch" style="font-size:16px;background:var(--am)">✓ Completar y pasar a Curl →</div></div>
+</div></div>
+
+<!-- ===== 4 RESUMEN ===== -->
+<div class="col">
+<div class="lbl">4 · Resumen final<small>Al tocar Finalizar: los números de la sesión, comparación con la última vez, récords, el mapa de fatiga en grande y una nota. Recién aquí se guarda el evento.</small></div>
+<div class="phone">
+  <div class="top"><div class="x">‹</div><div class="rt"><b>Sesión completada</b><span>Torso A · dom 4 oct</span></div></div>
+  <div style="position:absolute;top:62px;left:16px;right:16px">
+    <div class="ch" style="background:var(--panel);border:1px solid var(--cy3);padding:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div><div class="cap">Duración</div><div class="num" style="font-size:20px;font-weight:700">52:10</div></div>
+      <div><div class="cap">Volumen</div><div class="num" style="font-size:20px;font-weight:700">6.480</div><div class="num" style="font-size:10px;color:var(--cy)">▲ 9% vs 27 sep</div></div>
+      <div><div class="cap">Series</div><div class="num" style="font-size:20px;font-weight:700">12<span style="font-size:12px;color:var(--t3)">/12</span></div><div class="num" style="font-size:10px;color:var(--t3)">RPE ~8,2</div></div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:12px">
+      <div style="border:1px solid var(--line);padding:10px;display:flex;gap:4px;align-items:center"><div data-fig="f" data-w="46" data-i='{"pecho":0.95,"hombros":0.9,"biceps":0.6,"antebrazo":0.2}'></div><div data-fig="b" data-w="46" data-i='{"espalda":0.8,"triceps":0.7,"hombros":0.8,"trapecio":0.5}'></div></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div class="cap" style="color:var(--am)">Récords (2)</div>
+        <div style="border:1px solid #634221;background:#160f0a;padding:8px"><div style="font-size:12.5px;font-weight:700">Press de Banca</div><div class="num" style="font-size:11px;color:var(--am)">72,5 kg × 6</div></div>
+        <div style="border:1px solid #634221;background:#160f0a;padding:8px"><div style="font-size:12.5px;font-weight:700">Press Militar</div><div class="num" style="font-size:11px;color:var(--am)">45 kg × 8</div></div>
+      </div>
+    </div>
+    <div class="cap" style="margin:14px 0 6px">Por ejercicio</div>
+    <div style="border:1px solid var(--line)">
+      <div style="display:flex;padding:9px 10px;border-bottom:1px solid var(--line);font-size:12.5px"><span style="flex:1">Press de Banca</span><span class="num" style="color:var(--t2)">2.140 kg</span><span class="num" style="width:44px;text-align:right;color:var(--cy)">▲4%</span></div>
+      <div style="display:flex;padding:9px 10px;border-bottom:1px solid var(--line);font-size:12.5px"><span style="flex:1">Remo con Barra</span><span class="num" style="color:var(--t2)">1.800 kg</span><span class="num" style="width:44px;text-align:right;color:var(--cy)">▲4%</span></div>
+      <div style="display:flex;padding:9px 10px;border-bottom:1px solid var(--line);font-size:12.5px"><span style="flex:1">Press Militar</span><span class="num" style="color:var(--t2)">1.080 kg</span><span class="num" style="width:44px;text-align:right;color:var(--cy)">▲19%</span></div>
+      <div style="display:flex;padding:9px 10px;font-size:12.5px"><span style="flex:1">Curl de Bíceps</span><span class="num" style="color:var(--t2)">600 kg</span><span class="num" style="width:44px;text-align:right;color:var(--t3)">=</span></div>
+    </div>
+    <div style="margin-top:12px;border:1px solid var(--line);padding:10px 12px;font-size:12.5px;color:var(--t3)">Nota de la sesión (opcional)…</div>
+    <div style="display:flex;gap:6px;margin-top:8px"><span class="chip">😮‍💨 Dura</span><span class="chip cy">💪 Buena</span><span class="chip">🔥 Excelente</span></div>
+  </div>
+  <div class="cta"><div class="btnp ch" style="font-size:16px">Guardar sesión</div><div style="text-align:center;font-size:12px;color:var(--t3);margin-top:10px">Volver a la sesión · Descartar</div></div>
+</div></div>
+</body></html>

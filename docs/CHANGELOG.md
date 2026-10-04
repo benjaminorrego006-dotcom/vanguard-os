@@ -2,7 +2,7 @@
 
 ## 4 oct 2026 — Sesión activa "Cabina HUD" (`docs/REDISENO-SESION-HUD.md`)
 
-Rediseño de la sesión activa de Entreno (GYM y Calistenia) por fases; el
+**`CACHE_NAME` final: `vanguard-os-v256`.** Rediseño de la sesión activa de Entreno (GYM y Calistenia) por fases; el
 plan y su tabla de estado están en `docs/REDISENO-SESION-HUD.md`. QA con
 Playwright en 375×812 y 1280×800, zona `America/Santiago`, reloj simulado,
 contextos limpios sin Supabase (`supabase.co` bloqueado) y el respaldo
@@ -21,6 +21,22 @@ contextos limpios sin Supabase (`supabase.co` bloqueado) y el respaldo
 | 7 — Récord en vivo | v252 | Con la misma regla del chequeo de récord que ya existía (supera el récord que había al abrir la sesión), cada serie marcada que es récord se pinta en ámbar con ★ en vez de ✓ y debajo "NUEVO PR · 45 kg (antes 42,5)"; el bloque Récords del HUD se resalta un momento y se anuncia al lector de pantalla; su segmento queda ámbar. En modo descanso (que oculta el bloque Récords) la línea del descanso suma "· 1 récord" y se resalta. Al desmarcar, o al bajar el peso hasta no superar el récord, todo se revierte. Reemplaza la insignia flotante "Nuevo PR" y el aviso emergente. |
 | 8 — Resumen al finalizar | v253 | Solo GYM y Calistenia: Finalizar (con series marcadas) abre una vista de resumen dentro de la misma sub-vista, con su entrada de historial (Atrás vuelve a la sesión): barra "Sesión completada · Pull · mié 30 sept"; tarjeta con Duración, Volumen (▲/▼ % contra la última de la misma rutina), Series hechas/total y RPE promedio de las series; mapas de frente y espalda de 64 px con la fatiga de la sesión y la lista de récords (ámbar); tabla "Por ejercicio" con series, volumen y variación contra la última vez de cada uno; nota opcional y RPE de la sesión (1–10); Guardar sesión (`registrarSesion` con la misma forma de siempre, borra el borrador y vuelve a Entreno), "Volver a la sesión" y Descartar (ConfirmDialog). Sin series marcadas se mantiene el ConfirmDialog de siempre y se registra sin resumen. HIIT sigue con su modal (`session-summary-form.js`). |
 | Ajuste (tanda 3) | v255 | HUD compacto bajo 1024 px: al bajar dentro de la sesión el HUD pasa a una línea de unos 48 px (tiempo · series · volumen · ★ récords y la barra segmentada) y arriba del todo vuelve a expandirse (histéresis: compacta pasados 160 px, expande en 4 px o menos); en descanso la línea muestra la cuenta regresiva y Saltar. El scroll se compensa al compactar (sin saltos; `overflow-anchor: none` en la sesión para que Chrome y Safari se comporten igual). A ≥1024 px el HUD queda siempre completo. Bajo 768 px se quitan "‹ Anterior / Siguiente ›" (quedan pestañas, deslizar y puntos). Peso 0 en un ejercicio de peso corporal (rutina o ejercicio de Calistenia, o equipo sin carga externa: ninguno, barra de dominadas, anillas) se muestra "Corporal" también en GYM: editor, tabla (etiqueta sobre el KG; al enfocarlo se edita el 0), botón principal y "Siguiente:" del descanso. Para que a 375×812 entren sin scroll la fila que toca, el editor y el botón principal: bajo 768 px la sesión también oculta el encabezado de la app (como ya hacía con la barra inferior) y se aprietan márgenes y filas (36 px). De paso: el editor ya no se sale de la tarjeta a 375 (columnas `minmax(0, 1fr)`) y el pie fijo queda pegado abajo al final del scroll (sin el relleno inferior de 120 px de la vista). |
+| 9 — QA y documentación | v256 | Recorrido completo y auditoría de la vista: sin `border-radius` ni sombras (se quitaron los de las cajas del panel Progreso, sus botones Peso/1RM y la calculadora de discos, y la sombra del popover de tipo de serie); colores solo con tokens (el fondo de los tipos de serie con `color-mix` de tokens, `#000` → `var(--bg)`; los discos de la calculadora usan tokens nuevos `--disco-*` con los colores reales de las placas); sin voseo. Contra la maqueta `docs/mockups/sesion-hud-v2`: chaflán (`clip-path`) en el botón principal fijo y en "Guardar sesión" (la regla general de MK III se lo quitaba a todo botón que no fuera `.btn-primary`); en descanso, línea de ayuda bajo el HUD "Mientras descansas puedes ajustar la serie 2 o ver la técnica" (sin técnica o sin serie pendiente, solo la parte que aplica); el bloque Récords del HUD lleva marco ámbar mientras haya récord en la sesión y muestra "+1 ahora" unos 5 s después de un récord nuevo (luego vuelve el último). El subtítulo de la barra sigue siendo solo la categoría: no existe un dato de "semana N" del plan ni del generador. PLAN y CHANGELOG al día. |
+
+### Fase 9 — QA final
+
+Recorrido en 375×812 y 1280×800 (respaldo COMPLETO + rutina de superserie y un récord previo de prueba, locales):
+- GYM desde "Hoy toca": sesión (botón principal con chaflán), descanso al completar una serie con la línea de ayuda "Mientras descansas puedes ajustar la serie 2 o ver la técnica" (sin descanso no aparece), recarga a mitad → tarjeta → Retomar con la serie hecha, ✕ → Descartar sesión (sin borrador ni sesión guardada).
+- GYM desde la lista ("QA Superserie"): superserie agrupada en el riel, A1 → A2 sin descanso, récord en vivo en Curl (45 > 42,5) con el bloque Récords enmarcado en ámbar y "+1 ahora"; pasados 6 s vuelve "· Curl de Bíceps 45" y el marco sigue; resumen ("Guardar sesión" con chaflán) y guardar (1 sesión, sin borrador).
+- Calistenia desde la lista: "Corporal" en el botón, resumen y guardar; al terminar vuelve la barra de navegación.
+- Capturas de los 4 estados: `hud-f9-sesion-*`, `hud-f9-descanso-*`, `hud-f9-record-*`, `hud-f9-resumen-*`.
+- Auditoría de estilos computados en la vista (incluye el panel Progreso, la calculadora y la ficha de técnica): ningún `border-radius` ni sombra. Sin colores literales en la vista (salvo el buscador de ejercicios, que el plan deja fuera de alcance) y sin voseo.
+- ESLint `no-undef` limpio; consola limpia.
+
+### Notas
+
+- El buscador de ejercicios (`abrirBuscadorEjercicios`) conserva sus estilos (radios y colores propios): el plan lo deja fuera de alcance.
+- HIIT, Descanso activo, `session-summary-form.js` (lo sigue usando HIIT) y la edición de sesiones del historial no cambian; `registrarSesion` recibe la misma forma de siempre y no hay tipos de evento nuevos.
 
 ### Fase 8 — QA
 

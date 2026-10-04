@@ -4,9 +4,11 @@ Instrucciones para Claude Code. Rama `worktree-dashboard-mk3`. Las reglas de
 `CLAUDE.md` mandan sobre este archivo; si algo de acá las contradice, avisa
 antes de cambiar nada.
 
-No hay maqueta en el repo: guíate por las descripciones de cada fase, con los
-tokens de `css/variables.css` / `.mk3-entreno` (acento cian, ámbar para récords
-y superseries).
+Maqueta de referencia (4 estados: en serie, descansando, superserie y récord,
+resumen final): `docs/mockups/sesion-hud-v2.png` y `docs/mockups/sesion-hud-v2.html`.
+Guíate por las descripciones de cada fase, con los tokens de
+`css/variables.css` / `.mk3-entreno` (acento cian, ámbar para récords y
+superseries).
 
 ## Estado
 
@@ -22,8 +24,8 @@ y superseries).
 | 7 — Récord en vivo | Hecha (28e1cdc, v252) |
 | 8 — Resumen al finalizar | Hecha (0285ed0, v253) |
 | Arreglo: soltar el resumen con el popstate | Hecho (a29b1d8, v254) |
-| Ajuste: HUD compacto, sin Anterior/Siguiente en móvil, "Corporal" en GYM | Hecho (commit del ajuste, v255) |
-| 9 — QA y documentación | Pendiente |
+| Ajuste: HUD compacto, sin Anterior/Siguiente en móvil, "Corporal" en GYM | Hecho (296f034, v255) |
+| 9 — QA y documentación | Hecha (commit de la fase 9, v256) |
 
 Actualiza esta tabla (hash del commit) al cerrar cada fase.
 

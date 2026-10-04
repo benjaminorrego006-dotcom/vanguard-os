@@ -47,8 +47,8 @@ let prsAlAbrir = {};
 export const TIPO_LABELS = { normal: 'Normal', calentamiento: 'Calentamiento', fallo: 'Fallo', dropset: 'Dropset' };
 const TIPO_COLORS = {
   normal: { bg: 'var(--surface-1)', border: 'var(--surface-border)', color: 'var(--text-secondary)' },
-  calentamiento: { bg: 'rgba(245,158,11,0.15)', border: 'var(--accent-orange)', color: 'var(--accent-orange)' },
-  fallo: { bg: 'rgba(239,68,68,0.15)', border: 'var(--state-high)', color: 'var(--state-high)' },
+  calentamiento: { bg: 'color-mix(in srgb, var(--accent-orange) 15%, transparent)', border: 'var(--accent-orange)', color: 'var(--accent-orange)' },
+  fallo: { bg: 'color-mix(in srgb, var(--state-high) 15%, transparent)', border: 'var(--state-high)', color: 'var(--state-high)' },
   dropset: { bg: 'color-mix(in srgb, var(--accent-purple) 15%, transparent)', border: 'var(--accent-purple)', color: 'var(--accent-purple)' },
 };
 
@@ -186,7 +186,7 @@ function renderSerieRowHtml(s, sIdx, anterior = null) {
         <option value="">-</option>
         ${[5, 6, 7, 8, 9, 10].map(v => `<option value="${v}" ${s.rpe == v ? 'selected' : ''}>${v}</option>`).join('')}
       </select>
-      <button type="button" class="btn-check-serie" data-checked="${marcada ? 'true' : 'false'}" aria-label="Marcar la serie ${n} como hecha" style="background: ${marcada ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${marcada ? 'var(--state-success)' : 'var(--text-secondary)'}; color: ${marcada ? '#000' : 'var(--text-secondary)'};">✓</button>
+      <button type="button" class="btn-check-serie" data-checked="${marcada ? 'true' : 'false'}" aria-label="Marcar la serie ${n} como hecha" style="background: ${marcada ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${marcada ? 'var(--state-success)' : 'var(--text-secondary)'}; color: ${marcada ? 'var(--bg)' : 'var(--text-secondary)'};">✓</button>
     </div>
   `;
 }
@@ -308,7 +308,7 @@ export async function renderRutinaSession(rutina) {
           <div><dt>Tiempo</dt><dd><span id="session-timer" class="num">00:00</span></dd></div>
           <div><dt>Series</dt><dd><span id="hud-series" class="num">0/0</span></dd></div>
           <div><dt>Volumen</dt><dd><span id="hud-volumen" class="num">0</span><span id="hud-volumen-meta" class="sesion-hud-meta" hidden> de <span id="hud-volumen-previo" class="num"></span></span> kg <span id="hud-volumen-var" class="sesion-hud-var num" hidden></span></dd></div>
-          <div><dt>Récords</dt><dd><span id="hud-records" class="num">0</span><span id="hud-record-ultimo" class="sesion-hud-ultimo"></span></dd></div>
+          <div id="hud-records-bloque" class="sesion-hud-rec"><dt>Récords</dt><dd><span id="hud-records" class="num">0</span><span id="hud-record-ultimo" class="sesion-hud-ultimo"></span></dd></div>
         </dl>
       </div>
       <div class="sesion-hud-linea">
@@ -336,6 +336,7 @@ export async function renderRutinaSession(rutina) {
       <span id="hud-descanso-aviso" class="sesion-sr" aria-live="polite"></span>
       <div id="hud-segmentos" class="sesion-hud-segmentos" role="img" aria-label="Series de la sesión"></div>
     </section>
+    <p id="hud-descanso-ayuda" class="sesion-descanso-ayuda" hidden></p>
     ${renderRielEjercicios(rutina)}
     </div>
     <div class="sesion-cuerpo">
@@ -534,7 +535,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         btn.textContent = record ? '★' : '✓';
         btn.style.background = record ? 'var(--am)' : marcada ? 'var(--state-success)' : 'var(--surface-2)';
         btn.style.borderColor = record ? 'var(--am)' : marcada ? 'var(--state-success)' : 'var(--text-secondary)';
-        btn.style.color = record ? 'var(--bg)' : marcada ? '#000' : 'var(--text-secondary)';
+        btn.style.color = record ? 'var(--bg)' : marcada ? 'var(--bg)' : 'var(--text-secondary)';
         btn.setAttribute('aria-label', record ? `Serie ${i + 1}: nuevo récord. Desmarcar` : marcada ? `Desmarcar la serie ${i + 1}` : `Marcar la serie ${i + 1} como hecha`);
         let nota = row.nextElementSibling && row.nextElementSibling.classList.contains('serie-pr-nota') ? row.nextElementSibling : null;
         if (!record) { if (nota) nota.remove(); return; }
@@ -552,6 +553,9 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     });
   };
   let recordsPrevios = null; // para resaltar el bloque Récords solo cuando sube
+  // "+1 ahora" en el bloque Récords justo después de un récord nuevo (unos
+  // segundos; después vuelve el último récord).
+  let recordAhora = { n: 0, hasta: 0 };
 
   // Riel: progreso de cada pestaña ("2/3") y ✓ en las terminadas.
   const actualizarRiel = () => {
@@ -622,7 +626,10 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     document.getElementById('hud-records').textContent = String(records.size);
     // Un récord nuevo: el bloque Récords del HUD se resalta un momento y se
     // anuncia (lector de pantalla).
+    document.getElementById('hud-records-bloque')?.classList.toggle('sesion-hud-rec--activo', records.size > 0);
     if (recordsPrevios !== null && records.size > recordsPrevios) {
+      recordAhora = { n: records.size - recordsPrevios, hasta: Date.now() + 5000 };
+      setTimeout(() => { if (Date.now() >= recordAhora.hasta) actualizarHud(); }, 5000);
       // También la línea del modo descanso (ahí no se ve el bloque Récords).
       [document.getElementById('hud-records').closest('div'), document.getElementById('hud-descanso-resumen')].forEach(el => {
         if (!el) return;
@@ -635,9 +642,14 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       const aviso = document.getElementById('hud-descanso-aviso');
       if (aviso && ultimoNuevo) aviso.textContent = `Nuevo récord: ${ultimoNuevo[1].valor}${/reps/.test(ultimoNuevo[1].valor) ? '' : ' kg'} en ${ultimoNuevo[0]}`;
     }
+    // Al desmarcar un récord, el "+1 ahora" se va con él.
+    if (recordsPrevios !== null && records.size < recordsPrevios) recordAhora = { n: 0, hasta: 0 };
     recordsPrevios = records.size;
     const ultimo = [...records.entries()].sort((a, b) => b[1].ts - a[1].ts)[0];
-    document.getElementById('hud-record-ultimo').textContent = ultimo ? ` · ${ultimo[0].replace(/\s*\(.*\)\s*/g, ' ').trim()} ${ultimo[1].valor}` : '';
+    const ahora = records.size > 0 && Date.now() < recordAhora.hasta;
+    const ultimoEl = document.getElementById('hud-record-ultimo');
+    ultimoEl.classList.toggle('sesion-hud-ultimo--ahora', ahora);
+    ultimoEl.textContent = ahora ? ` +${recordAhora.n} ahora` : ultimo ? ` · ${ultimo[0].replace(/\s*\(.*\)\s*/g, ' ').trim()} ${ultimo[1].valor}` : '';
 
     // La que toca: la primera sin marcar del ejercicio activo; si ese ya
     // terminó, la primera sin marcar de la sesión.
@@ -1142,12 +1154,28 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     return `Siguiente: ${nombreCorto(b.dataset.ejNombre)} · serie ${n} · ${carga}`;
   };
 
+  // Bajo el HUD en descanso: qué se puede hacer mientras corre la cuenta.
+  const pintarAyudaDescanso = () => {
+    const ayuda = document.getElementById('hud-descanso-ayuda');
+    if (!ayuda) return;
+    const b = bloqueActivo();
+    const row = b ? filaTocaDe(b) : null;
+    const tecnica = !!(b && b.querySelector('.btn-info-ejercicio'));
+    const n = row ? Array.from(b.querySelectorAll('.serie-row')).indexOf(row) + 1 : 0;
+    const texto = n && tecnica ? `Mientras descansas puedes ajustar la serie ${n} o ver la técnica`
+      : n ? `Mientras descansas puedes ajustar la serie ${n}`
+        : tecnica ? 'Mientras descansas puedes ver la técnica' : '';
+    ayuda.textContent = texto;
+    ayuda.hidden = !descanso || !texto;
+  };
+
   const pintarDescanso = () => {
     const hud = document.getElementById('sesion-hud');
     const panel = document.getElementById('hud-descanso');
     if (!hud || !panel) return;
     hud.classList.toggle('sesion-hud--descanso', !!descanso);
     panel.hidden = !descanso;
+    pintarAyudaDescanso();
     if (!descanso) return;
     const rest = restantes();
     document.getElementById('hud-descanso-cuenta').textContent = mmss(rest);
@@ -1393,7 +1421,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
 
         const popover = document.createElement('div');
         popover.className = 'tipo-serie-popover';
-        popover.style.cssText = 'position:absolute; top:calc(100% + 4px); left:0; z-index:50; background:var(--surface-2); border:1px solid var(--surface-border); box-shadow:0 8px 24px rgba(0,0,0,0.5); padding:4px; display:flex; flex-direction:column; gap:2px; min-width:140px;';
+        popover.style.cssText = 'position:absolute; top:calc(100% + 4px); left:0; z-index:50; background:var(--surface-2); border:1px solid var(--surface-border); padding:4px; display:flex; flex-direction:column; gap:2px; min-width:140px;';
         popover.innerHTML = Object.keys(TIPO_LABELS).map(t =>
           `<button type="button" class="tappable" data-tipo="${t}" style="text-align:left; padding:8px 10px; background:transparent; border:none; color:${TIPO_COLORS[t].color}; font-size:13px; font-weight:600; cursor:pointer;">${TIPO_LABELS[t]}</button>`
         ).join('');
@@ -1436,7 +1464,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         btn.setAttribute('data-checked', 'true');
         row.dataset.marcadaTs = String(Date.now());
         btn.style.background = 'var(--state-success)';
-        btn.style.color = '#000';
+        btn.style.color = 'var(--bg)';
         btn.style.borderColor = 'var(--state-success)';
 
         const ejContainer = row.closest('.card');
