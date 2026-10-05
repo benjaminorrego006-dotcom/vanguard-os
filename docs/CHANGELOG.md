@@ -1,5 +1,20 @@
 # Vanguard OS — Changelog
 
+## 5 oct 2026 — Tareas: dificultad y foco (`docs/PLAN-DIFICULTAD-FOCO.md`)
+
+Plan por fases; el plan y su tabla de estado están en
+`docs/PLAN-DIFICULTAD-FOCO.md`. QA con Playwright de a una, a 375×812 y
+1280×800, zona `America/Santiago`, reloj simulado, contextos limpios sin
+Supabase.
+
+| Fase | Caché | Qué cambia |
+|---|---|---|
+| F1 — Dificultad: datos y formulario | v282 | Formulario de tarea (`task-form.js`): chips "Fácil · Media · Difícil" bajo la prioridad, con la estética de los chips de estado (`role="radiogroup"`, 44 px). Sin elegir, la tarea no lleva el campo (se leerá como `media` al calcular): una tarea nueva o vieja sin `dificultad` abre con "Media" sugerida (borde punteado) y guardarla sin tocar no escribe nada. Al elegir, `saveTask` guarda `dificultad: 'facil' | 'media' | 'dificil'` y viaja en el payload completo de `tarea_creada` / `tarea_actualizada`. No hizo falta tocar `db.js` (`saveTask` mezcla lo que recibe; no hay un `updateTask` aparte) ni `sync.js` (el replay de `tarea_creada` pone el payload y el de `tarea_actualizada` hace `mergeRow`). La captura rápida no pide dificultad. |
+
+### F1 — QA
+
+- 375×812 y 1280×800: tarea nueva con "Media" sugerida y nada elegido; elegir "Difícil" y guardar deja `dificultad: 'dificil'` en la tarea y en el payload de `tarea_creada`; al abrirla aparece "Difícil"; editarla a "Fácil" lo guarda (payload de `tarea_actualizada`) y releída aparece "Fácil". Una tarea vieja sin el campo ("Terminar curso online de Python (módulo 3)") abre con "Media" sugerida y guardarla sin tocar no escribe `dificultad` (ni en la tarea ni en el evento). La captura rápida crea la tarea sin el campo. Segundo contexto: aplicar esos eventos con `applyRemoteEvent` deja "facil" en la tarea y la rápida sin campo. Regresión: Lista y el "+" del encabezado. Consola limpia; ESLint `no-undef` limpio. Captura `dif-form-*`.
+
 ## 5 oct 2026 — Pesos que se llenan solos en la sesión
 
 | Paso | Caché | Qué cambia |

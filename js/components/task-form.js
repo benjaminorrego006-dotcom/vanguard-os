@@ -9,6 +9,16 @@ const STATE_CHIPS = [
   { value: 'done', label: 'Hecho' }
 ];
 
+// Dificultad (docs/PLAN-DIFICULTAD-FOCO.md, F1): solo en tareas de Lista.
+// Sin elegir = sin campo (al calcular se lee como 'media'); por eso una
+// tarea sin el campo abre con "Media" sugerida (borde punteado) y no guarda
+// nada si no se toca.
+const DIFICULTAD_CHIPS = [
+  { value: 'facil', label: 'Fácil' },
+  { value: 'media', label: 'Media' },
+  { value: 'dificil', label: 'Difícil' }
+];
+
 const EVENT_LABELS = {
   tarea_creada: 'Tarea creada',
   tarea_actualizada: 'Tarea actualizada',
@@ -47,6 +57,20 @@ function syncPriorityBarStyles(priority) {
     const filled = (idx + 1) <= level;
     btn.style.background = filled ? 'var(--vi)' : 'var(--surface-2)';
     btn.style.borderColor = filled ? 'var(--vi)' : 'var(--surface-border)';
+  });
+}
+
+function syncDificultadChips(dificultad) {
+  document.querySelectorAll('.btn-dificultad-chip').forEach(btn => {
+    const v = btn.getAttribute('data-dificultad');
+    const elegida = v === dificultad;
+    const sugerida = !dificultad && v === 'media';
+    btn.setAttribute('aria-checked', String(elegida));
+    btn.classList.toggle('btn-dificultad-chip--sugerida', sugerida);
+    btn.style.background = elegida ? 'var(--vip)' : 'var(--surface-1)';
+    btn.style.borderColor = elegida || sugerida ? 'var(--vi)' : 'var(--surface-border)';
+    btn.style.borderStyle = sugerida ? 'dashed' : 'solid';
+    btn.style.color = elegida ? 'var(--text-primary)' : 'var(--text-secondary)';
   });
 }
 
@@ -126,6 +150,17 @@ export function renderTaskForm() {
           </div>
         </div>
 
+        <!-- Dificultad: 3 chips (misma estética que los de estado). -->
+        <div style="margin-bottom:20px;">
+          <div id="task-dificultad-etq" style="display:block; color:var(--text-secondary); font-size:13px; font-weight:600; margin-bottom:8px; text-transform:uppercase;">Dificultad</div>
+          <div role="radiogroup" aria-labelledby="task-dificultad-etq" style="display:flex; gap:6px;">
+            ${DIFICULTAD_CHIPS.map(d => `
+              <button type="button" role="radio" aria-checked="false" class="btn-dificultad-chip tappable" data-dificultad="${d.value}" style="flex:1; min-height:44px; padding:10px 6px; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-secondary); cursor:pointer; text-transform:uppercase; font-weight:700;">${d.label}</button>
+            `).join('')}
+          </div>
+          <input type="hidden" id="task-dificultad" value="">
+        </div>
+
         <div class="input-group">
           <label for="task-desc">Notas</label>
           <textarea id="task-desc" placeholder="Detalles, contexto, links..." rows="3" style="color: var(--text-secondary);"></textarea>
@@ -197,6 +232,14 @@ export function setupTaskForm(onSaveCallback) {
 
   dueInput.addEventListener('change', () => { dueInput.style.color = dueDateColor(dueInput.value); });
 
+  const dificultadHidden = document.getElementById('task-dificultad');
+  document.querySelectorAll('.btn-dificultad-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      dificultadHidden.value = btn.getAttribute('data-dificultad');
+      syncDificultadChips(dificultadHidden.value);
+    });
+  });
+
   document.querySelectorAll('.btn-priority-bar').forEach(btn => {
     btn.addEventListener('click', () => {
       const priority = btn.getAttribute('data-priority');
@@ -244,7 +287,9 @@ export function setupTaskForm(onSaveCallback) {
       dueDate: dueInput.value,
       project: document.getElementById('task-project').value.trim(),
       status: statusPending.value,
-      subtasks
+      subtasks,
+      // Solo si se eligió: sin tocar, la tarea queda sin el campo.
+      ...(dificultadHidden.value ? { dificultad: dificultadHidden.value } : {})
     };
 
     await db.saveTask(taskData);
@@ -296,6 +341,7 @@ export function openTaskForm(task = null) {
     dueInput.style.color = dueDateColor(task.dueDate);
     document.getElementById('task-project').value = task.project || '';
     statusPending.value = task.status || 'todo';
+    document.getElementById('task-dificultad').value = ['facil', 'media', 'dificil'].includes(task.dificultad) ? task.dificultad : '';
 
     if (task.subtasks) {
       task.subtasks.forEach(sub => {
@@ -326,12 +372,14 @@ export function openTaskForm(task = null) {
     dueInput.style.color = 'var(--text-primary)';
     document.getElementById('task-project').value = '';
     statusPending.value = 'todo';
+    document.getElementById('task-dificultad').value = '';
     bitacoraSection.style.display = 'none';
     btnDelete.style.display = 'none';
   }
 
   syncPriorityBarStyles(priorityHidden.value);
   syncStateChipStyles(statusPending.value);
+  syncDificultadChips(document.getElementById('task-dificultad').value);
 
   modal.style.display = 'flex';
   setTimeout(() => modal.classList.add('open'), 10);
