@@ -872,7 +872,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     ed.querySelector('.sesion-editor-n').textContent = String(rows.indexOf(row) + 1);
     ed.querySelector('.sesion-editor-tipo').textContent = tipo !== 'normal' ? ` · ${TIPO_LABELS[tipo]}` : '';
     const p = parseFloat(peso) || 0, r = parseInt(reps) || 0;
-    const rm = p > 0 && r > 0 ? db.estimar1RM(p, r) : 0;
+    // En una serie de calentamiento no se muestra el 1RM estimado.
+    const rm = tipo !== 'calentamiento' && p > 0 && r > 0 ? db.estimar1RM(p, r) : 0;
     ed.querySelector('.sesion-editor-1rm').innerHTML = rm > 0 ? ` · 1RM ~<span class="num">${formatNumero(rm)}</span> kg` : '';
     const valorPeso = ed.querySelector('.sesion-editor-valor[data-campo="peso"]');
     valorPeso.textContent = textoPeso(peso, b);
