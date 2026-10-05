@@ -22,7 +22,7 @@ import { renderProgreso, initProgresoListeners, setContextoCategoria, cleanup as
 import { renderMiniChart } from '../components/mini-chart.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
 import { renderSesionesHistorial, initSesionesHistorialListeners } from '../components/sesiones-historial.js';
-import { renderCuerpoTarjeta, renderCuerpoHistorial, renderMedidaForm, setupMedidaForm, initCuerpo } from '../components/cuerpo.js';
+import { renderCuerpoTarjeta, renderCuerpoHistorial, renderMedidaForm, setupMedidaForm, initCuerpo, initCuerpoGraficos, cleanupCuerpoGraficos } from '../components/cuerpo.js';
 
 // Placeholder hasta que exista el sistema de nivel del backlog (onboarding
 // de nivel dedicado, filtrado de rutinas por nivel, detección automática de
@@ -148,6 +148,7 @@ export let mountListeners;
 export function cleanup() {
   cleanupProgreso();
   cleanupEjercicioCharts();
+  cleanupCuerpoGraficos();
   cleanupSessionTimer();
   cleanupHiitTimer();
 
@@ -678,8 +679,10 @@ mountListeners = () => {
     mostrarSubVista();
     const refreshCuerpo = async () => {
       if (viewState !== 'cuerpo') return;
-      subContent.innerHTML = renderCuerpoHistorial(await db.getMedidas());
+      const medidas = await db.getMedidas();
+      subContent.innerHTML = renderCuerpoHistorial(medidas);
       initCuerpo({ repintar: refreshCuerpo, signal });
+      await initCuerpoGraficos(medidas);
     };
     try {
       await refreshCuerpo();

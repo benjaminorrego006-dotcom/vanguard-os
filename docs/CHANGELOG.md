@@ -11,6 +11,7 @@ reloj simulado, contextos limpios sin Supabase.
 |---|---|---|
 | F1 — Datos de medidas | v289 | `idb.js` pasa a `DB_VERSION` 5 con los stores `medidas` y `fotos_progreso` (keyPath `id`); la migración solo los crea. `medidas` entra en `STORES_RESPALDO` y `MIRROR_STORES`; `fotos_progreso` en ninguno. `db`: `getMedidas` (más reciente arriba: fecha y, el mismo día, `createdAt`), `ultimaMedida(campo)`, `registrarMedida`, `editarMedida` (null o '' quita un campo) y `eliminarMedida`, con eventos `medida_registrada` / `medida_editada` / `medida_eliminada` (modulo `perfil`, payload = la medida completa; al eliminar, solo la fecha). Replay en `applyRemoteEvent` y destino en el espejo. Validación (`normalizarMedida`): fecha válida y no futura, al menos un valor, peso 30–300 kg y perímetros 20–200 cm; acepta "78,4", redondea a un decimal y recorta la nota a 200 caracteres. Mensajes en español para la hoja de F2. Peso al perfil: al registrar o editar, si es la medida con peso más reciente, `saveProfile` con ese `pesoKg`; sin perfil guardado no se crea uno, y eliminar no toca el perfil. Restaurar un respaldo anterior a la Fase 6 (sin `medidas`) deja el store vacío, igual que su log. |
 | F2 — Registro y lista | v290 | Nuevo `js/components/cuerpo.js` (en `PRECACHE_URLS`). Entreno, vista principal: tarjeta "CUERPO" en cian bajo Volumen/Sesiones/IMC. Muestra el último peso y su variación contra el peso vigente hace 30 días ("78,4 kg · −1,2 en 30 días"; sin un registro de hace 30 días o más, va sin variación), "Último registro", "Registrar medidas" e "Historial". Sin medidas, invita a registrar. Hoja `#medida-modal` (`.modal-overlay` + `open`, sin tapar la barra ni el riel): fecha (hoy por defecto, sin días futuros), peso y 4 perímetros con `inputmode="decimal"` (aceptan "78,4"), nota opcional, y bajo cada campo "Anterior: 79,6 kg · 20 ago" (al editar, el anterior a esa medida). Los errores de validación de `db` se muestran en la hoja, sin cerrarla. Historial como sub-vista de Entreno (Atrás vuelve a la principal): medidas por fecha, la más reciente arriba, con Editar (vaciar un campo lo quita) y Eliminar ("¿Eliminar esta medida?", con el id y la fecha tomados antes del `await`). Guardar y eliminar repintan la vista abierta; el perfil toma el peso según F1, así el IMC se actualiza. |
+| F3 — Gráficos | v291 | Historial de Cuerpo: tarjeta "Peso" con un gráfico de línea (Chart.js por `ensureChartJs`, que se carga recién al pintarlo). Por defecto muestra 90 días, con selector 30 / 90 / 365 d (`aria-pressed`), y suma la media móvil de 7 días de calendario como segunda línea tenue (cian al 40 %), con leyenda. Un punto por día: el último registrado ese día (`serieDiaria`). Con menos de 2 días en el rango, en vez del gráfico va un aviso: "Registra tu peso al menos dos días para ver el gráfico.", "Sin registros de peso en los últimos N días." o, sin pesos, "Registra tu peso para ver su evolución.". Mini-gráficos para cada perímetro con al menos 2 días registrados (todo el historial): último valor, variación desde el primero y la línea. Los gráficos se destruyen al repintar y al salir de Entreno. Laboratorio de Entreno › Desglose: fila "Peso" (`variacionPesoMes`) con el último peso del mes contra el vigente al empezar el mes ("78,2 kg · −1,7 kg en septiembre"), aparte del selector de período; sin pesos en el mes lo dice. Las funciones de series (`serieDiaria`, `mediaMovil7`, `variacionPesoMes`) quedan en `cuerpo.js`. |
 
 ### F1 — QA
 
@@ -38,6 +39,16 @@ reloj simulado, contextos limpios sin Supabase.
   - Eliminar pregunta "Se borra la medida del 20 ago. No se puede deshacer."; cancelar no borra y confirmar la quita. El log queda con 2 registradas, 1 editada y 1 eliminada.
   - Atrás vuelve a la principal con "78,1 kg" y sin variación.
 - Regresión de Entreno: HUD (`qa-f6`), editar sesiones y navegación a 1280. Sin scroll horizontal. Consola limpia; ESLint `no-undef` limpio. Capturas `med2-*`.
+
+### F3 — QA
+
+- 375×812 y 1280×800 (`qa-med3`):
+  - Con 1 registro hecho por la hoja: "Registra tu peso al menos dos días para ver el gráfico.", sin canvas ni mini-gráficos.
+  - Con 120 días sembrados: peso casi diario con huecos, dos registros el mismo día, cintura semanal y brazo una sola vez.
+  - En 90, 30 y 365 días, los puntos del gráfico (fecha y valor) cuadran con la tabla del historial (72, 24 y 96 puntos, uno por día), y la media de 7 días cuadra con un cálculo aparte. El día con dos registros grafica el último (70 kg).
+  - Solo la cintura tiene mini-gráfico.
+  - Laboratorio de Entreno: "78,2 kg · −1,7 kg en septiembre", igual al cálculo desde la tabla.
+- Regresión: `qa-med2`, `qa-med1`, chaflanes del Laboratorio (375 y 1280, con la fila nueva). Sin scroll horizontal. Consola limpia; ESLint `no-undef` limpio. Capturas `med3-*`.
 
 ## 5 oct 2026 — Tareas: dificultad y foco (`docs/PLAN-DIFICULTAD-FOCO.md`)
 

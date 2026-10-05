@@ -5,11 +5,15 @@
 //   arriba, con Editar y Eliminar.
 // - Hoja de registro / edición (#medida-modal, .modal-overlay + open: Atrás
 //   la cierra vía history.js), sin tapar la barra inferior ni el riel.
+// - Gráficos (F3), en el historial: peso con media móvil de 7 días y
+//   selector 30/90/365 días, y un mini-gráfico por perímetro con al menos 2
+//   días registrados. Chart.js se carga recién al pintarlos (ensureChartJs).
 // Los datos van por db (registrarMedida / editarMedida / eliminarMedida),
 // que valida y deja el evento en el log.
 import { db } from '../core/db.js';
 import { esperarSalidaDeModal } from '../core/history.js';
-import { diaKeyDe, sumarDias, fechaLocalDe, formatFechaCorta, conMayuscula } from '../utils/fecha.js';
+import { diaKeyDe, sumarDias, fechaLocalDe, formatFechaCorta, conMayuscula, diasEntre, formatMes } from '../utils/fecha.js';
+import { ensureChartJs, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio } from '../utils/charts.js';
 import { formatNumero } from '../utils/numero.js';
 import { escapeHtml } from '../utils/escape.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
@@ -42,6 +46,45 @@ export function variacionPeso30(medidas, hoy = diaKeyDe(new Date())) {
 const textoVariacion = (delta) => (delta === 0 ? 'sin cambios en 30 días'
   : `<span class="num">${delta > 0 ? '+' : '−'}${formatNumero(Math.abs(delta))}</span> en 30 días`);
 
+// --- Series para los gráficos (funciones puras) -----------------------------------
+// Un punto por día con `campo`: el último registrado ese día (medidas viene
+// de db.getMedidas, la más reciente primero). Desde `desde` (clave de día,
+// incluida) si se da. [{ fecha, valor }] de la más antigua a la más nueva.
+export function serieDiaria(medidas, campo, desde = null) {
+  const porDia = new Map();
+  medidas.forEach(m => {
+    if (typeof m[campo] !== 'number' || porDia.has(m.fecha)) return;
+    if (desde && m.fecha < desde) return;
+    porDia.set(m.fecha, m[campo]);
+  });
+  return [...porDia.entries()].map(([fecha, valor]) => ({ fecha, valor })).sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
+// Media móvil de 7 días de calendario: para cada punto, el promedio de los
+// puntos de ese día y los 6 anteriores (con huecos, los que haya).
+export function mediaMovil7(serie) {
+  return serie.map(p => {
+    const ventana = serie.filter(q => q.fecha <= p.fecha && diasEntre(q.fecha, p.fecha) <= 6);
+    return Math.round((ventana.reduce((s, q) => s + q.valor, 0) / ventana.length) * 100) / 100;
+  });
+}
+
+// Variación de peso del mes de `hoy`: el último peso del mes contra el
+// vigente al empezar el mes (el último anterior); sin uno anterior, contra
+// el primero del mes. null si no hay pesos este mes.
+export function variacionPesoMes(medidas, hoy = diaKeyDe(new Date())) {
+  const inicio = hoy.slice(0, 8) + '01';
+  const serie = serieDiaria(medidas, 'pesoKg');
+  const delMes = serie.filter(p => p.fecha >= inicio && p.fecha <= hoy);
+  if (!delMes.length) return null;
+  const antes = serie.filter(p => p.fecha < inicio).pop();
+  const base = antes || delMes[0];
+  const ultimo = delMes[delMes.length - 1];
+  return { ultimo: ultimo.valor, delta: Math.round((ultimo.valor - base.valor) * 10) / 10, desde: base.fecha, mes: formatMes(fechaLocalDe(hoy)) };
+}
+export const textoDelta = (delta) => (delta === 0 ? 'sin cambios'
+  : `<span class="num">${delta > 0 ? '+' : '−'}${formatNumero(Math.abs(delta))}</span>`);
+
 // --- Tarjeta de la vista principal ---------------------------------------------
 export function renderCuerpoTarjeta(medidas) {
   const v = variacionPeso30(medidas);
@@ -61,6 +104,98 @@ export function renderCuerpoTarjeta(medidas) {
         ${medidas.length ? '<button type="button" id="btn-cuerpo-historial" class="cuerpo-btn tappable">Historial</button>' : ''}
       </div>
     </section>`;
+}
+
+// --- Gráficos del historial -----------------------------------------------------------
+const RANGOS = [30, 90, 365];
+let rangoPeso = 90;
+const graficos = new Map(); // id del canvas -> instancia de Chart
+
+export function cleanupCuerpoGraficos() {
+  graficos.forEach(g => g.destroy());
+  graficos.clear();
+}
+
+function renderGraficos(medidas) {
+  const hoy = diaKeyDe(new Date());
+  const serie = serieDiaria(medidas, 'pesoKg', sumarDias(hoy, -(rangoPeso - 1)));
+  const hayPeso = medidas.some(m => typeof m.pesoKg === 'number');
+  const vacio = serie.length >= 2 ? ''
+    : !hayPeso ? 'Registra tu peso para ver su evolución.'
+    : serie.length === 0 ? `Sin registros de peso en los últimos ${rangoPeso} días.`
+    : 'Registra tu peso al menos dos días para ver el gráfico.';
+  const minis = CAMPOS.slice(1).map(c => ({ ...c, serie: serieDiaria(medidas, c.k) })).filter(c => c.serie.length >= 2);
+  return `
+    <section class="card cuerpo-graf" aria-labelledby="cuerpo-graf-titulo">
+      <div class="cuerpo-graf-cab">
+        <h3 id="cuerpo-graf-titulo">Peso</h3>
+        <div class="cuerpo-rangos" role="group" aria-label="Rango del gráfico">
+          ${RANGOS.map(r => `<button type="button" class="cuerpo-rango tappable" data-rango="${r}" aria-pressed="${r === rangoPeso}"><span class="num">${r}</span> d</button>`).join('')}
+        </div>
+      </div>
+      ${vacio
+        ? `<p class="cuerpo-graf-vacio" id="cuerpo-peso-vacio">${vacio}</p>`
+        : `<div class="cuerpo-graf-caja"><canvas id="cuerpo-peso-chart" role="img" aria-label="Peso de los últimos ${rangoPeso} días: de ${formatNumero(serie[0].valor)} a ${formatNumero(serie[serie.length - 1].valor)} kg"></canvas></div>
+           <div class="cuerpo-graf-leyenda" aria-hidden="true"><span class="cuerpo-ley cuerpo-ley--peso">Peso</span><span class="cuerpo-ley cuerpo-ley--media">Media de 7 días</span></div>`}
+    </section>
+    ${minis.length ? `<div class="cuerpo-minis">${minis.map(c => {
+      const a = c.serie[0], b = c.serie[c.serie.length - 1];
+      const delta = Math.round((b.valor - a.valor) * 10) / 10;
+      return `
+        <section class="card cuerpo-mini" data-campo="${c.k}" aria-label="${c.etq}">
+          <div class="cuerpo-mini-etq">${c.etq}</div>
+          <div class="cuerpo-mini-valor">${conUnidad(b.valor, c.u)}</div>
+          <div class="cuerpo-mini-var">${textoDelta(delta)}${delta === 0 ? '' : ` ${c.u}`} desde ${escapeHtml(fechaCorta(a.fecha))}</div>
+          <div class="cuerpo-mini-caja"><canvas id="cuerpo-mini-${c.k}" aria-hidden="true"></canvas></div>
+        </section>`;
+    }).join('')}</div>` : ''}`;
+}
+
+// Tras insertar renderCuerpoHistorial en el DOM.
+export async function initCuerpoGraficos(medidas) {
+  cleanupCuerpoGraficos();
+  const canvas = document.getElementById('cuerpo-peso-chart');
+  const minis = [...document.querySelectorAll('.cuerpo-mini canvas')];
+  if (!canvas && !minis.length) return;
+  const Chart = await ensureChartJs();
+  const cy = cssVar('--cy');
+  const texto = cssVar('--text-secondary');
+  const family = chartFontFamily();
+  const opts = baseChartOptions();
+  if (canvas && canvas.isConnected) {
+    const hoy = diaKeyDe(new Date());
+    const serie = serieDiaria(medidas, 'pesoKg', sumarDias(hoy, -(rangoPeso - 1)));
+    graficos.set(canvas.id, new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: serie.map(p => fechaCorta(p.fecha)),
+        datasets: [
+          { label: 'Peso', data: serie.map(p => p.valor), fechas: serie.map(p => p.fecha), borderColor: cy, backgroundColor: cy, borderWidth: 2, pointRadius: serie.length > 60 ? 0 : 3, pointHoverRadius: 5, tension: 0 },
+          { label: 'Media de 7 días', data: mediaMovil7(serie), borderColor: cy + '66', borderWidth: 2, pointRadius: 0, pointHoverRadius: 0, tension: 0.3 }
+        ]
+      },
+      options: {
+        ...opts,
+        devicePixelRatio: hdPixelRatio(),
+        interaction: { mode: 'index', intersect: false },
+        plugins: { ...opts.plugins, tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.dataset.label}: ${formatNumero(ctx.parsed.y)} kg` } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: texto, maxTicksLimit: 6, maxRotation: 0, font: { size: 10, family } } },
+          y: { grid: { color: cssVar('--line') }, ticks: { color: texto, maxTicksLimit: 5, font: { size: 10, family }, callback: (v) => formatNumero(v) } }
+        }
+      }
+    }));
+  }
+  minis.forEach(cv => {
+    if (!cv.isConnected) return;
+    const campo = cv.id.replace('cuerpo-mini-', '');
+    const serie = serieDiaria(medidas, campo);
+    graficos.set(cv.id, new Chart(cv, {
+      type: 'line',
+      data: { labels: serie.map(p => fechaCorta(p.fecha)), datasets: [{ data: serie.map(p => p.valor), borderColor: cy, borderWidth: 2, pointRadius: 2, tension: 0 }] },
+      options: { ...opts, devicePixelRatio: hdPixelRatio(), plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, events: [] }
+    }));
+  });
 }
 
 // --- Historial (sub-vista) ---------------------------------------------------------
@@ -86,6 +221,7 @@ export function renderCuerpoHistorial(medidas) {
         <h2>Cuerpo</h2>
         <button type="button" id="btn-cuerpo-hist-registrar" class="cuerpo-btn cuerpo-btn--primario tappable">Registrar medidas</button>
       </div>
+      ${medidas.length ? renderGraficos(medidas) : ''}
       ${medidas.length
         ? `<ul class="cuerpo-lista">${filas}</ul>`
         : '<p class="cuerpo-sub">Todavía no hay medidas registradas.</p>'}
@@ -203,6 +339,10 @@ export function initCuerpo({ repintar, abrirHistorial, signal } = {}) {
   // La tarjeta sigue en el DOM (oculta) con el historial abierto: ids distintos.
   document.getElementById(abrirHistorial ? 'btn-cuerpo-registrar' : 'btn-cuerpo-hist-registrar')?.addEventListener('click', () => abrirMedidaForm(), opts);
   document.getElementById('btn-cuerpo-historial')?.addEventListener('click', () => abrirHistorial && abrirHistorial(), opts);
+  document.querySelectorAll('.cuerpo-rango').forEach(b => b.addEventListener('click', async () => {
+    rangoPeso = Number(b.dataset.rango) || 90;
+    if (alCambiar) await alCambiar();
+  }, opts));
   document.querySelectorAll('.btn-medida-editar').forEach(b => b.addEventListener('click', async () => {
     const id = b.dataset.id;
     const medida = (await db.getMedidas()).find(m => m.id === id);

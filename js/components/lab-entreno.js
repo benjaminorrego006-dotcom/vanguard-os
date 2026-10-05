@@ -8,7 +8,8 @@ import { renderGoalCard, formatGoalValue } from './goal-card.js';
 import { openGoalForm, openGoalContribute } from './goal-form.js';
 import { EmptyState, ConfirmDialog } from '../utils/states.js';
 import { GRUPO_MUSCULAR_ORDEN, GRUPO_MUSCULAR_LABELS, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
-import { formatFechaCorta, formatFechaLarga, fechaLocalDe } from '../utils/fecha.js';
+import { formatFechaCorta, formatFechaLarga, fechaLocalDe, formatMes } from '../utils/fecha.js';
+import { variacionPesoMes, textoDelta } from './cuerpo.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatNumero } from '../utils/numero.js';
 
@@ -87,9 +88,23 @@ export async function tieneDatos() {
   return sesiones.length > 0;
 }
 
+// Fila "Peso" (Fase 6, F3): la variación de peso del mes en curso, fuera
+// del selector de período (siempre es el mes).
+function filaPesoHtml(medidas) {
+  const v = variacionPesoMes(medidas);
+  const cuerpo = v
+    ? `<span class="num">${formatNumero(v.ultimo)}</span> kg · ${textoDelta(v.delta)}${v.delta === 0 ? '' : ' kg'} en ${escapeHtml(v.mes)}`
+    : `Sin registros de peso en ${escapeHtml(formatMes(new Date()))}.`;
+  return `
+      <div class="card lab-peso" style="padding: 14px 16px; margin-top: 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <span style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;">Peso</span>
+        <span class="lab-peso-valor" style="font-size: 14px; font-weight: 700; color: var(--text-primary); text-align: right;">${cuerpo}</span>
+      </div>`;
+}
+
 async function renderDesglose() {
   const { start, end } = rangoFechasPeriodo();
-  const data = await db.getDesgloseGrupoMuscular(start, end);
+  const [data, medidas] = await Promise.all([db.getDesgloseGrupoMuscular(start, end), db.getMedidas()]);
   const metricLabel = { series: 'Series', volumen: 'Volumen (kg)', reps: 'Repeticiones' }[desgloseMetrica];
 
   const cyanShades = getCyanShades();
@@ -152,6 +167,7 @@ async function renderDesglose() {
         ${resumenCardHtml('Repeticiones totales', formatNumero(data.repsTotales))}
         ${resumenCardHtml('Volumen total (kg)', formatNumero(Math.round(data.volumenTotal), { decimales: 0 }))}
       </div>
+      ${filaPesoHtml(medidas)}
     </div>
   `;
 }

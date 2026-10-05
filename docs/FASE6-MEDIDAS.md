@@ -59,7 +59,7 @@ Origen: docs/PLAN.md › Pendiente › FASE 6.
 | Fase | Commit | Caché |
 |---|---|---|
 | F1 Datos de medidas | 4110724 | v289 |
-| F2 Registro y lista | | |
+| F2 Registro y lista | 753139c | v290 |
 | F3 Gráficos | | |
 | F4 Fotos (local) | | |
 | F5 Exportar e importar fotos | | |
