@@ -19,12 +19,19 @@ const LEGACY_KEYS_SUPERSEDED_BY_IDB = new Set([
   'vg_categories', 'vg_budgets'
 ]);
 
+// Estado de sesión de este dispositivo que no va en un respaldo: el foco en
+// curso (components/foco.js). Restaurado en otro lado o más tarde, se
+// registraría como un foco que nadie hizo ahí. No se exporta y, si un
+// respaldo viejo lo trae, se ignora al importar. Los foco_completado ya
+// registrados viajan en el log de eventos como siempre.
+const CLAVES_SOLO_DISPOSITIVO = new Set(['vg_foco']);
+
 export async function exportAllData() {
   const idbData = await db.exportarDatosRespaldo();
 
   const localStorageData = {};
   Object.keys(localStorage)
-    .filter(key => (key.startsWith('vg_') || key.startsWith('vanguard:')) && !LEGACY_KEYS_SUPERSEDED_BY_IDB.has(key))
+    .filter(key => (key.startsWith('vg_') || key.startsWith('vanguard:')) && !LEGACY_KEYS_SUPERSEDED_BY_IDB.has(key) && !CLAVES_SOLO_DISPOSITIVO.has(key))
     .forEach(key => {
       try {
         localStorageData[key] = JSON.parse(localStorage.getItem(key));
@@ -74,7 +81,7 @@ async function restoreNewFormat(data) {
   await marcarOnboardingTrasRestaurar((data.idb || {}).singletons);
 
   const localStorageData = data.localStorage || {};
-  Object.keys(localStorageData).forEach(k => {
+  Object.keys(localStorageData).filter(k => !CLAVES_SOLO_DISPOSITIVO.has(k)).forEach(k => {
     localStorage.setItem(k, JSON.stringify(localStorageData[k]));
   });
   // Este respaldo YA es el estado completo en IndexedDB — no hace falta
@@ -88,7 +95,7 @@ async function restoreNewFormat(data) {
 // mismo camino de migración que corre en db.init() al arrancar, en vez de
 // duplicar acá la lógica de normalización + backfill de eventos.
 async function restoreLegacyFormat(data) {
-  const vgKeys = Object.keys(data).filter(k => k.startsWith('vg_') || k.startsWith('vanguard:'));
+  const vgKeys = Object.keys(data).filter(k => (k.startsWith('vg_') || k.startsWith('vanguard:')) && !CLAVES_SOLO_DISPOSITIVO.has(k));
   vgKeys.forEach(k => {
     localStorage.setItem(k, JSON.stringify(data[k]));
   });

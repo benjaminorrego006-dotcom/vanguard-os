@@ -16,6 +16,7 @@ Supabase.
 | F4 — Foco: registro y métricas | v286 | Bitácora de la tarea: "Foco · N min" con los minutos del evento. Detalle: línea "N focos · X min" en violeta bajo los chips de estado, solo si tiene alguno (también en una tarea hecha). Sale de la misma lectura del log que la bitácora (`refreshBitacoraSection`). Al cerrarse la pantalla de foco (fin de la pausa, "Saltar pausa", "Terminar" o Atrás), `foco.js` emite `vg-foco-cerrado` y, si el detalle de esa tarea quedó abierto debajo, se ponen al día la bitácora y la línea sin reabrirlo. Laboratorio de Tareas, Desglose: tarjeta "Minutos de foco · 8 semanas" (`db.getFocoPorSemana`, semanas de lunes a domingo según `payload.fecha`) con "Esta semana: N focos · X min" y "Más foco este mes: <tarea> · X min (N focos)" (`db.getTareaConMasFocoMes`; empate: el foco más reciente). Una tarea eliminada sigue contando: su nombre sale de su último evento con título y va "(eliminada)". Las letras "F" / "D" de las columnas de Semana ya llevaban `title` y `aria-label` "Fácil" / "Difícil" (desde F2); ahora la QA lo verifica. |
 | F5 — QA final y docs | — | Sin cambios de código (la caché queda en v286). `docs/PLAN.md`: Dificultad y Pomodoro pasan de Pendiente a Hecho. Tabla de estado del plan al día. |
 | Arreglo A — Chaflanes en el Laboratorio | v287 | Las tarjetas del Laboratorio (`.card` dentro del nuevo contenedor `.lab-mk3` de `laboratorio.js`) van con el chaflán MK III de dos esquinas opuestas y sin radio. Regla en `css/layout.css` que pisa el `--radius-lg` del `.card` global, y 18 radios inline sacados de `lab-entreno`, `lab-finanzas`, `lab-habitos` y `lab-tareas` (incluidas las tarjetas nuevas de puntos y de foco). Las metas de `goal-card.js` también quedan con chaflán dentro del Laboratorio, sin tocar ese archivo, que se usa fuera. Círculos y anillos (50 %) sin cambios. La vista Semana del Laboratorio ya era recta. |
+| Arreglo B — El foco en curso no va en el respaldo | v288 | `backup.js`: `CLAVES_SOLO_DISPOSITIVO` (`vg_foco`) no se exporta, y al importar se ignora si un respaldo viejo la trae (formato nuevo y formato anterior a IndexedDB). Así un respaldo restaurado en otro navegador o más tarde no registra un foco que nadie hizo ahí. Los `foco_completado` ya registrados viajan en el log de eventos como siempre. |
 
 ### F1 — QA
 
@@ -68,6 +69,10 @@ Supabase.
 ### Arreglo A — QA
 
 - 375×812 y 1280×800 (`qa-lab-chaflan`): las 5 secciones del Laboratorio y cada una de sus pestañas, 49 tarjetas en total. Todas tienen radio 0 y `clip-path`, y ningún texto, gráfico ni control cae dentro de las esquinas cortadas. Sin scroll horizontal. Regresión `qa-dif2` 1280. Consola limpia; ESLint `no-undef` limpio. Capturas `chaflan-*`.
+
+### Arreglo B — QA
+
+- 375×812 y 1280×800 (`qa-respaldo-foco`): un foco completo y otro corriendo; se exporta por Configuración con el foco aún en curso. El JSON no trae `vg_foco` y sí el `foco_completado`. Se importa en un navegador limpio una hora después, con el foco ya vencido: no se registra ningún foco nuevo, el anterior sigue, no hay aviso ni línea en Hoy y no queda `vg_foco`. Se repitió con el mismo respaldo con `vg_foco` agregado a mano (como un respaldo viejo): se ignora igual. Regresión `qa-df5` (respaldo con dificultad y focos). Consola limpia; ESLint `no-undef` limpio.
 
 ## 5 oct 2026 — Pesos que se llenan solos en la sesión
 
