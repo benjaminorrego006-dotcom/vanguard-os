@@ -209,32 +209,38 @@ function filaItem(it, iso, hoyIso, semana) {
 
 // Fila en columnas (≥ 900 px), siempre en dos líneas: 1) check + texto (a
 // lo sumo 2 líneas con ellipsis; el texto completo en title); 2) alineada
-// con el texto: vencimiento y prioridad (tareas de Lista) y las acciones a
-// la derecha, siempre en el mismo orden (en el planificador ✕ y después ⋯,
-// así el ⋯ queda en el mismo lugar en todas las filas). El
-// menú "Mover a" se despliega debajo solo mientras está abierto. Mismas
-// clases que la fila del detalle, así los listeners son los mismos.
+// con el texto: barras de prioridad (tareas de Lista) y las acciones a la
+// derecha, siempre en el mismo orden (en el planificador ✕ y después ⋯, así
+// el ⋯ queda en el mismo lugar en todas las filas). Sin etiqueta de
+// vencimiento: la columna ya dice la fecha; una tarea de Lista pendiente en
+// un día pasado lleva el borde del check en --rd, y el estado ("vence hoy" /
+// "vencida el jueves 1") queda en el aria-label y en el title. El menú
+// "Mover a" se despliega debajo solo mientras está abierto. Mismas clases
+// que la fila del detalle, así los listeners son los mismos.
 function filaColumna(it, iso, hoyIso, semana) {
   const texto = escapeHtml(it.texto);
   const { boton, menu } = partesMenuMover(it, iso, semana);
+  const esTarea = it.origen === 'tarea';
+  const i = semana.findIndex(d => d.iso === iso);
+  const vencida = esTarea && !it.hecha && iso < hoyIso;
+  const estado = !esTarea || it.hecha ? '' : iso === hoyIso ? 'vence hoy' : vencida ? `vencida el ${DOW[i].toLowerCase()} ${fechaLocalDe(iso).getDate()}` : '';
+  const conEstado = estado ? `${texto} (${estado})` : texto;
   const check = `
-      <button type="button" class="plan-check tappable" aria-pressed="${it.hecha}" aria-label="${it.hecha ? `Desmarcar «${texto}»` : `Marcar «${texto}» como hecha`}">
+      <button type="button" class="plan-check tappable" aria-pressed="${it.hecha}" aria-label="${it.hecha ? `Desmarcar «${texto}»` : `Marcar «${texto}» como hecha${estado ? `, ${estado}` : ''}`}">
         <span class="plan-check-caja" aria-hidden="true">${it.hecha ? '<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="3.4" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}</span>
       </button>`;
-  const esTarea = it.origen === 'tarea';
-  const venc = esTarea && !it.hecha && iso <= hoyIso ? (iso === hoyIso ? 'VENCE HOY' : 'VENCIDA') : '';
   const textoHtml = esTarea
-    ? `<button type="button" class="plan-item-texto plan-item-abrir tappable" title="${texto}" aria-label="${texto}. Abrir el detalle"><span class="plan-clamp">${texto}</span></button>`
+    ? `<button type="button" class="plan-item-texto plan-item-abrir tappable" title="${conEstado}" aria-label="${texto}${estado ? `, ${estado}` : ''}. Abrir el detalle"><span class="plan-clamp">${texto}</span></button>`
     : `<span class="plan-item-texto" title="${texto}"><span class="plan-clamp">${texto}</span></span>`;
   const borrar = esTarea ? '' : `
         <button type="button" class="plan-delete tappable" aria-label="Eliminar «${texto}»">
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>`;
   return `
-    <li class="plan-item plan-item--col${it.hecha ? ' plan-item--hecha' : ''}" data-origen="${it.origen}" data-id="${escapeHtml(it.id)}">
+    <li class="plan-item plan-item--col${it.hecha ? ' plan-item--hecha' : ''}${vencida ? ' plan-item--vencida' : ''}" data-origen="${it.origen}" data-id="${escapeHtml(it.id)}">
       <div class="plan-fila-l1">${check}${textoHtml}</div>
       <div class="plan-fila-l2">
-        ${venc ? `<span class="plan-venc" title="${venc === 'VENCE HOY' ? 'Vence hoy' : 'Vencida'}"><span class="plan-venc-largo">${venc}</span><span class="plan-venc-corto">${venc === 'VENCE HOY' ? 'HOY' : 'VENC.'}</span><span class="plan-venc-marca" aria-hidden="true"></span></span>` : ''}${esTarea ? renderPriorityBars(it.priority) : ''}
+        ${esTarea ? renderPriorityBars(it.priority) : ''}
         <span class="plan-fila-acciones">${borrar}${boton}</span>
       </div>
       ${menu}
