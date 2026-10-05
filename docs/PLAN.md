@@ -36,7 +36,7 @@ el resumen.
 
 ## Hecho
 
-Estado al 4 oct 2026 (`CACHE_NAME` v268). El detalle de cada tanda (commits,
+Estado al 5 oct 2026 (`CACHE_NAME` v273). El detalle de cada tanda (commits,
 caché y QA) está en `docs/CHANGELOG.md`.
 
 | | Estado |
@@ -63,6 +63,7 @@ caché y QA) está en `docs/CHANGELOG.md`.
 | Buscador de ejercicios sin tapar la barra ni el riel (Atrás lo cierra) y sesión en vivo con id + nombre del catálogo | hecho (`37183bf`, `4239524`, v237–v238) |
 | "Hoy toca → Empezar" visible, racha de Hoy tras procesar recurrentes, nombres antiguos → id del catálogo al leer, ejercicio libre con el nombre tal como se escribe | hecho (`0e92260` → v242) |
 | Sesión activa "Cabina HUD" (`docs/REDISENO-SESION-HUD.md`): borrador en localStorage, pantalla completa, HUD, riel y un ejercicio por pantalla, tabla + editor + botón principal, descanso en el HUD con pantalla encendida, récord en vivo y resumen al finalizar (GYM y Calistenia; HIIT y Descanso activo sin cambios). Además: la app arranca con localStorage bloqueado y las series por tiempo ("30s") se conservan | hecho (`c35e30f` → cierre, v243–v257) |
+| Fase 7 — Calentamiento y descanso por ejercicio (`docs/FASE7-CALENTAMIENTO-DESCANSO.md`): escalera a pedido desde el ⋯ (barra, mancuernas y máquina, con discos por lado en barra), calentamiento fuera de volumen, récords, resumen y Laboratorio, ANTERIOR por tipo, y descanso por ejercicio (override en settings, hoja en la sesión, chip, superserie = el mayor) | hecho (`ddfbce3` → F6, v269–v273) |
 
 ---
 
@@ -96,19 +97,6 @@ b) Fotos como **Blob** en IndexedDB, NO base64 (infla ~33%). Redimensionar
    antes de guardar vía canvas. Definir tope de resolución.
 c) Incluirlas en el respaldo. Un JSON con fotos puede pesar mucho — proponer
    cómo manejarlo antes de implementar.
-
-### FASE 7 — Calentamiento y timer de descanso por ejercicio
-
-a) **Calentamiento:** dado el peso de la serie de trabajo, sugerir la escalera
-   de aproximación. Reutilizar `plate-calculator.js` para mostrar qué discos
-   cargar en cada paso.
-b) **Timer por ejercicio:** hoy `restTimerSecs` es global. Permitir override
-   por ejercicio, con el global como default. Las rutinas existentes no tienen
-   el campo — deben seguir funcionando cayendo al global. Desde el rediseño
-   HUD el descanso vive en el HUD de la sesión (`iniciarDescanso` en
-   `rutina-session.js`) y el ajuste global está en el menú ⋯ de la barra
-   superior; la calculadora de discos se abre manteniendo presionado el KG
-   del editor.
 
 ### Más ejercicios (N7, N8)
 

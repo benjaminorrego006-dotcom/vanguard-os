@@ -68,5 +68,5 @@ Origen: docs/PLAN.md › Pendiente › FASE 7.
 | F2 Calentamiento en la sesión | 41d86e2 | v270 |
 | F3 Calentamiento fuera de los cálculos | 0dd6648 | v271 |
 | F4 Descanso por ejercicio (datos) | 451830b | v272 |
-| F5 Descanso por ejercicio (UI) | | |
+| F5 Descanso por ejercicio (UI) | 04c72ef | v273 |
 | F6 QA final y docs | | |
