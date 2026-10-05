@@ -7,6 +7,7 @@ import { escapeHtml } from '../utils/escape.js';
 import { formatFechaCorta, formatMes } from '../utils/fecha.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import * as Planificador from './planificador.js';
+import { renderPriorityBars } from '../utils/prioridad.js';
 
 let tasksDonutInstance = null;
 
@@ -155,18 +156,6 @@ function ordenUrgencia(a, b) {
   if (aTiene !== bTiene) return aTiene ? -1 : 1;
   if (aTiene && a.dueDate !== b.dueDate) return a.dueDate < b.dueDate ? -1 : 1;
   return (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1);
-}
-
-// Prioridad como 1-3 barritas rellenas en violeta, no como texto — mismo
-// lenguaje visual que el detalle de tarea (task-form.js).
-export function renderPriorityBars(priority) {
-  const level = priority === 'high' ? 3 : priority === 'low' ? 1 : 2;
-  const bars = [1, 2, 3].map(i => {
-    const filled = i <= level;
-    const h = 5 + i * 3;
-    return `<span style="display:inline-block; width:4px; height:${h}px; background:${filled ? 'var(--vi)' : 'var(--surface-2)'}; border:1px solid ${filled ? 'var(--vi)' : 'var(--surface-border)'};"></span>`;
-  }).join('');
-  return `<span style="display:inline-flex; align-items:flex-end; gap:2px; flex-shrink:0;" title="Prioridad">${bars}</span>`;
 }
 
 // Flecha de avance rápido: Por Hacer -> En Curso -> Hecho, sin pasar por el

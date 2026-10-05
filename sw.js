@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v260';
+const CACHE_NAME = 'vanguard-os-v261';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -38,6 +38,7 @@ const PRECACHE_URLS = [
   './js/core/plantillas.js',
   './js/core/trainingConfig.js',
   './js/utils/states.js',
+  './js/utils/prioridad.js',
   './js/utils/animate.js',
   './js/utils/donut.js',
   './js/utils/progressRing.js',

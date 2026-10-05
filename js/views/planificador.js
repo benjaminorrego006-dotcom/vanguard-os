@@ -3,6 +3,8 @@ import { Toast, ConfirmDialog, hayModalAbierto } from '../utils/states.js';
 import { diaKeyDe, formatFechaCorta, sumarDias, fechaLocalDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
+import { renderPriorityBars } from '../utils/prioridad.js';
+import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
 
 // 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
 // cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
@@ -135,52 +137,70 @@ function renderFranja(semana, hoyIso) {
   return `<div class="plan-franja" role="tablist" aria-label="Días de la semana">${semana.map(celda).join('')}</div>`;
 }
 
+// Fila de un ítem del día: check · texto · (Lista) vencimiento + prioridad,
+// (planificador) ✕ para borrar. El texto de una tarea de Lista abre su
+// detalle, como en Lista.
+function filaItem(it, iso, hoyIso) {
+  const texto = escapeHtml(it.texto);
+  const check = `
+    <button type="button" class="plan-check tappable" aria-pressed="${it.hecha}" aria-label="${it.hecha ? `Desmarcar «${texto}»` : `Marcar «${texto}» como hecha`}">
+      <span class="plan-check-caja" aria-hidden="true">${it.hecha ? '<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="3.4" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}</span>
+    </button>`;
+  if (it.origen === 'tarea') {
+    const venc = !it.hecha && iso <= hoyIso ? (iso === hoyIso ? 'VENCE HOY' : 'VENCIDA') : '';
+    return `
+      <li class="plan-item${it.hecha ? ' plan-item--hecha' : ''}" data-origen="tarea" data-id="${escapeHtml(it.id)}">
+        ${check}
+        <button type="button" class="plan-item-texto plan-item-abrir tappable" aria-label="${texto}. Abrir el detalle">${texto}</button>
+        <span class="plan-item-meta">${venc ? `<span class="plan-venc">${venc}</span>` : ''}${renderPriorityBars(it.priority)}</span>
+      </li>`;
+  }
+  return `
+    <li class="plan-item${it.hecha ? ' plan-item--hecha' : ''}" data-origen="plan" data-id="${escapeHtml(it.id)}">
+      ${check}
+      <span class="plan-item-texto">${texto}</span>
+      <button type="button" class="plan-delete tappable" aria-label="Eliminar «${texto}»">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </li>`;
+}
+
+// Detalle del día elegido: "Domingo 4" + hechas/total y sus ítems. El input
+// de este día queda acá hasta F4 (input único al final).
+function renderDetalle(semana, hoyIso) {
+  const i = semana.findIndex(d => d.iso === diaSeleccionado);
+  const d = semana[i];
+  const n = fechaLocalDe(d.iso).getDate();
+  return `
+    <section id="plan-detalle" class="plan-detalle" role="tabpanel" aria-labelledby="plan-dia-${d.iso}">
+      <div class="plan-detalle-cab">
+        <h2>${DOW[i]} <span class="num">${n}</span></h2>
+        ${d.total ? `<span class="plan-detalle-cont num" aria-label="${d.hechas} de ${d.total} ${plural(d.total, 'hecha', 'hechas')}">${d.hechas}/${d.total}</span>` : ''}
+      </div>
+      ${d.items.length
+        ? `<ul class="plan-items">${d.items.map(it => filaItem(it, d.iso, hoyIso)).join('')}</ul>`
+        : '<p class="plan-vacio">Nada para este día</p>'}
+      <form class="plan-nueva-form" onsubmit="return false;">
+        <input class="plan-nueva" data-fecha="${d.iso}" type="text" placeholder="Nueva tarea…" enterkeyhint="go" aria-label="Nueva tarea para el ${DOW[i].toLowerCase()} ${n}">
+      </form>
+    </section>`;
+}
+
+// Última semana pintada: tocar otro día de la franja repinta solo el
+// detalle, sin volver a leer la base.
+let ultimaSemana = null;
+
 export async function render() {
   const hoyIso = diaKeyDe(new Date());
   const lunesIso = sumarDias(diaKeyDe(lunesDe(new Date())), offsetSemana * 7);
   const semana = await armarSemana(lunesIso);
   const isos = semana.map(d => d.iso);
   if (!isos.includes(diaSeleccionado)) diaSeleccionado = isos.includes(hoyIso) ? hoyIso : lunesIso;
-
-  const dias = isos.map(iso => fechaLocalDe(iso));
-  const tareas = await db.getTareasPlan(isos[0], isos[6]);
+  ultimaSemana = { semana, hoyIso };
 
   const hechasSemana = semana.reduce((n, d) => n + d.hechas, 0);
   const totalSemana = semana.reduce((n, d) => n + d.total, 0);
-  const rango = `${formatFechaCorta(dias[0])} – ${formatFechaCorta(dias[6])}`;
-
-  const filaTarea = (t) => `
-    <div style="display: flex; align-items: flex-start; gap: 10px; padding: 7px 0;">
-      <button class="plan-toggle tappable" data-id="${t.id}"
-        style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; cursor: pointer; border: 1.5px solid ${t.hecha ? 'var(--accent-plan)' : 'var(--surface-border)'}; background: ${t.hecha ? 'var(--accent-plan)' : 'transparent'}; border-radius: 6px; display: flex; align-items: center; justify-content: center; padding: 0;">
-        ${t.hecha ? '<svg width="11" height="11" fill="none" stroke="#000" stroke-width="3.2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
-      </button>
-      <span style="flex: 1; font-size: 14px; line-height: 1.4; color: ${t.hecha ? 'var(--text-disabled)' : 'var(--text-primary)'}; text-decoration: ${t.hecha ? 'line-through' : 'none'};">${escapeHtml(t.texto)}</span>
-      <button class="plan-delete tappable" data-id="${t.id}"
-        style="background: transparent; border: none; color: var(--text-disabled); cursor: pointer; flex-shrink: 0; padding: 2px;">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-    </div>`;
-
-  const tarjetaDia = (d, i) => {
-    const iso = diaKeyDe(d);
-    const delDia = tareas.filter(t => t.fecha === iso);
-    const esHoy = iso === hoyIso;
-    return `
-      <div class="card" style="padding: 14px 16px; margin-bottom: 12px; ${esHoy ? 'border-color: var(--accent-plan);' : ''}">
-        <div class="flex-between" style="margin-bottom: 8px;">
-          <h4 style="font-size: 15px; font-weight: 800; margin: 0; color: ${esHoy ? 'var(--accent-plan)' : 'var(--text-primary)'};">${DOW[i]}</h4>
-          <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;" class="num">
-            ${d.getDate()}/${d.getMonth() + 1}${delDia.length ? ` · ${delDia.filter(t => t.hecha).length}/${delDia.length}` : ''}
-          </span>
-        </div>
-        ${delDia.map(filaTarea).join('')}
-        <form class="plan-nueva-form" onsubmit="return false;">
-          <input class="plan-nueva" data-fecha="${iso}" type="text" placeholder="Nueva tarea…" enterkeyhint="go"
-            style="width: 100%; margin-top: 8px; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; font-size: 14px; font-family: inherit; box-sizing: border-box; outline: none;">
-        </form>
-      </div>`;
-  };
+  const rango = `${formatFechaCorta(fechaLocalDe(isos[0]))} – ${formatFechaCorta(fechaLocalDe(isos[6]))}`;
 
   return `
     <div style="padding: 20px 20px 110px 20px; font-family: var(--font-body);">
@@ -200,8 +220,9 @@ export async function render() {
 
       ${renderFranja(semana, hoyIso)}
 
-      ${dias.map(tarjetaDia).join('')}
-    </div>`;
+      ${renderDetalle(semana, hoyIso)}
+    </div>
+    ${renderTaskForm()}`;
 }
 
 export function mountListeners() {
@@ -216,15 +237,21 @@ export function mountListeners() {
     mountListeners();
   };
 
+  // Detalle de tarea de Lista (mismo formulario que en Lista); al guardar
+  // o eliminar se repinta la semana.
+  setupTaskForm(refresh);
+
   // Cambiar de semana reinicia el día elegido (hoy o el lunes, ver render).
   document.getElementById('plan-prev')?.addEventListener('click', () => { offsetSemana--; diaSeleccionado = null; refresh(); });
   document.getElementById('plan-next')?.addEventListener('click', () => { offsetSemana++; diaSeleccionado = null; refresh(); });
   document.getElementById('plan-hoy')?.addEventListener('click', () => { offsetSemana = 0; diaSeleccionado = null; refresh(); });
 
-  // Franja: tocar un día lo elige; ← → (e Inicio/Fin) recorren los días
-  // como pestañas (role="tablist") y mueven el foco.
+  // Franja: tocar un día lo elige y repinta el detalle; ← → (e Inicio/Fin)
+  // recorren los días como pestañas (role="tablist") y mueven el foco. Lo
+  // escrito en el input del día se conserva al cambiar de día.
   const celdas = Array.from(document.querySelectorAll('.plan-dia'));
   const elegir = (iso, foco) => {
+    if (iso === diaSeleccionado && !foco) return;
     diaSeleccionado = iso;
     celdas.forEach(c => {
       const sel = c.dataset.iso === iso;
@@ -233,6 +260,13 @@ export function mountListeners() {
       c.tabIndex = sel ? 0 : -1;
       if (sel && foco) c.focus();
     });
+    const detalle = document.getElementById('plan-detalle');
+    if (!detalle || !ultimaSemana) return;
+    const borrador = detalle.querySelector('.plan-nueva')?.value || '';
+    detalle.outerHTML = renderDetalle(ultimaSemana.semana, ultimaSemana.hoyIso);
+    const nuevo = document.querySelector('#plan-detalle .plan-nueva');
+    if (nuevo) nuevo.value = borrador;
+    montarDetalle();
   };
   celdas.forEach((c, i) => {
     c.addEventListener('click', () => elegir(c.dataset.iso, false));
@@ -244,32 +278,40 @@ export function mountListeners() {
     });
   });
 
-  document.querySelectorAll('.plan-toggle').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      await db.toggleTareaPlan(e.currentTarget.getAttribute('data-id'));
-      refresh();
+  // Listeners del detalle: se reasignan cada vez que se repinta.
+  const montarDetalle = () => {
+    document.querySelectorAll('#plan-detalle .plan-item').forEach(li => {
+      const id = li.dataset.id;
+      const origen = li.dataset.origen;
+      li.querySelector('.plan-check')?.addEventListener('click', async () => {
+        if (origen === 'plan') await db.toggleTareaPlan(id);
+        else await db.updateTaskStatus(id, li.classList.contains('plan-item--hecha') ? 'todo' : 'done');
+        refresh();
+      });
+      li.querySelector('.plan-item-abrir')?.addEventListener('click', async () => {
+        const task = (await db.getTasks()).find(x => x.id === id);
+        if (task) openTaskForm(task);
+      });
+      li.querySelector('.plan-delete')?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const confirmed = await ConfirmDialog('¿Eliminar tarea?', 'Se borra del planificador. Esta acción no se puede deshacer.');
+        if (!confirmed) return;
+        await db.eliminarTareaPlan(id);
+        Toast('Tarea eliminada', 'success');
+        refresh();
+      });
     });
-  });
 
-  document.querySelectorAll('.plan-delete').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const id = e.currentTarget.getAttribute('data-id');
-      const confirmed = await ConfirmDialog('¿Eliminar tarea?', 'Se borra del planificador. Esta acción no se puede deshacer.');
-      if (!confirmed) return;
-      await db.eliminarTareaPlan(id);
-      Toast('Tarea eliminada', 'success');
-      refresh();
-    });
-  });
-
-  document.querySelectorAll('.plan-nueva-form').forEach(form => {
-    const input = form.querySelector('.plan-nueva');
-    bindQuickCaptureForm(form, async () => {
-      const texto = input.value.trim();
-      if (!texto) return;
-      await db.crearTareaPlan(input.getAttribute('data-fecha'), texto);
-      refresh();
-    });
-  });
+    const form = document.querySelector('#plan-detalle .plan-nueva-form');
+    if (form) {
+      const input = form.querySelector('.plan-nueva');
+      bindQuickCaptureForm(form, async () => {
+        const texto = input.value.trim();
+        if (!texto) return;
+        await db.crearTareaPlan(input.getAttribute('data-fecha'), texto);
+        refresh();
+      });
+    }
+  };
+  montarDetalle();
 }

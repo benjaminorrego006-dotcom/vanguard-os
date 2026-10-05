@@ -9,8 +9,8 @@ plan original decía v257). Revisión visual con capturas y maquetas: artifact
 | Fase | Estado |
 | --- | --- |
 | F1 — Datos de la semana (sin UI) | Hecha (03dce16, v259) |
-| F2 — Encabezado y franja de 7 días | Hecha (commit de F2, v260) |
-| F3 — Detalle del día | Pendiente |
+| F2 — Encabezado y franja de 7 días | Hecha (f12ab42, v260) |
+| F3 — Detalle del día | Hecha (commit de F3, v261) |
 | F4 — Input único + pendientes de días pasados | Pendiente |
 | F5 — Mover entre días + color | Pendiente |
 | F6 — Lista y Hábitos | Pendiente |
