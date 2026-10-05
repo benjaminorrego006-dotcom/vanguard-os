@@ -1,5 +1,16 @@
 # Vanguard OS — Changelog
 
+## 5 oct 2026 — Arreglos vistos en la Fase 7
+
+| Arreglo | Caché | Qué cambia |
+|---|---|---|
+| Hoja "¿Salir?" sin espera fija | v274 | `preguntarOpciones` (la hoja "¿Salir?" de la sesión) ya no espera 500 ms fijos al cerrarse con un botón: espera el `popstate` real con `esperarSalidaDeModal` (`js/core/history.js`), el mismo criterio de la limpieza anterior. Ya no queda ninguna espera fija de 500 ms en el código. |
+
+### Hoja "¿Salir?" — QA
+
+- 375×812 y 1280×800 con la CPU frenada ×4, de a una: "Cancelar" cierra la hoja y queda en la sesión sin entrada de modal colgando; Atrás con la hoja abierta la cierra y queda en la sesión; "Salir" vuelve a la lista de rutinas con el borrador, y Atrás desde ahí va a la principal con la tarjeta "sesión en curso" sin reabrir la hoja; Retomar y "Descartar sesión" borran el borrador y vuelven a la principal sin la tarjeta, y Atrás después no vuelve a la sesión ni a la hoja. Regresión: pantalla completa (fase 2 del HUD), QA final del HUD y esperas sin tiempo fijo a 375. Consola limpia; ESLint `no-undef` limpio.
+
+
 ## 6 oct 2026 — Fase 7: calentamiento y descanso por ejercicio (`docs/FASE7-CALENTAMIENTO-DESCANSO.md`)
 
 **`CACHE_NAME` final: `vanguard-os-v273`.** Plan por fases; el plan y su tabla de estado están en

@@ -1,4 +1,5 @@
 import { db } from '../core/db.js';
+import { esperarSalidaDeModal } from '../core/history.js';
 import { playBeep } from '../core/audio.js';
 import { renderEjercicioDetalle, initEjercicioDetalleChart } from './ejercicio-detalle.js';
 import { calcularDiscos, renderPlateCalculatorPopover } from './plate-calculator.js';
@@ -2143,10 +2144,9 @@ function preguntarOpciones({ id, titulo, texto, opciones }) {
       overlay.classList.remove('open');
       overlay.remove();
       // Cerrado por un botón: history.js suelta su entrada con un back()
-      // asíncrono; se espera para que quien siga (salir, guardar) no lo pise.
-      if (porBoton && history.state && history.state.modalId === id) {
-        await new Promise(res => { const t = setTimeout(res, 500); window.addEventListener('popstate', () => { clearTimeout(t); res(); }, { once: true }); });
-      }
+      // asíncrono; se espera ese popstate real (sin tiempo fijo) para que
+      // quien siga (salir, guardar) no lo pise.
+      if (porBoton) await esperarSalidaDeModal(id);
       resolve(valor || null);
     };
     const alAtras = () => { if (!overlay.classList.contains('open')) terminar(null); };
