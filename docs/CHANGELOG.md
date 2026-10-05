@@ -1,5 +1,16 @@
 # Vanguard OS — Changelog
 
+## 5 oct 2026 — Ajustes tras revisar la Fase 7
+
+| Ajuste | Caché | Qué cambia |
+|---|---|---|
+| 1. Calentamiento en barra: pasos de al menos 10 kg | v276 | `escaleraCalentamiento` (barra) descarta un paso que quede a menos de 10 kg del anterior; la barra vacía cuenta como paso. 60 kg: 20×10, 35×3, 47,5×2 (sin el 22,5×5); 40 kg: solo 20×10 (sin el 27,5×5); 70 kg: 20×10, 40×3, 55×2. Mancuernas y máquina no cambian. |
+
+
+### Ajuste 1 — QA
+
+- Tabla de casos de F1 en la consola de la app, a 375×812 y 1280×800, con los resultados nuevos: barra 20 → 20×10; 40 → 20×10; 50 → 20×10, 30×3, 40×2; 60 → 20×10, 35×3 (5 + 2,5 por lado), 47,5×2; 70 → 20×10, 40×3, 55×2; 100 → 20×10, 40×5, 60×3, 80×2; 142,5 → 20×10, 55×5, 85×3, 112,5×2; mancuernas 12 → 6×8, 9×4; 30 → 15×8, 22×4; máquina 45 → 22,5×8, 32,5×4; 0, vacío, inválido, `ninguno`, `banda`, `barra-dominadas` y barra con 15 kg → `[]`. 18/18. En la sesión (QA de F2 actualizada): Remo con Barra con 60 kg inserta 3 calentamientos (20, 35, 47,5) con sus discos y "Calentamiento: 3 series". Consola limpia; ESLint `no-undef` limpio.
+
 ## 5 oct 2026 — Arreglos vistos en la Fase 7
 
 | Arreglo | Caché | Qué cambia |

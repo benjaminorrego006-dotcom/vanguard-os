@@ -41,8 +41,10 @@ export function escaleraCalentamiento({ pesoTrabajo, equipo, pesoBarra = 20 } = 
     const subidas = pct
       .map(([p, reps]) => ({ peso: haciaAbajo(trabajo * p, 2.5), reps }))
       .filter(s => s.peso > pesoBarra);
-    const pasos = [{ peso: pesoBarra, reps: 10 }, ...depurar(subidas, trabajo)]
-      .filter((s, i, a) => i === 0 || s.peso !== a[i - 1].peso);
+    // Un paso a menos de 10 kg del anterior (la barra vacía cuenta como
+    // paso) no aporta: se descarta. Con 60 kg: 20×10, 35×3, 47,5×2.
+    const pasos = [{ peso: pesoBarra, reps: 10 }];
+    depurar(subidas, trabajo).forEach(s => { if (s.peso - pasos[pasos.length - 1].peso >= 10) pasos.push(s); });
     return pasos.map(s => ({ ...s, discosPorLado: calcularDiscos(s.peso, pesoBarra) }));
   }
 
