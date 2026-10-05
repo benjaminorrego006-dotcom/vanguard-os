@@ -1,6 +1,6 @@
 import { db } from '../core/db.js';
 import { Toast, ConfirmDialog, hayModalAbierto } from '../utils/states.js';
-import { diaKeyDe, formatFechaCorta, sumarDias } from '../utils/fecha.js';
+import { diaKeyDe, formatFechaCorta, sumarDias, fechaLocalDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 
@@ -96,22 +96,57 @@ export async function armarSemana(lunes) {
   return componerSemana(lunesIso, { plan, tareas, hoyIso: diaKeyDe(new Date()) });
 }
 
-// Offset en semanas respecto de la actual. Vive fuera de render() para
-// sobrevivir a los refresh, igual que el mes activo en otras vistas.
+// Offset en semanas respecto de la actual y día elegido en la franja. Viven
+// fuera de render() para sobrevivir a los refresh, igual que el mes activo
+// en otras vistas. diaSeleccionado se recalcula al cambiar de semana (hoy si
+// está en la semana mostrada; si no, el lunes).
 let offsetSemana = 0;
+let diaSeleccionado = null;
+
+const LETRA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const plural = (n, uno, varios) => (n === 1 ? uno : varios);
+
+// "jueves 1 de octubre, 1 de 2 hechas, 1 pendiente" (lector de pantalla).
+function etiquetaDia(d, i, esHoy) {
+  const f = fechaLocalDe(d.iso);
+  const mes = f.toLocaleDateString('es-CL', { month: 'long' });
+  const fecha = `${esHoy ? 'hoy, ' : ''}${DOW[i].toLowerCase()} ${f.getDate()} de ${mes}`;
+  if (!d.total) return `${fecha}, sin tareas`;
+  const pend = d.total - d.hechas;
+  return `${fecha}, ${d.hechas} de ${d.total} ${plural(d.total, 'hecha', 'hechas')}${pend ? `, ${pend} ${plural(pend, 'pendiente', 'pendientes')}` : ''}`;
+}
+
+// Franja de 7 días: letra (o HOY), número, barra hechas/total y un cuadrado
+// rojo si el día ya pasó con pendientes.
+function renderFranja(semana, hoyIso) {
+  const celda = (d, i) => {
+    const esHoy = d.iso === hoyIso;
+    const sel = d.iso === diaSeleccionado;
+    const pct = d.total ? Math.round((d.hechas / d.total) * 100) : 0;
+    return `
+      <button type="button" role="tab" id="plan-dia-${d.iso}" class="plan-dia tappable${sel ? ' plan-dia--sel' : ''}${esHoy ? ' plan-dia--hoy' : ''}"
+        data-iso="${d.iso}" aria-selected="${sel}" tabindex="${sel ? 0 : -1}" aria-label="${escapeHtml(etiquetaDia(d, i, esHoy))}">
+        <span class="plan-dia-letra" aria-hidden="true">${esHoy ? 'HOY' : LETRA[i]}</span>
+        <span class="plan-dia-num num" aria-hidden="true">${fechaLocalDe(d.iso).getDate()}</span>
+        <span class="plan-dia-barra" aria-hidden="true"><span style="width: ${pct}%;"></span></span>
+        ${d.pendientesPasado > 0 ? '<span class="plan-dia-alerta" aria-hidden="true"></span>' : ''}
+      </button>`;
+  };
+  return `<div class="plan-franja" role="tablist" aria-label="Días de la semana">${semana.map(celda).join('')}</div>`;
+}
 
 export async function render() {
-  const base = lunesDe(new Date());
-  base.setDate(base.getDate() + offsetSemana * 7);
-
-  const dias = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(base); d.setDate(d.getDate() + i); return d;
-  });
-  const desde = diaKeyDe(dias[0]), hasta = diaKeyDe(dias[6]);
-  const tareas = await db.getTareasPlan(desde, hasta);
   const hoyIso = diaKeyDe(new Date());
+  const lunesIso = sumarDias(diaKeyDe(lunesDe(new Date())), offsetSemana * 7);
+  const semana = await armarSemana(lunesIso);
+  const isos = semana.map(d => d.iso);
+  if (!isos.includes(diaSeleccionado)) diaSeleccionado = isos.includes(hoyIso) ? hoyIso : lunesIso;
 
-  const hechas = tareas.filter(t => t.hecha).length;
+  const dias = isos.map(iso => fechaLocalDe(iso));
+  const tareas = await db.getTareasPlan(isos[0], isos[6]);
+
+  const hechasSemana = semana.reduce((n, d) => n + d.hechas, 0);
+  const totalSemana = semana.reduce((n, d) => n + d.total, 0);
   const rango = `${formatFechaCorta(dias[0])} – ${formatFechaCorta(dias[6])}`;
 
   const filaTarea = (t) => `
@@ -150,21 +185,20 @@ export async function render() {
   return `
     <div style="padding: 20px 20px 110px 20px; font-family: var(--font-body);">
 
-      <div class="flex-between" style="margin-bottom: 16px;">
-        <div>
-          <h1 style="font-size: 30px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.5px;">Semana</h1>
-          <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${rango} · <span class="num">${hechas}</span>/<span class="num">${tareas.length}</span> completada${tareas.length === 1 ? '' : 's'}</div>
+      <header class="plan-cab">
+        <div class="plan-cab-titulo">
+          <h1>Semana</h1>
+          ${offsetSemana === 0
+            ? `<div class="plan-rango">${rango} · <span class="num">${hechasSemana}/${totalSemana}</span></div>`
+            : `<button type="button" id="plan-hoy" class="plan-rango plan-rango--volver tappable" aria-label="${rango}, ${hechasSemana} de ${totalSemana} hechas. Volver a esta semana">${rango} · <span class="num">${hechasSemana}/${totalSemana}</span> <span class="plan-rango-volver">· Volver a hoy</span></button>`}
         </div>
-        <div class="icon-chip" style="width: 40px; height: 40px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg>
+        <div class="plan-cab-nav">
+          <button type="button" id="plan-prev" class="plan-flecha tappable" aria-label="Semana anterior">‹</button>
+          <button type="button" id="plan-next" class="plan-flecha tappable" aria-label="Semana siguiente">›</button>
         </div>
-      </div>
+      </header>
 
-      <div class="segmented-control" style="margin-bottom: 18px;">
-        <button id="plan-prev">← Anterior</button>
-        <button id="plan-hoy" class="${offsetSemana === 0 ? 'active' : ''}">Esta semana</button>
-        <button id="plan-next">Siguiente →</button>
-      </div>
+      ${renderFranja(semana, hoyIso)}
 
       ${dias.map(tarjetaDia).join('')}
     </div>`;
@@ -182,9 +216,33 @@ export function mountListeners() {
     mountListeners();
   };
 
-  document.getElementById('plan-prev')?.addEventListener('click', () => { offsetSemana--; refresh(); });
-  document.getElementById('plan-next')?.addEventListener('click', () => { offsetSemana++; refresh(); });
-  document.getElementById('plan-hoy')?.addEventListener('click', () => { offsetSemana = 0; refresh(); });
+  // Cambiar de semana reinicia el día elegido (hoy o el lunes, ver render).
+  document.getElementById('plan-prev')?.addEventListener('click', () => { offsetSemana--; diaSeleccionado = null; refresh(); });
+  document.getElementById('plan-next')?.addEventListener('click', () => { offsetSemana++; diaSeleccionado = null; refresh(); });
+  document.getElementById('plan-hoy')?.addEventListener('click', () => { offsetSemana = 0; diaSeleccionado = null; refresh(); });
+
+  // Franja: tocar un día lo elige; ← → (e Inicio/Fin) recorren los días
+  // como pestañas (role="tablist") y mueven el foco.
+  const celdas = Array.from(document.querySelectorAll('.plan-dia'));
+  const elegir = (iso, foco) => {
+    diaSeleccionado = iso;
+    celdas.forEach(c => {
+      const sel = c.dataset.iso === iso;
+      c.classList.toggle('plan-dia--sel', sel);
+      c.setAttribute('aria-selected', String(sel));
+      c.tabIndex = sel ? 0 : -1;
+      if (sel && foco) c.focus();
+    });
+  };
+  celdas.forEach((c, i) => {
+    c.addEventListener('click', () => elegir(c.dataset.iso, false));
+    c.addEventListener('keydown', (e) => {
+      const destino = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: celdas.length - 1 }[e.key];
+      if (destino === undefined || !celdas[destino]) return;
+      e.preventDefault();
+      elegir(celdas[destino].dataset.iso, true);
+    });
+  });
 
   document.querySelectorAll('.plan-toggle').forEach(btn => {
     btn.addEventListener('click', async (e) => {
