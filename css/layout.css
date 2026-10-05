@@ -817,3 +817,8 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .habitos-analisis-sum::after { content: '▾'; margin-left: auto; font-size: 14px; }
 .habitos-analisis[open] > .habitos-analisis-sum::after { content: '▴'; }
 .habitos-analisis-sum:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
+/* "+" de Lista y Hábitos en el encabezado (reemplaza al FAB sticky, que
+   flotaba sobre las tarjetas). */
+.cab-acciones { display: flex; gap: 8px; flex-shrink: 0; }
+.cab-accion { width: 44px; height: 44px; flex-shrink: 0; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--vi); border: none; color: var(--bg); cursor: pointer; }
+.cab-accion:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }

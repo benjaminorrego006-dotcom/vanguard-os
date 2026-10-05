@@ -95,7 +95,7 @@ const STATE_LABELS = {
 };
 
 const EMPTY_MSG = {
-  'todo': { title: 'Sin tareas pendientes', subtitle: 'Agrega la primera con el botón + de abajo.' },
+  'todo': { title: 'Sin tareas pendientes', subtitle: 'Agrega la primera con el botón + de arriba.' },
   'in-progress': { title: 'Sin tareas en curso', subtitle: 'Avanza una desde "Por Hacer" para verla acá.' },
   'done': { title: 'Sin tareas completadas', subtitle: 'Termina una tarea para verla acá.' }
 };
@@ -277,15 +277,17 @@ async function renderLista() {
   });
 
   return `
-    <!-- padding-bottom: 180px (como Hábitos): al final del scroll el FAB
-         sticky queda sobre ese relleno y no tapa el calendario. -->
-    <div style="padding: 20px 0 180px 20px; font-family: var(--font-body);">
-      <!-- Header: el buscador es un ícono que despliega el input. -->
+    <div style="padding: 20px 0 110px 20px; font-family: var(--font-body);">
+      <!-- Header: lupa (despliega el buscador) y "+" (formulario completo de
+           tarea nueva; antes un FAB sticky que flotaba sobre las tarjetas). -->
       <div class="flex-between" style="padding-right: 20px; margin-bottom: 20px;">
         <h1 style="font-size: 30px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.5px;">Tareas</h1>
-        <button type="button" id="btn-task-search" class="lista-buscar-btn tappable" aria-label="Buscar tareas" aria-expanded="${busquedaAbierta}" aria-controls="task-search-wrap">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        </button>
+        <div class="cab-acciones">
+          <button type="button" id="btn-task-search" class="lista-buscar-btn tappable" aria-label="Buscar tareas" aria-expanded="${busquedaAbierta}" aria-controls="task-search-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </button>
+          <button type="button" id="btn-new-task" class="cab-accion tappable" aria-label="Nueva tarea"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+        </div>
       </div>
 
       <!-- Buscador (plegado detrás del ícono del encabezado) -->
@@ -303,8 +305,8 @@ async function renderLista() {
       <!-- Captura rápida al final del tablero, en flujo normal (ya no
            sticky: pegada sobre el contenido tapaba tarjetas al hacer
            scroll). Lo que sigue (calendario y el relleno inferior de la
-           vista) deja espacio para que nunca quede detrás del nav ni del
-           FAB al llegar al final. -->
+           vista) deja espacio para que nunca quede detrás del nav al llegar
+           al final. -->
       <form id="task-quick-add-form" class="list-row" onsubmit="return false;" style="margin-right: 20px; margin-bottom: 24px; display: flex; align-items: stretch; border: 1.5px solid var(--vib); overflow: hidden; background: var(--bg-base);">
         <input type="text" id="task-quick-add" placeholder="Nueva tarea rápida..." enterkeyhint="go" style="flex: 1; background: transparent; border: none; padding: 14px 16px; color: var(--text-primary); font-size: 16px; outline: none;">
         <button type="submit" id="btn-quick-add" class="tappable" style="background: var(--vib); border: none; color: var(--text-primary); padding: 0 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
@@ -312,21 +314,10 @@ async function renderLista() {
         </button>
       </form>
 
-      <!-- Mapa de actividad — debajo de la captura rápida, arriba del FAB. -->
+      <!-- Mapa de actividad — debajo de la captura rápida. -->
       <div id="tareas-calendar-card" class="card" style="margin-right: 20px; margin-bottom: 24px; padding: 18px 20px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
         ${heatmapHtml}
-      </div>
-
-      <!-- FAB (formulario completo: prioridad, fecha, subtareas). Sticky en
-           vez de fixed: fixed lo ancla al borde de la ventana, así que en
-           escritorio (contenido centrado en una columna angosta con
-           sidebar) quedaba flotando lejos del contenido que opera. Sticky
-           lo mantiene pegado al borde derecho de la MISMA columna. -->
-      <div style="position: sticky; bottom: 100px; height: 0; z-index: 2000; display: flex; justify-content: flex-end; pointer-events: none;">
-        <button id="btn-new-task" class="tappable mk3-fab" style="pointer-events: auto; margin-right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent-purple); color: #000; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px -6px color-mix(in srgb, var(--accent-purple) 60%, transparent); cursor: pointer;">
-          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </button>
       </div>
 
       ${renderTaskForm()}

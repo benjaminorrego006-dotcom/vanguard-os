@@ -538,9 +538,9 @@ async function renderLista() {
       <!-- Header -->
       <div class="flex-between" style="padding-right: 20px; margin-bottom: 20px;">
         <h1 style="font-size: 30px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.5px;">Hábitos</h1>
-        <div class="icon-chip" style="width: 40px; height: 40px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
-        </div>
+        <!-- "+" en el encabezado (antes un FAB sticky que flotaba sobre las
+             tarjetas): abre el mismo formulario de hábito nuevo. -->
+        <button type="button" id="btn-new-habito" class="cab-accion tappable" aria-label="Nuevo hábito"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
       </div>
 
       <!-- Cabecera: anillo de racha grande + insignias (antes vivían en
@@ -565,25 +565,15 @@ async function renderLista() {
            última card (el gráfico de tendencia semanal) antes del FAB
            flotante — con poco contenido en la vista (ej. un solo hábito
            marcado) ese margen era suficiente, pero medido en vivo el FAB
-           terminaba encima de la etiqueta del eje X del gráfico. Subido a
-           180px para dejar un colchón real. -->
-      <div style="padding-right: 20px; padding-bottom: 180px;">
+           terminaba encima de la etiqueta del eje X del gráfico. Ya sin FAB (el "+" pasa al encabezado) basta el aire
+           normal sobre el nav; antes eran 180px para dejar un colchón real. -->
+      <div style="padding-right: 20px; padding-bottom: 110px;">
         <div>
           ${habitos.length > 0
             ? habitos.map(renderFila).join('')
             : EmptyState('Sin hábitos todavía', 'Agrega el primero y empieza a marcar días.')}
         </div>
         ${await renderResumenHabitos(habitos, hoyIso)}
-      </div>
-
-      <!-- FAB. Sticky en vez de fixed: fixed lo ancla al borde de la
-           ventana completa, así que en escritorio (sidebar + columna de
-           contenido centrada) queda lejos del contenido — mismo criterio
-           que el FAB de Tareas (ver tareas.js). -->
-      <div style="position: sticky; bottom: 100px; height: 0; z-index: 2000; display: flex; justify-content: flex-end; pointer-events: none;">
-        <button id="btn-new-habito" class="tappable mk3-fab" style="pointer-events: auto; margin-right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent-purple); color: #000; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </button>
       </div>
 
       ${renderHabitoForm()}
