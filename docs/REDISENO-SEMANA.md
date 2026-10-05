@@ -10,8 +10,8 @@ plan original decía v257). Revisión visual con capturas y maquetas: artifact
 | --- | --- |
 | F1 — Datos de la semana (sin UI) | Hecha (03dce16, v259) |
 | F2 — Encabezado y franja de 7 días | Hecha (f12ab42, v260) |
-| F3 — Detalle del día | Hecha (commit de F3, v261) |
-| F4 — Input único + pendientes de días pasados | Pendiente |
+| F3 — Detalle del día | Hecha (bd2605a, v261) |
+| F4 — Input único + pendientes de días pasados | Hecha (commit de F4, v262) |
 | F5 — Mover entre días + color | Pendiente |
 | F6 — Lista y Hábitos | Pendiente |
 | F7 — PC/tablet y QA | Pendiente |
@@ -42,7 +42,7 @@ Actualiza esta tabla (hash del commit) al cerrar cada fase.
   - planificador: `{ origen:'plan', id, texto, hecha }`
   - tareas con `dueDate === iso`: `{ origen:'tarea', id, texto:title, hecha: status==='done', priority, status }`
 - Orden dentro del día: pendientes primero; entre pendientes, tareas de Lista por prioridad (high→low), luego ítems del planificador por `createdAt`; hechas al final.
-- "Pendientes de días pasados" = ítems no hechos con fecha < hoy **dentro de la semana mostrada**, más tareas de Lista vencidas antes del lunes (igual criterio que "atrasadas" en Hoy).
+- "Pendientes de días pasados" = ítems no hechos con fecha < hoy **dentro de la semana mostrada**, más tareas de Lista vencidas antes del lunes (igual criterio que "atrasadas" en Hoy). **Cambiado en F4 (decisión del usuario):** la tira usa exactamente el criterio de "atrasadas" de Hoy — todo lo no hecho con fecha < hoy de ambos stores, sin límite al lunes — con una función compartida (`js/utils/atrasadas.js`). Los cuadrados rojos de la franja siguen siendo por día de la semana mostrada.
 - Verificación: en consola, con datos demo, los conteos coinciden con la vista actual + las tareas de Lista con fecha.
 
 ### F2 · Encabezado y franja de 7 días

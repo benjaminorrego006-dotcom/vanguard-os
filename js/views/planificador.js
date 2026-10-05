@@ -1,9 +1,10 @@
 import { db } from '../core/db.js';
 import { Toast, ConfirmDialog, hayModalAbierto } from '../utils/states.js';
-import { diaKeyDe, formatFechaCorta, sumarDias, fechaLocalDe } from '../utils/fecha.js';
+import { diaKeyDe, formatFechaCorta, sumarDias, fechaLocalDe, diasEntre } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { renderPriorityBars } from '../utils/prioridad.js';
+import { calcularAtrasadas } from '../utils/atrasadas.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
 
 // 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
@@ -69,9 +70,10 @@ function ordenItems(a, b) {
 // Arma los 7 días de la semana que empieza en `lunesIso` con los datos
 // dados (puro: sin leer la base). Cada día: { iso, items, hechas, total,
 // pendientesPasado }; pendientesPasado cuenta los ítems sin hacer de un día
-// anterior a hoy. Además, `semana.vencidasAntes` lista las tareas de Lista
-// sin hacer que vencieron antes del lunes (mismo criterio que las
-// "atrasadas" de Hoy), para la tira de pendientes de días pasados.
+// anterior a hoy (el cuadrado rojo de la franja). Además,
+// `semana.atrasadas` es todo lo no hecho con fecha anterior a hoy de los dos
+// stores, sin límite al lunes (calcularAtrasadas, el mismo cálculo que la
+// fila "atrasadas" de Hoy), para la tira de pendientes de días pasados.
 export function componerSemana(lunesIso, { plan = [], tareas = [], hoyIso = diaKeyDe(new Date()) } = {}) {
   const isos = Array.from({ length: 7 }, (_, i) => sumarDias(lunesIso, i));
   const semana = isos.map(iso => {
@@ -84,17 +86,16 @@ export function componerSemana(lunesIso, { plan = [], tareas = [], hoyIso = diaK
     const hechas = items.filter(i => i.hecha).length;
     return { iso, items, hechas, total: items.length, pendientesPasado: iso < hoyIso ? items.length - hechas : 0 };
   });
-  semana.vencidasAntes = tareas
-    .filter(x => x.status !== 'done' && x.dueDate && x.dueDate < isos[0] && x.dueDate < hoyIso)
-    .map(x => ({ origen: 'tarea', id: x.id, texto: x.title, hecha: false, priority: x.priority, status: x.status, fecha: x.dueDate, createdAt: x.createdAt }))
-    .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+  semana.atrasadas = calcularAtrasadas({ tareas, plan, hoyIso });
   return semana;
 }
 
 // Igual que componerSemana, leyendo los dos stores. `lunes`: Date o clave.
+// Se lee todo el planificador (no solo la semana): las atrasadas no tienen
+// límite hacia atrás.
 export async function armarSemana(lunes) {
   const lunesIso = typeof lunes === 'string' ? lunes : diaKeyDe(lunes);
-  const [plan, tareas] = await Promise.all([db.getTareasPlan(lunesIso, sumarDias(lunesIso, 6)), db.getTasks()]);
+  const [plan, tareas] = await Promise.all([db.getTareasPlan(), db.getTasks()]);
   return componerSemana(lunesIso, { plan, tareas, hoyIso: diaKeyDe(new Date()) });
 }
 
@@ -104,8 +105,10 @@ export async function armarSemana(lunes) {
 // está en la semana mostrada; si no, el lunes).
 let offsetSemana = 0;
 let diaSeleccionado = null;
+let tiraAbierta = false;
 
 const LETRA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const DIA_CORTO = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 const plural = (n, uno, varios) => (n === 1 ? uno : varios);
 
 // "jueves 1 de octubre, 1 de 2 hechas, 1 pendiente" (lector de pantalla).
@@ -165,8 +168,7 @@ function filaItem(it, iso, hoyIso) {
     </li>`;
 }
 
-// Detalle del día elegido: "Domingo 4" + hechas/total y sus ítems. El input
-// de este día queda acá hasta F4 (input único al final).
+// Detalle del día elegido: "Domingo 4" + hechas/total y sus ítems.
 function renderDetalle(semana, hoyIso) {
   const i = semana.findIndex(d => d.iso === diaSeleccionado);
   const d = semana[i];
@@ -180,10 +182,46 @@ function renderDetalle(semana, hoyIso) {
       ${d.items.length
         ? `<ul class="plan-items">${d.items.map(it => filaItem(it, d.iso, hoyIso)).join('')}</ul>`
         : '<p class="plan-vacio">Nada para este día</p>'}
-      <form class="plan-nueva-form" onsubmit="return false;">
-        <input class="plan-nueva" data-fecha="${d.iso}" type="text" placeholder="Nueva tarea…" enterkeyhint="go" aria-label="Nueva tarea para el ${DOW[i].toLowerCase()} ${n}">
-      </form>
     </section>`;
+}
+
+// Chip del form único con el día elegido ("DOM 4") y su etiqueta.
+function chipDia(semana) {
+  const i = semana.findIndex(d => d.iso === diaSeleccionado);
+  const n = fechaLocalDe(diaSeleccionado).getDate();
+  return { texto: `${DIA_CORTO[i]} ${n}`, label: `Agregar al ${DOW[i].toLowerCase()} ${n}` };
+}
+
+// Un solo form al final: crea en el día elegido de la franja.
+function renderNueva(semana) {
+  const chip = chipDia(semana);
+  return `
+    <form class="plan-nueva-form" onsubmit="return false;">
+      <input class="plan-nueva" type="text" placeholder="Agregar…" enterkeyhint="go" aria-label="${chip.label}">
+      <span class="plan-nueva-chip num" aria-hidden="true">${chip.texto}</span>
+      <button type="submit" class="plan-nueva-btn tappable" aria-label="${chip.label}">+</button>
+    </form>`;
+}
+
+// Tira "N pendientes de días pasados" (solo en la semana actual): tocar el
+// texto despliega la lista; "Pasar a hoy" las mueve todas a hoy.
+function renderTira(atrasadas, hoyIso) {
+  if (offsetSemana !== 0 || !atrasadas.length) { tiraAbierta = false; return ''; }
+  const n = atrasadas.length;
+  const hace = (fecha) => { const k = diasEntre(fecha, hoyIso); return k === 1 ? 'ayer' : `hace ${k} días`; };
+  return `
+    <div class="plan-tira">
+      <div class="plan-tira-fila">
+        <button type="button" id="plan-tira-toggle" class="plan-tira-texto tappable" aria-expanded="${tiraAbierta}" aria-controls="plan-tira-lista">
+          <span class="num">${n}</span> ${plural(n, 'pendiente', 'pendientes')} de días pasados
+          <svg aria-hidden="true" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transform: rotate(${tiraAbierta ? 180 : 0}deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <button type="button" id="plan-tira-pasar" class="plan-tira-pasar tappable">Pasar a hoy</button>
+      </div>
+      <ul id="plan-tira-lista" class="plan-tira-lista" ${tiraAbierta ? '' : 'hidden'}>
+        ${atrasadas.map(a => `<li><span class="plan-tira-item">${escapeHtml(a.texto)}</span><span class="plan-tira-meta">${a.tipo === 'plan' ? 'Semana' : 'Lista'} · ${hace(a.fecha)}</span></li>`).join('')}
+      </ul>
+    </div>`;
 }
 
 // Última semana pintada: tocar otro día de la franja repinta solo el
@@ -220,7 +258,11 @@ export async function render() {
 
       ${renderFranja(semana, hoyIso)}
 
+      ${renderTira(semana.atrasadas, hoyIso)}
+
       ${renderDetalle(semana, hoyIso)}
+
+      ${renderNueva(semana)}
     </div>
     ${renderTaskForm()}`;
 }
@@ -246,9 +288,9 @@ export function mountListeners() {
   document.getElementById('plan-next')?.addEventListener('click', () => { offsetSemana++; diaSeleccionado = null; refresh(); });
   document.getElementById('plan-hoy')?.addEventListener('click', () => { offsetSemana = 0; diaSeleccionado = null; refresh(); });
 
-  // Franja: tocar un día lo elige y repinta el detalle; ← → (e Inicio/Fin)
-  // recorren los días como pestañas (role="tablist") y mueven el foco. Lo
-  // escrito en el input del día se conserva al cambiar de día.
+  // Franja: tocar un día lo elige y repinta el detalle (y el chip del form);
+  // ← → (e Inicio/Fin) recorren los días como pestañas (role="tablist") y
+  // mueven el foco. El form queda fuera del detalle: lo escrito se conserva.
   const celdas = Array.from(document.querySelectorAll('.plan-dia'));
   const elegir = (iso, foco) => {
     if (iso === diaSeleccionado && !foco) return;
@@ -262,10 +304,11 @@ export function mountListeners() {
     });
     const detalle = document.getElementById('plan-detalle');
     if (!detalle || !ultimaSemana) return;
-    const borrador = detalle.querySelector('.plan-nueva')?.value || '';
     detalle.outerHTML = renderDetalle(ultimaSemana.semana, ultimaSemana.hoyIso);
-    const nuevo = document.querySelector('#plan-detalle .plan-nueva');
-    if (nuevo) nuevo.value = borrador;
+    const chip = chipDia(ultimaSemana.semana);
+    const chipEl = document.querySelector('.plan-nueva-chip');
+    if (chipEl) chipEl.textContent = chip.texto;
+    document.querySelectorAll('.plan-nueva, .plan-nueva-btn').forEach(el => el.setAttribute('aria-label', chip.label));
     montarDetalle();
   };
   celdas.forEach((c, i) => {
@@ -301,17 +344,51 @@ export function mountListeners() {
         refresh();
       });
     });
-
-    const form = document.querySelector('#plan-detalle .plan-nueva-form');
-    if (form) {
-      const input = form.querySelector('.plan-nueva');
-      bindQuickCaptureForm(form, async () => {
-        const texto = input.value.trim();
-        if (!texto) return;
-        await db.crearTareaPlan(input.getAttribute('data-fecha'), texto);
-        refresh();
-      });
-    }
   };
   montarDetalle();
+
+  // Form único: crea en el día elegido de la franja.
+  const form = document.querySelector('.plan-nueva-form');
+  if (form) {
+    const input = form.querySelector('.plan-nueva');
+    bindQuickCaptureForm(form, async () => {
+      const texto = input.value.trim();
+      if (!texto) return;
+      await db.crearTareaPlan(diaSeleccionado, texto);
+      refresh();
+    });
+  }
+
+  // Tira de pendientes de días pasados.
+  const toggle = document.getElementById('plan-tira-toggle');
+  toggle?.addEventListener('click', () => {
+    tiraAbierta = !tiraAbierta;
+    document.getElementById('plan-tira-lista').hidden = !tiraAbierta;
+    toggle.setAttribute('aria-expanded', String(tiraAbierta));
+    toggle.querySelector('svg').style.transform = `rotate(${tiraAbierta ? 180 : 0}deg)`;
+  });
+  // "Pasar a hoy": planificador → moverTareaPlan (tarea_reprogramada); Lista
+  // → saveTask({ id, dueDate }) (tarea_actualizada), igual que "Mover a hoy"
+  // en la agenda de Hoy.
+  document.getElementById('plan-tira-pasar')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const lista = (ultimaSemana && ultimaSemana.semana.atrasadas) || [];
+    if (!lista.length) return;
+    btn.disabled = true;
+    const hoy = diaKeyDe(new Date());
+    try {
+      for (const a of lista) {
+        if (a.tipo === 'plan') await db.moverTareaPlan(a.id, hoy);
+        else await db.saveTask({ id: a.id, dueDate: hoy });
+      }
+      Toast(`${lista.length} ${plural(lista.length, 'pasada', 'pasadas')} a hoy`, 'success');
+      tiraAbierta = false;
+      diaSeleccionado = hoy;
+      await refresh();
+    } catch (err) {
+      console.error('Error al pasar a hoy:', err);
+      Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
+      btn.disabled = false;
+    }
+  });
 }

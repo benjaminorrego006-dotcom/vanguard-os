@@ -761,5 +761,20 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .plan-delete { width: 44px; height: 44px; flex-shrink: 0; margin-right: -12px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--text-disabled); cursor: pointer; }
 .plan-check:focus-visible, .plan-item-abrir:focus-visible, .plan-delete:focus-visible { outline: 2px solid var(--t1); outline-offset: -2px; }
 .plan-vacio { margin: 8px 0 4px; padding: 14px 0; font-size: 14px; color: var(--text-secondary); border-top: 1px solid var(--line); }
-.plan-nueva { width: 100%; margin-top: 10px; padding: 10px 12px; box-sizing: border-box; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); font: inherit; font-size: 14px; outline: none; }
+/* Form único al final: input + chip con el día elegido + botón. */
+.plan-nueva-form { display: flex; align-items: stretch; gap: 6px; margin-top: 6px; }
+.plan-nueva { flex: 1; min-width: 0; height: 44px; padding: 0 12px; box-sizing: border-box; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); font: inherit; font-size: 14px; outline: none; }
 .plan-nueva:focus { border-color: var(--vi); }
+.plan-nueva-chip { display: flex; align-items: center; padding: 0 10px; background: var(--vis); border: 1px solid var(--vib); color: var(--vi); font-size: 12px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
+.plan-nueva-btn { width: 44px; height: 44px; flex-shrink: 0; padding: 0; background: var(--vi); border: none; color: var(--bg); font: inherit; font-size: 22px; font-weight: 700; line-height: 1; cursor: pointer; }
+.plan-nueva-btn:focus-visible, .plan-tira-texto:focus-visible, .plan-tira-pasar:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
+/* Tira "N pendientes de días pasados" (semana actual, si hay). */
+.plan-tira { margin: -4px 0 16px; border: 1px solid var(--rdb); }
+.plan-tira-fila { display: flex; align-items: center; gap: 8px; }
+.plan-tira-texto { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 6px; background: transparent; border: none; color: var(--rd); font: inherit; font-size: 13px; font-weight: 700; text-align: left; cursor: pointer; }
+.plan-tira-texto .num { color: var(--rd); }
+.plan-tira-pasar { flex-shrink: 0; min-height: 36px; margin-right: 4px; padding: 0 12px; background: transparent; border: 1px solid var(--line); color: var(--text-primary); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.plan-tira-lista { list-style: none; margin: 0; padding: 0 12px 6px; }
+.plan-tira-lista li { display: flex; flex-direction: column; gap: 1px; padding: 7px 0; border-top: 1px solid var(--line); }
+.plan-tira-item { font-size: 13px; color: var(--text-primary); overflow-wrap: anywhere; }
+.plan-tira-meta { font-size: 11px; color: var(--text-secondary); }

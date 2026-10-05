@@ -8,6 +8,7 @@ import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import { getEstadoSincronizacion } from '../core/sync.js';
 import * as LabFinanzas from '../components/lab-finanzas.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
+import { calcularAtrasadas } from '../utils/atrasadas.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
 import * as Anotaciones from './anotaciones.js';
@@ -455,14 +456,8 @@ export async function render() {
     tareasHoy: tareas.filter(t => t.status !== 'done' && t.dueDate === hoyIso),
     planHoy: planHoy.filter(t => !t.hecha),
     habitosPend: habitos.filter(h => habitoPendienteHoy(h, hoyIso)),
-    atrasadas: [
-      ...tareas
-        .filter(t => t.status !== 'done' && t.dueDate && t.dueDate < hoyIso)
-        .map(t => ({ tipo: 'tarea', id: t.id, texto: t.title, fecha: t.dueDate })),
-      ...plan
-        .filter(t => !t.hecha && t.fecha && t.fecha < hoyIso)
-        .map(t => ({ tipo: 'plan', id: t.id, texto: t.texto, fecha: t.fecha }))
-    ].sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0)),
+    // Mismo cálculo que la tira de Semana (utils/atrasadas.js).
+    atrasadas: calcularAtrasadas({ tareas, plan, hoyIso }),
     hoyIso
   });
 
