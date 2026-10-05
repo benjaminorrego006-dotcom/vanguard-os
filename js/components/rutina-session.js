@@ -1262,9 +1262,35 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     marcarActivo(e.target);
     // El usuario cambió el peso de esta fila (con el input o con el editor
     // −/+, que escribe en él): deja de ser un peso llenado solo.
-    if (e.target.matches('.serie-peso')) e.target.closest('.serie-row')?.removeAttribute('data-peso-auto');
+    if (e.target.matches('.serie-peso')) {
+      const row = e.target.closest('.serie-row');
+      row?.removeAttribute('data-peso-auto');
+      if (row) copiarDesdePrimera(row);
+    }
     guardar();
   }, { signal });
+
+  // Copia desde la serie 1: cambiar el peso de la primera serie normal de un
+  // ejercicio lo copia a las series normales siguientes que estén sin marcar
+  // y vacías o llenadas solas (data-peso-auto); las que el usuario ya editó
+  // no cambian. Con la serie 1 vacía o en 0 (a mitad de escribir) no copia.
+  const copiarDesdePrimera = (row) => {
+    const b = row.closest('.ejercicio-sesion-block');
+    if (!b || b.dataset.pesoCorporal === 'true') return;
+    const filas = Array.from(b.querySelectorAll('.serie-row'));
+    const normales = filas.filter(r => r.querySelector('.serie-tipo').value === 'normal');
+    if (normales[0] !== row) return;
+    const valor = row.querySelector('.serie-peso').value;
+    if (!((parseFloat(valor) || 0) > 0)) return;
+    normales.slice(1).forEach(r => {
+      if (estaMarcada(r)) return;
+      const input = r.querySelector('.serie-peso');
+      const vacia = !((parseFloat(input.value) || 0) > 0);
+      if (!vacia && r.dataset.pesoAuto !== 'true') return;
+      input.value = valor;
+      r.dataset.pesoAuto = 'true';
+    });
+  };
 
   // --- Pesos que se llenan solos -----------------------------------------
   // Al abrir una sesión nueva (no al retomar un borrador: sus valores
