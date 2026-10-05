@@ -35,6 +35,8 @@ let currentEstancamiento = {};
 // Última vez que se hizo cada ejercicio (db.getUltimoRegistro): columna "Anterior".
 let currentAnterior = {};
 let currentRestTimerSecs = 90;
+// Descanso por ejercicio (Fase 7, F5): { [clave]: segundos } de settings.
+let currentDescansos = {};
 // HUD: volumen (kg) de la última sesión de esta misma rutina (null si no
 // hay) y los récords tal como estaban al abrir la sesión (currentPRs se
 // actualiza en vivo al batir uno; para el HUD se compara contra el de antes).
@@ -265,6 +267,7 @@ export async function renderRutinaSession(rutina) {
   currentEstancamiento = {};
   currentAnterior = {};
   currentRestTimerSecs = await db.getRestTimerSecs();
+  currentDescansos = await db.getDescansosPorEjercicio();
   for (const ej of rutina.ejercicios) {
     currentHistorial[ej.nombre] = await db.getHistorialEjercicio(ej.nombre);
     currentSugerencias[ej.nombre] = await db.sugerirProgresion(ej.nombre);
@@ -401,7 +404,7 @@ export async function renderRutinaSession(rutina) {
     }
 
     html += `
-      <div class="card ejercicio-sesion-block" id="sesion-ej-${idx}" role="tabpanel" data-ej-idx="${idx}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" data-peso-corporal="${esCorporal}" data-equipo="${escapeHtml((meta && meta.equipo) || '')}"${esSegundoDelGrupo ? ' data-superserie-segundo="true"' : ''}>
+      <div class="card ejercicio-sesion-block" id="sesion-ej-${idx}" role="tabpanel" data-ej-idx="${idx}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" data-peso-corporal="${esCorporal}" data-equipo="${escapeHtml((meta && meta.equipo) || '')}" data-descanso-clave="${escapeHtml(db.claveDescansoEjercicio({ ejercicioId: ej.ejercicioId, nombre: ej.nombre }) || '')}"${esSegundoDelGrupo ? ' data-superserie-segundo="true"' : ''}>
         ${supChipHtml}
         <div class="sesion-ej-cabecera">
           <div class="sesion-ej-titulo">
@@ -415,6 +418,7 @@ export async function renderRutinaSession(rutina) {
             <div class="sesion-ej-menu" role="menu" hidden>
               ${tieneTecnica ? `<button type="button" role="menuitem" class="btn-info-ejercicio" data-ejnombre="${escapeHtml(ej.nombre)}">Técnica</button>` : ''}
               <button type="button" role="menuitem" class="btn-ver-progreso" data-ejnombre="${escapeHtml(ej.nombre)}">Progreso</button>
+              <button type="button" role="menuitem" class="btn-descanso-ej">Descanso</button>
               <button type="button" role="menuitem" class="btn-plate-calc">Calculadora de discos</button>
               ${meta && EQUIPOS_CON_CALENTAMIENTO.includes(meta.equipo) ? `<button type="button" role="menuitem" class="btn-calentamiento">${ej.series.some(s => s.tipo === 'calentamiento') ? 'Rehacer calentamiento' : 'Agregar calentamiento'}</button>` : ''}
             </div>
@@ -1034,6 +1038,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   const guardar = () => {
     if (!document.getElementById('btn-finalizar-sesion')) return; // la vista ya no está
     actualizarCalentamientos();
+    pintarDescansosEj();
     const activo = bloqueActivo();
     if (activo) actualizarEditor(activo);
     actualizarPrincipal();
@@ -1052,6 +1057,104 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       descanso: descanso ? { hasta: descanso.hasta, total: descanso.total, avanzar: avanzarTrasDescanso } : null
     });
   };
+  // --- Descanso por ejercicio (docs/FASE7-CALENTAMIENTO-DESCANSO.md, F5) --
+  const mmssDescanso = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const overrideDe = (b) => {
+    const v = currentDescansos[b.dataset.descansoClave];
+    return Number.isFinite(v) ? v : null;
+  };
+  const descansoDe = (b) => overrideDe(b) ?? currentRestTimerSecs;
+  // El descanso al completar una serie: el del ejercicio o, en una
+  // superserie, el mayor de la corrida (cada uno con su override o el
+  // general).
+  const descansoPara = (b) => Math.max(...corridaDe(b).map(descansoDe));
+  // Texto del ítem del menú y chip "⏱ 2:30" en la cabecera si hay override.
+  const pintarDescansosEj = () => {
+    document.querySelectorAll('.ejercicio-sesion-block').forEach(b => {
+      const ov = overrideDe(b);
+      const item = b.querySelector('.btn-descanso-ej');
+      if (item) item.textContent = ov !== null ? `Descanso · ${mmssDescanso(ov)}` : `Descanso · general ${mmssDescanso(currentRestTimerSecs)}`;
+      let chip = b.querySelector('.sesion-chip--descanso');
+      if (ov === null) { if (chip) chip.remove(); return; }
+      let chips = b.querySelector('.sesion-ej-chips');
+      if (!chips) {
+        chips = document.createElement('div');
+        chips.className = 'sesion-ej-chips';
+        b.querySelector('.serie-tabla-cab')?.before(chips);
+      }
+      if (!chip) {
+        chip = document.createElement('span');
+        chip.className = 'sesion-chip sesion-chip--descanso';
+        chips.prepend(chip);
+      }
+      chip.setAttribute('aria-label', `Descanso de este ejercicio: ${mmssDescanso(ov)}`);
+      chip.innerHTML = `⏱ <span class="num">${mmssDescanso(ov)}</span>`;
+    });
+  };
+  // Hoja del descanso del ejercicio: valor en mono, −/+ 15 s y "Usar el
+  // general". Cada cambio se guarda (db.setDescansoEjercicio). Atrás la
+  // cierra (history.js, .modal-overlay + open).
+  const abrirHojaDescanso = (b) => {
+    const clave = b.dataset.descansoClave;
+    const nombre = b.dataset.ejNombre;
+    if (!clave) return;
+    const id = 'descanso-ej-modal';
+    document.getElementById(id)?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = id;
+    overlay.className = 'modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', id + '-titulo');
+    overlay.innerHTML = `
+      <div class="modal-content descanso-ej-hoja">
+        <h3 id="${id}-titulo">Descanso</h3>
+        <p class="descanso-ej-nombre">${escapeHtml(nombre)}</p>
+        <div class="descanso-ej-ctrl">
+          <button type="button" class="descanso-ej-btn tappable" data-delta="-15" aria-label="Restar 15 segundos">−15</button>
+          <div class="descanso-ej-valor"><span class="num" id="descanso-ej-valor" aria-live="polite"></span><span class="descanso-ej-origen" id="descanso-ej-origen"></span></div>
+          <button type="button" class="descanso-ej-btn tappable" data-delta="15" aria-label="Sumar 15 segundos">+15</button>
+        </div>
+        <button type="button" class="descanso-ej-general tappable" id="descanso-ej-general">Usar el general</button>
+        <button type="button" class="descanso-ej-listo tappable" id="descanso-ej-listo">Listo</button>
+      </div>`;
+    (document.querySelector('#view-root > div') || document.body).appendChild(overlay);
+    overlay.classList.add('open');
+    const pintar = () => {
+      const ov = overrideDe(b);
+      overlay.querySelector('#descanso-ej-valor').textContent = mmssDescanso(ov ?? currentRestTimerSecs);
+      overlay.querySelector('#descanso-ej-origen').textContent = ov !== null ? 'de este ejercicio' : 'el general';
+      overlay.querySelector('#descanso-ej-general').disabled = ov === null;
+      pintarDescansosEj();
+    };
+    const fijar = async (segundos) => {
+      const guardado = await db.setDescansoEjercicio(clave, segundos);
+      if (guardado === null) delete currentDescansos[clave]; else currentDescansos[clave] = guardado;
+      pintar();
+    };
+    overlay.querySelectorAll('.descanso-ej-btn').forEach(btn => btn.addEventListener('click', () => {
+      const base = overrideDe(b) ?? currentRestTimerSecs;
+      fijar(Math.min(600, Math.max(15, base + Number(btn.dataset.delta))));
+    }));
+    overlay.querySelector('#descanso-ej-general').addEventListener('click', () => fijar(null));
+    let cerrado = false;
+    const cerrar = () => {
+      if (cerrado) return;
+      cerrado = true;
+      window.removeEventListener('popstate', alAtras);
+      overlay.classList.remove('open');
+      overlay.remove();
+      b.querySelector('.btn-ej-menu')?.focus();
+    };
+    const alAtras = () => { if (!overlay.classList.contains('open')) cerrar(); };
+    window.addEventListener('popstate', alAtras);
+    if (signal) signal.addEventListener('abort', cerrar);
+    overlay.querySelector('#descanso-ej-listo').addEventListener('click', cerrar);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) cerrar(); });
+    pintar();
+    requestAnimationFrame(() => overlay.querySelector('.descanso-ej-btn[data-delta="15"]')?.focus());
+  };
+
   // --- Calentamiento (docs/FASE7-CALENTAMIENTO-DESCANSO.md, F2) ----------
   const esCalentamiento = (row) => row.querySelector('.serie-tipo').value === 'calentamiento';
   // En barra, bajo cada fila de calentamiento, los discos por lado ("por
@@ -1395,6 +1498,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const ajustar = async (delta) => {
       currentRestTimerSecs = Math.max(15, currentRestTimerSecs + delta);
       if (valor) valor.textContent = String(currentRestTimerSecs);
+      pintarDescansosEj();
       await db.setRestTimerSecs(currentRestTimerSecs);
     };
     menuSesion.querySelector('.btn-rest-minus')?.addEventListener('click', () => ajustar(-15), { signal });
@@ -1616,7 +1720,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         const esUltimoDeLaSuperserie = !grupoId || !siguienteBloque || siguienteBloque.dataset.grupoId !== grupoId;
         // Calentamiento (Fase 7, F3): no inicia el descanso.
         const esCal = row.querySelector('.serie-tipo').value === 'calentamiento';
-        if (esUltimoDeLaSuperserie && !esCal) iniciarDescanso(currentRestTimerSecs);
+        if (esUltimoDeLaSuperserie && !esCal) iniciarDescanso(descansoPara(ejContainer));
         // Última serie del ejercicio: pasa solo al siguiente; al instante si
         // es una superserie (sin descanso entre ellos) o si era un
         // calentamiento (no hay descanso que esperar), si no al terminar el
@@ -1643,6 +1747,13 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
 
   document.querySelectorAll('.serie-row').forEach(wireSerieRow);
   document.addEventListener('click', closeTipoPopovers, { signal });
+
+  document.querySelectorAll('.btn-descanso-ej').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const b = btn.closest('.ejercicio-sesion-block');
+      if (b) setTimeout(() => abrirHojaDescanso(b), 0);
+    }, { signal });
+  });
 
   document.querySelectorAll('.btn-calentamiento').forEach(btn => {
     btn.addEventListener('click', () => {

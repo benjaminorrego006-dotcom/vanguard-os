@@ -853,3 +853,25 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 /* Fase 7 · calentamiento: bajo cada fila de calentamiento en barra, los
    discos por lado en una línea chica (sin popover). */
 .serie-discos { margin: -2px 0 6px 38px; font-size: 11px; color: var(--text-secondary); }
+/* Fase 7 · descanso por ejercicio: hoja con el valor en mono, −/+ 15 s y
+   "Usar el general" (misma ubicación que la hoja "¿Salir?" de la sesión:
+   sin tapar la barra inferior ni el riel), y chip "⏱ 2:30" en la cabecera. */
+#descanso-ej-modal { z-index: 6000; }
+#descanso-ej-modal .modal-content { max-height: 100% !important; }
+html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
+@media (max-width: 767px) { #descanso-ej-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); } html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; } }
+@media (min-width: 768px) { #descanso-ej-modal { left: 72px; } }
+@media (min-width: 1024px) { #descanso-ej-modal { left: 220px; } }
+.descanso-ej-hoja { padding: 22px; }
+.descanso-ej-hoja h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary); }
+.descanso-ej-nombre { margin: 2px 0 16px; font-size: 13px; color: var(--text-secondary); }
+.descanso-ej-ctrl { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.descanso-ej-btn { width: 64px; height: 48px; flex-shrink: 0; padding: 0; background: transparent; border: 1px solid var(--cy3); color: var(--cy); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.descanso-ej-valor { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.descanso-ej-valor .num { font-size: 34px; font-weight: 800; color: var(--text-primary); }
+.descanso-ej-origen { font-size: 11px; color: var(--text-secondary); }
+.descanso-ej-general, .descanso-ej-listo { width: 100%; min-height: 44px; margin-top: 8px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.descanso-ej-general { background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); }
+.descanso-ej-general:disabled { opacity: 0.4; cursor: default; }
+.descanso-ej-listo { background: var(--cy); border: 1px solid var(--cy); color: var(--bg); }
+.descanso-ej-btn:focus-visible, .descanso-ej-general:focus-visible, .descanso-ej-listo:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }

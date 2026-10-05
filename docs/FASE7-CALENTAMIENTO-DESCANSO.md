@@ -67,6 +67,6 @@ Origen: docs/PLAN.md › Pendiente › FASE 7.
 | F1 Escalera de calentamiento | ddfbce3 | v269 |
 | F2 Calentamiento en la sesión | 41d86e2 | v270 |
 | F3 Calentamiento fuera de los cálculos | 0dd6648 | v271 |
-| F4 Descanso por ejercicio (datos) | | |
+| F4 Descanso por ejercicio (datos) | 451830b | v272 |
 | F5 Descanso por ejercicio (UI) | | |
 | F6 QA final y docs | | |
