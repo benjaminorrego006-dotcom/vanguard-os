@@ -140,10 +140,30 @@ function renderFranja(semana, hoyIso) {
   return `<div class="plan-franja" role="tablist" aria-label="Días de la semana">${semana.map(celda).join('')}</div>`;
 }
 
+// Menú ⋯ de un ítem (alternativa accesible a mantener presionado): "Mover
+// a" con los 7 días de la semana mostrada; el día actual queda deshabilitado.
+function menuMover(it, iso, semana) {
+  const texto = escapeHtml(it.texto);
+  const dias = semana.map((d, i) => {
+    const n = fechaLocalDe(d.iso).getDate();
+    const actual = d.iso === iso;
+    return `<button type="button" role="menuitem" class="plan-mover-dia tappable" data-iso="${d.iso}" ${actual ? 'aria-disabled="true" disabled' : ''} aria-label="Mover al ${DOW[i].toLowerCase()} ${n}"><span class="num">${DIA_CORTO[i]} ${n}</span></button>`;
+  }).join('');
+  return `
+    <button type="button" class="plan-menu-btn tappable" aria-haspopup="menu" aria-expanded="false" aria-label="Opciones de «${texto}»">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
+    </button>
+    <div class="plan-mover-menu" role="menu" aria-label="Mover «${texto}» a" hidden>
+      <span class="plan-mover-etq" aria-hidden="true">Mover a</span>
+      <div class="plan-mover-dias">${dias}</div>
+    </div>`;
+}
+
 // Fila de un ítem del día: check · texto · (Lista) vencimiento + prioridad,
-// (planificador) ✕ para borrar. El texto de una tarea de Lista abre su
-// detalle, como en Lista.
-function filaItem(it, iso, hoyIso) {
+// menú ⋯ (Mover a) y, en el planificador, ✕ para borrar. El texto de una
+// tarea de Lista abre su detalle, como en Lista. Mantener presionado el
+// ítem activa el modo "mover" (ver mountListeners).
+function filaItem(it, iso, hoyIso, semana) {
   const texto = escapeHtml(it.texto);
   const check = `
     <button type="button" class="plan-check tappable" aria-pressed="${it.hecha}" aria-label="${it.hecha ? `Desmarcar «${texto}»` : `Marcar «${texto}» como hecha`}">
@@ -156,12 +176,14 @@ function filaItem(it, iso, hoyIso) {
         ${check}
         <button type="button" class="plan-item-texto plan-item-abrir tappable" aria-label="${texto}. Abrir el detalle">${texto}</button>
         <span class="plan-item-meta">${venc ? `<span class="plan-venc">${venc}</span>` : ''}${renderPriorityBars(it.priority)}</span>
+        ${menuMover(it, iso, semana)}
       </li>`;
   }
   return `
     <li class="plan-item${it.hecha ? ' plan-item--hecha' : ''}" data-origen="plan" data-id="${escapeHtml(it.id)}">
       ${check}
       <span class="plan-item-texto">${texto}</span>
+      ${menuMover(it, iso, semana)}
       <button type="button" class="plan-delete tappable" aria-label="Eliminar «${texto}»">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
@@ -180,7 +202,7 @@ function renderDetalle(semana, hoyIso) {
         ${d.total ? `<span class="plan-detalle-cont num" aria-label="${d.hechas} de ${d.total} ${plural(d.total, 'hecha', 'hechas')}">${d.hechas}/${d.total}</span>` : ''}
       </div>
       ${d.items.length
-        ? `<ul class="plan-items">${d.items.map(it => filaItem(it, d.iso, hoyIso)).join('')}</ul>`
+        ? `<ul class="plan-items">${d.items.map(it => filaItem(it, d.iso, hoyIso, semana)).join('')}</ul>`
         : '<p class="plan-vacio">Nada para este día</p>'}
     </section>`;
 }
@@ -321,11 +343,115 @@ export function mountListeners() {
     });
   });
 
+  // --- Mover entre días ---------------------------------------------------
+  // Planificador → moverTareaPlan (tarea_reprogramada); Lista → saveTask({
+  // id, dueDate }) (tarea_actualizada). Toast "Movida al jueves".
+  const moverA = async (origen, id, iso) => {
+    const i = ultimaSemana ? ultimaSemana.semana.findIndex(d => d.iso === iso) : -1;
+    try {
+      if (origen === 'plan') await db.moverTareaPlan(id, iso);
+      else await db.saveTask({ id, dueDate: iso });
+      Toast(`Movida al ${i >= 0 ? DOW[i].toLowerCase() : formatFechaCorta(fechaLocalDe(iso))}`, 'success');
+    } catch (err) {
+      console.error('Error al mover la tarea:', err);
+      Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
+    }
+    await refresh();
+  };
+
+  // Modo "mover" (mantener presionado 500 ms un ítem): la franja se resalta
+  // y tocar un día lo mueve; tocar el mismo día, "Cancelar" o Escape salen.
+  let moviendo = null;
+  const salirDeMover = () => {
+    moviendo = null;
+    document.querySelector('.plan-franja')?.classList.remove('plan-franja--mover');
+    document.querySelectorAll('.plan-item--moviendo').forEach(li => li.classList.remove('plan-item--moviendo'));
+    document.getElementById('plan-mover-aviso')?.remove();
+    document.removeEventListener('keydown', escMover);
+  };
+  const escMover = (e) => { if (e.key === 'Escape') salirDeMover(); };
+  const entrarEnMover = (li) => {
+    moviendo = { origen: li.dataset.origen, id: li.dataset.id, desde: diaSeleccionado };
+    li.classList.add('plan-item--moviendo');
+    const franja = document.querySelector('.plan-franja');
+    franja?.classList.add('plan-franja--mover');
+    const texto = li.querySelector('.plan-item-texto').textContent.trim();
+    franja?.insertAdjacentHTML('afterend', `<div id="plan-mover-aviso" class="plan-mover-aviso" role="status"><span>Toca un día para mover «${escapeHtml(texto)}»</span><button type="button" id="plan-mover-cancelar" class="tappable">Cancelar</button></div>`);
+    document.getElementById('plan-mover-cancelar')?.addEventListener('click', salirDeMover);
+    document.addEventListener('keydown', escMover);
+    if (navigator.vibrate) navigator.vibrate(30);
+  };
+  // En modo mover, tocar un día mueve en vez de elegirlo (fase de captura,
+  // antes del click de la franja).
+  document.querySelector('.plan-franja')?.addEventListener('click', (e) => {
+    if (!moviendo) return;
+    const celda = e.target.closest('.plan-dia');
+    if (!celda) return;
+    e.stopPropagation();
+    const { origen, id, desde } = moviendo;
+    salirDeMover();
+    if (celda.dataset.iso !== desde) moverA(origen, id, celda.dataset.iso);
+  }, true);
+
   // Listeners del detalle: se reasignan cada vez que se repinta.
   const montarDetalle = () => {
     document.querySelectorAll('#plan-detalle .plan-item').forEach(li => {
       const id = li.dataset.id;
       const origen = li.dataset.origen;
+
+      // Mantener presionado 500 ms (sin moverse más de 10 px) → modo mover.
+      // El click que sigue al soltar no marca ni abre nada: el aviso que
+      // aparece corre el contenido y el dedo puede quedar sobre otro
+      // elemento, así que se traga ese click en todo el documento (solo el
+      // que viene con este mismo pointerup).
+      let timer = null, inicio = null, largo = false;
+      const tragarClickAlSoltar = () => {
+        const tragar = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+        document.addEventListener('click', tragar, { capture: true, once: true });
+        document.addEventListener('pointerup', () => setTimeout(() => document.removeEventListener('click', tragar, true), 50), { capture: true, once: true });
+      };
+      const cancelar = () => { clearTimeout(timer); timer = null; };
+      li.addEventListener('pointerdown', (e) => {
+        if (e.button > 0 || moviendo) return;
+        largo = false;
+        inicio = { x: e.clientX, y: e.clientY };
+        cancelar();
+        timer = setTimeout(() => { largo = true; timer = null; tragarClickAlSoltar(); entrarEnMover(li); }, 500);
+      });
+      li.addEventListener('pointermove', (e) => {
+        if (timer && inicio && Math.hypot(e.clientX - inicio.x, e.clientY - inicio.y) > 10) cancelar();
+      });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => li.addEventListener(ev, cancelar));
+      li.addEventListener('contextmenu', (e) => { if (largo || timer) e.preventDefault(); });
+
+      // Menú ⋯ → "Mover a" con los 7 días.
+      const menuBtn = li.querySelector('.plan-menu-btn');
+      const menu = li.querySelector('.plan-mover-menu');
+      const cerrarMenu = (foco) => {
+        if (menu.hidden) return;
+        menu.hidden = true;
+        menuBtn.setAttribute('aria-expanded', 'false');
+        if (foco) menuBtn.focus();
+      };
+      menuBtn?.addEventListener('click', () => {
+        const abrir = menu.hidden;
+        document.querySelectorAll('.plan-mover-menu').forEach(m => { m.hidden = true; });
+        document.querySelectorAll('.plan-menu-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        if (!abrir) return;
+        menu.hidden = false;
+        menuBtn.setAttribute('aria-expanded', 'true');
+        menu.querySelector('.plan-mover-dia:not([disabled])')?.focus();
+      });
+      menu?.addEventListener('keydown', (e) => {
+        const items = Array.from(menu.querySelectorAll('.plan-mover-dia:not([disabled])'));
+        const k = items.indexOf(document.activeElement);
+        if (e.key === 'Escape') { e.preventDefault(); cerrarMenu(true); }
+        else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); items[(k + 1) % items.length]?.focus(); }
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); items[(k - 1 + items.length) % items.length]?.focus(); }
+      });
+      menu?.querySelectorAll('.plan-mover-dia:not([disabled])').forEach(b => {
+        b.addEventListener('click', () => { cerrarMenu(false); moverA(origen, id, b.dataset.iso); });
+      });
       li.querySelector('.plan-check')?.addEventListener('click', async () => {
         if (origen === 'plan') await db.toggleTareaPlan(id);
         else await db.updateTaskStatus(id, li.classList.contains('plan-item--hecha') ? 'todo' : 'done');

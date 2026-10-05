@@ -778,3 +778,21 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .plan-tira-lista li { display: flex; flex-direction: column; gap: 1px; padding: 7px 0; border-top: 1px solid var(--line); }
 .plan-tira-item { font-size: 13px; color: var(--text-primary); overflow-wrap: anywhere; }
 .plan-tira-meta { font-size: 11px; color: var(--text-secondary); }
+/* Mover entre días: menú ⋯ con "Mover a" y los 7 días (alternativa
+   accesible) y el modo "mover" al mantener presionado un ítem (la franja se
+   resalta y un aviso explica qué hacer). */
+.plan-item { flex-wrap: wrap; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.plan-menu-btn { width: 44px; height: 44px; flex-shrink: 0; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; }
+.plan-menu-btn[aria-expanded="true"] { color: var(--vi); }
+.plan-item[data-origen="tarea"] .plan-menu-btn { margin-right: -12px; }
+.plan-mover-menu { flex-basis: 100%; display: flex; align-items: center; gap: 8px; padding: 0 0 10px 32px; }
+.plan-mover-menu[hidden] { display: none; }
+.plan-mover-etq { font-size: 11px; font-weight: 700; color: var(--text-secondary); white-space: nowrap; }
+.plan-mover-dias { display: flex; flex-wrap: wrap; gap: 4px; }
+.plan-mover-dia { min-width: 44px; min-height: 36px; padding: 0 6px; background: var(--surface-1); border: 1px solid var(--line); color: var(--text-primary); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.plan-mover-dia:disabled { opacity: 0.35; cursor: default; }
+.plan-menu-btn:focus-visible, .plan-mover-dia:focus-visible { outline: 2px solid var(--t1); outline-offset: -2px; }
+.plan-item--moviendo { background: var(--vis); outline: 1px solid var(--vi); outline-offset: -1px; }
+.plan-franja--mover .plan-dia { border-color: var(--vi); border-style: dashed; }
+.plan-mover-aviso { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -8px 0 14px; padding: 6px 6px 6px 12px; background: var(--vis); border: 1px solid var(--vib); font-size: 13px; color: var(--text-primary); }
+.plan-mover-aviso button { min-height: 36px; padding: 0 12px; background: transparent; border: 1px solid var(--line); color: var(--text-primary); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }

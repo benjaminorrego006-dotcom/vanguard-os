@@ -11,8 +11,8 @@ plan original decía v257). Revisión visual con capturas y maquetas: artifact
 | F1 — Datos de la semana (sin UI) | Hecha (03dce16, v259) |
 | F2 — Encabezado y franja de 7 días | Hecha (f12ab42, v260) |
 | F3 — Detalle del día | Hecha (bd2605a, v261) |
-| F4 — Input único + pendientes de días pasados | Hecha (commit de F4, v262) |
-| F5 — Mover entre días + color | Pendiente |
+| F4 — Input único + pendientes de días pasados | Hecha (9ed075e, v262) |
+| F5 — Mover entre días + color | Hecha (commit de F5, v263) |
 | F6 — Lista y Hábitos | Pendiente |
 | F7 — PC/tablet y QA | Pendiente |
 
