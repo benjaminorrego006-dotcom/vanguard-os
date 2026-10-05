@@ -22,6 +22,7 @@ import { renderProgreso, initProgresoListeners, setContextoCategoria, cleanup as
 import { renderMiniChart } from '../components/mini-chart.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
 import { renderSesionesHistorial, initSesionesHistorialListeners } from '../components/sesiones-historial.js';
+import { renderCuerpoTarjeta, renderCuerpoHistorial, renderMedidaForm, setupMedidaForm, initCuerpo } from '../components/cuerpo.js';
 
 // Placeholder hasta que exista el sistema de nivel del backlog (onboarding
 // de nivel dedicado, filtrado de rutinas por nivel, detección automática de
@@ -45,7 +46,7 @@ function ocultarTarjetaPerfilHoy() {
 const TIEMPO_ENTRENANDO_PILL ={ 'menos-1': 'Nivel: recién empezando', '1-3': 'Nivel: intermedio', 'mas-3': 'Nivel: experimentado' };
 
 let categoriaActiva = null;
-let viewState = 'main'; // 'main', 'rutinas', 'form', 'session', 'progreso', 'historial'
+let viewState = 'main'; // 'main', 'rutinas', 'form', 'session', 'progreso', 'historial', 'cuerpo'
 let rutinaActualId = null;
 let currentViewController = null;
 
@@ -226,12 +227,13 @@ function renderSesionEnCurso() {
 }
 
 export async function render() {
-  const [sesiones, rutinas, resumenSemanal, racha, profile] = await Promise.all([
+  const [sesiones, rutinas, resumenSemanal, racha, profile, medidas] = await Promise.all([
     db.getSesiones(),
     db.getRutinas(),
     db.getResumenEntrenoSemanal(),
     db.getRachaGeneral(),
-    db.getProfile()
+    db.getProfile(),
+    db.getMedidas()
   ]);
   const rutinasPorId = {};
   rutinas.forEach(r => { rutinasPorId[r.id] = r; });
@@ -408,6 +410,8 @@ export async function render() {
           </div>
         </div>
 
+        ${renderCuerpoTarjeta(medidas)}
+
         ${sesiones.length > 0 ? '<a id="link-historial-sesiones" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal); text-decoration: none; padding: 8px 0;">Historial de sesiones →</a>' : ''}
         <a id="link-ver-progreso-completo" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal); text-decoration: none; padding: 8px 0 24px 0;">Ver progreso completo →</a>
       </div>
@@ -421,6 +425,7 @@ export async function render() {
       </div>
 
       ${renderProfileForm()}
+      ${renderMedidaForm()}
       ${renderGeneradorConfigForm()}
       ${renderNivelOnboardingForm()}
     </div>
@@ -464,6 +469,9 @@ mountListeners = () => {
   }
 
   document.getElementById('link-historial-sesiones')?.addEventListener('click', (e) => { e.preventDefault(); goToHistorial(); });
+  // Cuerpo (Fase 6): la hoja de medidas y la tarjeta de la vista principal.
+  setupMedidaForm();
+  initCuerpo({ repintar: refreshFull, abrirHistorial: () => goToCuerpo() });
 
   // Sesión en curso (borrador): Retomar la abre con todo restaurado;
   // Descartar pide confirmación y lo borra.
@@ -655,6 +663,28 @@ mountListeners = () => {
       initSesionesHistorialListeners(signal);
     } catch (err) {
       console.error('Error renderizando el historial:', err);
+      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${escapeHtml(err.message)}</div>`;
+    }
+  };
+
+  // Cuerpo › historial de medidas (components/cuerpo.js). Guardar o
+  // eliminar repinta solo esta lista; Volver repinta la principal entera.
+  const goToCuerpo = async () => {
+    if (currentViewController) currentViewController.abort();
+    currentViewController = new AbortController();
+    const signal = currentViewController.signal;
+
+    viewState = 'cuerpo';
+    mostrarSubVista();
+    const refreshCuerpo = async () => {
+      if (viewState !== 'cuerpo') return;
+      subContent.innerHTML = renderCuerpoHistorial(await db.getMedidas());
+      initCuerpo({ repintar: refreshCuerpo, signal });
+    };
+    try {
+      await refreshCuerpo();
+    } catch (err) {
+      console.error('Error renderizando Cuerpo:', err);
       subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${escapeHtml(err.message)}</div>`;
     }
   };

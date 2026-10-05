@@ -938,3 +938,41 @@ html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
     0 100%, 0 var(--chaflan)
   );
 }
+
+/* Entreno › Cuerpo (docs/FASE6-MEDIDAS.md): tarjeta, historial y hoja de
+   medidas. Cian de Entreno; números en mono (.num). */
+.cuerpo-tarjeta { padding: 14px 16px; margin-bottom: 20px; border-left: 3px solid var(--cy); }
+.cuerpo-etq { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--cy); margin-bottom: 6px; }
+.cuerpo-peso { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.cuerpo-peso > .num { font-size: 24px; font-weight: 800; }
+.cuerpo-var { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.cuerpo-sub { margin: 4px 0 0; font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+.cuerpo-acciones { display: flex; gap: 8px; margin-top: 12px; }
+.cuerpo-btn { min-height: 44px; padding: 0 14px; background: transparent; border: 1px solid var(--cy3); color: var(--text-primary); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.cuerpo-btn--primario { flex: 1; background: var(--cy); border-color: var(--cy); color: var(--bg); }
+.cuerpo-btn:disabled { opacity: 0.5; cursor: default; }
+.cuerpo-btn:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
+.cuerpo-historial-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.cuerpo-historial-cab h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--text-primary); }
+.cuerpo-historial-cab .cuerpo-btn--primario { flex: 0 0 auto; }
+.cuerpo-lista { list-style: none; margin: 0; padding: 0; }
+.cuerpo-fila { padding: 12px 0; border-top: 1px solid var(--line); }
+.cuerpo-fila-dia { font-size: 12px; font-weight: 700; color: var(--cy); margin-bottom: 6px; }
+.cuerpo-fila-valores { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--text-primary); }
+.cuerpo-valor-etq { font-size: 12px; color: var(--text-secondary); }
+.cuerpo-fila-nota { margin: 6px 0 0; font-size: 13px; color: var(--text-secondary); line-height: 1.4; overflow-wrap: anywhere; }
+.cuerpo-fila-acciones { display: flex; gap: 8px; margin-top: 8px; }
+/* Hoja: sin tapar la barra inferior ni el riel (como #sesion-salir-modal). */
+#medida-modal .modal-content { max-height: 100% !important; }
+@media (max-width: 767px) { #medida-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); } }
+@media (min-width: 768px) { #medida-modal { left: 72px; } }
+@media (min-width: 1024px) { #medida-modal { left: 220px; } }
+.cuerpo-hoja h3 { margin: 0 0 14px; font-size: 18px; font-weight: 800; color: var(--text-primary); }
+.cuerpo-campo { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.cuerpo-campo input, .cuerpo-campo textarea { width: 100%; box-sizing: border-box; min-height: 44px; padding: 10px 12px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: 0; color: var(--text-primary); font: inherit; font-size: 16px; }
+.cuerpo-campo input[inputmode="decimal"] { font-family: var(--font-mono); }
+.cuerpo-campo input:focus-visible, .cuerpo-campo textarea:focus-visible { outline: 2px solid var(--cy); outline-offset: -1px; }
+.cuerpo-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.cuerpo-anterior { min-height: 14px; font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+.cuerpo-error { margin: 0 0 10px; padding: 8px 10px; border: 1px solid var(--rd); color: var(--rd); font-size: 13px; }
+.cuerpo-hoja-acciones { display: flex; gap: 8px; }

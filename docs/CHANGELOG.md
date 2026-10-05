@@ -10,6 +10,7 @@ reloj simulado, contextos limpios sin Supabase.
 | Fase | Caché | Qué cambia |
 |---|---|---|
 | F1 — Datos de medidas | v289 | `idb.js` pasa a `DB_VERSION` 5 con los stores `medidas` y `fotos_progreso` (keyPath `id`); la migración solo los crea. `medidas` entra en `STORES_RESPALDO` y `MIRROR_STORES`; `fotos_progreso` en ninguno. `db`: `getMedidas` (más reciente arriba: fecha y, el mismo día, `createdAt`), `ultimaMedida(campo)`, `registrarMedida`, `editarMedida` (null o '' quita un campo) y `eliminarMedida`, con eventos `medida_registrada` / `medida_editada` / `medida_eliminada` (modulo `perfil`, payload = la medida completa; al eliminar, solo la fecha). Replay en `applyRemoteEvent` y destino en el espejo. Validación (`normalizarMedida`): fecha válida y no futura, al menos un valor, peso 30–300 kg y perímetros 20–200 cm; acepta "78,4", redondea a un decimal y recorta la nota a 200 caracteres. Mensajes en español para la hoja de F2. Peso al perfil: al registrar o editar, si es la medida con peso más reciente, `saveProfile` con ese `pesoKg`; sin perfil guardado no se crea uno, y eliminar no toca el perfil. Restaurar un respaldo anterior a la Fase 6 (sin `medidas`) deja el store vacío, igual que su log. |
+| F2 — Registro y lista | v290 | Nuevo `js/components/cuerpo.js` (en `PRECACHE_URLS`). Entreno, vista principal: tarjeta "CUERPO" en cian bajo Volumen/Sesiones/IMC. Muestra el último peso y su variación contra el peso vigente hace 30 días ("78,4 kg · −1,2 en 30 días"; sin un registro de hace 30 días o más, va sin variación), "Último registro", "Registrar medidas" e "Historial". Sin medidas, invita a registrar. Hoja `#medida-modal` (`.modal-overlay` + `open`, sin tapar la barra ni el riel): fecha (hoy por defecto, sin días futuros), peso y 4 perímetros con `inputmode="decimal"` (aceptan "78,4"), nota opcional, y bajo cada campo "Anterior: 79,6 kg · 20 ago" (al editar, el anterior a esa medida). Los errores de validación de `db` se muestran en la hoja, sin cerrarla. Historial como sub-vista de Entreno (Atrás vuelve a la principal): medidas por fecha, la más reciente arriba, con Editar (vaciar un campo lo quita) y Eliminar ("¿Eliminar esta medida?", con el id y la fecha tomados antes del `await`). Guardar y eliminar repintan la vista abierta; el perfil toma el peso según F1, así el IMC se actualiza. |
 
 ### F1 — QA
 
@@ -23,6 +24,20 @@ reloj simulado, contextos limpios sin Supabase.
 - Replay de esos eventos en un segundo contexto: mismo store `medidas`.
 - Respaldo: "Exportar respaldo" trae `medidas` y sus eventos, y no `fotos_progreso`. Importado en un navegador limpio queda igual. Importar el respaldo demo (sin `medidas`) encima deja el store vacío.
 - 375×812 y 1280×800. Regresión: `qa-df5`, sin localStorage y `qa-respaldo-foco`. Consola limpia; ESLint `no-undef` limpio.
+
+### F2 — QA
+
+- 375×812 y 1280×800 (`qa-med2`, todo por la interfaz):
+  - Sin medidas, la tarjeta invita a registrar y no ofrece historial.
+  - La hoja abre con hoy (máximo hoy), teclado decimal y la navegación libre.
+  - Vacía, avisa "Ingresa al menos una medida."; con peso 500, "El peso tiene que estar entre 30 y 300 kg.", y no guarda.
+  - "79,6" el 20 ago se guarda. La segunda hoja muestra "Anterior: 79,6 kg · 20 ago" y "Anterior: 86 cm · 20 ago". Con "78,4" hoy, la tarjeta dice "78,4 kg · −1,2 en 30 días" y el perfil queda en 78.4.
+  - Atrás con la hoja abierta la cierra (desde la principal y desde el historial).
+  - Historial: "Jue 24 sept | Peso 78,4 kg | Cintura 85,5 cm | Brazo 35 cm | En ayunas" arriba de la del 20 ago.
+  - Editar abre con "78,4" y "85,5" y el anterior del 20 ago. Cambiar a "78,1" y vaciar el brazo lo quita.
+  - Eliminar pregunta "Se borra la medida del 20 ago. No se puede deshacer."; cancelar no borra y confirmar la quita. El log queda con 2 registradas, 1 editada y 1 eliminada.
+  - Atrás vuelve a la principal con "78,1 kg" y sin variación.
+- Regresión de Entreno: HUD (`qa-f6`), editar sesiones y navegación a 1280. Sin scroll horizontal. Consola limpia; ESLint `no-undef` limpio. Capturas `med2-*`.
 
 ## 5 oct 2026 — Tareas: dificultad y foco (`docs/PLAN-DIFICULTAD-FOCO.md`)
 

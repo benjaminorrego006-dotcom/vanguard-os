@@ -58,7 +58,7 @@ Origen: docs/PLAN.md › Pendiente › FASE 6.
 ## Estado
 | Fase | Commit | Caché |
 |---|---|---|
-| F1 Datos de medidas | | |
+| F1 Datos de medidas | 4110724 | v289 |
 | F2 Registro y lista | | |
 | F3 Gráficos | | |
 | F4 Fotos (local) | | |
