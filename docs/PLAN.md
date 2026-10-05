@@ -36,7 +36,7 @@ el resumen.
 
 ## Hecho
 
-Estado al 5 oct 2026 (`CACHE_NAME` v275). El detalle de cada tanda (commits,
+Estado al 5 oct 2026 (`CACHE_NAME` v286). El detalle de cada tanda (commits,
 caché y QA) está en `docs/CHANGELOG.md`.
 
 | | Estado |
@@ -65,6 +65,7 @@ caché y QA) está en `docs/CHANGELOG.md`.
 | Sesión activa "Cabina HUD" (`docs/REDISENO-SESION-HUD.md`): borrador en localStorage, pantalla completa, HUD, riel y un ejercicio por pantalla, tabla + editor + botón principal, descanso en el HUD con pantalla encendida, récord en vivo y resumen al finalizar (GYM y Calistenia; HIIT y Descanso activo sin cambios). Además: la app arranca con localStorage bloqueado y las series por tiempo ("30s") se conservan | hecho (`c35e30f` → cierre, v243–v257) |
 | Semana "Tablero de día" (`docs/REDISENO-SEMANA.md`): franja de 7 días + detalle de un día con ítems del planificador y tareas de Lista con fecha, input único con el día elegido, tira de pendientes de días pasados (= atrasadas de Hoy, `js/utils/atrasadas.js`) con "Pasar a hoy", mover entre días (mantener presionado o menú ⋯), 7 columnas desde 900 px; Lista sin dona y Hábitos con una sola racha, con el "+" en el encabezado | hecho (`03dce16` → `a4f4887`, v259–v268) |
 | Fase 7 — Calentamiento y descanso por ejercicio (`docs/FASE7-CALENTAMIENTO-DESCANSO.md`): escalera a pedido desde el ⋯ (barra, mancuernas y máquina, con discos por lado en barra), calentamiento fuera de volumen, récords, resumen y Laboratorio, ANTERIOR por tipo, y descanso por ejercicio (override en settings, hoja en la sesión, chip, superserie = el mayor) | hecho (`ddfbce3` → F6, v269–v273) |
+| Dificultad y foco de tareas (`docs/PLAN-DIFICULTAD-FOCO.md`): dificultad fácil/media/difícil en el formulario (sin campo = media), marcas en Lista y Semana y puntos por semana en Laboratorio; foco de 25 min + 5 de pausa desde el detalle, el ⋯ de Semana y la línea de Hoy, que sobrevive a recargar y a cerrar la app, con `foco_completado` en el log, "N focos · X min" en el detalle y minutos por semana y tarea con más foco del mes en Laboratorio | hecho (`ef75014` → F5, v282–v286) |
 
 ---
 
@@ -76,17 +77,6 @@ Avisos de hábitos, tareas y cobros recurrentes. **Requieren un servidor de
 push** (Web Push con claves VAPID y un backend que envíe): una PWA sin
 servidor no puede notificar con la app cerrada. Decidir el backend antes de
 implementar.
-
-### Dificultad de tareas
-
-Campo de dificultad/esfuerzo por tarea (y su uso en la agenda de Hoy y en
-Laboratorio). Retrocompatible: las tareas existentes sin el campo siguen
-funcionando.
-
-### Pomodoro
-
-Temporizador de foco asociado a una tarea, con su registro en el log de
-eventos.
 
 ### FASE 6 — Medidas corporales históricas y fotos de progreso
 
