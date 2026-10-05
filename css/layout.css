@@ -849,3 +849,7 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .plan-col .plan-item--col .plan-menu-btn, .plan-col .plan-item--col .plan-delete { margin: 0; }
 .plan-col .plan-mover-menu { flex-direction: column; align-items: flex-start; padding: 2px 0 6px var(--plan-col-sangria); }
 .plan-col .plan-vacio { border-top: none; margin: 0; padding: 10px 2px; font-size: 12px; }
+
+/* Fase 7 · calentamiento: bajo cada fila de calentamiento en barra, los
+   discos por lado en una línea chica (sin popover). */
+.serie-discos { margin: -2px 0 6px 38px; font-size: 11px; color: var(--text-secondary); }

@@ -4,11 +4,12 @@ import { renderEjercicioDetalle, initEjercicioDetalleChart } from './ejercicio-d
 import { calcularDiscos, renderPlateCalculatorPopover } from './plate-calculator.js';
 import { getProgressionLevel, RAMA_LABELS } from '../core/progresiones.js';
 import { metadataDeEjercicio, CATALOGO_EJERCICIOS, grupoMuscularParaMapa, GRUPO_MUSCULAR_LABELS } from '../core/ejercicios-catalogo.js';
-import { ConfirmDialog } from '../utils/states.js';
+import { ConfirmDialog, Toast } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { guardarBorrador, borrarBorrador, esBorradorLargo } from '../utils/sesion-borrador.js';
 import { formatFechaCorta } from '../utils/fecha.js';
 import { formatNumero } from '../utils/numero.js';
+import { escaleraCalentamiento, EQUIPOS_CON_CALENTAMIENTO } from '../utils/calentamiento.js';
 import { MuscleMap, sumarFatigaPorGrupo, expandirIntensidadPorMusculo, FATIGA_REFERENCIA } from './mk3-muscle-map.js';
 import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
 
@@ -398,7 +399,7 @@ export async function renderRutinaSession(rutina) {
     }
 
     html += `
-      <div class="card ejercicio-sesion-block" id="sesion-ej-${idx}" role="tabpanel" data-ej-idx="${idx}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" data-peso-corporal="${esCorporal}"${esSegundoDelGrupo ? ' data-superserie-segundo="true"' : ''}>
+      <div class="card ejercicio-sesion-block" id="sesion-ej-${idx}" role="tabpanel" data-ej-idx="${idx}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" data-peso-corporal="${esCorporal}" data-equipo="${escapeHtml((meta && meta.equipo) || '')}"${esSegundoDelGrupo ? ' data-superserie-segundo="true"' : ''}>
         ${supChipHtml}
         <div class="sesion-ej-cabecera">
           <div class="sesion-ej-titulo">
@@ -413,6 +414,7 @@ export async function renderRutinaSession(rutina) {
               ${tieneTecnica ? `<button type="button" role="menuitem" class="btn-info-ejercicio" data-ejnombre="${escapeHtml(ej.nombre)}">Técnica</button>` : ''}
               <button type="button" role="menuitem" class="btn-ver-progreso" data-ejnombre="${escapeHtml(ej.nombre)}">Progreso</button>
               <button type="button" role="menuitem" class="btn-plate-calc">Calculadora de discos</button>
+              ${meta && EQUIPOS_CON_CALENTAMIENTO.includes(meta.equipo) ? `<button type="button" role="menuitem" class="btn-calentamiento">${ej.series.some(s => s.tipo === 'calentamiento') ? 'Rehacer calentamiento' : 'Agregar calentamiento'}</button>` : ''}
             </div>
           </div>
         </div>
@@ -1027,6 +1029,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
 
   const guardar = () => {
     if (!document.getElementById('btn-finalizar-sesion')) return; // la vista ya no está
+    actualizarCalentamientos();
     const activo = bloqueActivo();
     if (activo) actualizarEditor(activo);
     actualizarPrincipal();
@@ -1045,6 +1048,81 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       descanso: descanso ? { hasta: descanso.hasta, total: descanso.total, avanzar: avanzarTrasDescanso } : null
     });
   };
+  // --- Calentamiento (docs/FASE7-CALENTAMIENTO-DESCANSO.md, F2) ----------
+  const esCalentamiento = (row) => row.querySelector('.serie-tipo').value === 'calentamiento';
+  // En barra, bajo cada fila de calentamiento, los discos por lado ("por
+  // lado: 20 + 5"; "solo la barra" si no lleva discos). Se recalcula en cada
+  // guardar(), así sigue al peso si se edita y a un cambio de tipo, y vuelve
+  // a aparecer al retomar el borrador.
+  const actualizarCalentamientos = () => {
+    document.querySelectorAll('.ejercicio-sesion-block').forEach(b => {
+      const tieneCal = Array.from(b.querySelectorAll('.serie-row')).some(esCalentamiento);
+      const item = b.querySelector('.btn-calentamiento');
+      if (item) item.textContent = tieneCal ? 'Rehacer calentamiento' : 'Agregar calentamiento';
+      const enBarra = b.dataset.equipo === 'barra';
+      b.querySelectorAll('.serie-row').forEach(row => {
+        let linea = row.nextElementSibling && row.nextElementSibling.classList.contains('serie-discos') ? row.nextElementSibling : null;
+        const peso = parseFloat(row.querySelector('.serie-peso').value) || 0;
+        if (!enBarra || !esCalentamiento(row) || peso <= 0) { if (linea) linea.remove(); return; }
+        const discos = calcularDiscos(peso, 20);
+        const texto = discos.length ? `por lado: ${discos.map(d => formatNumero(d, { decimales: 2 })).join(' + ')}` : 'solo la barra';
+        if (!linea) { linea = document.createElement('div'); linea.className = 'serie-discos num'; row.after(linea); }
+        if (linea.textContent !== texto) linea.textContent = texto;
+      });
+    });
+  };
+  // Números de fila (chip y etiquetas) después de insertar o quitar filas.
+  const renumerarFilas = (b) => {
+    b.querySelectorAll('.serie-row').forEach((row, i) => {
+      const n = i + 1;
+      const chip = row.querySelector('.serie-tipo-chip');
+      chip.textContent = String(n);
+      chip.setAttribute('aria-label', chip.getAttribute('aria-label').replace(/^Serie \d+/, `Serie ${n}`));
+      row.querySelector('.serie-peso').setAttribute('aria-label', `Kilos de la serie ${n}`);
+      row.querySelector('.serie-reps').setAttribute('aria-label', `Repeticiones o segundos de la serie ${n}`);
+      row.querySelector('.serie-rpe').setAttribute('aria-label', `RPE de la serie ${n}`);
+    });
+  };
+  // "Agregar calentamiento" / "Rehacer calentamiento": escalera según el peso
+  // de la primera serie normal en pantalla (o, si está vacía, la primera
+  // normal de la última vez). Rehacer quita los calentamientos sin marcar y
+  // deja los marcados; los pasos que esos ya cubren no se repiten.
+  const agregarCalentamiento = (b) => {
+    const filas = Array.from(b.querySelectorAll('.serie-row'));
+    const primeraNormal = filas.find(r => !esCalentamiento(r));
+    const anterior = currentAnterior[b.dataset.ejNombre];
+    const normalAnterior = anterior && Array.isArray(anterior.series) ? anterior.series.find(s => (s.tipo || 'normal') !== 'calentamiento') : null;
+    const pesoBase = (primeraNormal && parseFloat(primeraNormal.querySelector('.serie-peso').value)) || (normalAnterior && parseFloat(normalAnterior.peso)) || 0;
+    if (!(pesoBase > 0)) { Toast('Escribe primero el peso de tu primera serie', 'error'); return; }
+    const escalera = escaleraCalentamiento({ pesoTrabajo: pesoBase, equipo: b.dataset.equipo });
+    if (!escalera.length) { Toast('Con ese peso no hace falta calentar', 'info'); return; }
+    const rehacer = filas.some(esCalentamiento);
+    filas.filter(r => esCalentamiento(r) && !estaMarcada(r)).forEach(r => {
+      const sig = r.nextElementSibling;
+      if (sig && sig.classList.contains('serie-discos')) sig.remove();
+      r.remove();
+    });
+    const marcadas = Array.from(b.querySelectorAll('.serie-row')).filter(esCalentamiento);
+    const nuevas = escalera.slice(marcadas.length);
+    const lista = b.querySelector('.series-list');
+    const html = nuevas.map((p, i) => renderSerieRowHtml({ tipo: 'calentamiento', peso: String(p.peso), reps: String(p.reps), rpe: null, checked: false }, i, null)).join('');
+    const ultimaMarcada = marcadas[marcadas.length - 1];
+    if (ultimaMarcada) {
+      const tras = ultimaMarcada.nextElementSibling && ultimaMarcada.nextElementSibling.classList.contains('serie-discos') ? ultimaMarcada.nextElementSibling : ultimaMarcada;
+      tras.insertAdjacentHTML('afterend', html);
+    } else {
+      lista.insertAdjacentHTML('afterbegin', html);
+    }
+    const todas = Array.from(b.querySelectorAll('.serie-row'));
+    const desde = ultimaMarcada ? todas.indexOf(ultimaMarcada) + 1 : 0;
+    todas.slice(desde, desde + nuevas.length).forEach(wireSerieRow);
+    renumerarFilas(b);
+    marcarActivo(b);
+    fijarToca(b, null);
+    guardar();
+    Toast(rehacer ? 'Calentamiento rehecho' : `Calentamiento: ${nuevas.length} ${nuevas.length === 1 ? 'serie' : 'series'}`, 'success');
+  };
+
   const marcarActivo = (el) => {
     const bloque = el && el.closest && el.closest('.ejercicio-sesion-block');
     if (bloque) ejercicioActivo = Number(bloque.dataset.ejIdx);
@@ -1544,6 +1622,13 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
 
   document.querySelectorAll('.serie-row').forEach(wireSerieRow);
   document.addEventListener('click', closeTipoPopovers, { signal });
+
+  document.querySelectorAll('.btn-calentamiento').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const b = btn.closest('.ejercicio-sesion-block');
+      if (b) agregarCalentamiento(b);
+    }, { signal });
+  });
 
   document.querySelectorAll('.btn-add-serie').forEach(btn => {
     btn.addEventListener('click', () => {
