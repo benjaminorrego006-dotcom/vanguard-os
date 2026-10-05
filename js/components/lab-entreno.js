@@ -10,6 +10,7 @@ import { EmptyState, ConfirmDialog } from '../utils/states.js';
 import { GRUPO_MUSCULAR_ORDEN, GRUPO_MUSCULAR_LABELS, agruparPorGrupoMuscular } from '../core/ejercicios-catalogo.js';
 import { formatFechaCorta, formatFechaLarga, fechaLocalDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
+import { formatNumero } from '../utils/numero.js';
 
 export const TABS = [
   { id: 'desglose', label: 'Desglose' },
@@ -146,10 +147,10 @@ async function renderDesglose() {
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-        ${resumenCardHtml('Entrenamientos', data.entrenamientos)}
-        ${resumenCardHtml('Series totales', data.seriesTotales)}
-        ${resumenCardHtml('Repeticiones totales', data.repsTotales)}
-        ${resumenCardHtml('Volumen total (kg)', Math.round(data.volumenTotal).toLocaleString('es-ES'))}
+        ${resumenCardHtml('Entrenamientos', formatNumero(data.entrenamientos))}
+        ${resumenCardHtml('Series totales', formatNumero(data.seriesTotales))}
+        ${resumenCardHtml('Repeticiones totales', formatNumero(data.repsTotales))}
+        ${resumenCardHtml('Volumen total (kg)', formatNumero(Math.round(data.volumenTotal), { decimales: 0 }))}
       </div>
     </div>
   `;
@@ -179,7 +180,7 @@ async function initDesgloseChart() {
       cutout: '68%',
       plugins: {
         ...opts.plugins,
-        tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed}` } }
+        tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.label}: ${formatNumero(ctx.parsed)}` } }
       }
     }
   });
@@ -281,14 +282,14 @@ async function initEjercicioChart() {
       layout: { padding: { top: 18 } },
       plugins: {
         ...opts.plugins,
-        tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.parsed.y}${unidad}` } }
+        tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${formatNumero(ctx.parsed.y)}${unidad}` } }
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
         y: { display: false }
       }
     },
-    plugins: [lineValueLabelsPlugin(cssVar('--text-primary'), unidad)]
+    plugins: [lineValueLabelsPlugin(cssVar('--text-primary'), unidad, (v) => formatNumero(v))]
   });
 }
 
@@ -312,7 +313,7 @@ async function renderMetas() {
 
 const renderPRCard = (pr) => {
   const esPesoCorporal = pr.pesoMax === 0;
-  const valorTxt = esPesoCorporal ? `${pr.repsMax} reps` : `${pr.pesoMax}kg × ${pr.repsMax}`;
+  const valorTxt = esPesoCorporal ? `${formatNumero(pr.repsMax)} reps` : `${formatNumero(pr.pesoMax)}kg × ${formatNumero(pr.repsMax)}`;
   return `
     <div class="card" style="padding: 14px 16px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
       <div style="min-width: 0;">

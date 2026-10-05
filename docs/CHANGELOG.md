@@ -5,11 +5,16 @@
 | Arreglo | Caché | Qué cambia |
 |---|---|---|
 | Hoja "¿Salir?" sin espera fija | v274 | `preguntarOpciones` (la hoja "¿Salir?" de la sesión) ya no espera 500 ms fijos al cerrarse con un botón: espera el `popstate` real con `esperarSalidaDeModal` (`js/core/history.js`), el mismo criterio de la limpieza anterior. Ya no queda ninguna espera fija de 500 ms en el código. |
+| Números del Laboratorio en es-CL | v275 | Todo número del Laboratorio pasa por `formatNumero` (`utils/numero.js`, es-CL con punto de miles). Lab › Entreno: las tarjetas del resumen (entrenamientos, series, repeticiones y el volumen, que usaba `toLocaleString('es-ES')` y salía "1256"), el tooltip de la dona, el tooltip y las etiquetas de valor del gráfico por ejercicio (antes "57.5"), y los récords ("47,5kg × 8"). Lab › Semana: su `Intl.NumberFormat` propio y los `toFixed(1).replace('.', ',')` de la energía (en el texto y en el aria-label) pasan a `formatNumero` (la energía entera sale "7" en vez de "7,0"). Revisados con grep `lab-*.js`, `components/laboratorio.js` y `views/laboratorio.js`: no queda `toLocaleString`, `es-ES`, `Intl.NumberFormat` ni `toFixed`. |
 
 ### Hoja "¿Salir?" — QA
 
 - 375×812 y 1280×800 con la CPU frenada ×4, de a una: "Cancelar" cierra la hoja y queda en la sesión sin entrada de modal colgando; Atrás con la hoja abierta la cierra y queda en la sesión; "Salir" vuelve a la lista de rutinas con el borrador, y Atrás desde ahí va a la principal con la tarjeta "sesión en curso" sin reabrir la hoja; Retomar y "Descartar sesión" borran el borrador y vuelven a la principal sin la tarjeta, y Atrás después no vuelve a la sesión ni a la hoja. Regresión: pantalla completa (fase 2 del HUD), QA final del HUD y esperas sin tiempo fijo a 375. Consola limpia; ESLint `no-undef` limpio.
 
+
+### Números del Laboratorio — QA
+
+- La misma sesión de la QA final de la Fase 7 (calentamientos en barra, mancuernas y máquina; 3 series normales), a 375×812 y 1280×800: el volumen se ve "1.256" en el HUD, en el resumen ("1.256 kg") y en Laboratorio › Entreno ("1.256", antes "1256"), y "volumen 1.256" en Laboratorio › Semana (semana en curso). Récords con coma decimal ("22,5kg × 11"), sin ningún "x.5kg". Regresión: la QA de ejercicio libre (que abre Récords) a 375. Consola limpia; ESLint `no-undef` limpio. Captura `arreglo-lab-numeros-*`.
 
 ## 6 oct 2026 — Fase 7: calentamiento y descanso por ejercicio (`docs/FASE7-CALENTAMIENTO-DESCANSO.md`)
 

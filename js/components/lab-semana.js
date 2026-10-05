@@ -8,6 +8,7 @@
 import { db } from '../core/db.js';
 import { formatCurrency } from '../utils/currency.js';
 import { escapeHtml } from '../utils/escape.js';
+import { formatNumero } from '../utils/numero.js';
 import { diaKeyDe, sumarDias, fechaLocalDe, formatDiaSemana } from '../utils/fecha.js';
 import { svgEscudo } from './racha-reactor.js';
 
@@ -34,7 +35,7 @@ const lunesDe = (clave) => {
 const lunesActual = () => lunesDe(diaKeyDe(new Date()));
 const lunesPorDefecto = () => sumarDias(lunesActual(), -7);
 
-const numero = (n) => new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 }).format(Math.round(n));
+const numero = (n) => formatNumero(Math.round(n), { decimales: 0 });
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 const num = (texto) => `<span class="num">${texto}</span>`;
 // Un par número + texto ("1 atrasada") no se parte entre líneas.
@@ -114,7 +115,7 @@ function renderBloques(s) {
     aria: h.pct === null ? 'Hábitos: sin hábitos para esta semana' : `Hábitos: ${h.pct} % cumplido${h.mejor ? `, mejor ${h.mejor.nombre} ${h.mejor.pct} %` : ''}${h.masFlojo ? `, más flojo ${h.masFlojo.nombre} ${h.masFlojo.pct} %` : ''}`
   });
   const dias = s.diasContados;
-  const energia = g.diasRitual > 0 && g.energia !== null ? `${dato(`Energía ${num(g.energia.toFixed(1).replace('.', ','))}`)} · ${dato(`${num(g.diasEnergia)} de ${num(dias)} días`)}` : '';
+  const energia = g.diasRitual > 0 && g.energia !== null ? `${dato(`Energía ${num(formatNumero(g.energia, { decimales: 1 }))}`)} · ${dato(`${num(g.diasEnergia)} de ${num(dias)} días`)}` : '';
   const general = bloque({
     modulo: null, color: 'var(--t2)', titulo: 'General',
     lineas: [
@@ -123,7 +124,7 @@ function renderBloques(s) {
       g.diasRitual > 0 ? dato(`Ritual ${num(g.diasRitual)} de ${num(dias)} días`) : '',
       energia
     ],
-    aria: `General: racha ${plural(g.rachaAlCierre ?? 0, 'día', 'días')} y ${plural(g.vidasAlCierre ?? 0, 'vida', 'vidas')} al cierre, ${g.diasActivos} de ${dias} días activos, ${plural(g.diasProtegidos, 'protegido', 'protegidos')}${g.diasRitual > 0 ? `, Ritual ${g.diasRitual} de ${dias} días` : ''}${energia ? `, energía ${g.energia.toFixed(1).replace('.', ',')} en ${plural(g.diasEnergia, 'día', 'días')}` : ''}`
+    aria: `General: racha ${plural(g.rachaAlCierre ?? 0, 'día', 'días')} y ${plural(g.vidasAlCierre ?? 0, 'vida', 'vidas')} al cierre, ${g.diasActivos} de ${dias} días activos, ${plural(g.diasProtegidos, 'protegido', 'protegidos')}${g.diasRitual > 0 ? `, Ritual ${g.diasRitual} de ${dias} días` : ''}${energia ? `, energía ${formatNumero(g.energia, { decimales: 1 })} en ${plural(g.diasEnergia, 'día', 'días')}` : ''}`
   });
   return `<div class="semana-bloques">${entreno}${finanzas}${tareas}${habitos}${general}</div>`;
 }
