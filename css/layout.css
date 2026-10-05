@@ -840,7 +840,7 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .plan-col .plan-check { width: 26px; height: 32px; margin-left: -6px; }
 .plan-col .plan-item-texto { display: block; flex: 1; min-width: 0; padding: 7px 0 0; font-size: 13px; line-height: 1.35; text-align: left; }
 .plan-col .plan-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.plan-fila-l2 { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 32px; padding-left: var(--plan-col-sangria); white-space: nowrap; overflow: hidden; }
+.plan-fila-l2 { display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 32px; padding-left: var(--plan-col-sangria); white-space: nowrap; overflow: hidden; }
 /* Tarea de Lista pendiente en un día pasado: borde del check en --rd. */
 .plan-col .plan-item--vencida .plan-check-caja { border-color: var(--rd); }
 .plan-fila-acciones { display: flex; align-items: center; gap: 0; margin-left: auto; flex-shrink: 0; }
@@ -875,3 +875,15 @@ html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
 .descanso-ej-general:disabled { opacity: 0.4; cursor: default; }
 .descanso-ej-listo { background: var(--cy); border: 1px solid var(--cy); color: var(--bg); }
 .descanso-ej-btn:focus-visible, .descanso-ej-general:focus-visible, .descanso-ej-listo:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
+
+/* Dificultad (docs/PLAN-DIFICULTAD-FOCO.md, F2): marca chica "FÁCIL" /
+   "DIFÍCIL" (o "F" / "D" en las columnas de Semana) en mono, color texto
+   secundario; la media no se marca. Laboratorio: puntos por semana. */
+.dif-marca { flex-shrink: 0; font-size: 10px; font-weight: 700; letter-spacing: 0.6px; color: var(--text-secondary); white-space: nowrap; }
+.dif-marca--letra { letter-spacing: 0; }
+.lab-puntos-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.lab-puntos-fila { display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 10px; font-size: 12px; color: var(--text-secondary); }
+.lab-puntos-sem { color: var(--text-secondary); }
+.lab-puntos-barra { height: 8px; background: var(--vid); }
+.lab-puntos-barra > span { display: block; height: 100%; background: var(--vi); }
+.lab-puntos-val { color: var(--text-primary); font-weight: 700; white-space: nowrap; }

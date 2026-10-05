@@ -4,6 +4,7 @@ import { mesKeyDe, diaKeyDe, diasEntre, sumarDias, claveDiaDe, fechaLocalDe, com
 import { EQUIPO_OPCIONES } from './trainingConfig.js';
 import { generarObservaciones } from './observaciones-semana.js';
 import { seriesDeTrabajo } from '../utils/tipo-serie.js';
+import { pesoDificultad } from '../utils/dificultad.js';
 import { estadoNetoSesion, sesionesVigentesDesdeEventos } from './sesiones-estado.js';
 
 function toSafeNumber(value) {
@@ -526,7 +527,13 @@ const TIPOS_TAREA_NETA = new Set(['tarea_completada', 'tarea_reabierta', 'tarea_
 // módulo Tareas para getRachaTareas). Devuelve [claves de día], una por
 // tarea completada neta (con repetidos si hubo varias el mismo día).
 function diasTareasCompletadasNetos(eventos, filtro = () => true) {
-  const activas = new Map();  // `${modulo}|${id}|${dia}` -> dia
+  return tareasCompletadasNetas(eventos, filtro).map(x => x.dia);
+}
+
+// Igual que diasTareasCompletadasNetos, pero con la tarea: [{ modulo, id,
+// dia }] (una por tarea y día en que quedó completada de forma neta).
+function tareasCompletadasNetas(eventos, filtro = () => true) {
+  const activas = new Map();  // `${modulo}|${id}|${dia}` -> { modulo, id, dia }
   const ultimoDia = new Map(); // `${modulo}|${id}` -> último día en que se completó
   eventos
     .filter(e => TIPOS_TAREA_NETA.has(e.tipo) && filtro(e))
@@ -535,7 +542,7 @@ function diasTareasCompletadasNetos(eventos, filtro = () => true) {
       const tarea = `${e.modulo}|${e.entidadId}`;
       if (e.tipo === 'tarea_completada') {
         const dia = diaKeyDe(new Date(e.ts));
-        activas.set(`${tarea}|${dia}`, dia);
+        activas.set(`${tarea}|${dia}`, { modulo: e.modulo, id: e.entidadId, dia });
         ultimoDia.set(tarea, dia);
       } else {
         const dia = e.tipo === 'tarea_reabierta' && e.payload && e.payload.fecha ? claveDiaDe(e.payload.fecha) : ultimoDia.get(tarea);
@@ -3016,6 +3023,28 @@ export const db = {
   // Tareas completadas por semana, últimas `semanas` semanas — mismo
   // patrón que getTendenciaSemanal (Entreno) pero sobre el log de eventos
   // de Tareas ('tarea_completada'). Orden cronológico (antiguo -> reciente).
+  // Tareas y "puntos" completados por semana de calendario (lunes–domingo),
+  // las últimas `semanas` (la última es la actual). Puntos = peso de la
+  // dificultad actual de cada tarea (fácil 1, media 2, difícil 3; sin campo
+  // = media). Cuenta las completadas netas (una reabierta no cuenta; una
+  // eliminada tampoco). [{ lunes, tareas, puntos }], de la más antigua a la
+  // actual.
+  async getPuntosTareasPorSemana(semanas = 8) {
+    const [eventos, tareas] = await Promise.all([idb.getAll('events'), idbGetArray('tareas')]);
+    const porId = new Map(tareas.map(t => [t.id, t]));
+    const hoy = diaKeyDe(new Date());
+    const lunesActual = sumarDias(hoy, -((fechaLocalDe(hoy).getDay() + 6) % 7));
+    const lunes0 = sumarDias(lunesActual, -7 * (semanas - 1));
+    const out = Array.from({ length: semanas }, (_, i) => ({ lunes: sumarDias(lunes0, 7 * i), tareas: 0, puntos: 0 }));
+    tareasCompletadasNetas(eventos, e => e.modulo === 'tareas').forEach(({ id, dia }) => {
+      const k = Math.floor(diasEntre(lunes0, dia) / 7);
+      if (k < 0 || k >= semanas) return;
+      out[k].tareas++;
+      out[k].puntos += pesoDificultad(porId.get(id));
+    });
+    return out;
+  },
+
   async getTendenciaTareasCompletadas(semanas = 8) {
     const eventos = await idb.getAll('events');
     const tareaEventos = eventos.filter(e => e.modulo === 'tareas' && e.tipo === 'tarea_completada');

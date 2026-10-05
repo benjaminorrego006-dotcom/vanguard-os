@@ -57,7 +57,7 @@ Origen: docs/PLAN.md › Pendiente › Dificultad de tareas y Pomodoro.
 ## Estado
 | Fase | Commit | Caché |
 |---|---|---|
-| F1 Dificultad: datos y formulario | | |
+| F1 Dificultad: datos y formulario | ef75014 | v282 |
 | F2 Dificultad: dónde se ve | | |
 | F3 Foco: temporizador | | |
 | F4 Foco: registro y métricas | | |

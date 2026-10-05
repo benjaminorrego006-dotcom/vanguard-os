@@ -7,6 +7,7 @@ import { formatFechaCorta, formatMes } from '../utils/fecha.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import * as Planificador from './planificador.js';
 import { renderPriorityBars } from '../utils/prioridad.js';
+import { marcaDificultad } from '../utils/dificultad.js';
 
 // Buscador del encabezado: desplegado o no. Vive en el módulo para que un
 // refresh (marcar, crear) no lo cierre a la mitad de una búsqueda.
@@ -151,6 +152,7 @@ function renderUrgentTask(task) {
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
         <h4 style="margin:0; font-size:15px; font-weight:800; color:var(--text-primary); line-height:1.3;">${escapeHtml(task.title)}</h4>
         <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+          ${marcaDificultad(task)}
           ${renderPriorityBars(task.priority)}
           ${renderAdvanceButton(task)}
         </div>
@@ -169,6 +171,7 @@ function renderColaTask(task) {
         <span style="font-size:13px; font-weight:600; color:var(--t5); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(task.title)}</span>
         <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
           ${due ? `<span style="font-size:10px; font-weight:700; color:var(--t5); flex-shrink:0;">${due.text}</span>` : ''}
+          ${marcaDificultad(task)}
           ${renderAdvanceButton(task)}
         </div>
       </div>
@@ -185,6 +188,7 @@ function renderStatusTask(task) {
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
         <h4 style="margin:0; font-size:15px; font-weight:800; line-height:1.3; color:${isDone ? 'var(--text-disabled)' : 'var(--text-primary)'}; ${isDone ? 'text-decoration:line-through;' : ''}">${escapeHtml(task.title)}</h4>
         <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+          ${marcaDificultad(task)}
           ${renderPriorityBars(task.priority)}
           ${renderAdvanceButton(task)}
         </div>

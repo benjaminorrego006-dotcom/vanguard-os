@@ -5,8 +5,9 @@
 import { db } from '../core/db.js';
 import { renderDonutChart, renderDonutLegend, destroyAllDonuts } from './donut-chart.js';
 import { EmptyState } from '../utils/states.js';
-import { formatFechaLarga } from '../utils/fecha.js';
+import { formatFechaLarga, formatFechaCorta, fechaLocalDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
+import { formatNumero } from '../utils/numero.js';
 
 export const TABS = [
   { id: 'desglose', label: 'Desglose' },
@@ -44,6 +45,24 @@ async function renderDesglose() {
     ? EmptyState('Sin tareas todavía', 'Crea tu primera tarea para ver el desglose.')
     : `<div style="height: 200px;"><canvas id="lab-tar-donut"></canvas></div><div style="margin-top: 14px;">${renderDonutLegend(entries)}</div>`;
 
+  // Últimas 8 semanas: tareas y puntos completados (peso por dificultad).
+  const semanas = await db.getPuntosTareasPorSemana(8);
+  const maxPuntos = Math.max(1, ...semanas.map(s => s.puntos));
+  const actual = semanas[semanas.length - 1];
+  const semanasHtml = `
+      <div class="card lab-puntos" style="padding: 18px; border-radius: 18px; margin-bottom: 20px;">
+        <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 6px 0;">Puntos completados · 8 semanas</h3>
+        <p style="margin: 0 0 14px 0; font-size: 12.5px; color: var(--text-secondary);">Esta semana: <span class="num">${formatNumero(actual.tareas)}</span> ${actual.tareas === 1 ? 'tarea' : 'tareas'} · <span class="num">${formatNumero(actual.puntos)}</span> ${actual.puntos === 1 ? 'punto' : 'puntos'} (fácil 1, media 2, difícil 3)</p>
+        <ul class="lab-puntos-lista">
+          ${semanas.map(s => `
+            <li class="lab-puntos-fila" data-lunes="${s.lunes}">
+              <span class="lab-puntos-sem num">${escapeHtml(formatFechaCorta(fechaLocalDe(s.lunes)))}</span>
+              <span class="lab-puntos-barra" aria-hidden="true"><span style="width: ${Math.round((s.puntos / maxPuntos) * 100)}%;"></span></span>
+              <span class="lab-puntos-val num" aria-label="${s.tareas} ${s.tareas === 1 ? 'tarea' : 'tareas'}, ${s.puntos} ${s.puntos === 1 ? 'punto' : 'puntos'}">${formatNumero(s.tareas)} · ${formatNumero(s.puntos)} pts</span>
+            </li>`).join('')}
+        </ul>
+      </div>`;
+
   const tasa = await db.getTasaCumplimientoTareas();
   const tasaHtml = tasa.tasa === null
     ? `<div style="font-size: 12.5px; color: var(--text-secondary);">Todavía no hay tareas completadas con fecha límite para medir la tasa de cumplimiento.</div>`
@@ -51,6 +70,7 @@ async function renderDesglose() {
 
   return `
     <div>
+      ${semanasHtml}
       <div class="card" style="padding: 18px 20px; margin-bottom: 20px; border-radius: 18px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Estado actual</h3>
         ${donutSection}

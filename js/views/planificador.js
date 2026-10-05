@@ -4,6 +4,7 @@ import { diaKeyDe, formatFechaCorta, sumarDias, fechaLocalDe, diasEntre } from '
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { renderPriorityBars } from '../utils/prioridad.js';
+import { marcaDificultad, etiquetaDificultad } from '../utils/dificultad.js';
 import { calcularAtrasadas } from '../utils/atrasadas.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
 
@@ -91,7 +92,7 @@ export function componerSemana(lunesIso, { plan = [], tareas = [], hoyIso = diaK
       ...plan.filter(p => p.fecha === iso)
         .map(p => ({ origen: 'plan', id: p.id, texto: p.texto, hecha: !!p.hecha, createdAt: p.createdAt })),
       ...tareas.filter(x => x.dueDate === iso)
-        .map(x => ({ origen: 'tarea', id: x.id, texto: x.title, hecha: x.status === 'done', priority: x.priority, status: x.status, createdAt: x.createdAt }))
+        .map(x => ({ origen: 'tarea', id: x.id, texto: x.title, hecha: x.status === 'done', priority: x.priority, status: x.status, dificultad: x.dificultad, createdAt: x.createdAt }))
     ].sort(ordenItems);
     const hechas = items.filter(i => i.hecha).length;
     return { iso, items, hechas, total: items.length, pendientesPasado: iso < hoyIso ? items.length - hechas : 0 };
@@ -177,6 +178,10 @@ function menuMover(it, iso, semana) {
   return boton + menu;
 }
 
+// ", difícil" / ", fácil" para el aria-label de una tarea de Lista (la media
+// no se nombra, como no se marca).
+const conDificultad = (it) => (it.dificultad === 'facil' || it.dificultad === 'dificil' ? `, ${etiquetaDificultad(it).toLowerCase()}` : '');
+
 // Fila de un ítem del día: check · texto · (Lista) vencimiento + prioridad,
 // menú ⋯ (Mover a) y, en el planificador, ✕ para borrar. El texto de una
 // tarea de Lista abre su detalle, como en Lista. Mantener presionado el
@@ -192,8 +197,8 @@ function filaItem(it, iso, hoyIso, semana) {
     return `
       <li class="plan-item${it.hecha ? ' plan-item--hecha' : ''}" data-origen="tarea" data-id="${escapeHtml(it.id)}">
         ${check}
-        <button type="button" class="plan-item-texto plan-item-abrir tappable" aria-label="${texto}. Abrir el detalle">${texto}</button>
-        <span class="plan-item-meta">${venc ? `<span class="plan-venc">${venc}</span>` : ''}${renderPriorityBars(it.priority)}</span>
+        <button type="button" class="plan-item-texto plan-item-abrir tappable" aria-label="${texto}${conDificultad(it)}. Abrir el detalle">${texto}</button>
+        <span class="plan-item-meta">${venc ? `<span class="plan-venc">${venc}</span>` : ''}${marcaDificultad(it)}${renderPriorityBars(it.priority)}</span>
         ${menuMover(it, iso, semana)}
       </li>`;
   }
@@ -231,7 +236,7 @@ function filaColumna(it, iso, hoyIso, semana) {
         <span class="plan-check-caja" aria-hidden="true">${it.hecha ? '<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="3.4" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}</span>
       </button>`;
   const textoHtml = esTarea
-    ? `<button type="button" class="plan-item-texto plan-item-abrir tappable" title="${conEstado}" aria-label="${texto}${estado ? `, ${estado}` : ''}. Abrir el detalle"><span class="plan-clamp">${texto}</span></button>`
+    ? `<button type="button" class="plan-item-texto plan-item-abrir tappable" title="${conEstado}" aria-label="${texto}${estado ? `, ${estado}` : ''}${conDificultad(it)}. Abrir el detalle"><span class="plan-clamp">${texto}</span></button>`
     : `<span class="plan-item-texto" title="${texto}"><span class="plan-clamp">${texto}</span></span>`;
   const borrar = esTarea ? '' : `
         <button type="button" class="plan-delete tappable" aria-label="Eliminar «${texto}»">
@@ -241,7 +246,7 @@ function filaColumna(it, iso, hoyIso, semana) {
     <li class="plan-item plan-item--col${it.hecha ? ' plan-item--hecha' : ''}${vencida ? ' plan-item--vencida' : ''}" data-origen="${it.origen}" data-id="${escapeHtml(it.id)}">
       <div class="plan-fila-l1">${check}${textoHtml}</div>
       <div class="plan-fila-l2">
-        ${esTarea ? renderPriorityBars(it.priority) : ''}
+        ${esTarea ? renderPriorityBars(it.priority) + marcaDificultad(it, { letra: true }) : ''}
         <span class="plan-fila-acciones">${borrar}${boton}</span>
       </div>
       ${menu}
