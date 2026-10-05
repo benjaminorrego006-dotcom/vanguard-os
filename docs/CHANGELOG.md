@@ -7,6 +7,7 @@
 | 1. Calentamiento en barra: pasos de al menos 10 kg | v276 | `escaleraCalentamiento` (barra) descarta un paso que quede a menos de 10 kg del anterior; la barra vacía cuenta como paso. 60 kg: 20×10, 35×3, 47,5×2 (sin el 22,5×5); 40 kg: solo 20×10 (sin el 27,5×5); 70 kg: 20×10, 40×3, 55×2. Mancuernas y máquina no cambian. |
 | 2. Contador de series sin calentamientos | v277 | El contador del HUD ("1/21"), su línea compacta, la barra segmentada (una marca por serie de trabajo) y el progreso de cada pestaña del riel ("1/3") cuentan solo las series de trabajo, igual que el resumen. El ✓ de la pestaña y el paso automático al siguiente ejercicio siguen esperando también a los calentamientos. |
 | 3. Sin 1RM en el editor para el calentamiento | v278 | Cuando la serie elegida en el editor es de calentamiento, el título dice "Serie 1 · Calentamiento" sin el "1RM ~…"; en una serie de trabajo el 1RM estimado sigue igual. |
+| 4. Franja de Semana: sin barra en días vacíos | v279 | En la franja de 7 días, la barra de progreso (3 px, `--vi` sobre `--vid`) aparece solo en los días con ítems: un día con ítems y 0 hechos muestra la barra vacía y un día sin ítems no lleva barra, así se distinguen. La altura de las celdas no cambia. |
 
 ### Ajuste 1 — QA
 
@@ -19,6 +20,10 @@
 ### Ajuste 3 — QA
 
 - 375×812 y 1280×800, Remo con Barra: con la normal 100×8 elegida el editor dice "Serie 1 · 1RM ~127 kg"; tras agregar el calentamiento, la fila 20×10 elegida dice "Serie 1 · Calentamiento" sin 1RM, y ninguno de los 4 calentamientos lo muestra; al volver a la normal, "Serie 5 · 1RM ~127 kg". Regresión: QA del HUD fase 5 (tabla, editor y botón principal) a 375, con su chequeo del menú ⋯ puesto al día con los ítems de la Fase 7 ("Descanso · …" y "Agregar calentamiento"). Consola limpia; ESLint `no-undef` limpio.
+
+### Ajuste 4 — QA
+
+- 375×812 y 1280×800, semana del 21 al 27 sept (reloj en el jue 24): lun 21 y mar 22 con la barra llena; mié 23 a sáb 26 (con ítems, 0 hechos) con la barra vacía visible (`--vid`, 3 px, 0 %); dom 27 (sin ítems) sin barra; todas las celdas de 64 px. Al agregar un ítem al dom 27 aparece su barra vacía y al marcarlo se llena. Regresión: QA de F2 de Semana (actualizada para no leer una barra que ya no existe en los días vacíos) a 375 y de F7 (columnas) a 1280. Consola limpia; ESLint `no-undef` limpio. Captura `ajuste-franja-*`.
 
 ## 5 oct 2026 — Arreglos vistos en la Fase 7
 

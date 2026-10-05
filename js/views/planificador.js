@@ -131,8 +131,9 @@ function etiquetaDia(d, i, esHoy) {
   return `${fecha}, ${d.hechas} de ${d.total} ${plural(d.total, 'hecha', 'hechas')}${pend ? `, ${pend} ${plural(pend, 'pendiente', 'pendientes')}` : ''}`;
 }
 
-// Franja de 7 días: letra (o HOY), número, barra hechas/total y un cuadrado
-// rojo si el día ya pasó con pendientes.
+// Franja de 7 días: letra (o HOY), número, barra hechas/total (solo si el
+// día tiene ítems: uno con ítems y 0 hechos muestra la barra vacía, uno sin
+// ítems no lleva barra) y un cuadrado rojo si el día ya pasó con pendientes.
 function renderFranja(semana, hoyIso) {
   const celda = (d, i) => {
     const esHoy = d.iso === hoyIso;
@@ -143,7 +144,7 @@ function renderFranja(semana, hoyIso) {
         data-iso="${d.iso}" aria-selected="${sel}" tabindex="${sel ? 0 : -1}" aria-label="${escapeHtml(etiquetaDia(d, i, esHoy))}">
         <span class="plan-dia-letra" aria-hidden="true">${esHoy ? 'HOY' : LETRA[i]}</span>
         <span class="plan-dia-num num" aria-hidden="true">${fechaLocalDe(d.iso).getDate()}</span>
-        <span class="plan-dia-barra" aria-hidden="true"><span style="width: ${pct}%;"></span></span>
+        ${d.total ? `<span class="plan-dia-barra" aria-hidden="true"><span style="width: ${pct}%;"></span></span>` : ''}
         ${d.pendientesPasado > 0 ? '<span class="plan-dia-alerta" aria-hidden="true"></span>' : ''}
       </button>`;
   };
