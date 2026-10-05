@@ -827,15 +827,43 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
    filas se apilan (texto arriba, acciones abajo) porque la columna es
    angosta. */
 .plan-columnas { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: -8px 0 16px; }
-.plan-col { min-width: 0; max-height: calc(100vh - 380px); min-height: 160px; overflow-y: auto; padding: 4px 6px; background: var(--surface-1); border: 1px solid var(--line); cursor: pointer; }
+.plan-col { container-type: inline-size; min-width: 0; max-height: calc(100vh - 380px); min-height: 160px; overflow-y: auto; scrollbar-width: thin; padding: 4px 3px; background: var(--surface-1); border: 1px solid var(--line); cursor: pointer; }
 .plan-col--sel { border-color: var(--vi); background: var(--vis); }
 .plan-col .plan-items { border-top: none; }
-.plan-col .plan-item { min-height: 0; padding: 4px 0; gap: 0 2px; align-items: flex-start; cursor: default; }
+/* Fila en columnas: dos líneas fijas (check + texto de hasta 2 líneas;
+   vencimiento, prioridad y acciones alineados con el texto, con las acciones
+   a la derecha). Misma altura mínima y padding para Lista y planificador. */
+.plan-col .plan-item--col { --plan-col-sangria: 28px; display: block; min-height: 64px; padding: 4px 0; cursor: default; }
+.plan-fila-l1 { display: flex; align-items: flex-start; gap: 2px; min-width: 0; }
 .plan-col .plan-check { width: 32px; height: 32px; margin-left: -6px; }
-.plan-col .plan-item-texto { flex: 1 1 calc(100% - 40px); padding: 6px 0 2px; font-size: 13px; }
-.plan-col .plan-item-meta { margin-left: 26px; }
+.plan-col .plan-item-texto { display: block; flex: 1; min-width: 0; padding: 7px 0 0; font-size: 13px; line-height: 1.35; text-align: left; }
+.plan-col .plan-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.plan-fila-l2 { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 32px; padding-left: var(--plan-col-sangria); white-space: nowrap; overflow: hidden; }
+.plan-fila-l2 .plan-venc { flex-shrink: 0; }
+.plan-venc-corto, .plan-venc-marca { display: none; }
+.plan-venc-marca { width: 8px; height: 8px; background: var(--rd); }
+/* La etiqueta se adapta al ancho real de la columna (container query sobre
+   .plan-col) para que vencimiento, prioridad y acciones sigan en una sola
+   línea con el ⋯ de 32 px: completa (≥ 151 px), corta "HOY"/"VENC."
+   (121–150), y bajo 121 px un cuadrado rojo (el texto sigue para lectores de
+   pantalla y en title). Bajo 96 px también se achica la sangría. */
+@container (max-width: 150px) {
+  .plan-venc-largo { display: none; }
+  .plan-venc-corto { display: inline; }
+}
+@container (max-width: 120px) {
+  .plan-venc-corto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .plan-venc-marca { display: block; }
+}
+@container (max-width: 95px) {
+  .plan-col .plan-item--col { --plan-col-sangria: 20px; }
+  .plan-fila-l1 { gap: 0; }
+  .plan-col .plan-check { width: 26px; }
+  .plan-fila-l2 { gap: 3px; }
+}
+.plan-fila-acciones { display: flex; align-items: center; gap: 0; margin-left: auto; flex-shrink: 0; }
 .plan-col .plan-menu-btn, .plan-col .plan-delete { width: 32px; height: 32px; margin: 0; }
-.plan-col .plan-item[data-origen="plan"] .plan-menu-btn { margin-left: auto; }
-.plan-col .plan-item[data-origen="tarea"] .plan-item-meta { flex: 1; }
-.plan-col .plan-mover-menu { flex-direction: column; align-items: flex-start; padding: 2px 0 6px; }
+/* Anula el margen negativo de la fila del detalle (.plan-item[data-origen] …). */
+.plan-col .plan-item--col .plan-menu-btn, .plan-col .plan-item--col .plan-delete { margin: 0; }
+.plan-col .plan-mover-menu { flex-direction: column; align-items: flex-start; padding: 2px 0 6px var(--plan-col-sangria); }
 .plan-col .plan-vacio { border-top: none; margin: 0; padding: 10px 2px; font-size: 12px; }

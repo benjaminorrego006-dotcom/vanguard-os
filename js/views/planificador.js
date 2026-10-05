@@ -152,21 +152,28 @@ function renderFranja(semana, hoyIso) {
 
 // Menú ⋯ de un ítem (alternativa accesible a mantener presionado): "Mover
 // a" con los 7 días de la semana mostrada; el día actual queda deshabilitado.
-function menuMover(it, iso, semana) {
+function partesMenuMover(it, iso, semana) {
   const texto = escapeHtml(it.texto);
   const dias = semana.map((d, i) => {
     const n = fechaLocalDe(d.iso).getDate();
     const actual = d.iso === iso;
     return `<button type="button" role="menuitem" class="plan-mover-dia tappable" data-iso="${d.iso}" ${actual ? 'aria-disabled="true" disabled' : ''} aria-label="Mover al ${DOW[i].toLowerCase()} ${n}"><span class="num">${DIA_CORTO[i]} ${n}</span></button>`;
   }).join('');
-  return `
+  return {
+    boton: `
     <button type="button" class="plan-menu-btn tappable" aria-haspopup="menu" aria-expanded="false" aria-label="Opciones de «${texto}»">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
-    </button>
+    </button>`,
+    menu: `
     <div class="plan-mover-menu" role="menu" aria-label="Mover «${texto}» a" hidden>
       <span class="plan-mover-etq" aria-hidden="true">Mover a</span>
       <div class="plan-mover-dias">${dias}</div>
-    </div>`;
+    </div>`
+  };
+}
+function menuMover(it, iso, semana) {
+  const { boton, menu } = partesMenuMover(it, iso, semana);
+  return boton + menu;
 }
 
 // Fila de un ítem del día: check · texto · (Lista) vencimiento + prioridad,
@@ -200,6 +207,40 @@ function filaItem(it, iso, hoyIso, semana) {
     </li>`;
 }
 
+// Fila en columnas (≥ 900 px), siempre en dos líneas: 1) check + texto (a
+// lo sumo 2 líneas con ellipsis; el texto completo en title); 2) alineada
+// con el texto: vencimiento y prioridad (tareas de Lista) y las acciones a
+// la derecha, siempre en el mismo orden (en el planificador ✕ y después ⋯,
+// así el ⋯ queda en el mismo lugar en todas las filas). El
+// menú "Mover a" se despliega debajo solo mientras está abierto. Mismas
+// clases que la fila del detalle, así los listeners son los mismos.
+function filaColumna(it, iso, hoyIso, semana) {
+  const texto = escapeHtml(it.texto);
+  const { boton, menu } = partesMenuMover(it, iso, semana);
+  const check = `
+      <button type="button" class="plan-check tappable" aria-pressed="${it.hecha}" aria-label="${it.hecha ? `Desmarcar «${texto}»` : `Marcar «${texto}» como hecha`}">
+        <span class="plan-check-caja" aria-hidden="true">${it.hecha ? '<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="3.4" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}</span>
+      </button>`;
+  const esTarea = it.origen === 'tarea';
+  const venc = esTarea && !it.hecha && iso <= hoyIso ? (iso === hoyIso ? 'VENCE HOY' : 'VENCIDA') : '';
+  const textoHtml = esTarea
+    ? `<button type="button" class="plan-item-texto plan-item-abrir tappable" title="${texto}" aria-label="${texto}. Abrir el detalle"><span class="plan-clamp">${texto}</span></button>`
+    : `<span class="plan-item-texto" title="${texto}"><span class="plan-clamp">${texto}</span></span>`;
+  const borrar = esTarea ? '' : `
+        <button type="button" class="plan-delete tappable" aria-label="Eliminar «${texto}»">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>`;
+  return `
+    <li class="plan-item plan-item--col${it.hecha ? ' plan-item--hecha' : ''}" data-origen="${it.origen}" data-id="${escapeHtml(it.id)}">
+      <div class="plan-fila-l1">${check}${textoHtml}</div>
+      <div class="plan-fila-l2">
+        ${venc ? `<span class="plan-venc" title="${venc === 'VENCE HOY' ? 'Vence hoy' : 'Vencida'}"><span class="plan-venc-largo">${venc}</span><span class="plan-venc-corto">${venc === 'VENCE HOY' ? 'HOY' : 'VENC.'}</span><span class="plan-venc-marca" aria-hidden="true"></span></span>` : ''}${esTarea ? renderPriorityBars(it.priority) : ''}
+        <span class="plan-fila-acciones">${borrar}${boton}</span>
+      </div>
+      ${menu}
+    </li>`;
+}
+
 // Detalle del día elegido: "Domingo 4" + hechas/total y sus ítems.
 function renderDetalle(semana, hoyIso) {
   const i = semana.findIndex(d => d.iso === diaSeleccionado);
@@ -226,7 +267,7 @@ function renderColumnas(semana, hoyIso) {
       ${semana.map((d, i) => `
         <section class="plan-col${d.iso === diaSeleccionado ? ' plan-col--sel' : ''}" data-iso="${d.iso}" aria-label="${escapeHtml(etiquetaDia(d, i, d.iso === hoyIso))}">
           ${d.items.length
-            ? `<ul class="plan-items">${d.items.map(it => filaItem(it, d.iso, hoyIso, semana)).join('')}</ul>`
+            ? `<ul class="plan-items">${d.items.map(it => filaColumna(it, d.iso, hoyIso, semana)).join('')}</ul>`
             : '<p class="plan-vacio">Nada para este día</p>'}
         </section>`).join('')}
     </div>`;

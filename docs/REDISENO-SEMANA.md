@@ -15,7 +15,8 @@ plan original decía v257). Revisión visual con capturas y maquetas: artifact
 | F5 — Mover entre días + color | Hecha (45df35f, v263) |
 | F6 — Lista y Hábitos | Hecha (c47db6c, v264) |
 | Ajuste: "+" en el encabezado (sin FAB en Lista y Hábitos) | Hecho (3e17022, v265) |
-| F7 — PC/tablet y QA | Hecha (commit de F7, v266) |
+| F7 — PC/tablet y QA | Hecha (0da0527, v266) |
+| Ajuste final: filas de columnas en dos líneas (≥ 900 px) | Hecho (commit del ajuste final, v267) |
 
 Actualiza esta tabla (hash del commit) al cerrar cada fase.
 
