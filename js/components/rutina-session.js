@@ -568,13 +568,17 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   let recordAhora = { n: 0, hasta: 0 };
 
   // Riel: progreso de cada pestaña ("2/3") y ✓ en las terminadas.
+  // El progreso "2/3" cuenta solo series de trabajo (como el resumen); el ✓
+  // de terminada espera también a los calentamientos (como el paso
+  // automático al siguiente ejercicio).
   const actualizarRiel = () => {
     bloquesSesion().forEach(b => {
       const tab = document.querySelector(`.sesion-tab[data-ej-idx="${b.dataset.ejIdx}"]`);
       if (!tab) return;
-      const total = b.querySelectorAll('.btn-check-serie').length;
-      const hechas = total - pendientesDe(b);
-      const terminada = total > 0 && hechas === total;
+      const trabajo = Array.from(b.querySelectorAll('.serie-row')).filter(r => r.querySelector('.serie-tipo').value !== 'calentamiento');
+      const total = trabajo.length;
+      const hechas = trabajo.filter(r => r.querySelector('.btn-check-serie').getAttribute('data-checked') === 'true').length;
+      const terminada = b.querySelectorAll('.btn-check-serie').length > 0 && pendientesDe(b) === 0;
       tab.querySelector('.sesion-tab-prog').textContent = `${hechas}/${total}`;
       tab.classList.toggle('sesion-tab--hecha', terminada);
       tab.querySelector('.sesion-tab-check').hidden = !terminada;
@@ -618,6 +622,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const marcadas = [];
     const records = new Map(); // nombre -> { valor, ts }
     bloques.forEach(b => b.querySelectorAll('.serie-row').forEach(row => {
+      // Series hechas/total: sin calentamientos (como el resumen).
+      if (row.querySelector('.serie-tipo').value === 'calentamiento') return;
       total++;
       if (row.querySelector('.btn-check-serie').getAttribute('data-checked') !== 'true') return;
       hechas++;
@@ -682,8 +688,10 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const activo = bloques.find(b => Number(b.dataset.ejIdx) === ejercicioActivo);
     const toca = (activo && filaTocaDe(activo)) || bloques.map(b => pendientes(b)[0]).find(Boolean) || null;
     const segs = [];
+    // Barra segmentada: una marca por serie de trabajo (igual que el
+    // contador; los calentamientos no tienen marca).
     bloques.forEach((b, bi) => {
-      b.querySelectorAll('.serie-row').forEach((row, ri) => {
+      Array.from(b.querySelectorAll('.serie-row')).filter(r => r.querySelector('.serie-tipo').value !== 'calentamiento').forEach((row, ri) => {
         const hecha = row.querySelector('.btn-check-serie').getAttribute('data-checked') === 'true';
         const clase = hecha ? (esRecord(b, row) ? 'record' : 'hecha') : (row === toca ? 'toca' : 'pendiente');
         segs.push(`<span class="sesion-hud-seg sesion-hud-seg--${clase}${ri === 0 && bi > 0 ? ' sesion-hud-seg--nuevo' : ''}"></span>`);

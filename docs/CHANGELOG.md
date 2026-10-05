@@ -5,11 +5,15 @@
 | Ajuste | Caché | Qué cambia |
 |---|---|---|
 | 1. Calentamiento en barra: pasos de al menos 10 kg | v276 | `escaleraCalentamiento` (barra) descarta un paso que quede a menos de 10 kg del anterior; la barra vacía cuenta como paso. 60 kg: 20×10, 35×3, 47,5×2 (sin el 22,5×5); 40 kg: solo 20×10 (sin el 27,5×5); 70 kg: 20×10, 40×3, 55×2. Mancuernas y máquina no cambian. |
-
+| 2. Contador de series sin calentamientos | v277 | El contador del HUD ("1/21"), su línea compacta, la barra segmentada (una marca por serie de trabajo) y el progreso de cada pestaña del riel ("1/3") cuentan solo las series de trabajo, igual que el resumen. El ✓ de la pestaña y el paso automático al siguiente ejercicio siguen esperando también a los calentamientos. |
 
 ### Ajuste 1 — QA
 
 - Tabla de casos de F1 en la consola de la app, a 375×812 y 1280×800, con los resultados nuevos: barra 20 → 20×10; 40 → 20×10; 50 → 20×10, 30×3, 40×2; 60 → 20×10, 35×3 (5 + 2,5 por lado), 47,5×2; 70 → 20×10, 40×3, 55×2; 100 → 20×10, 40×5, 60×3, 80×2; 142,5 → 20×10, 55×5, 85×3, 112,5×2; mancuernas 12 → 6×8, 9×4; 30 → 15×8, 22×4; máquina 45 → 22,5×8, 32,5×4; 0, vacío, inválido, `ninguno`, `banda`, `barra-dominadas` y barra con 15 kg → `[]`. 18/18. En la sesión (QA de F2 actualizada): Remo con Barra con 60 kg inserta 3 calentamientos (20, 35, 47,5) con sus discos y "Calentamiento: 3 series". Consola limpia; ESLint `no-undef` limpio.
+
+### Ajuste 2 — QA
+
+- 375×812 y 1280×800, "Pull", Remo con Barra 100 kg: insertar 4 calentamientos no cambia el contador (0/21, 21 marcas, pestaña 0/3); con los 4 calentamientos y 1 normal marcados, el HUD dice "1/21" (antes "5/25"), la barra 21 marcas con 1 hecha, la línea compacta "1/21" y la pestaña "1/3". Con un calentamiento sin marcar y las 3 normales marcadas, la pestaña dice 3/3 sin ✓ y no pasa al siguiente ejercicio; al marcar ese calentamiento aparece el ✓ y pasa al siguiente al instante, sin descanso. Regresión: QA del HUD fases 3 y 4 y F3 de la Fase 7 (que ahora espera "0/21" con solo calentamientos marcados) a 375. Consola limpia; ESLint `no-undef` limpio. Captura `ajuste-contador-375`.
 
 ## 5 oct 2026 — Arreglos vistos en la Fase 7
 
