@@ -337,6 +337,16 @@ export async function applyRemoteEvent(event) {
         await idb.remove('notas', entidadId);
         break;
 
+      // --- Medidas corporales (Fase 6): el payload es la medida completa.
+      // El peso del perfil llega por su propio perfil_actualizado.
+      case 'medida_registrada':
+      case 'medida_editada':
+        await idb.put('medidas', { ...payload, id: entidadId });
+        break;
+      case 'medida_eliminada':
+        await idb.remove('medidas', entidadId);
+        break;
+
       default:
         console.warn('[sync] Tipo de evento sin handler de replay:', tipo);
     }
@@ -363,7 +373,11 @@ export async function applyRemoteEvent(event) {
 // STORE_DEFS de idb.js, es un nombre que quedó de un plan viejo) — no hay
 // ningún evento que lo toque, así que nunca se escribe ahí. La tabla queda
 // creada en Supabase pero vacía; no rompe nada, es un remanente inocuo.
-const MIRROR_STORES = ['envelopes', 'goals', 'habitos', 'notas', 'notas_categorias', 'planificador', 'recurrentes', 'ritual', 'rutinas', 'sesiones', 'tareas', 'transacciones'];
+// 'medidas' (Fase 6) necesita su tabla en Supabase con la misma forma que
+// las demás (id, user_id, data, updated_at; PRIMARY KEY (user_id, id), RLS
+// por user_id). 'fotos_progreso' no se refleja: las fotos no salen del
+// dispositivo.
+const MIRROR_STORES = ['envelopes', 'goals', 'habitos', 'medidas', 'notas', 'notas_categorias', 'planificador', 'recurrentes', 'ritual', 'rutinas', 'sesiones', 'tareas', 'transacciones'];
 
 function mirrorTargetFor(event) {
   const { modulo, tipo, entidadId } = event;
@@ -420,6 +434,10 @@ function mirrorTargetFor(event) {
       return { store: 'notas', id: entidadId };
     case 'nota_eliminada':
       return { store: 'notas', id: entidadId, deleted: true };
+    case 'medida_registrada': case 'medida_editada':
+      return { store: 'medidas', id: entidadId };
+    case 'medida_eliminada':
+      return { store: 'medidas', id: entidadId, deleted: true };
     default:
       return null; // rutina_generada y demás eventos de solo-auditoría: ningún store que reflejar
   }

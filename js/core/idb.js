@@ -20,7 +20,11 @@ const DB_NAME = 'vanguard_os';
 // ISO), 'planificador' (tareas fechadas del planificador semanal) y
 // 'notas' / 'notas_categorias' (anotaciones por categoría). Mismo caso:
 // solo entradas nuevas en STORE_DEFS, nada que migrar.
-const DB_VERSION = 4;
+// v5: Fase 6 (docs/FASE6-MEDIDAS.md) — agrega 'medidas' (peso y perímetros,
+// derivado del log) y 'fotos_progreso' (Blobs solo de este dispositivo, fuera
+// del log y del respaldo JSON). Mismo caso: solo crea los stores nuevos y no
+// toca los existentes.
+const DB_VERSION = 5;
 
 // keyPath por store. `events` además indexa por ts/modulo+ts/entidadId/tipo
 // para poder consultar por rango cronológico o por entidad sin leer todo el
@@ -51,6 +55,8 @@ const STORE_DEFS = {
   planificador: { keyPath: 'id' },
   notas: { keyPath: 'id' },
   notas_categorias: { keyPath: 'id' },
+  medidas: { keyPath: 'id' },
+  fotos_progreso: { keyPath: 'id' },
   // Singletons de app (perfil, ajustes, favoritos de PR): una sola fila por
   // `key`, con el valor completo en `value`. Evita inventar un keyPath
   // artificial para datos que siempre fueron un único objeto/array.

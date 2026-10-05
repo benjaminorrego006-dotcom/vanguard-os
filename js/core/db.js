@@ -496,7 +496,8 @@ export function calcularSaldosConArrastre(sobres, txs, eventos, mes, mesHoy = me
 // (idb.js) salvo 'events' y 'singletons', que van con su propia clave. Al
 // agregar un store nuevo en idb.js hay que sumarlo acá, o el respaldo lo
 // pierde en silencio (así pasó con ritual/planificador/notas, que faltaban).
-const STORES_RESPALDO = ['sesiones', 'rutinas', 'goals', 'transacciones', 'envelopes', 'recurrentes', 'tareas', 'habitos', 'ritual', 'planificador', 'notas', 'notas_categorias'];
+// 'medidas' entra en el respaldo; 'fotos_progreso' no (va en su archivo aparte).
+const STORES_RESPALDO = ['sesiones', 'rutinas', 'goals', 'transacciones', 'envelopes', 'recurrentes', 'tareas', 'habitos', 'ritual', 'planificador', 'notas', 'notas_categorias', 'medidas'];
 
 // --- Días activos de la racha global -------------------------------------
 // Clave de día -> cantidad de actividad (la cantidad solo la usa el
@@ -556,6 +557,36 @@ function tareasCompletadasNetas(eventos, filtro = () => true) {
 // cae en el día de su ts. Sin payload.minutos, 25.
 const diaFoco = (e) => (e.payload && e.payload.fecha ? claveDiaDe(e.payload.fecha) : diaKeyDe(new Date(e.ts)));
 const minutosFoco = (e) => (e.payload && Number(e.payload.minutos) > 0 ? Number(e.payload.minutos) : 25);
+
+// Medidas corporales (Fase 6): campos numéricos y su rango válido.
+const CAMPOS_MEDIDA = ['pesoKg', 'cinturaCm', 'pechoCm', 'brazoCm', 'musloCm'];
+const RANGO_MEDIDA = { pesoKg: [30, 300], cinturaCm: [20, 200], pechoCm: [20, 200], brazoCm: [20, 200], musloCm: [20, 200] };
+const NOMBRE_MEDIDA = { pesoKg: 'El peso', cinturaCm: 'La cintura', pechoCm: 'El pecho', brazoCm: 'El brazo', musloCm: 'El muslo' };
+
+// Valida y deja la forma guardada: fecha (clave de día, no futura), los
+// valores presentes como número (acepta "78,4") y la nota recortada. Lanza
+// Error con el mensaje para mostrar.
+function normalizarMedida(datos = {}) {
+  const fecha = typeof datos.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(datos.fecha) ? datos.fecha : null;
+  if (!fecha || diaKeyDe(fechaLocalDe(fecha)) !== fecha) throw new Error('La fecha no es válida.');
+  if (fecha > diaKeyDe(new Date())) throw new Error('La fecha no puede ser futura.');
+  const out = { fecha };
+  CAMPOS_MEDIDA.forEach(c => {
+    const v = datos[c];
+    if (v === null || v === undefined || v === '') return;
+    const n = typeof v === 'number' ? v : Number(String(v).trim().replace(',', '.'));
+    const [min, max] = RANGO_MEDIDA[c];
+    if (!Number.isFinite(n) || n < min || n > max) throw new Error(`${NOMBRE_MEDIDA[c]} tiene que estar entre ${min} y ${max} ${c === 'pesoKg' ? 'kg' : 'cm'}.`);
+    out[c] = Math.round(n * 10) / 10;
+  });
+  if (!CAMPOS_MEDIDA.some(c => c in out)) throw new Error('Ingresa al menos una medida.');
+  const nota = typeof datos.nota === 'string' ? datos.nota.trim().slice(0, 200) : '';
+  if (nota) out.nota = nota;
+  return out;
+}
+function ordenarMedidas(medidas) {
+  return [...medidas].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+}
 
 // Payload de tarea_reabierta: la clave del día (local) en que la tarea se
 // había completado. Una tarea vieja sin completedAt va sin fecha y el
@@ -1246,6 +1277,9 @@ export const db = {
   async restaurarDatosRespaldo(datos) {
     for (const store of STORES_RESPALDO) {
       if (Array.isArray(datos[store])) await idb.putAllReplacing(store, datos[store]);
+      // Un respaldo anterior a la Fase 6 no trae 'medidas': como el log se
+      // reemplaza entero, las medidas locales quedarían sin sus eventos.
+      else if (store === 'medidas') await idb.putAllReplacing(store, []);
     }
     if (Array.isArray(datos.singletons)) await idb.putAllReplacing('singletons', datos.singletons);
     if (Array.isArray(datos.events)) await idb.putAllReplacing('events', datos.events);
@@ -2095,6 +2129,70 @@ export const db = {
     this._triggerUpdate();
     await logEvent({ modulo: 'entreno', tipo: 'perfil_actualizado', payload: profile });
     return profile;
+  },
+
+  // --- MEDIDAS CORPORALES (Fase 6, docs/FASE6-MEDIDAS.md) ---
+  // Store 'medidas' derivado del log (medida_registrada / medida_editada /
+  // medida_eliminada, modulo 'perfil'). Una medida: { id, fecha (clave de
+  // día), pesoKg?, cinturaCm?, pechoCm?, brazoCm?, musloCm?, nota?,
+  // createdAt }, con al menos un valor. Varias el mismo día se permiten.
+  // Más reciente = mayor fecha y, el mismo día, mayor createdAt.
+  async getMedidas() {
+    return ordenarMedidas(await idbGetArray('medidas'));
+  },
+
+  // La medida más reciente que tenga `campo` (sin campo: la más reciente).
+  // { id, fecha, valor, medida } o null.
+  async ultimaMedida(campo = null) {
+    const m = ordenarMedidas(await idbGetArray('medidas')).find(x => !campo || typeof x[campo] === 'number');
+    return m ? { id: m.id, fecha: m.fecha, valor: campo ? m[campo] : null, medida: m } : null;
+  },
+
+  // Lanza Error con un mensaje para mostrar si los datos no son válidos.
+  async registrarMedida(datos) {
+    const medida = { id: generateId(), ...normalizarMedida(datos), createdAt: new Date().toISOString() };
+    await idb.put('medidas', medida);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'perfil', tipo: 'medida_registrada', entidadId: medida.id, payload: medida });
+    await this._pesoAlPerfilSiCorresponde(medida);
+    return medida;
+  },
+
+  // `cambios`: los campos a cambiar; un valor null o '' lo quita. La medida
+  // tiene que quedar con al menos un valor.
+  async editarMedida(id, cambios) {
+    const actual = await idb.getOne('medidas', id);
+    if (!actual) throw new Error('La medida ya no existe.');
+    const base = {};
+    CAMPOS_MEDIDA.forEach(c => { if (typeof actual[c] === 'number') base[c] = actual[c]; });
+    const medida = { id, ...normalizarMedida({ fecha: actual.fecha, nota: actual.nota, ...base, ...cambios }), createdAt: actual.createdAt };
+    await idb.put('medidas', medida);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'perfil', tipo: 'medida_editada', entidadId: id, payload: medida });
+    await this._pesoAlPerfilSiCorresponde(medida);
+    return medida;
+  },
+
+  // No toca el perfil: el peso del perfil queda como estaba.
+  async eliminarMedida(id) {
+    const actual = await idb.getOne('medidas', id);
+    if (!actual) return false;
+    await idb.remove('medidas', id);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'perfil', tipo: 'medida_eliminada', entidadId: id, payload: { fecha: actual.fecha } });
+    return true;
+  },
+
+  // Un peso nuevo (o editado) pasa a profile.pesoKg solo si es la medida con
+  // peso más reciente, así IMC, TMB y estándares de fuerza usan el peso al
+  // día. Sin perfil guardado no se crea uno.
+  async _pesoAlPerfilSiCorresponde(medida) {
+    if (typeof medida.pesoKg !== 'number') return;
+    const ultima = await this.ultimaMedida('pesoKg');
+    if (!ultima || ultima.id !== medida.id) return;
+    const perfil = await this.getProfile();
+    if (!perfil || perfil.pesoKg === medida.pesoKg) return;
+    await this.saveProfile({ ...perfil, pesoKg: medida.pesoKg });
   },
 
   // --- CONFIG DEL GENERADOR DE RUTINAS (Etapa 4a) ---
