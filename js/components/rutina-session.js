@@ -1260,8 +1260,46 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   document.addEventListener('input', (e) => {
     if (!e.target.closest || !e.target.closest('.ejercicio-sesion-block')) return;
     marcarActivo(e.target);
+    // El usuario cambió el peso de esta fila (con el input o con el editor
+    // −/+, que escribe en él): deja de ser un peso llenado solo.
+    if (e.target.matches('.serie-peso')) e.target.closest('.serie-row')?.removeAttribute('data-peso-auto');
     guardar();
   }, { signal });
+
+  // --- Pesos que se llenan solos -----------------------------------------
+  // Al abrir una sesión nueva (no al retomar un borrador: sus valores
+  // mandan), cada serie normal sin marcar y vacía (peso "" o 0) toma el peso
+  // de su serie equivalente en ANTERIOR, con la misma alineación por tipo de
+  // la columna (la serie de trabajo N con la de trabajo N); si ANTERIOR no
+  // tiene esa serie, la última serie normal de ANTERIOR. Las reps no se
+  // tocan. No aplica a calentamientos, fallo ni dropset, ni a ejercicios de
+  // peso corporal. Las filas llenadas así llevan data-peso-auto="true" hasta
+  // que el usuario cambie su peso. No cuenta para el HUD (solo cuenta al
+  // marcar, como siempre).
+  const pesoDeSerie = (s) => parseFloat(String(s && s.peso != null ? s.peso : '').replace(',', '.')) || 0;
+  const llenarDesdeAnterior = () => {
+    bloquesSesion().forEach(b => {
+      if (b.dataset.pesoCorporal === 'true') return;
+      const ant = currentAnterior[b.dataset.ejNombre];
+      const antTrab = seriesDeTrabajo(ant && Array.isArray(ant.series) ? ant.series : []);
+      const normales = antTrab.filter(s => (s.tipo || 'normal') === 'normal' && pesoDeSerie(s) > 0);
+      const ultima = normales[normales.length - 1];
+      if (!ultima) return;
+      let k = -1;
+      b.querySelectorAll('.serie-row').forEach(row => {
+        const tipo = row.querySelector('.serie-tipo').value;
+        if (tipo === 'calentamiento') return;
+        k++;
+        if (tipo !== 'normal' || estaMarcada(row)) return;
+        const input = row.querySelector('.serie-peso');
+        if ((parseFloat(input.value) || 0) > 0) return;
+        const eq = antTrab[k];
+        const peso = eq && (eq.tipo || 'normal') === 'normal' && pesoDeSerie(eq) > 0 ? pesoDeSerie(eq) : pesoDeSerie(ultima);
+        input.value = String(peso);
+        row.dataset.pesoAuto = 'true';
+      });
+    });
+  };
   document.addEventListener('change', (e) => {
     if (!e.target.closest || !e.target.closest('.ejercicio-sesion-block')) return;
     marcarActivo(e.target);
@@ -2106,6 +2144,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   // muscular refleja las series ya marcadas.
   guardar();
   recalcularMapaSesion();
+  if (typeof opciones.inicio !== 'number') llenarDesdeAnterior();
   mostrarEjercicio(ejercicioActivo);
   if (opciones.descanso && opciones.descanso.hasta > Date.now()) {
     iniciarDescanso(0, { hasta: opciones.descanso.hasta, total: opciones.descanso.total });

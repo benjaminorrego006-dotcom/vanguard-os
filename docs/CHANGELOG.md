@@ -1,5 +1,15 @@
 # Vanguard OS — Changelog
 
+## 5 oct 2026 — Pesos que se llenan solos en la sesión
+
+| Paso | Caché | Qué cambia |
+|---|---|---|
+| 1. Llenado desde ANTERIOR | v280 | Al abrir una sesión nueva (no al retomar un borrador: sus valores mandan), cada serie normal sin marcar y vacía (peso "" o 0) toma el peso de su serie equivalente en ANTERIOR, con la misma alineación por tipo de la Fase 7 (la serie de trabajo N con la de trabajo N); si ANTERIOR no tiene esa serie, la última serie normal de ANTERIOR. Las reps no se tocan. No aplica a calentamientos, fallo ni dropset, ni a ejercicios de peso corporal (`data-peso-corporal="true"`). Las filas llenadas así llevan `data-peso-auto="true"`, que se quita en cuanto el usuario cambia ese peso (con el input o con el editor −/+, que escribe en él; la calculadora de discos solo muestra). El borrador se guarda con la función de siempre justo después. El llenado no cuenta para el HUD: el volumen y los récords siguen contando solo al marcar. Al agregar un ejercicio en vivo la sesión se vuelve a pintar como un retomar: no se rellena nada. |
+
+### Paso 1 — QA
+
+- 375×812 y 1280×800, "Pull" con un ANTERIOR de prueba (registrado por `db.registrarSesion`: Remo con Barra 70×5 ×3; Curl Concentrado 14×10 y 16×8): al abrir, Remo con Barra muestra 70 en las 3 series y Curl 14, 16, 16 (la tercera toma la segunda de ANTERIOR), todas con la marca de llenado; las reps siguen las de la rutina (8, 8, 8); Remo Invertido (peso corporal, con ANTERIOR 47,5 en los datos demo) queda en 0; el borrador se guarda con los pesos llenados; el volumen del HUD sigue en 0 y cuenta recién al marcar una serie (560). Agregar el calentamiento a Remo con Barra deja los calentamientos sin marca de llenado y las normales en 70. Cambiar a mano dos pesos de Curl (0 y 18), recargar y Retomar: el borrador conserva lo escrito y la serie en 0 no se rellena. Regresión: borrador, fase 5 del HUD, F2, F3 y la QA final de la Fase 7 a 375. Consola limpia; ESLint `no-undef` limpio. Captura `pesos-auto-375`.
+
 ## 5 oct 2026 — Ajustes tras revisar la Fase 7
 
 | Ajuste | Caché | Qué cambia |
