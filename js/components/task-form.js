@@ -1,6 +1,7 @@
 import { db } from '../core/db.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
+import { iniciarFoco, focoEnCurso, MIN_FOCO } from './foco.js';
 import { formatFechaHora } from '../utils/fecha.js';
 
 const STATE_CHIPS = [
@@ -23,8 +24,23 @@ const EVENT_LABELS = {
   tarea_creada: 'Tarea creada',
   tarea_actualizada: 'Tarea actualizada',
   tarea_completada: 'Marcada como hecha',
-  tarea_eliminada: 'Tarea eliminada'
+  tarea_eliminada: 'Tarea eliminada',
+  foco_completado: 'Foco · 25 min'
 };
+
+// Botón de foco: solo en una tarea existente que no esté hecha. Con un foco
+// en curso (de esta u otra tarea) lo abre en vez de empezar otro.
+function syncFocoBtn() {
+  const btn = document.getElementById('btn-task-foco');
+  if (!btn) return;
+  const id = document.getElementById('task-id').value;
+  const status = document.getElementById('task-status-pending').value;
+  btn.hidden = !id || status === 'done';
+  const actual = focoEnCurso();
+  btn.textContent = !actual ? `Foco ${MIN_FOCO} min` : actual.tareaId === id ? 'Volver al foco' : 'Ver foco en curso';
+}
+
+window.addEventListener('vg-foco-cambio', syncFocoBtn);
 
 function formatBitacoraFecha(ts) {
   return formatFechaHora(new Date(ts));
@@ -132,6 +148,8 @@ export function renderTaskForm() {
           `).join('')}
         </div>
 
+        <button type="button" id="btn-task-foco" class="tappable" hidden style="width:100%; min-height:44px; margin:-10px 0 20px; background:transparent; border:1px solid var(--vi); color:var(--vi); font:inherit; font-size:13px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; cursor:pointer;">Foco 25 min</button>
+
         <div class="input-group">
           <label for="task-title">Título</label>
           <input type="text" id="task-title" placeholder="Ej. Finalizar estrategia de marketing" required>
@@ -232,6 +250,15 @@ export function setupTaskForm(onSaveCallback) {
 
   dueInput.addEventListener('change', () => { dueInput.style.color = dueDateColor(dueInput.value); });
 
+  // Foco: la pantalla se abre encima del detalle, que queda abierto debajo
+  // (al terminar la pausa se vuelve a él). Si se abrió desde otro lado,
+  // `alVolver` abre este detalle.
+  document.getElementById('btn-task-foco').addEventListener('click', () => {
+    const id = document.getElementById('task-id').value;
+    if (!id) return;
+    iniciarFoco({ id, title: document.getElementById('task-title').value.trim() }, { alVolver: abrirDetallePorId });
+  });
+
   const dificultadHidden = document.getElementById('task-dificultad');
   document.querySelectorAll('.btn-dificultad-chip').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -257,6 +284,7 @@ export function setupTaskForm(onSaveCallback) {
       const status = btn.getAttribute('data-status');
       statusPending.value = status;
       syncStateChipStyles(status);
+      syncFocoBtn();
       const taskId = document.getElementById('task-id').value;
       if (taskId) {
         // Aplica el cambio ya (misma semántica que antes tenían las
@@ -317,6 +345,14 @@ export function setupTaskForm(onSaveCallback) {
       if (onSaveCallback) onSaveCallback();
     }
   });
+}
+
+// Abre el detalle de una tarea por id (fin de la pausa de un foco abierto
+// desde Semana u Hoy). Sin el formulario montado en la vista, no hace nada.
+export async function abrirDetallePorId(id) {
+  if (!document.getElementById('task-modal')) return;
+  const task = (await db.getTasks()).find(t => t.id === id);
+  if (task) openTaskForm(task);
 }
 
 export function openTaskForm(task = null) {
@@ -380,6 +416,7 @@ export function openTaskForm(task = null) {
   syncPriorityBarStyles(priorityHidden.value);
   syncStateChipStyles(statusPending.value);
   syncDificultadChips(document.getElementById('task-dificultad').value);
+  syncFocoBtn();
 
   modal.style.display = 'flex';
   setTimeout(() => modal.classList.add('open'), 10);

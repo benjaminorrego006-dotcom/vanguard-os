@@ -10,7 +10,8 @@ import * as LabFinanzas from '../components/lab-finanzas.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { calcularAtrasadas } from '../utils/atrasadas.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
-import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
+import { renderTaskForm, setupTaskForm, openTaskForm, abrirDetallePorId } from '../components/task-form.js';
+import { lineaFocoHoy, abrirPantallaFoco } from '../components/foco.js';
 import * as Anotaciones from './anotaciones.js';
 import { svgEscudo, avisarPrimeraVidaSiCorresponde } from '../components/racha-reactor.js';
 import { pedirSemana, rangoHtml } from '../components/lab-semana.js';
@@ -483,6 +484,8 @@ export async function render() {
         </button>
       </div>
 
+      ${lineaFocoHoy()}
+
       ${tarjetaContextualHtml}
 
       <!-- Accesos rápidos -->
@@ -810,6 +813,8 @@ export function mountListeners() {
 
   // Formulario de tarea existente (components/task-form.js), montado acá.
   setupTaskForm(repintar);
+  // Foco en curso (components/foco.js): la línea abre su pantalla.
+  document.getElementById('hoy-foco')?.addEventListener('click', () => abrirPantallaFoco({ alVolver: abrirDetallePorId }));
   const qaTarea = document.getElementById('qa-tarea');
   if (qaTarea) qaTarea.addEventListener('click', () => openTaskForm());
 

@@ -162,6 +162,8 @@ export async function applyRemoteEvent(event) {
         break; // solo auditoría: no crea sesión ni toca ningún store derivado
       case 'rutina_generada':
         break; // solo auditoría (spec-generador-rutinas.md) — no toca ningún store derivado
+      case 'foco_completado':
+        break; // solo auditoría (docs/PLAN-DIFICULTAD-FOCO.md) — las métricas de foco se derivan del log
       case 'rutina_eliminada':
         await idb.remove('rutinas', entidadId);
         break;

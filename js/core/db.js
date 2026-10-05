@@ -1911,6 +1911,16 @@ export const db = {
   // registra la generación en sí (incluso si el usuario después descarta el
   // preview sin usarlo), para poder auditar más adelante qué le propuso el
   // generador en cada momento.
+  // Foco de 25 min completado en una tarea de Lista (components/foco.js,
+  // docs/PLAN-DIFICULTAD-FOCO.md). Solo auditoría, como rutina_generada: no
+  // toca ningún store ni suma a la racha. `terminaEn` (ms) es la hora real
+  // de término, aunque se registre después (app cerrada): va como ts del
+  // evento y su día en payload.fecha. entidadId = la tarea, así sale en su
+  // bitácora.
+  async registrarFoco({ tareaId, minutos, terminaEn }) {
+    const ts = typeof terminaEn === 'number' && !isNaN(terminaEn) ? terminaEn : Date.now();
+    return logEvent({ modulo: 'tareas', tipo: 'foco_completado', entidadId: tareaId, payload: { tareaId, minutos, fecha: diaKeyDe(new Date(ts)) }, ts });
+  },
   async registrarRutinaGenerada({ categoria, diasPorSemana, resumenPatrones }) {
     const id = generateId();
     await logEvent({ modulo: 'entreno', tipo: 'rutina_generada', entidadId: id, payload: { categoria, diasPorSemana, resumenPatrones } });

@@ -7,6 +7,7 @@ import { initSync } from './sync.js';
 import { diaKeyDe } from '../utils/fecha.js';
 import { initErrorTracking, reportError } from './error-tracking.js';
 import { Toast, hayModalAbierto } from '../utils/states.js';
+import { initFoco } from '../components/foco.js';
 
 const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'configuracion'];
 
@@ -283,6 +284,9 @@ class Router {
     initSheetDragToDismiss();
     initModalAccessibility();
     this.initMenu();
+    // Foco de tareas: registra uno que venció con la app cerrada y sigue el
+    // que esté en curso (components/foco.js).
+    initFoco().catch(err => console.error('Error iniciando el foco', err));
 
     // El SW nuevo puede haber tomado el control antes de que app.js
     // terminara de cargar: se revisa el flag además de escuchar el evento.

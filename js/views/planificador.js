@@ -5,8 +5,9 @@ import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { renderPriorityBars } from '../utils/prioridad.js';
 import { marcaDificultad, etiquetaDificultad } from '../utils/dificultad.js';
+import { iniciarFoco, MIN_FOCO } from '../components/foco.js';
 import { calcularAtrasadas } from '../utils/atrasadas.js';
-import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
+import { renderTaskForm, setupTaskForm, openTaskForm, abrirDetallePorId } from '../components/task-form.js';
 
 // 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
 // cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
@@ -161,13 +162,18 @@ function partesMenuMover(it, iso, semana) {
     const actual = d.iso === iso;
     return `<button type="button" role="menuitem" class="plan-mover-dia tappable" data-iso="${d.iso}" ${actual ? 'aria-disabled="true" disabled' : ''} aria-label="Mover al ${DOW[i].toLowerCase()} ${n}"><span class="num">${DIA_CORTO[i]} ${n}</span></button>`;
   }).join('');
+  // Foco: solo tareas de Lista que no estén hechas.
+  const foco = it.origen === 'tarea' && !it.hecha
+    ? `<div class="plan-menu-foco-fila"><button type="button" role="menuitem" class="plan-menu-foco tappable">Foco ${MIN_FOCO} min</button></div>`
+    : '';
   return {
     boton: `
     <button type="button" class="plan-menu-btn tappable" aria-haspopup="menu" aria-expanded="false" aria-label="Opciones de «${texto}»">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
     </button>`,
     menu: `
-    <div class="plan-mover-menu" role="menu" aria-label="Mover «${texto}» a" hidden>
+    <div class="plan-mover-menu" role="menu" aria-label="${foco ? 'Opciones de' : 'Mover'} «${texto}»${foco ? '' : ' a'}" hidden>
+      ${foco}
       <span class="plan-mover-etq" aria-hidden="true">Mover a</span>
       <div class="plan-mover-dias">${dias}</div>
     </div>`
@@ -528,14 +534,19 @@ export function mountListeners() {
         if (!abrir) return;
         menu.hidden = false;
         menuBtn.setAttribute('aria-expanded', 'true');
-        menu.querySelector('.plan-mover-dia:not([disabled])')?.focus();
+        menu.querySelector('.plan-menu-foco, .plan-mover-dia:not([disabled])')?.focus();
       });
       menu?.addEventListener('keydown', (e) => {
-        const items = Array.from(menu.querySelectorAll('.plan-mover-dia:not([disabled])'));
+        const items = Array.from(menu.querySelectorAll('.plan-menu-foco, .plan-mover-dia:not([disabled])'));
         const k = items.indexOf(document.activeElement);
         if (e.key === 'Escape') { e.preventDefault(); cerrarMenu(true); }
         else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); items[(k + 1) % items.length]?.focus(); }
         else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); items[(k - 1 + items.length) % items.length]?.focus(); }
+      });
+      menu?.querySelector('.plan-menu-foco')?.addEventListener('click', async () => {
+        cerrarMenu(false);
+        const task = (await db.getTasks()).find(x => x.id === id);
+        if (task) iniciarFoco(task, { alVolver: abrirDetallePorId });
       });
       menu?.querySelectorAll('.plan-mover-dia:not([disabled])').forEach(b => {
         b.addEventListener('click', () => { cerrarMenu(false); moverA(origen, id, b.dataset.iso); });
