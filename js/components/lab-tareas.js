@@ -63,6 +63,28 @@ async function renderDesglose() {
         </ul>
       </div>`;
 
+  // Foco (F4): minutos por semana (últimas 8) y la tarea con más foco del mes.
+  const [focoSemanas, focoMes] = await Promise.all([db.getFocoPorSemana(8), db.getTareaConMasFocoMes()]);
+  const maxMin = Math.max(1, ...focoSemanas.map(s => s.minutos));
+  const focoActual = focoSemanas[focoSemanas.length - 1];
+  const focos = (n) => (n === 1 ? 'foco' : 'focos');
+  const focoHtml = `
+      <div class="card lab-foco" style="padding: 18px; border-radius: 18px; margin-bottom: 20px;">
+        <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 6px 0;">Minutos de foco · 8 semanas</h3>
+        <p style="margin: 0 0 6px 0; font-size: 12.5px; color: var(--text-secondary);">Esta semana: <span class="num">${formatNumero(focoActual.focos)}</span> ${focos(focoActual.focos)} · <span class="num">${formatNumero(focoActual.minutos)}</span> min</p>
+        <p class="lab-foco-mes" style="margin: 0 0 14px 0; font-size: 12.5px; color: var(--text-secondary);">${focoMes
+          ? `Más foco este mes: <span style="color: var(--text-primary); font-weight: 700;">${escapeHtml(focoMes.titulo)}</span>${focoMes.eliminada && focoMes.titulo !== 'Tarea eliminada' ? ' (eliminada)' : ''} · <span class="num">${formatNumero(focoMes.minutos)}</span> min (<span class="num">${formatNumero(focoMes.focos)}</span> ${focos(focoMes.focos)})`
+          : 'Sin focos este mes.'}</p>
+        <ul class="lab-puntos-lista">
+          ${focoSemanas.map(s => `
+            <li class="lab-foco-fila" data-lunes="${s.lunes}">
+              <span class="lab-puntos-sem num">${escapeHtml(formatFechaCorta(fechaLocalDe(s.lunes)))}</span>
+              <span class="lab-puntos-barra" aria-hidden="true"><span style="width: ${Math.round((s.minutos / maxMin) * 100)}%;"></span></span>
+              <span class="lab-puntos-val num" aria-label="${s.focos} ${focos(s.focos)}, ${s.minutos} min">${formatNumero(s.minutos)} min</span>
+            </li>`).join('')}
+        </ul>
+      </div>`;
+
   const tasa = await db.getTasaCumplimientoTareas();
   const tasaHtml = tasa.tasa === null
     ? `<div style="font-size: 12.5px; color: var(--text-secondary);">Todavía no hay tareas completadas con fecha límite para medir la tasa de cumplimiento.</div>`
@@ -71,6 +93,7 @@ async function renderDesglose() {
   return `
     <div>
       ${semanasHtml}
+      ${focoHtml}
       <div class="card" style="padding: 18px 20px; margin-bottom: 20px; border-radius: 18px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Estado actual</h3>
         ${donutSection}

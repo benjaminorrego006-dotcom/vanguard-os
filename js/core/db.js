@@ -552,6 +552,11 @@ function tareasCompletadasNetas(eventos, filtro = () => true) {
   return [...activas.values()];
 }
 
+// Foco completado: su día es payload.fecha (clave local); un evento sin ella
+// cae en el día de su ts. Sin payload.minutos, 25.
+const diaFoco = (e) => (e.payload && e.payload.fecha ? claveDiaDe(e.payload.fecha) : diaKeyDe(new Date(e.ts)));
+const minutosFoco = (e) => (e.payload && Number(e.payload.minutos) > 0 ? Number(e.payload.minutos) : 25);
+
 // Payload de tarea_reabierta: la clave del día (local) en que la tarea se
 // había completado. Una tarea vieja sin completedAt va sin fecha y el
 // estado neto usa el último día en que se completó.
@@ -3053,6 +3058,54 @@ export const db = {
       out[k].puntos += pesoDificultad(porId.get(id));
     });
     return out;
+  },
+
+  // Focos (docs/PLAN-DIFICULTAD-FOCO.md, F4), derivados de los eventos
+  // foco_completado del log. Por semana de calendario (lunes–domingo), las
+  // últimas `semanas` (la última es la actual), según payload.fecha:
+  // [{ lunes, focos, minutos }], de la más antigua a la actual.
+  async getFocoPorSemana(semanas = 8) {
+    const eventos = (await idb.getAll('events')).filter(e => e.tipo === 'foco_completado');
+    const hoy = diaKeyDe(new Date());
+    const lunesActual = sumarDias(hoy, -((fechaLocalDe(hoy).getDay() + 6) % 7));
+    const lunes0 = sumarDias(lunesActual, -7 * (semanas - 1));
+    const out = Array.from({ length: semanas }, (_, i) => ({ lunes: sumarDias(lunes0, 7 * i), focos: 0, minutos: 0 }));
+    eventos.forEach(e => {
+      const k = Math.floor(diasEntre(lunes0, diaFoco(e)) / 7);
+      if (k < 0 || k >= semanas) return;
+      out[k].focos++;
+      out[k].minutos += minutosFoco(e);
+    });
+    return out;
+  },
+
+  // La tarea con más minutos de foco en el mes actual (empate: la del foco
+  // más reciente), o null. Una tarea eliminada sigue contando: su nombre
+  // sale del último evento suyo que lo traiga y va con `eliminada: true`.
+  // { tareaId, titulo, eliminada, focos, minutos }.
+  async getTareaConMasFocoMes() {
+    const [eventos, tareas] = await Promise.all([idb.getAll('events'), idbGetArray('tareas')]);
+    const mes = mesKeyDe(new Date());
+    const porTarea = new Map();
+    eventos.filter(e => e.tipo === 'foco_completado' && diaFoco(e).slice(0, 7) === mes).forEach(e => {
+      const id = (e.payload && e.payload.tareaId) || e.entidadId;
+      const x = porTarea.get(id) || { tareaId: id, focos: 0, minutos: 0, ultimo: 0 };
+      x.focos++;
+      x.minutos += minutosFoco(e);
+      x.ultimo = Math.max(x.ultimo, e.ts);
+      porTarea.set(id, x);
+    });
+    const mejor = [...porTarea.values()].sort((a, b) => b.minutos - a.minutos || b.ultimo - a.ultimo)[0];
+    if (!mejor) return null;
+    const tarea = tareas.find(t => t.id === mejor.tareaId);
+    let titulo = tarea && tarea.title;
+    if (!titulo) {
+      const conTitulo = eventos
+        .filter(e => e.entidadId === mejor.tareaId && e.payload && typeof e.payload.title === 'string' && e.payload.title)
+        .sort((a, b) => b.ts - a.ts)[0];
+      titulo = conTitulo ? conTitulo.payload.title : '';
+    }
+    return { tareaId: mejor.tareaId, titulo: titulo || 'Tarea eliminada', eliminada: !tarea, focos: mejor.focos, minutos: mejor.minutos };
   },
 
   async getTendenciaTareasCompletadas(semanas = 8) {

@@ -171,6 +171,9 @@ export function iniciarFoco(tarea, { alVolver } = {}) {
 
 // --- Pantalla ----------------------------------------------------------------
 let volverA = null;
+// La tarea de la pantalla, aunque el estado ya se haya borrado (fin de la
+// pausa, "Terminar").
+let ultimaTareaId = null;
 let cerrandoAProposito = false;
 let confirmando = false;
 
@@ -224,6 +227,7 @@ function pintar() {
   const o = overlay();
   const e = estado();
   if (!o || !e) return;
+  ultimaTareaId = e.tareaId;
   const restante = restanteDe(e);
   const enPausa = e.fase === 'foco' && !e.terminaEn;
   const total = e.fase === 'foco' ? MS_FOCO : MS_PAUSA;
@@ -317,6 +321,12 @@ async function cerrarPantalla() {
   o.remove();
   cerrandoAProposito = false;
   if (!estado()) pararReloj();
+  avisarCierre();
+}
+// El detalle de la tarea, si quedó abierto debajo, pone al día su bitácora
+// y "N focos · X min" (task-form.js).
+function avisarCierre() {
+  window.dispatchEvent(new CustomEvent('vg-foco-cerrado', { detail: { tareaId: ultimaTareaId } }));
 }
 
 // Atrás (o Escape): history.js ya cerró la pantalla. Con un foco en curso se
@@ -337,6 +347,7 @@ function alAtras() {
   o.remove();
   guardarFoco(null);
   pararReloj();
+  avisarCierre();
   if (e) volverAlDetalle(e.tareaId);
 }
 

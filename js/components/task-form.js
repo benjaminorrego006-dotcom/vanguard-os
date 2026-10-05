@@ -3,6 +3,7 @@ import { Toast, ConfirmDialog } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { iniciarFoco, focoEnCurso, MIN_FOCO } from './foco.js';
 import { formatFechaHora } from '../utils/fecha.js';
+import { formatNumero } from '../utils/numero.js';
 
 const STATE_CHIPS = [
   { value: 'todo', label: 'Por Hacer' },
@@ -24,9 +25,11 @@ const EVENT_LABELS = {
   tarea_creada: 'Tarea creada',
   tarea_actualizada: 'Tarea actualizada',
   tarea_completada: 'Marcada como hecha',
-  tarea_eliminada: 'Tarea eliminada',
-  foco_completado: 'Foco · 25 min'
+  tarea_eliminada: 'Tarea eliminada'
 };
+// foco_completado: "Foco · N min" con los minutos del evento.
+const minutosDe = (ev) => (Number(ev.payload && ev.payload.minutos) > 0 ? Number(ev.payload.minutos) : MIN_FOCO);
+const etiquetaEvento = (ev) => (ev.tipo === 'foco_completado' ? `Foco · ${minutosDe(ev)} min` : EVENT_LABELS[ev.tipo] || ev.tipo);
 
 // Botón de foco: solo en una tarea existente que no esté hecha. Con un foco
 // en curso (de esta u otra tarea) lo abre en vez de empezar otro.
@@ -102,8 +105,7 @@ function syncStateChipStyles(status) {
 // Bitácora: se deriva en vivo del log de eventos central (nunca un campo
 // guardado aparte) — ver db.getBitacoraEntidad. Más reciente arriba, en
 // violeta brillante; el resto, en violeta atenuado (--vib).
-async function renderBitacora(taskId) {
-  const eventos = await db.getBitacoraEntidad(taskId);
+function renderBitacora(eventos) {
   if (eventos.length === 0) {
     return `<div style="font-size:12px; color:var(--text-secondary);">Sin actividad registrada</div>`;
   }
@@ -114,7 +116,7 @@ async function renderBitacora(taskId) {
         const isLatest = i === 0;
         const isLast = i === ordenados.length - 1;
         const dotColor = isLatest ? 'var(--vi)' : 'var(--vib)';
-        const label = EVENT_LABELS[ev.tipo] || ev.tipo;
+        const label = etiquetaEvento(ev);
         return `
           <div style="position:relative; padding-bottom:${isLast ? '0' : '16px'};">
             ${!isLast ? `<div style="position:absolute; left:-14px; top:12px; bottom:0; width:1px; background:var(--vib);"></div>` : ''}
@@ -128,10 +130,29 @@ async function renderBitacora(taskId) {
   `;
 }
 
+// Bitácora y "N focos · X min" (solo si tiene alguno), de una sola lectura
+// del log de la tarea.
 async function refreshBitacoraSection(taskId) {
+  const eventos = await db.getBitacoraEntidad(taskId);
+  // Otro detalle pudo abrirse mientras se leía.
+  if (document.getElementById('task-id')?.value !== taskId) return;
   const el = document.getElementById('task-bitacora');
-  if (el) el.innerHTML = await renderBitacora(taskId);
+  if (el) el.innerHTML = renderBitacora(eventos);
+  const focos = eventos.filter(e => e.tipo === 'foco_completado');
+  const minutos = focos.reduce((s, e) => s + minutosDe(e), 0);
+  const resumen = document.getElementById('task-focos');
+  if (resumen) {
+    resumen.hidden = focos.length === 0;
+    resumen.innerHTML = focos.length ? `<span class="num">${formatNumero(focos.length)}</span> ${focos.length === 1 ? 'foco' : 'focos'} · <span class="num">${formatNumero(minutos)}</span> min` : '';
+  }
 }
+
+// Al cerrarse la pantalla de foco con el detalle de esa tarea abierto
+// debajo, se ponen al día su bitácora y sus focos sin reabrirlo.
+window.addEventListener('vg-foco-cerrado', (e) => {
+  const id = e.detail && e.detail.tareaId;
+  if (id && document.querySelector('#task-modal.open') && document.getElementById('task-id')?.value === id) refreshBitacoraSection(id);
+});
 
 export function renderTaskForm() {
   return `
@@ -148,6 +169,7 @@ export function renderTaskForm() {
           `).join('')}
         </div>
 
+        <div id="task-focos" hidden style="margin:-12px 0 18px; font-size:13px; font-weight:600; color:var(--vi);"></div>
         <button type="button" id="btn-task-foco" class="tappable" hidden style="width:100%; min-height:44px; margin:-10px 0 20px; background:transparent; border:1px solid var(--vi); color:var(--vi); font:inherit; font-size:13px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; cursor:pointer;">Foco 25 min</button>
 
         <div class="input-group">
@@ -366,6 +388,10 @@ export function openTaskForm(task = null) {
   const btnDelete = document.getElementById('btn-delete-task-modal');
 
   container.innerHTML = '';
+  // "N focos · X min" aparece cuando carga la bitácora (no en una tarea nueva).
+  const focosLinea = document.getElementById('task-focos');
+  focosLinea.hidden = true;
+  focosLinea.innerHTML = '';
 
   if (task) {
     titleEl.innerText = 'Detalle de Tarea';
