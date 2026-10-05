@@ -1,5 +1,21 @@
 # Vanguard OS — Changelog
 
+## 6 oct 2026 — Fase 7: calentamiento y descanso por ejercicio (`docs/FASE7-CALENTAMIENTO-DESCANSO.md`)
+
+Plan por fases; el plan y su tabla de estado están en
+`docs/FASE7-CALENTAMIENTO-DESCANSO.md`. QA con Playwright de a una, a 375×812
+y 1280×800, zona `America/Santiago`, reloj simulado, contextos limpios sin
+Supabase.
+
+| Fase | Caché | Qué cambia |
+|---|---|---|
+| F1 — Escalera de calentamiento | v269 | Sin cambios de interfaz. `js/utils/calentamiento.js` (nuevo, en `PRECACHE_URLS`): `escaleraCalentamiento({ pesoTrabajo, equipo, pesoBarra = 20 })` → `[{ peso, reps, discosPorLado? }]`. Barra: barra vacía ×10, 40 % ×5, 60 % ×3, 80 % ×2 redondeado hacia abajo a 2,5 kg, sin pasos ≤ barra (salvo la barra vacía), repetidos ni ≥ al peso de trabajo; con ≤ 40 kg, barra vacía ×10 y 70 % ×5 si supera la barra; `discosPorLado` con `calcularDiscos`. Mancuernas: 50 % ×8 y 75 % ×4 a 1 kg (por mancuerna). Máquina: igual a 2,5 kg. Peso vacío, 0 o inválido, o equipo fuera del alcance (`ninguno`, `banda`, `barra-dominadas`…) → `[]`. Además (no lo decía el plan): con barra y un peso de trabajo menor que la barra → `[]`. Acepta el peso como número o texto con coma ("142,5"). |
+
+### F1 — QA
+
+- Tabla de casos ejecutada en la consola de la app (import del módulo servido), a 375×812 y 1280×800: barra 20 → 20×10; 40 → 20×10, 27,5×5 (2,5 + 1,25 por lado); 60 → 20×10, 22,5×5, 35×3, 47,5×2; 100 → 20×10, 40×5, 60×3, 80×2 (por lado 10 / 20 / 20 + 10); 142,5 (también como "142,5") → 20×10, 55×5, 85×3, 112,5×2; mancuernas 12 → 6×8, 9×4; 30 → 15×8, 22×4; máquina 45 → 22,5×8, 32,5×4; 0, vacío, "abc", `ninguno`, `banda`, `barra-dominadas` y barra con 15 kg → `[]`. 16/16 como se esperaba; consola limpia; ESLint `no-undef` limpio.
+
+
 ## 4 oct 2026 — Semana "Tablero de día" (`docs/REDISENO-SEMANA.md`)
 
 **`CACHE_NAME` final: `vanguard-os-v268`.** Rediseño de Tareas › Semana por fases; el plan y su tabla de estado están en
