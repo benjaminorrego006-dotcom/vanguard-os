@@ -1,5 +1,29 @@
 # Vanguard OS — Changelog
 
+## 5 oct 2026 — Fase 6: medidas corporales y fotos (`docs/FASE6-MEDIDAS.md`)
+
+Base real: `8ce593a` (v288), después de los arreglos A y B. Plan por
+fases; el plan y su tabla de estado están en `docs/FASE6-MEDIDAS.md`. QA
+con Playwright de a una, a 375×812 y 1280×800, zona `America/Santiago`,
+reloj simulado, contextos limpios sin Supabase.
+
+| Fase | Caché | Qué cambia |
+|---|---|---|
+| F1 — Datos de medidas | v289 | `idb.js` pasa a `DB_VERSION` 5 con los stores `medidas` y `fotos_progreso` (keyPath `id`); la migración solo los crea. `medidas` entra en `STORES_RESPALDO` y `MIRROR_STORES`; `fotos_progreso` en ninguno. `db`: `getMedidas` (más reciente arriba: fecha y, el mismo día, `createdAt`), `ultimaMedida(campo)`, `registrarMedida`, `editarMedida` (null o '' quita un campo) y `eliminarMedida`, con eventos `medida_registrada` / `medida_editada` / `medida_eliminada` (modulo `perfil`, payload = la medida completa; al eliminar, solo la fecha). Replay en `applyRemoteEvent` y destino en el espejo. Validación (`normalizarMedida`): fecha válida y no futura, al menos un valor, peso 30–300 kg y perímetros 20–200 cm; acepta "78,4", redondea a un decimal y recorta la nota a 200 caracteres. Mensajes en español para la hoja de F2. Peso al perfil: al registrar o editar, si es la medida con peso más reciente, `saveProfile` con ese `pesoKg`; sin perfil guardado no se crea uno, y eliminar no toca el perfil. Restaurar un respaldo anterior a la Fase 6 (sin `medidas`) deja el store vacío, igual que su log. |
+
+### F1 — QA
+
+- Base v4 llena → v5 (`qa-med1`, perfil persistente con la versión anterior `8ce593a` servida en otro puerto): con la v4 se importa el respaldo demo (701 eventos, 13 stores con datos). Al abrir con la v5, la base queda en versión 5 con `medidas` y `fotos_progreso` vacíos. Los 13 stores quedan idénticos fila por fila, y los singletons también (salvo `storagePersistente`, que la app reescribe al abrir). Hoy carga con racha 84.
+- Todavía sin interfaz (llega en F2), así que se probó por `db`:
+  - "78,4" se guarda como 78.4 y el perfil pasa de 76 a 78.4; un peso con fecha anterior no lo toca.
+  - La validación rechaza una medida vacía, fuera de rango, en cero, texto, una fecha futura y una fecha inexistente.
+  - El orden y `ultimaMedida` funcionan por campo. Editar la más reciente cambia el perfil y editar una antigua no; editar no deja una medida sin valores.
+  - Eliminar no toca el perfil.
+  - Quedan 6 eventos con modulo `perfil` y la racha no cambia.
+- Replay de esos eventos en un segundo contexto: mismo store `medidas`.
+- Respaldo: "Exportar respaldo" trae `medidas` y sus eventos, y no `fotos_progreso`. Importado en un navegador limpio queda igual. Importar el respaldo demo (sin `medidas`) encima deja el store vacío.
+- 375×812 y 1280×800. Regresión: `qa-df5`, sin localStorage y `qa-respaldo-foco`. Consola limpia; ESLint `no-undef` limpio.
+
 ## 5 oct 2026 — Tareas: dificultad y foco (`docs/PLAN-DIFICULTAD-FOCO.md`)
 
 Plan por fases; el plan y su tabla de estado están en
