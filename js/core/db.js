@@ -1306,6 +1306,48 @@ export const db = {
     await logEvent({ modulo: 'entreno', tipo: 'configuracion_actualizada', payload: { restTimerSecs: settings.restTimerSecs } });
   },
 
+  // --- Descanso por ejercicio (docs/FASE7-CALENTAMIENTO-DESCANSO.md, F4) ---
+  // settings.descansoPorEjercicio: { [clave]: segundos }. Vale en cualquier
+  // rutina donde aparezca el ejercicio; sin override se usa el general
+  // (restTimerSecs). Clave: el id del catálogo (el guardado o el que sale del
+  // nombre, como matchEjercicio) o 'nombre:' + nombre en minúscula sin
+  // espacios de más para un ejercicio libre.
+  claveDescansoEjercicio(ej) {
+    if (!ej) return null;
+    const id = idDeEntradaEjercicio({ ejercicioId: ej.ejercicioId || null, nombre: ej.nombre || '' });
+    if (id) return id;
+    const nombre = String(ej.nombre || '').toLowerCase().trim();
+    return nombre ? 'nombre:' + nombre : null;
+  },
+
+  // Mapa completo (copia), para leer todos los overrides de una vez.
+  async getDescansosPorEjercicio() {
+    const settings = await idbGetSingleton('settings', DEFAULT_SETTINGS_SHAPE);
+    const mapa = settings.descansoPorEjercicio;
+    return mapa && typeof mapa === 'object' ? { ...mapa } : {};
+  },
+
+  async getDescansoEjercicio(clave) {
+    if (!clave) return null;
+    const v = (await this.getDescansosPorEjercicio())[clave];
+    return Number.isFinite(v) ? v : null;
+  },
+
+  // segundos: 15–600 (se redondea y se acota); null borra el override. El
+  // evento lleva el mapa completo: el replay (sync.js, mergeSingleton)
+  // reemplaza las claves de primer nivel de settings.
+  async setDescansoEjercicio(clave, segundos) {
+    if (!clave) return null;
+    const settings = await idbGetSingleton('settings', { ...DEFAULT_SETTINGS_SHAPE });
+    const mapa = settings.descansoPorEjercicio && typeof settings.descansoPorEjercicio === 'object' ? { ...settings.descansoPorEjercicio } : {};
+    if (segundos === null || segundos === undefined) delete mapa[clave];
+    else mapa[clave] = Math.min(600, Math.max(15, Math.round(toSafeNumber(segundos))));
+    settings.descansoPorEjercicio = mapa;
+    await idbSetSingleton('settings', settings); this._triggerUpdate();
+    await logEvent({ modulo: 'entreno', tipo: 'configuracion_actualizada', payload: { descansoPorEjercicio: mapa } });
+    return Number.isFinite(mapa[clave]) ? mapa[clave] : null;
+  },
+
   // --- Onboarding inicial (ver components/onboarding-inicial.js) ---
   // Vive en IndexedDB, no en localStorage: localStorage se borra junto con
   // los datos del sitio, así que si viviera ahí el onboarding reaparecería
