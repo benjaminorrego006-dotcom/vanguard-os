@@ -822,3 +822,20 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .cab-acciones { display: flex; gap: 8px; flex-shrink: 0; }
 .cab-accion { width: 44px; height: 44px; flex-shrink: 0; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--vi); border: none; color: var(--bg); cursor: pointer; }
 .cab-accion:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
+/* Semana ≥ 900 px: 7 columnas alineadas con la franja, cada una con los
+   ítems de su día y scroll propio; la del día elegido va resaltada. Las
+   filas se apilan (texto arriba, acciones abajo) porque la columna es
+   angosta. */
+.plan-columnas { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: -8px 0 16px; }
+.plan-col { min-width: 0; max-height: calc(100vh - 380px); min-height: 160px; overflow-y: auto; padding: 4px 6px; background: var(--surface-1); border: 1px solid var(--line); cursor: pointer; }
+.plan-col--sel { border-color: var(--vi); background: var(--vis); }
+.plan-col .plan-items { border-top: none; }
+.plan-col .plan-item { min-height: 0; padding: 4px 0; gap: 0 2px; align-items: flex-start; cursor: default; }
+.plan-col .plan-check { width: 32px; height: 32px; margin-left: -6px; }
+.plan-col .plan-item-texto { flex: 1 1 calc(100% - 40px); padding: 6px 0 2px; font-size: 13px; }
+.plan-col .plan-item-meta { margin-left: 26px; }
+.plan-col .plan-menu-btn, .plan-col .plan-delete { width: 32px; height: 32px; margin: 0; }
+.plan-col .plan-item[data-origen="plan"] .plan-menu-btn { margin-left: auto; }
+.plan-col .plan-item[data-origen="tarea"] .plan-item-meta { flex: 1; }
+.plan-col .plan-mover-menu { flex-direction: column; align-items: flex-start; padding: 2px 0 6px; }
+.plan-col .plan-vacio { border-top: none; margin: 0; padding: 10px 2px; font-size: 12px; }

@@ -14,8 +14,8 @@ plan original decía v257). Revisión visual con capturas y maquetas: artifact
 | F4 — Input único + pendientes de días pasados | Hecha (9ed075e, v262) |
 | F5 — Mover entre días + color | Hecha (45df35f, v263) |
 | F6 — Lista y Hábitos | Hecha (c47db6c, v264) |
-| Ajuste: "+" en el encabezado (sin FAB en Lista y Hábitos) | Hecho (commit del ajuste, v265) |
-| F7 — PC/tablet y QA | Pendiente |
+| Ajuste: "+" en el encabezado (sin FAB en Lista y Hábitos) | Hecho (3e17022, v265) |
+| F7 — PC/tablet y QA | Hecha (commit de F7, v266) |
 
 Actualiza esta tabla (hash del commit) al cerrar cada fase.
 

@@ -31,10 +31,20 @@ async function onSyncActualizado() {
   mountListeners();
 }
 
+// Desde 900 px la franja pasa a 7 columnas con los ítems de cada día
+// debajo (en vez del detalle de un solo día). Cruzar ese ancho repinta.
+const MQ_COLUMNAS = '(min-width: 900px)';
+const enColumnas = () => window.matchMedia(MQ_COLUMNAS).matches;
+let mqEnganchada = null;
+function onCambioAncho() {
+  if (document.getElementById('plan-host') || document.querySelector('.plan-franja')) onSyncActualizado();
+}
+
 // Llamado por el router (app.js) antes de desmontar esta vista.
 export function cleanup() {
   window.removeEventListener('budget-updated', onSyncActualizado);
   syncEnganchado = false;
+  if (mqEnganchada) { mqEnganchada.removeEventListener('change', onCambioAncho); mqEnganchada = null; }
 }
 
 const DOW = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -207,6 +217,21 @@ function renderDetalle(semana, hoyIso) {
     </section>`;
 }
 
+// ≥ 900 px: una columna por día bajo su celda de la franja, con scroll
+// propio; la del día elegido (donde crea el form) va resaltada. Tocar el
+// fondo de una columna elige ese día.
+function renderColumnas(semana, hoyIso) {
+  return `
+    <div id="plan-columnas" class="plan-columnas">
+      ${semana.map((d, i) => `
+        <section class="plan-col${d.iso === diaSeleccionado ? ' plan-col--sel' : ''}" data-iso="${d.iso}" aria-label="${escapeHtml(etiquetaDia(d, i, d.iso === hoyIso))}">
+          ${d.items.length
+            ? `<ul class="plan-items">${d.items.map(it => filaItem(it, d.iso, hoyIso, semana)).join('')}</ul>`
+            : '<p class="plan-vacio">Nada para este día</p>'}
+        </section>`).join('')}
+    </div>`;
+}
+
 // Chip del form único con el día elegido ("DOM 4") y su etiqueta.
 function chipDia(semana) {
   const i = semana.findIndex(d => d.iso === diaSeleccionado);
@@ -282,7 +307,7 @@ export async function render() {
 
       ${renderTira(semana.atrasadas, hoyIso)}
 
-      ${renderDetalle(semana, hoyIso)}
+      ${enColumnas() ? renderColumnas(semana, hoyIso) : renderDetalle(semana, hoyIso)}
 
       ${renderNueva(semana)}
     </div>
@@ -293,6 +318,10 @@ export function mountListeners() {
   if (!syncEnganchado) {
     syncEnganchado = true;
     window.addEventListener('budget-updated', onSyncActualizado);
+  }
+  if (!mqEnganchada) {
+    mqEnganchada = window.matchMedia(MQ_COLUMNAS);
+    mqEnganchada.addEventListener('change', onCambioAncho);
   }
 
   const refresh = async () => {
@@ -324,15 +353,21 @@ export function mountListeners() {
       c.tabIndex = sel ? 0 : -1;
       if (sel && foco) c.focus();
     });
-    const detalle = document.getElementById('plan-detalle');
-    if (!detalle || !ultimaSemana) return;
-    detalle.outerHTML = renderDetalle(ultimaSemana.semana, ultimaSemana.hoyIso);
+    if (!ultimaSemana) return;
     const chip = chipDia(ultimaSemana.semana);
     const chipEl = document.querySelector('.plan-nueva-chip');
     if (chipEl) chipEl.textContent = chip.texto;
     document.querySelectorAll('.plan-nueva, .plan-nueva-btn').forEach(el => el.setAttribute('aria-label', chip.label));
+    document.querySelectorAll('.plan-col').forEach(col => col.classList.toggle('plan-col--sel', col.dataset.iso === iso));
+    const detalle = document.getElementById('plan-detalle');
+    if (!detalle) return;
+    detalle.outerHTML = renderDetalle(ultimaSemana.semana, ultimaSemana.hoyIso);
     montarDetalle();
   };
+  // Columnas: tocar el fondo de una (no un ítem) elige ese día.
+  document.querySelectorAll('.plan-col').forEach(col => {
+    col.addEventListener('click', (e) => { if (!e.target.closest('.plan-item')) elegir(col.dataset.iso, false); });
+  });
   celdas.forEach((c, i) => {
     c.addEventListener('click', () => elegir(c.dataset.iso, false));
     c.addEventListener('keydown', (e) => {
@@ -395,7 +430,7 @@ export function mountListeners() {
 
   // Listeners del detalle: se reasignan cada vez que se repinta.
   const montarDetalle = () => {
-    document.querySelectorAll('#plan-detalle .plan-item').forEach(li => {
+    document.querySelectorAll('#plan-detalle .plan-item, #plan-columnas .plan-item').forEach(li => {
       const id = li.dataset.id;
       const origen = li.dataset.origen;
 
