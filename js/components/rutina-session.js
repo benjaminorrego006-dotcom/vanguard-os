@@ -10,6 +10,7 @@ import { guardarBorrador, borrarBorrador, esBorradorLargo } from '../utils/sesio
 import { formatFechaCorta } from '../utils/fecha.js';
 import { formatNumero } from '../utils/numero.js';
 import { escaleraCalentamiento, EQUIPOS_CON_CALENTAMIENTO } from '../utils/calentamiento.js';
+import { seriesDeTrabajo, esCalentamiento as esSerieCalentamiento } from '../utils/tipo-serie.js';
 import { MuscleMap, sumarFatigaPorGrupo, expandirIntensidadPorMusculo, FATIGA_REFERENCIA } from './mk3-muscle-map.js';
 import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
 
@@ -212,8 +213,9 @@ const idSafeFragment = (nombre) => nombre.replace(/[^a-zA-Z0-9_-]/g, '');
 
 // Volumen en kg de un grupo de series: peso × reps de las que tienen peso
 // (las de peso corporal no suman kg). Reps puede traer texto ("10", "30s").
+// Las de calentamiento no suman (Fase 7, F3).
 function volumenDeSeries(series) {
-  return series.reduce((total, s) => {
+  return seriesDeTrabajo(series).reduce((total, s) => {
     const peso = parseFloat(s.peso) || 0;
     const reps = parseInt(String(s.reps ?? '').match(/\d+/)?.[0] || '0');
     return total + (peso > 0 ? peso * reps : 0);
@@ -514,6 +516,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   // abrir la sesión (misma regla que el aviso de PR en vivo).
   const esRecord = (bloque, row) => {
     if (row.querySelector('.btn-check-serie').getAttribute('data-checked') !== 'true') return false;
+    if (row.querySelector('.serie-tipo').value === 'calentamiento') return false;
     const pr = prsAlAbrir[(bloque.dataset.ejNombre || '').toLowerCase().trim()];
     if (!pr) return false;
     const peso = parseFloat(row.querySelector('.serie-peso').value) || 0;
@@ -613,7 +616,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       total++;
       if (row.querySelector('.btn-check-serie').getAttribute('data-checked') !== 'true') return;
       hechas++;
-      marcadas.push({ peso: row.querySelector('.serie-peso').value, reps: row.querySelector('.serie-reps').value });
+      marcadas.push({ peso: row.querySelector('.serie-peso').value, reps: row.querySelector('.serie-reps').value, tipo: row.querySelector('.serie-tipo').value });
       if (esRecord(b, row)) {
         const peso = parseFloat(row.querySelector('.serie-peso').value) || 0;
         const valor = peso > 0 ? formatoKg(peso) : `${parseInt(row.querySelector('.serie-reps').value) || 0} reps`;
@@ -890,7 +893,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       const repsTxt = formatNumero(row.querySelector('.serie-reps').value, { textoSiNoEsNumero: true }) || '0';
       const carga = peso > 0 ? `${formatNumero(peso)} kg × ${repsTxt}` : `${esCorporalBloque(b) ? 'Corporal' : '0 kg'} × ${repsTxt}`;
       const corrida = corridaDe(b);
-      const sig = corrida[corrida.indexOf(b) + 1];
+      // Un calentamiento se completa sin pasar al otro ejercicio de la superserie.
+      const sig = row.querySelector('.serie-tipo').value === 'calentamiento' ? null : corrida[corrida.indexOf(b) + 1];
       if (sig) {
         btn.dataset.modo = 'superserie';
         btn.classList.add('sesion-principal--ss');
@@ -1017,7 +1021,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       const row = filaTocaDe(b);
       if (!row) return;
       const corrida = corridaDe(b);
-      const sig = modo === 'superserie' ? corrida[corrida.indexOf(b) + 1] : null;
+      const sig = modo === 'superserie' && row.querySelector('.serie-tipo').value !== 'calentamiento' ? corrida[corrida.indexOf(b) + 1] : null;
       row.querySelector('.btn-check-serie').click();
       if (sig) mostrarEjercicio(Number(sig.dataset.ejIdx));
     } else if (modo === 'siguiente') {
@@ -1059,6 +1063,19 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       const tieneCal = Array.from(b.querySelectorAll('.serie-row')).some(esCalentamiento);
       const item = b.querySelector('.btn-calentamiento');
       if (item) item.textContent = tieneCal ? 'Rehacer calentamiento' : 'Agregar calentamiento';
+      // ANTERIOR por tipo: el calentamiento N con el calentamiento N de la
+      // última vez, y la serie de trabajo N con la de trabajo N; insertar
+      // calentamientos no corre la columna.
+      const ant = currentAnterior[b.dataset.ejNombre];
+      const antSeries = ant && Array.isArray(ant.series) ? ant.series : [];
+      const antCal = antSeries.filter(esSerieCalentamiento), antTrab = seriesDeTrabajo(antSeries);
+      let iCal = 0, iTrab = 0;
+      b.querySelectorAll('.serie-row').forEach(row => {
+        const previa = esCalentamiento(row) ? antCal[iCal++] : antTrab[iTrab++];
+        const celda = row.querySelector('.serie-anterior');
+        const txt = textoAnterior(previa || null);
+        if (celda && celda.textContent !== txt) celda.textContent = txt;
+      });
       const enBarra = b.dataset.equipo === 'barra';
       b.querySelectorAll('.serie-row').forEach(row => {
         let linea = row.nextElementSibling && row.nextElementSibling.classList.contains('serie-discos') ? row.nextElementSibling : null;
@@ -1177,7 +1194,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       if (!nombre) return;
       const clave = grupoMuscularParaMapa(metadataDeEjercicio(nombre, bloque.getAttribute('data-ej-id')).grupoMuscular);
       if (!clave) return;
-      const seriesMarcadas = bloque.querySelectorAll('.btn-check-serie[data-checked="true"]').length;
+      const seriesMarcadas = Array.from(bloque.querySelectorAll('.serie-row')).filter(r => r.querySelector('.btn-check-serie').getAttribute('data-checked') === 'true' && r.querySelector('.serie-tipo').value !== 'calentamiento').length;
       if (seriesMarcadas <= 0) return;
       enVivoPorGrupo[clave] = (enVivoPorGrupo[clave] || 0) + seriesMarcadas;
     });
@@ -1394,6 +1411,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       const rows = card.querySelectorAll('.serie-row');
       rows.forEach(row => {
         const checkBtn = row.querySelector('.btn-check-serie');
+        if (row.querySelector('.serie-tipo').value === 'calentamiento') return;
         if (checkBtn.getAttribute('data-checked') !== 'true') {
           if (peso > 0) row.querySelector('.serie-peso').value = peso;
           if (reps > 0) row.querySelector('.serie-reps').value = reps;
@@ -1596,14 +1614,17 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         const bloquesOrden = Array.from(document.querySelectorAll('.ejercicio-sesion-block'));
         const siguienteBloque = bloquesOrden[bloquesOrden.indexOf(ejContainer) + 1] || null;
         const esUltimoDeLaSuperserie = !grupoId || !siguienteBloque || siguienteBloque.dataset.grupoId !== grupoId;
-        if (esUltimoDeLaSuperserie) iniciarDescanso(currentRestTimerSecs);
+        // Calentamiento (Fase 7, F3): no inicia el descanso.
+        const esCal = row.querySelector('.serie-tipo').value === 'calentamiento';
+        if (esUltimoDeLaSuperserie && !esCal) iniciarDescanso(currentRestTimerSecs);
         // Última serie del ejercicio: pasa solo al siguiente; al instante si
-        // es una superserie (sin descanso entre ellos), si no al terminar el
+        // es una superserie (sin descanso entre ellos) o si era un
+        // calentamiento (no hay descanso que esperar), si no al terminar el
         // descanso.
         const idxMarcado = Number(ejContainer.dataset.ejIdx);
-        if (pendientesDe(ejContainer) === 0 && !esUltimoDeLaSuperserie) {
+        if (pendientesDe(ejContainer) === 0 && (!esUltimoDeLaSuperserie || esCal)) {
           setTimeout(() => pasarAlSiguiente(idxMarcado), 350);
-        } else if (esUltimoDeLaSuperserie) {
+        } else if (esUltimoDeLaSuperserie && !esCal) {
           // Superserie: tras el descanso se vuelve al primero de la corrida
           // que tenga series pendientes; si no queda ninguna, al siguiente.
           const corrida = corridaDe(ejContainer);
@@ -1757,10 +1778,12 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     if (!contResumen) return;
     if (descanso) terminarDescanso({ sonar: false });
     const bloques = bloquesSesion();
-    const marcadasDe = (b) => Array.from(b.querySelectorAll('.serie-row')).filter(estaMarcada);
+    // Sin calentamientos (Fase 7, F3): series, volumen, RPE y récords.
+    const deTrabajo = (b) => Array.from(b.querySelectorAll('.serie-row')).filter(r => r.querySelector('.serie-tipo').value !== 'calentamiento');
+    const marcadasDe = (b) => deTrabajo(b).filter(estaMarcada);
     const todasMarcadas = bloques.flatMap(marcadasDe);
     const serieDe = (row) => ({ peso: row.querySelector('.serie-peso').value, reps: row.querySelector('.serie-reps').value, rpe: row.querySelector('.serie-rpe').value });
-    const total = bloques.reduce((n, b) => n + b.querySelectorAll('.serie-row').length, 0);
+    const total = bloques.reduce((n, b) => n + deTrabajo(b).length, 0);
     const volumen = volumenDeSeries(todasMarcadas.map(serieDe));
     const rpes = todasMarcadas.map(r => Number(r.querySelector('.serie-rpe').value)).filter(v => v > 0);
     const rpeProm = rpes.length ? formatNumero(rpes.reduce((a, b) => a + b, 0) / rpes.length) : null;

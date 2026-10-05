@@ -65,7 +65,7 @@ Origen: docs/PLAN.md › Pendiente › FASE 7.
 | Fase | Commit | Caché |
 |---|---|---|
 | F1 Escalera de calentamiento | ddfbce3 | v269 |
-| F2 Calentamiento en la sesión | | |
+| F2 Calentamiento en la sesión | 41d86e2 | v270 |
 | F3 Calentamiento fuera de los cálculos | | |
 | F4 Descanso por ejercicio (datos) | | |
 | F5 Descanso por ejercicio (UI) | | |

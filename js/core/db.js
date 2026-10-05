@@ -3,6 +3,7 @@ import * as idb from './idb.js';
 import { mesKeyDe, diaKeyDe, diasEntre, sumarDias, claveDiaDe, fechaLocalDe, compararFechas } from '../utils/fecha.js';
 import { EQUIPO_OPCIONES } from './trainingConfig.js';
 import { generarObservaciones } from './observaciones-semana.js';
+import { seriesDeTrabajo } from '../utils/tipo-serie.js';
 import { estadoNetoSesion, sesionesVigentesDesdeEventos } from './sesiones-estado.js';
 
 function toSafeNumber(value) {
@@ -818,7 +819,7 @@ export function resumirSemana({ eventos = [], sesiones = [], transacciones = [],
     if (!d) return;
     d.sesiones++;
     d.minutos += toSafeNumber(s.duracionMin);
-    (s.ejercicios || []).forEach(ej => (ej.series || []).forEach(serie => {
+    (s.ejercicios || []).forEach(ej => seriesDeTrabajo(ej.series).forEach(serie => {
       const p = toSafeNumber(serie.peso);
       const m = String(serie.reps).match(/\d+/);
       const r = m ? parseInt(m[0], 10) : 0;
@@ -2165,7 +2166,7 @@ export const db = {
         const weekIndex = 3 - Math.floor(diffDays / 7);
         if (s.ejercicios) {
           s.ejercicios.forEach(ej => {
-            ej.series.forEach(serie => {
+            seriesDeTrabajo(ej.series).forEach(serie => {
               const p = Number(serie.peso) || 0;
               const match = String(serie.reps).match(/\d+/);
               const r = match ? parseInt(match[0]) : 0;
@@ -2198,7 +2199,7 @@ export const db = {
         let rMax = 0;
         let maxRpe = 0;
 
-        ej.series.forEach(serie => {
+        seriesDeTrabajo(ej.series).forEach(serie => {
           const p = Number(serie.peso) || 0;
           const match = String(serie.reps).match(/\d+/);
           const r = match ? parseInt(match[0]) : 0;
@@ -2217,7 +2218,7 @@ export const db = {
           if (maxRpe <= 7) { increment = pMax > 0 ? Math.max(2.5, pMax * 0.05) : 0; repsIncr = 2; }
           else if (maxRpe >= 9) { isHard = true; }
         } else {
-          isHard = ej.series.some(s => s.tipo === 'fallo' || (s.rpe && parseInt(s.rpe) >= 9));
+          isHard = seriesDeTrabajo(ej.series).some(s => s.tipo === 'fallo' || (s.rpe && parseInt(s.rpe) >= 9));
         }
 
         if (isHard) {
@@ -2538,7 +2539,7 @@ export const db = {
       minutosPorSemana[weekIdx] += Number(s.duracionMin) || 0;
 
       (s.ejercicios || []).forEach(ej => {
-        (ej.series || []).forEach(serie => {
+        seriesDeTrabajo(ej.series).forEach(serie => {
           const p = Number(serie.peso) || 0;
           const match = String(serie.reps).match(/\d+/);
           const r = match ? parseInt(match[0]) : 0;
@@ -2564,7 +2565,7 @@ export const db = {
       const iso = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}-${String(sDate.getDate()).padStart(2, '0')}`;
       let volumen = 0;
       (s.ejercicios || []).forEach(ej => {
-        (ej.series || []).forEach(serie => {
+        seriesDeTrabajo(ej.series).forEach(serie => {
           const p = Number(serie.peso) || 0;
           const match = String(serie.reps).match(/\d+/);
           const r = match ? parseInt(match[0]) : 0;
@@ -2666,11 +2667,12 @@ export const db = {
         if (s.ejercicios) {
           s.ejercicios.forEach(ej => {
             const meta = resolverMetadataEjercicio(ej);
-            if (volumen[meta.grupoMuscular] !== undefined) volumen[meta.grupoMuscular] += ej.series.length;
-            else volumen.otro += ej.series.length;
+            const n = seriesDeTrabajo(ej.series).length;
+            if (volumen[meta.grupoMuscular] !== undefined) volumen[meta.grupoMuscular] += n;
+            else volumen.otro += n;
 
-            if (balance[meta.patron] !== undefined) balance[meta.patron] += ej.series.length;
-            else balance.otro += ej.series.length;
+            if (balance[meta.patron] !== undefined) balance[meta.patron] += n;
+            else balance.otro += n;
           });
         }
       }
@@ -2706,7 +2708,7 @@ export const db = {
         salida.push({
           ts: e.ts,
           entidadId: e.entidadId,
-          payload: { grupoMuscular: meta.grupoMuscular, series: (ej.series || []).length }
+          payload: { grupoMuscular: meta.grupoMuscular, series: seriesDeTrabajo(ej.series).length }
         });
       });
     });
@@ -2735,7 +2737,7 @@ export const db = {
       (s.ejercicios || []).forEach(ej => {
         const meta = resolverMetadataEjercicio(ej);
         const bucket = grupos[meta.grupoMuscular] || grupos.otro;
-        (ej.series || []).forEach(serie => {
+        seriesDeTrabajo(ej.series).forEach(serie => {
           const peso = Number(serie.peso) || 0;
           const match = String(serie.reps).match(/\d+/);
           const reps = match ? parseInt(match[0]) : 0;
@@ -2817,7 +2819,7 @@ export const db = {
           const g = grupos.get(identidad);
           g.nombres.add(ej.nombre.trim());
 
-          ej.series.forEach(serie => {
+          seriesDeTrabajo(ej.series).forEach(serie => {
             const peso = Number(serie.peso) || 0;
             const repsStr = String(serie.reps).trim();
             const match = repsStr.match(/\d+/);
@@ -2888,13 +2890,14 @@ export const db = {
     sesiones.forEach(s => {
       if (s.ejercicios) {
         const ej = s.ejercicios.find(e => matchEjercicio(e, nomClean, idObjetivo));
-        if (ej && ej.series && ej.series.length > 0) {
+        const trabajo = ej ? seriesDeTrabajo(ej.series) : [];
+        if (ej && trabajo.length > 0) {
           let pesoMax = -9999;
           let repsEnPesoMax = 0;
           let repsForBodyweight = 0;
           let volumenTotal = 0;
 
-          ej.series.forEach(serie => {
+          trabajo.forEach(serie => {
             const peso = Number(serie.peso) || 0;
             const match = String(serie.reps).match(/\d+/);
             const reps = match ? parseInt(match[0]) : 0;
@@ -2913,7 +2916,7 @@ export const db = {
             repsEnPesoMax,
             repsMax: repsForBodyweight,
             volumenTotal,
-            seriesCount: ej.series.length,
+            seriesCount: trabajo.length,
             // Detalle crudo por serie — lo necesita el árbol de progresiones
             // de calistenia (progresiones-calistenia.js) para contar "series
             // limpias" (tipo normal, reps/segundos suficientes, sin RPE de
