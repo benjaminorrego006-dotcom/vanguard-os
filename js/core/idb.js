@@ -65,10 +65,23 @@ const STORE_DEFS = {
 
 let dbPromise = null;
 
+// Actualización de la base con varias ventanas abiertas. Este módulo no
+// pinta nada: avisa con eventos de window y app.js muestra el aviso.
+// - vg-db-version-nueva: otra pestaña abrió una versión más nueva de la
+//   base. Esta cierra su conexión (si no, la otra queda bloqueada) y pide
+//   recargar; sin conexión ya no puede leer ni guardar.
+// - vg-db-bloqueada: esta pestaña trae una versión nueva y otra, con la
+//   vieja abierta, no la suelta. La apertura sigue pendiente y termina sola
+//   cuando la otra se cierra.
+const avisar = (tipo) => {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(tipo));
+};
+
 function openDatabase() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onblocked = () => avisar('vg-db-bloqueada');
     req.onupgradeneeded = (e) => {
       const database = e.target.result;
       Object.entries(STORE_DEFS).forEach(([name, cfg]) => {
@@ -77,7 +90,15 @@ function openDatabase() {
         (cfg.indexes || []).forEach(idx => store.createIndex(idx.name, idx.keyPath));
       });
     };
-    req.onsuccess = (e) => resolve(e.target.result);
+    req.onsuccess = (e) => {
+      const database = e.target.result;
+      database.onversionchange = () => {
+        database.close();
+        avisar('vg-db-version-nueva');
+      };
+      avisar('vg-db-abierta');
+      resolve(database);
+    };
     req.onerror = (e) => reject(e.target.error);
   });
   return dbPromise;

@@ -60,6 +60,6 @@ Origen: docs/PLAN.md › Pendiente › FASE 6.
 |---|---|---|
 | F1 Datos de medidas | 4110724 | v289 |
 | F2 Registro y lista | 753139c | v290 |
-| F3 Gráficos | | |
+| F3 Gráficos | def4638 | v291 |
 | F4 Fotos (local) | | |
 | F5 Exportar e importar fotos | | |

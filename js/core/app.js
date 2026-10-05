@@ -6,7 +6,7 @@ import { escapeHtml } from '../utils/escape.js';
 import { initSync } from './sync.js';
 import { diaKeyDe } from '../utils/fecha.js';
 import { initErrorTracking, reportError } from './error-tracking.js';
-import { Toast, hayModalAbierto } from '../utils/states.js';
+import { Toast, ToastAccion, hayModalAbierto } from '../utils/states.js';
 import { initFoco } from '../components/foco.js';
 
 const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'configuracion'];
@@ -203,6 +203,31 @@ function initModalAccessibility() {
 // la versión recargada queda en sessionStorage.
 const CLAVE_RECARGA_SW = 'vg-sw-recarga-version';
 let avisoActualizacionMostrado = false;
+
+// Base de datos con varias ventanas (ver idb.js). Se enganchan al cargar el
+// módulo, antes de db.init(), para no perder un aviso de la primera apertura.
+// Los avisos quedan hasta que se toque (o se abra la base, en el bloqueo).
+const AVISO_FIJO_MS = 24 * 60 * 60 * 1000;
+let avisoBaseBloqueada = null;
+window.addEventListener('vg-db-version-nueva', () => {
+  ToastAccion('Hay una versión nueva. Recarga la app.', { accion: 'Recargar', alAccion: () => location.reload(), duracion: AVISO_FIJO_MS });
+});
+// Bloqueada, la app sigue en el splash (z-index 9999): los avisos suben por
+// encima mientras dure y vuelven a su nivel al abrir la base.
+let zIndexToasts = null;
+const toastsSobreSplash = (si) => {
+  const c = document.getElementById('toast-container');
+  if (!c) return;
+  if (si) { if (zIndexToasts === null) zIndexToasts = c.style.zIndex; c.style.zIndex = '10000'; }
+  else if (zIndexToasts !== null) { c.style.zIndex = zIndexToasts; zIndexToasts = null; }
+};
+window.addEventListener('vg-db-bloqueada', () => {
+  toastsSobreSplash(true);
+  avisoBaseBloqueada = ToastAccion('Cierra Vanguard en las otras pestañas o ventanas para terminar la actualización.', { accion: 'Entendido', alAccion: () => {}, duracion: AVISO_FIJO_MS });
+});
+window.addEventListener('vg-db-abierta', () => {
+  if (avisoBaseBloqueada) { avisoBaseBloqueada.cerrar(); avisoBaseBloqueada = null; toastsSobreSplash(false); }
+});
 
 function avisarActualizacionLista() {
   if (avisoActualizacionMostrado || !window.__vgActualizacion?.pendiente) return;
