@@ -1,7 +1,6 @@
 import { db } from '../core/db.js';
 import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
 import { Toast, ConfirmDialog, EmptyState, hayModalAbierto } from '../utils/states.js';
-import { ensureChartJs, appPalette, baseChartOptions, hdPixelRatio } from '../utils/charts.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatFechaCorta, formatMes } from '../utils/fecha.js';
@@ -9,7 +8,9 @@ import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import * as Planificador from './planificador.js';
 import { renderPriorityBars } from '../utils/prioridad.js';
 
-let tasksDonutInstance = null;
+// Buscador del encabezado: desplegado o no. Vive en el módulo para que un
+// refresh (marcar, crear) no lo cierre a la mitad de una búsqueda.
+let busquedaAbierta = false;
 
 // 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
 // cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
@@ -31,10 +32,8 @@ async function onSyncActualizado() {
   mountListeners();
 }
 
-// Llamado por el router (app.js) antes de desmontar esta vista — evita que
-// la instancia de Chart.js siga viva con su canvas ya fuera del DOM.
+// Llamado por el router (app.js) antes de desmontar esta vista.
 export function cleanup() {
-  if (tasksDonutInstance) { tasksDonutInstance.destroy(); tasksDonutInstance = null; }
   window.removeEventListener('budget-updated', onSyncActualizado);
   syncEnganchado = false;
   Planificador.cleanup();
@@ -99,32 +98,6 @@ const EMPTY_MSG = {
   'todo': { title: 'Sin tareas pendientes', subtitle: 'Agrega la primera con el botón + de abajo.' },
   'in-progress': { title: 'Sin tareas en curso', subtitle: 'Avanza una desde "Por Hacer" para verla acá.' },
   'done': { title: 'Sin tareas completadas', subtitle: 'Termina una tarea para verla acá.' }
-};
-
-const renderTasksDonut = async (tasks) => {
-  const canvas = document.getElementById('tasks-donut-chart');
-  if (!canvas || tasks.length === 0) return;
-
-  const completadas = tasks.filter(t => t.status === 'done').length;
-  const pendientes = tasks.length - completadas;
-
-  const Chart = await ensureChartJs();
-  const palette = appPalette();
-
-  if (tasksDonutInstance) tasksDonutInstance.destroy();
-  tasksDonutInstance = new Chart(canvas, {
-    type: 'doughnut',
-    data: {
-      labels: ['Completadas', 'Pendientes'],
-      datasets: [{
-        data: [completadas, pendientes],
-        backgroundColor: [palette.success, palette.surfaceBorder],
-        borderColor: 'transparent',
-        borderWidth: 1
-      }]
-    },
-    options: { ...baseChartOptions(), devicePixelRatio: hdPixelRatio(), cutout: '68%' }
-  });
 };
 
 function formatDate(dateStr) {
@@ -304,32 +277,21 @@ async function renderLista() {
   });
 
   return `
-    <div style="padding: 20px 0 20px 20px; font-family: var(--font-body);">
-      <!-- Header -->
+    <!-- padding-bottom: 180px (como Hábitos): al final del scroll el FAB
+         sticky queda sobre ese relleno y no tapa el calendario. -->
+    <div style="padding: 20px 0 180px 20px; font-family: var(--font-body);">
+      <!-- Header: el buscador es un ícono que despliega el input. -->
       <div class="flex-between" style="padding-right: 20px; margin-bottom: 20px;">
         <h1 style="font-size: 30px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.5px;">Tareas</h1>
-        <div class="icon-chip" style="width: 40px; height: 40px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-        </div>
+        <button type="button" id="btn-task-search" class="lista-buscar-btn tappable" aria-label="Buscar tareas" aria-expanded="${busquedaAbierta}" aria-controls="task-search-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
       </div>
 
-      ${tasks.length > 0 ? `
-        <!-- Completadas vs. pendientes — tarjeta principal de Tareas, lleva chaflán (ver .card-hero). -->
-        <div class="card card-hero" style="margin-right: 20px; margin-bottom: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
-          <div style="width: 56px; height: 56px; flex-shrink: 0; position: relative;">
-            <canvas id="tasks-donut-chart" width="56" height="56"></canvas>
-          </div>
-          <div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);"><span class="num">${tasks.filter(t => t.status === 'done').length}</span> de <span class="num">${tasks.length}</span> completada${tasks.length === 1 ? '' : 's'}</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;"><span class="num">${tasks.length - tasks.filter(t => t.status === 'done').length}</span> pendiente${tasks.length - tasks.filter(t => t.status === 'done').length === 1 ? '' : 's'}</div>
-          </div>
-        </div>
-      ` : ''}
-
-      <!-- Search -->
-      <div style="margin-right: 20px; margin-bottom: 24px; position: relative;">
-        <svg style="position: absolute; left: 16px; top: 13px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="task-search" placeholder="Buscar tareas, proyectos..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-primary)'; this.style.boxShadow='0 0 0 4px color-mix(in srgb, var(--accent-primary) 18%, transparent)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+      <!-- Buscador (plegado detrás del ícono del encabezado) -->
+      <div id="task-search-wrap" class="lista-buscar" ${busquedaAbierta ? '' : 'hidden'}>
+        <svg class="lista-buscar-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="search" id="task-search" placeholder="Buscar tareas, proyectos..." aria-label="Buscar tareas">
       </div>
 
       <!-- Tablero por estado -->
@@ -338,26 +300,12 @@ async function renderLista() {
         ${renderBoardContent(cols)}
       </div>
 
-      <!-- Captura rápida — sticky (no flujo normal): con contenido corto este
-           row podía terminar posicionado, al montar la vista con scroll 0,
-           justo detrás del nav inferior fixed (mismo z-index-stacking bug que
-           el FAB de abajo ya resuelve con position:sticky). Sin sticky, todo
-           el ancho del input quedaba tapado por el nav y cada click
-           navegaba al tab que cayera en esa franja horizontal.
-
-           Va ANTES que la tarjeta del calendario a propósito: antes estaba
-           después, y al ser sticky (bottom:100px) terminaba superpuesto
-           arriba de la tarjeta durante buena parte del scroll — la franja
-           donde queda "pegado" es un tramo fijo de la pantalla, y ningún
-           margen alrededor de la tarjeta podía evitar que la cruzara en
-           algún punto (confirmado en vivo, no alcanzaba). Puesto ANTES del
-           calendario, se "suelta" a flujo normal apenas termina el tablero
-           — mucho antes de que el calendario entre en pantalla — así que
-           nunca llegan a competir por la misma franja. Verificado con un
-           barrido de scroll real completo (scrollBy incremental) en
-           375×812 y 1440×900, tablero vacío y con tareas: 0 solapamiento
-           en ningún punto del recorrido. -->
-      <form id="task-quick-add-form" class="list-row" onsubmit="return false;" style="position: sticky; bottom: 100px; z-index: 1001; margin-right: 20px; margin-bottom: 24px; display: flex; align-items: stretch; border: 1.5px solid var(--vib); overflow: hidden; background: var(--bg-base);">
+      <!-- Captura rápida al final del tablero, en flujo normal (ya no
+           sticky: pegada sobre el contenido tapaba tarjetas al hacer
+           scroll). Lo que sigue (calendario y el relleno inferior de la
+           vista) deja espacio para que nunca quede detrás del nav ni del
+           FAB al llegar al final. -->
+      <form id="task-quick-add-form" class="list-row" onsubmit="return false;" style="margin-right: 20px; margin-bottom: 24px; display: flex; align-items: stretch; border: 1.5px solid var(--vib); overflow: hidden; background: var(--bg-base);">
         <input type="text" id="task-quick-add" placeholder="Nueva tarea rápida..." enterkeyhint="go" style="flex: 1; background: transparent; border: none; padding: 14px 16px; color: var(--text-primary); font-size: 16px; outline: none;">
         <button type="submit" id="btn-quick-add" class="tappable" style="background: var(--vib); border: none; color: var(--text-primary); padding: 0 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -407,7 +355,6 @@ export function mountListeners() {
     mountListeners();
   };
 
-  db.getTasks().then(renderTasksDonut);
   initActivityHeatmapListeners('tareas-heatmap', 'var(--accent-purple)');
 
   setupTaskForm(refresh);
@@ -504,16 +451,28 @@ export function mountListeners() {
     });
   });
 
-  // Search filter
+  // Buscador: el ícono del encabezado lo despliega (foco al input) y lo
+  // pliega (limpia el filtro). Escape también lo pliega y devuelve el foco.
   const searchInput = document.getElementById('task-search');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      const val = e.target.value.toLowerCase();
-      document.querySelectorAll('.task-card').forEach(card => {
-        const text = card.innerText.toLowerCase();
-        if (text.includes(val)) card.style.display = 'block';
-        else card.style.display = 'none';
-      });
+  const searchBtn = document.getElementById('btn-task-search');
+  const searchWrap = document.getElementById('task-search-wrap');
+  const filtrar = (val) => {
+    document.querySelectorAll('.task-card').forEach(card => {
+      card.style.display = card.innerText.toLowerCase().includes(val) ? 'block' : 'none';
     });
+  };
+  const fijarBusqueda = (abierta, foco) => {
+    busquedaAbierta = abierta;
+    searchWrap.hidden = !abierta;
+    searchBtn.setAttribute('aria-expanded', String(abierta));
+    if (abierta) { if (foco) searchInput.focus(); return; }
+    searchInput.value = '';
+    filtrar('');
+    if (foco) searchBtn.focus();
+  };
+  if (searchInput && searchBtn && searchWrap) {
+    searchBtn.addEventListener('click', () => fijarBusqueda(!busquedaAbierta, true));
+    searchInput.addEventListener('input', (e) => filtrar(e.target.value.toLowerCase()));
+    searchInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); fijarBusqueda(false, true); } });
   }
 }

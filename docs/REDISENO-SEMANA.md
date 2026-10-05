@@ -12,8 +12,8 @@ plan original decía v257). Revisión visual con capturas y maquetas: artifact
 | F2 — Encabezado y franja de 7 días | Hecha (f12ab42, v260) |
 | F3 — Detalle del día | Hecha (bd2605a, v261) |
 | F4 — Input único + pendientes de días pasados | Hecha (9ed075e, v262) |
-| F5 — Mover entre días + color | Hecha (commit de F5, v263) |
-| F6 — Lista y Hábitos | Pendiente |
+| F5 — Mover entre días + color | Hecha (45df35f, v263) |
+| F6 — Lista y Hábitos | Hecha (commit de F6, v264) — falta decidir el FAB (ver CHANGELOG) |
 | F7 — PC/tablet y QA | Pendiente |
 
 Actualiza esta tabla (hash del commit) al cerrar cada fase.

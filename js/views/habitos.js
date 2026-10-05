@@ -161,6 +161,10 @@ async function onSyncActualizado() {
 let lastHabitosDonutEntries = [];
 let lastHabitosTendencia = [];
 let tendenciaChartInstance = null;
+// Sección "Análisis" (dona, en riesgo y tendencia de 8 semanas): plegada
+// por defecto; vive en el módulo para que marcar un hábito (que repinta la
+// lista) no la cierre si estaba abierta.
+let analisisAbierto = false;
 
 // Variantes del acento violeta (mismo que lab-habitos.js): la dona de
 // Hábitos usa shades de SU PROPIO acento, no colores prestados de otros
@@ -356,7 +360,9 @@ async function renderResumenHabitos(habitos, hoyIso) {
     `;
 
   return `
-    <div style="display: grid; grid-template-columns: ${riesgoHtml ? '1.3fr 1fr' : '1fr'}; gap: 12px; margin-top: 20px; margin-bottom: 12px;">
+    <details id="habitos-analisis" class="habitos-analisis"${analisisAbierto ? ' open' : ''}>
+    <summary class="habitos-analisis-sum tappable">Análisis</summary>
+    <div style="display: grid; grid-template-columns: ${riesgoHtml ? '1.3fr 1fr' : '1fr'}; gap: 12px; margin-top: 12px; margin-bottom: 12px;">
       <div class="card" style="padding: 16px;">
         <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 10px;">Cumplimiento por hábito, 7 días</div>
         ${donutHtml}
@@ -367,6 +373,7 @@ async function renderResumenHabitos(habitos, hoyIso) {
       <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 10px;">% de hábitos cumplidos por semana (últimas 8 semanas)</div>
       ${tendenciaHtml}
     </div>
+    </details>
   `;
 }
 
@@ -536,19 +543,15 @@ async function renderLista() {
         </div>
       </div>
 
-      <!-- Cabecera: anillo de racha grande + insignias (antes vivían en Inicio) -->
-      ${await renderCabeceraRacha()}
-
-      ${habitos.length > 0 ? `
-        <!-- Racha de días perfectos — tarjeta principal de Hábitos, lleva chaflán (ver .card-hero). -->
-        <div class="card card-hero" style="margin-right: 20px; margin-bottom: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
-          <div style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 50%; background: color-mix(in srgb, var(--accent-purple) 12%, transparent); display: flex; align-items: center; justify-content: center; font-size: 24px;">🔥</div>
-          <div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);"><span class="num">${rachaGlobal.actual}</span> ${rachaGlobal.actual === 1 ? 'día perfecto seguido' : 'días perfectos seguidos'}</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Mejor racha: <span class="num">${rachaGlobal.mejor}</span> ${rachaGlobal.mejor === 1 ? 'día' : 'días'} · todos los hábitos cumplidos ese día</div>
-          </div>
-        </div>
-      ` : ''}
+      <!-- Cabecera: anillo de racha grande + insignias (antes vivían en
+           Inicio). Una sola racha visible arriba: los días perfectos (todos
+           los hábitos cumplidos ese día) van como línea secundaria bajo el
+           anillo, ya no como una segunda tarjeta de racha. -->
+      ${await renderCabeceraRacha({
+        lineaSecundaria: habitos.length > 0
+          ? `<span title="Días con todos los hábitos cumplidos">Mejor racha perfecta: <span class="num">${rachaGlobal.mejor}</span> ${rachaGlobal.mejor === 1 ? 'día' : 'días'}</span>`
+          : ''
+      })}
 
       <!-- Lista de hábitos primero: es lo único con lo que se puede
            interactuar (marcar el día) — el resumen/analítica de abajo es
@@ -599,7 +602,7 @@ export async function render() {
 // lab-tareas.js/lab-finanzas.js. Sin efecto si el canvas no existe (vista
 // de detalle) o si no hay datos para la dona (sin hábitos marcados aún).
 function initHabitosCharts() {
-  if (vista !== 'lista') return;
+  if (vista !== 'lista' || !analisisAbierto) return;
   if (lastHabitosDonutEntries.length > 0) renderDonutChart('habitos-donut', lastHabitosDonutEntries);
   initTendenciaChart();
 }
@@ -617,6 +620,11 @@ export function mountListeners() {
   };
 
   initHabitosCharts();
+  const analisis = document.getElementById('habitos-analisis');
+  analisis?.addEventListener('toggle', () => {
+    analisisAbierto = analisis.open;
+    if (analisisAbierto) initHabitosCharts();
+  });
   setupHabitoForm(refresh);
   setupProgresoModal(refresh);
 

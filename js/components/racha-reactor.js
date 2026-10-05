@@ -148,7 +148,9 @@ function renderBadgeHex(b) {
 
 // Cabecera de Hábitos: reactor + insignias. Calcula los tres porcentajes
 // igual que lo hacía Inicio, para que los anillos muestren lo mismo.
-export async function renderCabeceraRacha() {
+// lineaSecundaria: HTML opcional bajo el anillo (Hábitos pone ahí "Mejor
+// racha perfecta: N días", así arriba queda una sola racha visible).
+export async function renderCabeceraRacha({ lineaSecundaria = '' } = {}) {
   const [budget, resumenSemanal, rachaGlobal, badges, habitos] = await Promise.all([
     db.getBudget(),
     db.getResumenEntrenoSemanal(),
@@ -180,6 +182,7 @@ export async function renderCabeceraRacha() {
     <div class="card card-hero" style="margin-right: 20px; padding: 24px 18px; margin-bottom: 16px;">
       ${renderReactor({ cyPct, amPct, viPct, rachaGlobal })}
       <div id="reactor-vidas-texto" class="reactor-vidas-texto">${textoVidas(rachaGlobal)}</div>
+      ${lineaSecundaria ? `<div class="reactor-linea-secundaria">${lineaSecundaria}</div>` : ''}
       ${renderSemanaRacha(rachaGlobal)}
     </div>
 
