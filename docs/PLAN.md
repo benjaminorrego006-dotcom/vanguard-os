@@ -36,7 +36,7 @@ el resumen.
 
 ## Hecho
 
-Estado al 5 oct 2026 (`CACHE_NAME` v273). El detalle de cada tanda (commits,
+Estado al 5 oct 2026 (`CACHE_NAME` v275). El detalle de cada tanda (commits,
 caché y QA) está en `docs/CHANGELOG.md`.
 
 | | Estado |
@@ -63,6 +63,7 @@ caché y QA) está en `docs/CHANGELOG.md`.
 | Buscador de ejercicios sin tapar la barra ni el riel (Atrás lo cierra) y sesión en vivo con id + nombre del catálogo | hecho (`37183bf`, `4239524`, v237–v238) |
 | "Hoy toca → Empezar" visible, racha de Hoy tras procesar recurrentes, nombres antiguos → id del catálogo al leer, ejercicio libre con el nombre tal como se escribe | hecho (`0e92260` → v242) |
 | Sesión activa "Cabina HUD" (`docs/REDISENO-SESION-HUD.md`): borrador en localStorage, pantalla completa, HUD, riel y un ejercicio por pantalla, tabla + editor + botón principal, descanso en el HUD con pantalla encendida, récord en vivo y resumen al finalizar (GYM y Calistenia; HIIT y Descanso activo sin cambios). Además: la app arranca con localStorage bloqueado y las series por tiempo ("30s") se conservan | hecho (`c35e30f` → cierre, v243–v257) |
+| Semana "Tablero de día" (`docs/REDISENO-SEMANA.md`): franja de 7 días + detalle de un día con ítems del planificador y tareas de Lista con fecha, input único con el día elegido, tira de pendientes de días pasados (= atrasadas de Hoy, `js/utils/atrasadas.js`) con "Pasar a hoy", mover entre días (mantener presionado o menú ⋯), 7 columnas desde 900 px; Lista sin dona y Hábitos con una sola racha, con el "+" en el encabezado | hecho (`03dce16` → `a4f4887`, v259–v268) |
 | Fase 7 — Calentamiento y descanso por ejercicio (`docs/FASE7-CALENTAMIENTO-DESCANSO.md`): escalera a pedido desde el ⋯ (barra, mancuernas y máquina, con discos por lado en barra), calentamiento fuera de volumen, récords, resumen y Laboratorio, ANTERIOR por tipo, y descanso por ejercicio (override en settings, hoja en la sesión, chip, superserie = el mayor) | hecho (`ddfbce3` → F6, v269–v273) |
 
 ---
