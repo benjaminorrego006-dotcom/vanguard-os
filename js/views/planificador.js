@@ -1,6 +1,6 @@
 import { db } from '../core/db.js';
 import { Toast, ConfirmDialog, hayModalAbierto } from '../utils/states.js';
-import { diaKeyDe, formatFechaCorta } from '../utils/fecha.js';
+import { diaKeyDe, formatFechaCorta, sumarDias } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 
@@ -42,6 +42,58 @@ function lunesDe(d) {
   const x = new Date(d); x.setHours(0, 0, 0, 0);
   x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
   return x;
+}
+
+// --- Datos de la semana (Tablero de día, docs/REDISENO-SEMANA.md) -------
+// Semana muestra los ítems del planificador y las tareas de Lista con
+// dueDate en cada día (sin hábitos). Sin migración: se leen los dos stores,
+// como la agenda de Hoy (dashboard.js, renderAgenda).
+const RANGO_PRIORIDAD = { high: 0, medium: 1, low: 2 };
+const porCreacion = (a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
+
+// Pendientes primero; entre las pendientes, las tareas de Lista por
+// prioridad (alta → baja) y después los ítems del planificador por orden
+// de creación. Las hechas al final, con el mismo criterio entre ellas.
+function ordenItems(a, b) {
+  if (a.hecha !== b.hecha) return a.hecha ? 1 : -1;
+  if (a.origen !== b.origen) return a.origen === 'tarea' ? -1 : 1;
+  if (a.origen === 'tarea') {
+    const p = (RANGO_PRIORIDAD[a.priority] ?? 1) - (RANGO_PRIORIDAD[b.priority] ?? 1);
+    if (p) return p;
+  }
+  return porCreacion(a, b);
+}
+
+// Arma los 7 días de la semana que empieza en `lunesIso` con los datos
+// dados (puro: sin leer la base). Cada día: { iso, items, hechas, total,
+// pendientesPasado }; pendientesPasado cuenta los ítems sin hacer de un día
+// anterior a hoy. Además, `semana.vencidasAntes` lista las tareas de Lista
+// sin hacer que vencieron antes del lunes (mismo criterio que las
+// "atrasadas" de Hoy), para la tira de pendientes de días pasados.
+export function componerSemana(lunesIso, { plan = [], tareas = [], hoyIso = diaKeyDe(new Date()) } = {}) {
+  const isos = Array.from({ length: 7 }, (_, i) => sumarDias(lunesIso, i));
+  const semana = isos.map(iso => {
+    const items = [
+      ...plan.filter(p => p.fecha === iso)
+        .map(p => ({ origen: 'plan', id: p.id, texto: p.texto, hecha: !!p.hecha, createdAt: p.createdAt })),
+      ...tareas.filter(x => x.dueDate === iso)
+        .map(x => ({ origen: 'tarea', id: x.id, texto: x.title, hecha: x.status === 'done', priority: x.priority, status: x.status, createdAt: x.createdAt }))
+    ].sort(ordenItems);
+    const hechas = items.filter(i => i.hecha).length;
+    return { iso, items, hechas, total: items.length, pendientesPasado: iso < hoyIso ? items.length - hechas : 0 };
+  });
+  semana.vencidasAntes = tareas
+    .filter(x => x.status !== 'done' && x.dueDate && x.dueDate < isos[0] && x.dueDate < hoyIso)
+    .map(x => ({ origen: 'tarea', id: x.id, texto: x.title, hecha: false, priority: x.priority, status: x.status, fecha: x.dueDate, createdAt: x.createdAt }))
+    .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+  return semana;
+}
+
+// Igual que componerSemana, leyendo los dos stores. `lunes`: Date o clave.
+export async function armarSemana(lunes) {
+  const lunesIso = typeof lunes === 'string' ? lunes : diaKeyDe(lunes);
+  const [plan, tareas] = await Promise.all([db.getTareasPlan(lunesIso, sumarDias(lunesIso, 6)), db.getTasks()]);
+  return componerSemana(lunesIso, { plan, tareas, hoyIso: diaKeyDe(new Date()) });
 }
 
 // Offset en semanas respecto de la actual. Vive fuera de render() para

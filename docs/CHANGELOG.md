@@ -1,5 +1,20 @@
 # Vanguard OS — Changelog
 
+## 4 oct 2026 — Semana "Tablero de día" (`docs/REDISENO-SEMANA.md`)
+
+Rediseño de Tareas › Semana por fases; el plan y su tabla de estado están en
+`docs/REDISENO-SEMANA.md`. QA con Playwright de a una, zona
+`America/Santiago`, reloj simulado, contextos limpios sin Supabase y el
+respaldo demo COMPLETO importado por la UI.
+
+| Fase | Caché | Qué cambia |
+|---|---|---|
+| F1 — Datos de la semana | v259 | Sin cambios de interfaz. `componerSemana(lunesIso, { plan, tareas, hoyIso })` (pura) y `armarSemana(lunes)` (lee los stores `planificador` y `tareas`, sin migrar nada) en `views/planificador.js`: 7 días `{ iso, items, hechas, total, pendientesPasado }`. Los ítems mezclan el planificador (`origen: 'plan'`) y las tareas de Lista con `dueDate` ese día (`origen: 'tarea'`, con `priority` y `status`). Orden: pendientes primero (Lista por prioridad alta → baja, después planificador por creación) y hechas al final. `pendientesPasado` cuenta lo sin hacer de los días anteriores a hoy; `semana.vencidasAntes` lista las tareas de Lista sin hacer vencidas antes del lunes (criterio de las "atrasadas" de Hoy). |
+
+### F1 — QA
+
+- Con el respaldo demo y el reloj en el mié 24 sept: en la semana actual, la anterior y la siguiente, los 7 días de `armarSemana` coinciden con los de la vista y, día por día, total, hechas y pendientes de días pasados = ítems del planificador de la vista + tareas de Lista con esa fecha (semana actual: 4 tareas de Lista con fecha; siguiente: 1 vencida antes del lunes). El orden respeta pendientes → Lista por prioridad → planificador → hechas. 375×812; consola limpia; ESLint `no-undef` limpio.
+
 ## 4 oct 2026 — Sesión activa "Cabina HUD" (`docs/REDISENO-SESION-HUD.md`)
 
 **`CACHE_NAME` final: `vanguard-os-v258`.** Rediseño de la sesión activa de Entreno (GYM y Calistenia) por fases; el
