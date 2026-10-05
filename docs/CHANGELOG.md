@@ -7,6 +7,29 @@
 `America/Santiago`, reloj simulado, contextos limpios sin Supabase y el
 respaldo demo COMPLETO importado por la UI.
 
+### Cierre del rediseño de Semana
+
+Plan completo. Semana pasó de 7 tarjetas con input a un tablero de día que
+lee los dos stores (`planificador` y `tareas` con fecha) sin migrar datos:
+
+| Paso | Commit | Caché | En una línea |
+|---|---|---|---|
+| F1 — Datos de la semana | 03dce16 | v259 | `armarSemana` / `componerSemana`: 7 días con ítems del planificador y tareas de Lista con fecha, ordenados. |
+| F2 — Encabezado y franja | f12ab42 | v260 | Rango + hechas/total, flechas ‹ › y franja de 7 días (HOY, barra de progreso, cuadrado rojo en días pasados con pendientes). |
+| F3 — Detalle del día | bd2605a | v261 | Detalle del día elegido con los dos orígenes; `renderPriorityBars` pasa a `js/utils/prioridad.js`. |
+| F4 — Input único + pendientes | 9ed075e | v262 | Form único con chip del día; tira "pendientes de días pasados" = atrasadas de Hoy (`js/utils/atrasadas.js`), con "Pasar a hoy". |
+| F5 — Mover + color | 45df35f | v263 | Mantener presionado → modo mover; menú ⋯ "Mover a"; Semana sin el verde de `--accent-plan`. |
+| F6 — Lista y Hábitos | c47db6c | v264 | Lista sin dona, buscador en el encabezado y captura en flujo; Hábitos con una sola racha y "Análisis" plegado. |
+| Ajuste — "+" en el encabezado | 3e17022 | v265 | Lista y Hábitos sin FAB: el "+" va en el encabezado. |
+| F7 — PC/tablet y QA | 0da0527 | v266 | Desde 900 px, 7 columnas con scroll propio; QA de punta a punta. |
+| Ajuste final — filas en columnas | a4caba3 | v267 | Filas de columnas en dos líneas (texto de hasta 2 líneas; prioridad y acciones alineadas). |
+| Ajuste 2 — sin etiqueta en columnas | a4f4887 | v268 | Columnas sin etiqueta de vencimiento; tarea de Lista vencida con el check en `--rd`. |
+
+`CACHE_NAME` final del plan: `vanguard-os-v268`. Este cierre solo toca
+documentación (`docs/` no está en `PRECACHE_URLS`), así que no sube la caché.
+
+### Detalle por fase
+
 | Fase | Caché | Qué cambia |
 |---|---|---|
 | F1 — Datos de la semana | v259 | Sin cambios de interfaz. `componerSemana(lunesIso, { plan, tareas, hoyIso })` (pura) y `armarSemana(lunes)` (lee los stores `planificador` y `tareas`, sin migrar nada) en `views/planificador.js`: 7 días `{ iso, items, hechas, total, pendientesPasado }`. Los ítems mezclan el planificador (`origen: 'plan'`) y las tareas de Lista con `dueDate` ese día (`origen: 'tarea'`, con `priority` y `status`). Orden: pendientes primero (Lista por prioridad alta → baja, después planificador por creación) y hechas al final. `pendientesPasado` cuenta lo sin hacer de los días anteriores a hoy; `semana.vencidasAntes` lista las tareas de Lista sin hacer vencidas antes del lunes (criterio de las "atrasadas" de Hoy). |

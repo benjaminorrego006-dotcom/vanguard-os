@@ -6,6 +6,8 @@ plan original decía v257). Revisión visual con capturas y maquetas: artifact
 
 ## Estado
 
+**Plan completo** (F1–F7 y dos ajustes, v259–v268). El resumen está en `docs/CHANGELOG.md`.
+
 | Fase | Estado |
 | --- | --- |
 | F1 — Datos de la semana (sin UI) | Hecha (03dce16, v259) |
@@ -17,9 +19,9 @@ plan original decía v257). Revisión visual con capturas y maquetas: artifact
 | Ajuste: "+" en el encabezado (sin FAB en Lista y Hábitos) | Hecho (3e17022, v265) |
 | F7 — PC/tablet y QA | Hecha (0da0527, v266) |
 | Ajuste final: filas de columnas en dos líneas (≥ 900 px) | Hecho (a4caba3, v267) |
-| Ajuste 2: columnas sin etiqueta de vencimiento (check rojo si está vencida) | Hecho (commit del ajuste 2, v268) |
+| Ajuste 2: columnas sin etiqueta de vencimiento (check rojo si está vencida) | Hecho (a4f4887, v268) |
 
-Actualiza esta tabla (hash del commit) al cerrar cada fase.
+Cada fila lleva el hash del commit de su fase, que se anota en el commit siguiente: la tabla nunca lleva el hash del commit que la edita. El commit de cierre de un plan (solo documentación) no tiene fila propia; su hash queda, si acaso, en el CHANGELOG del plan siguiente.
 
 ## Decisiones (4 oct 2026)
 - Dirección **A · Tablero de día**: franja de 7 días arriba + detalle de un solo día abajo. Reemplaza las 7 tarjetas con input.
