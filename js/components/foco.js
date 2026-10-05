@@ -14,7 +14,8 @@
 //
 // La pantalla es un .modal-overlay con id (#foco-modal): history.js le da
 // su entrada de historial. Atrás (o Escape) la cierra; acá se vuelve a
-// abrir y se pregunta antes de cancelar el foco. Va en <body>, fuera de la
+// abrir y se pregunta antes de terminar el foco sin registrarlo (igual que
+// "Terminar"). Va en <body>, fuera de la
 // vista: un render de la vista no la borra; navegar a otra pestaña la
 // cierra y el foco sigue (la línea de Hoy lo vuelve a abrir).
 import { db } from '../core/db.js';
@@ -84,6 +85,7 @@ async function completarFoco(e) {
   const terminaEn = e.terminaEn;
   const conPantalla = pantallaAbierta();
   try {
+    confirmando = false;
     guardarFoco(conPantalla ? { ...e, fase: 'pausa', terminaEn: Date.now() + MS_PAUSA, pausadoRestante: null } : null);
     await registrar(e, terminaEn);
     sonar();
@@ -231,7 +233,7 @@ function pintar() {
   o.querySelector('#foco-cuenta').textContent = mmss(restante);
   o.querySelector('#foco-cuenta').setAttribute('aria-label', `Quedan ${Math.ceil(restante / 60000)} min`);
   o.querySelector('#foco-arco').style.strokeDashoffset = String(ARCO * (1 - restante / total));
-  const est = confirmando ? '¿Cancelar el foco? El tiempo no se registra.'
+  const est = confirmando ? '¿Terminar sin registrar este foco?'
     : enPausa ? 'En pausa'
     : e.fase === 'pausa' ? 'Foco registrado. Descansa un poco.' : '';
   const estEl = o.querySelector('#foco-estado');
@@ -243,7 +245,7 @@ function pintar() {
   acciones.dataset.clave = clave;
   const btn = (id, texto, primario = false) => `<button type="button" id="${id}" class="foco-btn tappable${primario ? ' foco-btn--primario chaflan' : ''}">${texto}</button>`;
   acciones.innerHTML = {
-    confirmar: btn('foco-seguir-confirmar', 'Seguir con el foco', true) + btn('foco-cancelar', 'Cancelar foco'),
+    confirmar: btn('foco-cancelar', 'Terminar') + btn('foco-seguir-confirmar', 'Seguir', true),
     pausa: btn('foco-saltar-pausa', 'Saltar pausa', true) + btn('foco-otro', 'Otro foco'),
     pausado: btn('foco-seguir', 'Seguir', true) + btn('foco-terminar', 'Terminar'),
     corriendo: btn('foco-pausar', 'Pausar', true) + btn('foco-terminar', 'Terminar')
@@ -256,8 +258,9 @@ function pintar() {
   en('foco-saltar-pausa', terminarPausa);
   en('foco-otro', otroFoco);
   en('foco-seguir-confirmar', () => { confirmando = false; pintar(); });
-  en('foco-cancelar', () => { confirmando = false; guardarFoco(null); Toast('Foco cancelado', 'info'); cerrarPantalla(); });
-  if (o.contains(document.activeElement) || document.activeElement === document.body) acciones.querySelector('button')?.focus();
+  en('foco-cancelar', () => { confirmando = false; guardarFoco(null); Toast('Foco terminado sin registrar', 'info'); cerrarPantalla(); });
+  // El foco va a la acción principal (en la pregunta, "Seguir").
+  if (o.contains(document.activeElement) || document.activeElement === document.body) acciones.querySelector('.foco-btn--primario')?.focus();
 }
 
 function pausar() {
@@ -274,11 +277,12 @@ function seguir() {
   pedirPantallaEncendida();
   pintar();
 }
-// "Terminar": corta el foco sin registrarlo.
+// "Terminar" antes de llegar a 0: pregunta, igual que Atrás ("¿Terminar sin
+// registrar este foco?" · Terminar / Seguir). "Saltar pausa" no pregunta.
 function terminarAntes() {
-  guardarFoco(null);
-  Toast('Foco terminado sin registrar', 'info');
-  cerrarPantalla();
+  confirmando = true;
+  pintar();
+  overlay()?.querySelector('#foco-seguir-confirmar')?.focus();
 }
 function otroFoco() {
   const e = estado();

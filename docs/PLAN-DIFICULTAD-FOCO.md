@@ -59,5 +59,5 @@ Origen: docs/PLAN.md › Pendiente › Dificultad de tareas y Pomodoro.
 |---|---|---|
 | F1 Dificultad: datos y formulario | ef75014 | v282 |
 | F2 Dificultad: dónde se ve | 7cbe25a | v283 |
-| F3 Foco: temporizador | | |
+| F3 Foco: temporizador | da6be3b | v284 |
 | F4 Foco: registro y métricas | | |
