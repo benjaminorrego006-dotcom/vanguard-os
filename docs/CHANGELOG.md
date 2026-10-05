@@ -15,6 +15,7 @@ Supabase.
 | F3b — Foco: "Terminar" pregunta | v285 | Decisión del usuario sobre la tanda 1: "Terminar" antes de llegar a 0 ya no corta de una; pregunta "¿Terminar sin registrar este foco?" con "Terminar" / "Seguir" (el foco del teclado queda en "Seguir"). Atrás y Escape hacen la misma pregunta (antes: "¿Cancelar el foco?"). La cuenta sigue corriendo mientras pregunta; si llega a 0, se registra y pasa a la pausa. Durante la pausa, "Saltar pausa" no pregunta. |
 | F4 — Foco: registro y métricas | v286 | Bitácora de la tarea: "Foco · N min" con los minutos del evento. Detalle: línea "N focos · X min" en violeta bajo los chips de estado, solo si tiene alguno (también en una tarea hecha). Sale de la misma lectura del log que la bitácora (`refreshBitacoraSection`). Al cerrarse la pantalla de foco (fin de la pausa, "Saltar pausa", "Terminar" o Atrás), `foco.js` emite `vg-foco-cerrado` y, si el detalle de esa tarea quedó abierto debajo, se ponen al día la bitácora y la línea sin reabrirlo. Laboratorio de Tareas, Desglose: tarjeta "Minutos de foco · 8 semanas" (`db.getFocoPorSemana`, semanas de lunes a domingo según `payload.fecha`) con "Esta semana: N focos · X min" y "Más foco este mes: <tarea> · X min (N focos)" (`db.getTareaConMasFocoMes`; empate: el foco más reciente). Una tarea eliminada sigue contando: su nombre sale de su último evento con título y va "(eliminada)". Las letras "F" / "D" de las columnas de Semana ya llevaban `title` y `aria-label` "Fácil" / "Difícil" (desde F2); ahora la QA lo verifica. |
 | F5 — QA final y docs | — | Sin cambios de código (la caché queda en v286). `docs/PLAN.md`: Dificultad y Pomodoro pasan de Pendiente a Hecho. Tabla de estado del plan al día. |
+| Arreglo A — Chaflanes en el Laboratorio | v287 | Las tarjetas del Laboratorio (`.card` dentro del nuevo contenedor `.lab-mk3` de `laboratorio.js`) van con el chaflán MK III de dos esquinas opuestas y sin radio. Regla en `css/layout.css` que pisa el `--radius-lg` del `.card` global, y 18 radios inline sacados de `lab-entreno`, `lab-finanzas`, `lab-habitos` y `lab-tareas` (incluidas las tarjetas nuevas de puntos y de foco). Las metas de `goal-card.js` también quedan con chaflán dentro del Laboratorio, sin tocar ese archivo, que se usa fuera. Círculos y anillos (50 %) sin cambios. La vista Semana del Laboratorio ya era recta. |
 
 ### F1 — QA
 
@@ -63,6 +64,10 @@ Supabase.
   - En el Laboratorio, esta semana suma +1 tarea y +3 puntos, y +25 min de foco, y la tarea queda como la de más foco del mes.
 - Respaldo: "Exportar respaldo" de Configuración trae la dificultad y el `foco_completado`. Importado por Configuración en un contexto limpio, conserva ambos, Lista muestra "DIFÍCIL", el detalle "1 foco · 25 min" y el Laboratorio da lo mismo que antes de exportar.
 - Consola limpia en ambos contextos; ESLint `no-undef` limpio.
+
+### Arreglo A — QA
+
+- 375×812 y 1280×800 (`qa-lab-chaflan`): las 5 secciones del Laboratorio y cada una de sus pestañas, 49 tarjetas en total. Todas tienen radio 0 y `clip-path`, y ningún texto, gráfico ni control cae dentro de las esquinas cortadas. Sin scroll horizontal. Regresión `qa-dif2` 1280. Consola limpia; ESLint `no-undef` limpio. Capturas `chaflan-*`.
 
 ## 5 oct 2026 — Pesos que se llenan solos en la sesión
 

@@ -925,3 +925,16 @@ html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
 .plan-menu-foco-fila { flex-basis: 100%; }
 .plan-menu-foco { min-height: 36px; padding: 0 12px; background: transparent; border: 1px solid var(--vi); color: var(--vi); font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; cursor: pointer; }
 .plan-menu-foco:focus-visible { outline: 2px solid var(--t1); outline-offset: -2px; }
+
+/* Laboratorio: las tarjetas (.card, incluidas las metas de goal-card.js)
+   van con el chaflán MK III de dos esquinas opuestas, sin radio. El
+   .card global trae --radius-lg y algunas un radio inline: el !important
+   les gana a ambos. Los círculos y anillos no son .card. */
+.lab-mk3 .card {
+  border-radius: 0 !important;
+  clip-path: polygon(
+    var(--chaflan) 0, 100% 0,
+    100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%,
+    0 100%, 0 var(--chaflan)
+  );
+}

@@ -86,8 +86,9 @@ export async function renderLaboratorio() {
 
   const contentHtml = await modActual.mod.renderTab(activeTab);
 
+  // .lab-mk3: tarjetas con chaflán MK III (css/layout.css).
   return `
-    <div>
+    <div class="lab-mk3">
       ${renderSelectorModulo()}
       ${modActual.mod.sinPestanas ? '' : `<div style="display: flex; gap: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 14px; padding: 5px; margin-bottom: 22px; overflow-x: auto;">
         ${tabs.map(t => `

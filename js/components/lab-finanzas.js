@@ -27,7 +27,7 @@ export function cleanup() {
 }
 
 const resumenCardHtml = (label, value) => `
-  <div class="card" style="padding: 16px; border-radius: 16px; text-align: center;">
+  <div class="card" style="padding: 16px; text-align: center;">
     <div class="num" style="font-size: 20px; font-weight: 800; color: var(--text-primary);">${value}</div>
     <div style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px;">${label}</div>
   </div>`;
@@ -61,7 +61,7 @@ async function renderDesglose() {
 
   return `
     <div>
-      <div class="card" style="padding: 18px 20px; margin-bottom: 20px; border-radius: 18px;">
+      <div class="card" style="padding: 18px 20px; margin-bottom: 20px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Distribución del mes</h3>
         ${donutSection}
         ${trendHtml}
@@ -171,15 +171,15 @@ async function renderHitos() {
 
   return `
     <div>
-      <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 20px;">
+      <div class="card" style="padding: 18px; margin-bottom: 20px;">
         <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Tendencia de ahorro</h3>
         ${ahorroChartHtml}
       </div>
-      <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 20px;">
+      <div class="card" style="padding: 18px; margin-bottom: 20px;">
         <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Meses sin exceder presupuesto</h3>
         ${mesesHtml}
       </div>
-      <div class="card" style="padding: 18px; border-radius: 18px;">
+      <div class="card" style="padding: 18px;">
         <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Categorías fuera de rango</h3>
         ${categoriasHtml}
       </div>

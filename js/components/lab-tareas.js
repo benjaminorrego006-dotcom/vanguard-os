@@ -50,7 +50,7 @@ async function renderDesglose() {
   const maxPuntos = Math.max(1, ...semanas.map(s => s.puntos));
   const actual = semanas[semanas.length - 1];
   const semanasHtml = `
-      <div class="card lab-puntos" style="padding: 18px; border-radius: 18px; margin-bottom: 20px;">
+      <div class="card lab-puntos" style="padding: 18px; margin-bottom: 20px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 6px 0;">Puntos completados · 8 semanas</h3>
         <p style="margin: 0 0 14px 0; font-size: 12.5px; color: var(--text-secondary);">Esta semana: <span class="num">${formatNumero(actual.tareas)}</span> ${actual.tareas === 1 ? 'tarea' : 'tareas'} · <span class="num">${formatNumero(actual.puntos)}</span> ${actual.puntos === 1 ? 'punto' : 'puntos'} (fácil 1, media 2, difícil 3)</p>
         <ul class="lab-puntos-lista">
@@ -69,7 +69,7 @@ async function renderDesglose() {
   const focoActual = focoSemanas[focoSemanas.length - 1];
   const focos = (n) => (n === 1 ? 'foco' : 'focos');
   const focoHtml = `
-      <div class="card lab-foco" style="padding: 18px; border-radius: 18px; margin-bottom: 20px;">
+      <div class="card lab-foco" style="padding: 18px; margin-bottom: 20px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 6px 0;">Minutos de foco · 8 semanas</h3>
         <p style="margin: 0 0 6px 0; font-size: 12.5px; color: var(--text-secondary);">Esta semana: <span class="num">${formatNumero(focoActual.focos)}</span> ${focos(focoActual.focos)} · <span class="num">${formatNumero(focoActual.minutos)}</span> min</p>
         <p class="lab-foco-mes" style="margin: 0 0 14px 0; font-size: 12.5px; color: var(--text-secondary);">${focoMes
@@ -94,11 +94,11 @@ async function renderDesglose() {
     <div>
       ${semanasHtml}
       ${focoHtml}
-      <div class="card" style="padding: 18px 20px; margin-bottom: 20px; border-radius: 18px;">
+      <div class="card" style="padding: 18px 20px; margin-bottom: 20px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Estado actual</h3>
         ${donutSection}
       </div>
-      <div class="card" style="padding: 18px; border-radius: 18px;">
+      <div class="card" style="padding: 18px;">
         <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Tasa de cumplimiento</h3>
         ${tasaHtml}
       </div>
@@ -114,7 +114,7 @@ async function initDesgloseChart() {
 async function renderRacha() {
   const racha = await db.getRachaTareas();
   return `
-    <div class="card" style="padding: 28px 24px; border-radius: 18px; text-align: center;">
+    <div class="card" style="padding: 28px 24px; text-align: center;">
       <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 10px;">Racha actual</div>
       <div class="num" style="font-size: 48px; font-weight: 800; color: var(--text-primary);">${racha.actual}</div>
       <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">día${racha.actual === 1 ? '' : 's'} seguido${racha.actual === 1 ? '' : 's'} con al menos una tarea completada</div>
@@ -149,7 +149,7 @@ async function renderHistorial() {
       <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
         <button type="button" id="btn-lab-tareas-historial-orden" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 6px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 700; cursor: pointer;">${tareasHistorialOrden === 'desc' ? 'Más reciente primero' : 'Más antigua primero'}</button>
       </div>
-      <div class="card" style="padding: 4px 18px; border-radius: 18px;">${rowsHtml}</div>
+      <div class="card" style="padding: 4px 18px;">${rowsHtml}</div>
     </div>
   `;
 }

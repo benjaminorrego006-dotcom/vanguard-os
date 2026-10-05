@@ -49,7 +49,7 @@ function getCyanShades() {
 }
 
 const resumenCardHtml = (label, value) => `
-  <div class="card" style="padding: 16px; border-radius: 16px; text-align: center;">
+  <div class="card" style="padding: 16px; text-align: center;">
     <div class="num" style="font-size: 20px; font-weight: 800; color: var(--text-primary);">${value}</div>
     <div style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px;">${label}</div>
   </div>`;
@@ -141,7 +141,7 @@ async function renderDesglose() {
         </div>
       ` : ''}
 
-      <div class="card" style="padding: 18px 20px; margin-bottom: 20px; border-radius: 18px;">
+      <div class="card" style="padding: 18px 20px; margin-bottom: 20px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">${metricLabel} por grupo muscular</h3>
         ${donutSection}
       </div>
@@ -226,7 +226,7 @@ async function renderEjercicios() {
         ${RANGOS.map(r => `<button type="button" class="btn-lab-entreno-rango" data-rango="${r.v}" style="flex: 1; padding: 7px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid ${ejercicioRango === r.v ? 'var(--cy)' : 'var(--surface-border)'}; background: ${ejercicioRango === r.v ? 'var(--cy)' : 'transparent'}; color: ${ejercicioRango === r.v ? 'var(--bg-base)' : 'var(--text-secondary)'};">${r.l}</button>`).join('')}
       </div>
 
-      <div class="card" style="padding: 18px 20px; border-radius: 18px;">
+      <div class="card" style="padding: 18px 20px;">
         <div style="display: flex; gap: 6px; margin-bottom: 14px;">
           ${MODOS.map(m => `<button type="button" class="btn-lab-entreno-modo" data-modo="${m.v}" style="flex: 1; padding: 8px; border-radius: 8px; font-size: 11.5px; font-weight: 700; cursor: pointer; border: 1px solid ${ejercicioModo === m.v ? 'var(--cy)' : 'var(--surface-border)'}; background: ${ejercicioModo === m.v ? 'var(--cy)' : 'transparent'}; color: ${ejercicioModo === m.v ? 'var(--bg-base)' : 'var(--text-secondary)'};">${m.l}</button>`).join('')}
         </div>
@@ -315,7 +315,7 @@ const renderPRCard = (pr) => {
   const esPesoCorporal = pr.pesoMax === 0;
   const valorTxt = esPesoCorporal ? `${formatNumero(pr.repsMax)} reps` : `${formatNumero(pr.pesoMax)}kg × ${formatNumero(pr.repsMax)}`;
   return `
-    <div class="card" style="padding: 14px 16px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+    <div class="card" style="padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
       <div style="min-width: 0;">
         <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(pr.nombre)}</div>
         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${formatFechaLarga(new Date(pr.fecha))}</div>

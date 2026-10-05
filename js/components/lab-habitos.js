@@ -51,7 +51,7 @@ async function renderDesglose() {
     : `<div style="height: 200px;"><canvas id="lab-hab-donut"></canvas></div><div style="margin-top: 14px;">${renderDonutLegend(entries)}</div>`;
 
   const resumenCardHtml = (label, value) => `
-    <div class="card" style="padding: 16px; border-radius: 16px; text-align: center;">
+    <div class="card" style="padding: 16px; text-align: center;">
       <div class="num" style="font-size: 20px; font-weight: 800; color: var(--text-primary);">${value}</div>
       <div style="font-size: 10.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px;">${label}</div>
     </div>`;
@@ -63,11 +63,11 @@ async function renderDesglose() {
         ${resumenCardHtml('Cumplimiento hoy', `${cumplimientoHoy[0] || 0}%`)}
         ${resumenCardHtml('Racha actual', racha.actual)}
       </div>
-      <div class="card" style="padding: 18px 20px; margin-bottom: 20px; border-radius: 18px;">
+      <div class="card" style="padding: 18px 20px; margin-bottom: 20px;">
         <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Días marcados por hábito</h3>
         ${donutSection}
       </div>
-      <div class="card" style="padding: 18px 20px; border-radius: 18px; text-align: center;">
+      <div class="card" style="padding: 18px 20px; text-align: center;">
         <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 6px;">Mejor racha histórica</div>
         <div class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${racha.mejor} día${racha.mejor === 1 ? '' : 's'}</div>
       </div>
