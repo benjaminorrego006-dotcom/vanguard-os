@@ -8,6 +8,11 @@ import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import * as Planificador from './planificador.js';
 import { renderPriorityBars } from '../utils/prioridad.js';
 import { marcaDificultad } from '../utils/dificultad.js';
+import { guardiaVista } from '../core/vista-activa.js';
+
+// Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
+// un repintado que termina después de cambiar de vista no escribe encima.
+let vistaVigente = () => true;
 
 // Buscador del encabezado: desplegado o no. Vive en el módulo para que un
 // refresh (marcar, crear) no lo cierre a la mitad de una búsqueda.
@@ -29,7 +34,9 @@ async function onSyncActualizado() {
   const quickInput = document.getElementById('task-quick-add');
   if (quickInput && (document.activeElement === quickInput || quickInput.value.trim())) return;
   const root = document.getElementById('view-root');
-  root.innerHTML = await render();
+  const htmlVista = await render();
+  if (!vistaVigente()) return;
+  root.innerHTML = htmlVista;
   mountListeners();
 }
 
@@ -67,7 +74,9 @@ function renderSubTabs() {
 async function repintar() {
   cleanup();
   const root = document.getElementById('view-root');
-  root.innerHTML = await render();
+  const htmlVista = await render();
+  if (!vistaVigente()) return;
+  root.innerHTML = htmlVista;
   mountListeners();
 }
 
@@ -330,6 +339,7 @@ async function renderLista() {
 }
 
 export function mountListeners() {
+  vistaVigente = guardiaVista('tareas');
   document.querySelectorAll('.tareas-subtab').forEach(btn => {
     btn.addEventListener('click', () => cambiarSub(btn.getAttribute('data-sub')));
   });
@@ -346,7 +356,9 @@ export function mountListeners() {
 
   const refresh = async () => {
     const root = document.getElementById('view-root');
-    root.innerHTML = await render();
+    const htmlVista = await render();
+    if (!vistaVigente()) return;
+    root.innerHTML = htmlVista;
     mountListeners();
   };
 

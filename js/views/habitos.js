@@ -7,6 +7,11 @@ import { diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { renderCabeceraRacha } from '../components/racha-reactor.js';
+import { guardiaVista } from '../core/vista-activa.js';
+
+// Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
+// un repintado que termina después de cambiar de vista no escribe encima.
+let vistaVigente = () => true;
 
 // Lunes primero (convención es-CL) — a diferencia de la franja rodante
 // anterior (últimos 7 días terminando hoy), esta es la semana calendario
@@ -150,7 +155,9 @@ let syncEnganchado = false;
 async function onSyncActualizado() {
   if (hayModalAbierto()) return; // no pisar el modal de alta/edición o de progreso si está abierto
   const root = document.getElementById('view-root');
-  root.innerHTML = await render();
+  const htmlVista = await render();
+  if (!vistaVigente()) return;
+  root.innerHTML = htmlVista;
   mountListeners();
 }
 
@@ -176,7 +183,7 @@ function onPopStateHabitos(e) {
     vista = 'lista';
     habitoDetalleId = null;
     const root = document.getElementById('view-root');
-    if (root) render().then(html => { root.innerHTML = html; mountListeners(); });
+    if (root) render().then(html => { if (!vistaVigente()) return; root.innerHTML = html; mountListeners(); });
   }
 }
 
@@ -598,6 +605,7 @@ function initHabitosCharts() {
 }
 
 export function mountListeners() {
+  vistaVigente = guardiaVista('habitos');
   if (!syncEnganchado) {
     syncEnganchado = true;
     window.addEventListener('budget-updated', onSyncActualizado);
@@ -605,7 +613,9 @@ export function mountListeners() {
 
   const refresh = async () => {
     const root = document.getElementById('view-root');
-    root.innerHTML = await render();
+    const htmlVista = await render();
+    if (!vistaVigente()) return;
+    root.innerHTML = htmlVista;
     mountListeners();
   };
 

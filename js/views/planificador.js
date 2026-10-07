@@ -8,6 +8,11 @@ import { marcaDificultad, etiquetaDificultad } from '../utils/dificultad.js';
 import { iniciarFoco, MIN_FOCO } from '../components/foco.js';
 import { calcularAtrasadas } from '../utils/atrasadas.js';
 import { renderTaskForm, setupTaskForm, openTaskForm, abrirDetallePorId } from '../components/task-form.js';
+import { guardiaVista } from '../core/vista-activa.js';
+
+// Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
+// un repintado que termina después de cambiar de vista no escribe encima.
+let vistaVigente = () => true;
 
 // 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
 // cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
@@ -29,7 +34,9 @@ async function onSyncActualizado() {
     .some(inp => document.activeElement === inp || inp.value.trim());
   if (hayBorrador) return;
   const root = contenedor();
-  root.innerHTML = await render();
+  const htmlVista = await render();
+  if (!vistaVigente()) return;
+  root.innerHTML = htmlVista;
   mountListeners();
 }
 
@@ -374,6 +381,7 @@ export async function render() {
 }
 
 export function mountListeners() {
+  vistaVigente = guardiaVista('tareas');
   if (!syncEnganchado) {
     syncEnganchado = true;
     window.addEventListener('budget-updated', onSyncActualizado);
@@ -385,7 +393,9 @@ export function mountListeners() {
 
   const refresh = async () => {
     const root = contenedor();
-    root.innerHTML = await render();
+    const htmlVista = await render();
+    if (!vistaVigente()) return;
+    root.innerHTML = htmlVista;
     mountListeners();
   };
 

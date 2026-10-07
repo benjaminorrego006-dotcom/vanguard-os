@@ -24,6 +24,11 @@ import { calcularHoyToca } from '../utils/hoyToca.js';
 import { renderSesionesHistorial, initSesionesHistorialListeners } from '../components/sesiones-historial.js';
 import { renderCuerpoTarjeta, renderCuerpoHistorial, renderMedidaForm, setupMedidaForm, initCuerpo, initCuerpoGraficos, cleanupCuerpoGraficos } from '../components/cuerpo.js';
 import { renderFotoModales, setupFotoModales, setupFotosHoja, cleanupFotos } from '../components/fotos-progreso.js';
+import { guardiaVista } from '../core/vista-activa.js';
+
+// Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
+// un repintado que termina después de cambiar de vista no escribe encima.
+let vistaVigente = () => true;
 
 // Placeholder hasta que exista el sistema de nivel del backlog (onboarding
 // de nivel dedicado, filtrado de rutinas por nivel, detección automática de
@@ -73,7 +78,9 @@ let entrenoSyncEnganchado = false;
 async function onSyncActualizadoEntreno() {
   if (viewState !== 'main' || hayModalAbierto()) return;
   const root = document.getElementById('view-root');
-  root.innerHTML = await render();
+  const htmlVista = await render();
+  if (!vistaVigente()) return;
+  root.innerHTML = htmlVista;
   mountListeners();
 }
 
@@ -437,6 +444,7 @@ export async function render() {
 }
 
 mountListeners = () => {
+  vistaVigente = guardiaVista('entrenamiento');
   // Tras recargar en medio de una sub-vista (ej. una sesión, que ahora se
   // retoma desde su borrador), la entrada actual del historial sigue
   // marcada como sub-vista aunque se vea la principal: sin esto, el primer
@@ -456,7 +464,9 @@ mountListeners = () => {
 
   const refreshFull = async () => {
     const root = document.getElementById('view-root');
-    root.innerHTML = await render();
+    const htmlVista = await render();
+    if (!vistaVigente()) return;
+    root.innerHTML = htmlVista;
     mountListeners();
   };
 
@@ -602,7 +612,9 @@ mountListeners = () => {
     mostrarSubVista();
 
     try {
-      subContent.innerHTML = await renderRutinasLista(cat);
+      const htmlSub = await renderRutinasLista(cat);
+      if (!vistaVigente()) return;
+      subContent.innerHTML = htmlSub;
     } catch (err) {
       console.error('Error renderizando rutinas:', err);
       subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">
@@ -641,7 +653,9 @@ mountListeners = () => {
     setContextoCategoria(categoria);
 
     const refreshProgreso = async () => {
-      subContent.innerHTML = await renderProgreso();
+      const htmlSub = await renderProgreso();
+      if (!vistaVigente()) return;
+      subContent.innerHTML = htmlSub;
       initProgresoListeners(refreshProgreso, signal);
     };
 
@@ -665,7 +679,9 @@ mountListeners = () => {
     mostrarSubVista();
 
     try {
-      subContent.innerHTML = await renderSesionesHistorial();
+      const htmlSub = await renderSesionesHistorial();
+      if (!vistaVigente()) return;
+      subContent.innerHTML = htmlSub;
       initSesionesHistorialListeners(signal);
     } catch (err) {
       console.error('Error renderizando el historial:', err);
@@ -685,6 +701,7 @@ mountListeners = () => {
     const refreshCuerpo = async () => {
       if (viewState !== 'cuerpo') return;
       const [medidas, fotos] = await Promise.all([db.getMedidas(), db.getFotos()]);
+      if (!vistaVigente()) return;
       subContent.innerHTML = renderCuerpoHistorial(medidas, fotos);
       initCuerpo({ repintar: refreshCuerpo, signal });
       await initCuerpoGraficos(medidas);
@@ -816,7 +833,9 @@ mountListeners = () => {
         // Retomar: los ejercicios y series del borrador, y su hora de inicio.
         const retomada = { ...rutina, ejercicios: borrador.ejercicios };
         modoSesion(true);
-        subContent.innerHTML = await renderRutinaSession(retomada);
+        const htmlSub = await renderRutinaSession(retomada);
+        if (!vistaVigente()) return;
+        subContent.innerHTML = htmlSub;
         initRutinaSessionListeners(retomada, async () => goToMain(), signal, { inicio: borrador.inicio, ejercicioActivo: borrador.ejercicioActivo, descanso: borrador.descanso, onSalir: salirDeSesion });
       } else if (esDescansoActivo(rutina, rutina.categoria)) {
         subContent.innerHTML = renderDescansoActivoSesion(rutina);
@@ -826,7 +845,9 @@ mountListeners = () => {
         initHiitTimerListeners(rutina, async () => goToMain(), signal);
       } else {
         modoSesion(true);
-        subContent.innerHTML = await renderRutinaSession(rutina);
+        const htmlSub = await renderRutinaSession(rutina);
+        if (!vistaVigente()) return;
+        subContent.innerHTML = htmlSub;
         initRutinaSessionListeners(rutina, async () => goToMain(), signal, { onSalir: salirDeSesion });
       }
     } catch (err) {

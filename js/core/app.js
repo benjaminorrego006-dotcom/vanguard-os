@@ -8,6 +8,7 @@ import { diaKeyDe } from '../utils/fecha.js';
 import { initErrorTracking, reportError } from './error-tracking.js';
 import { Toast, ToastAccion, hayModalAbierto } from '../utils/states.js';
 import { initFoco } from '../components/foco.js';
+import { marcarNavegacion } from './vista-activa.js';
 
 const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'configuracion'];
 
@@ -553,8 +554,10 @@ class Router {
     this.currentView = viewId;
     // Id de esta navegación: si mientras se carga la vista llega otra
     // (ej. Hoy → Entreno → Finanzas en menos de lo que tarda en importar),
-    // la más vieja no pinta encima de la actual al terminar tarde.
-    const navId = this.navSeq = (this.navSeq || 0) + 1;
+    // la más vieja no pinta encima de la actual al terminar tarde. Es el
+    // mismo id que usan las vistas para sus repintados asíncronos
+    // (core/vista-activa.js).
+    const navId = this.navSeq = marcarNavegacion(viewId);
     const vigente = () => navId === this.navSeq;
 
     // Ritual cuelga de Hoy; Planificador de Tareas. Anotaciones,
