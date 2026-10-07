@@ -2218,6 +2218,27 @@ export const db = {
     await logEvent({ modulo: 'perfil', tipo: 'foto_agregada', entidadId: foto.id, payload: { id: foto.id, fecha: foto.fecha } });
     return foto;
   },
+  // Cantidad y bytes de las fotos (para el tamaño estimado de "Exportar fotos").
+  async getResumenFotos() {
+    const fotos = await idbGetArray('fotos_progreso');
+    return { cantidad: fotos.length, bytes: fotos.reduce((s, f) => s + ((f.blob && f.blob.size) || 0), 0) };
+  },
+  // "Importar fotos" (F5): agrega las que no estén; un id que ya existe se
+  // salta (no duplica ni pisa). Cada una agregada deja su foto_agregada.
+  async importarFotos(lista) {
+    let agregadas = 0, omitidas = 0;
+    for (const f of lista) {
+      if (await idb.getOne('fotos_progreso', f.id)) { omitidas++; continue; }
+      const dia = typeof f.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f.fecha) ? f.fecha : diaKeyDe(new Date());
+      const foto = { id: f.id, fecha: dia, blob: f.blob, ancho: Number(f.ancho) || 0, alto: Number(f.alto) || 0, createdAt: typeof f.createdAt === 'string' ? f.createdAt : new Date().toISOString() };
+      if (f.medidaId) foto.medidaId = f.medidaId;
+      await idb.put('fotos_progreso', foto);
+      await logEvent({ modulo: 'perfil', tipo: 'foto_agregada', entidadId: foto.id, payload: { id: foto.id, fecha: foto.fecha } });
+      agregadas++;
+    }
+    if (agregadas) this._triggerUpdate();
+    return { agregadas, omitidas };
+  },
   async eliminarFoto(id) {
     const foto = await idb.getOne('fotos_progreso', id);
     if (!foto) return false;

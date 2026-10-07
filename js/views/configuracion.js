@@ -14,6 +14,7 @@ import { renderPinSecuritySection, attachPinSecurityListeners } from '../compone
 import { getAuthSession, renderAuthSection, attachAuthListeners } from '../components/auth-section.js';
 import { getEstadoSincronizacion } from '../core/sync.js';
 import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
+import { exportarFotos, importarFotos, estimarBytes, textoTamano } from '../utils/fotos-respaldo.js';
 import { isErrorTrackingConfigured, isErrorReportingEnabled, setErrorReportingEnabled } from '../core/error-tracking.js';
 
 const NIVEL_LABELS = { 'menos-1': 'Menos de 1 año', '1-3': '1 a 3 años', 'mas-3': 'Más de 3 años' };
@@ -30,7 +31,7 @@ function seccion(titulo, subtitulo, contenidoHtml) {
 const btnSecundario = (id, texto) => `<button id="${id}" type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border);">${escapeHtml(texto)}</button>`;
 
 export async function render() {
-  const [profile, nivel, restTimerSecs, rule, diasDesdeBackup, estadoAlmacenamiento, authSession, estadoSync] = await Promise.all([
+  const [profile, nivel, restTimerSecs, rule, diasDesdeBackup, estadoAlmacenamiento, authSession, estadoSync, resumenFotos] = await Promise.all([
     db.getProfile(),
     db.getNivelEntrenamiento(),
     db.getRestTimerSecs(),
@@ -38,7 +39,8 @@ export async function render() {
     getDiasDesdeUltimoBackup(),
     db.getEstadoAlmacenamiento(),
     getAuthSession(),
-    getEstadoSincronizacion()
+    getEstadoSincronizacion(),
+    db.getResumenFotos()
   ]);
 
   const perfilResumen = profile
@@ -129,6 +131,19 @@ export async function render() {
           <input type="file" id="cfg-file-import" accept=".json" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;">
           <button type="button" class="btn-primary tappable" style="background: var(--accent-primary); color: #000; pointer-events: none;">Restaurar respaldo</button>
         </div>
+        <!-- Fotos de progreso (Fase 6): solo en este dispositivo y fuera del
+             respaldo de arriba; van en un archivo aparte. -->
+        <div class="cfg-fotos" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--surface-border);">
+          <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Fotos de progreso</div>
+          <p id="cfg-fotos-resumen" style="margin: 4px 0 12px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.4;">${resumenFotos.cantidad
+            ? `El respaldo no incluye tus fotos. <span class="num">${resumenFotos.cantidad}</span> ${resumenFotos.cantidad === 1 ? 'foto' : 'fotos'} · ${textoTamano(estimarBytes(resumenFotos))}.`
+            : 'No hay fotos en este dispositivo.'}</p>
+          <button id="btn-cfg-fotos-export" type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border);" ${resumenFotos.cantidad ? '' : 'disabled aria-disabled="true"'}>Exportar fotos</button>
+          <div style="position: relative; margin-top: 12px;">
+            <input type="file" id="cfg-fotos-import" accept=".json,application/json" aria-label="Importar fotos" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;">
+            <button type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); pointer-events: none;">Importar fotos</button>
+          </div>
+        </div>
       `)}
 
       ${isErrorTrackingConfigured() ? seccion('Reportes de errores', 'Si la app falla, envía un aviso técnico automático (el mensaje del error y el tipo de dispositivo y navegador) para poder arreglarlo. A propósito no incluye el contenido de tus datos ni tu email. <a href="privacidad.html" style="color: var(--accent-primary);">Más info</a>', `
@@ -198,6 +213,20 @@ export function mountListeners() {
   });
 
   document.getElementById('btn-cfg-export')?.addEventListener('click', () => exportAllData());
+
+  // Fotos de progreso (Fase 6): archivo aparte; importar no duplica ids.
+  document.getElementById('btn-cfg-fotos-export')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try { await exportarFotos(); } finally { btn.disabled = false; }
+  });
+  document.getElementById('cfg-fotos-import')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const r = await importarFotos(file);
+    if (r && r.agregadas) await refresh();
+  });
 
   document.getElementById('cfg-file-import')?.addEventListener('change', async (e) => {
     const file = e.target.files[0];
