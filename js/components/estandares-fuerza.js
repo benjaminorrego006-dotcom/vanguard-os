@@ -12,6 +12,7 @@ import { db } from '../core/db.js';
 import { getEjercicioPorId } from '../core/ejercicios-catalogo.js';
 import { openProfileForm } from './profile-form.js';
 import { LEVANTAMIENTOS_ID, getNivel } from '../core/estandares-fuerza.js';
+import { formatNumero } from '../utils/numero.js';
 
 function renderSinDato(nombre) {
   return `
@@ -57,7 +58,7 @@ function renderConNivel(nombre, oneRM, ratio, nivelInfo, pesoKg) {
     <div class="card" style="padding: 16px; margin-bottom: 8px; border-left: 3px solid var(--accent-teal);">
       <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px;">
         <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${nombre}</span>
-        <span style="font-size: 13px; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap;">${oneRM} kg · ${ratio.toFixed(2)}× peso corporal</span>
+        <span style="font-size: 13px; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap;">${formatNumero(oneRM)} kg · ${formatNumero(ratio, { decimales: 2 })}× peso corporal</span>
       </div>
       ${renderBarraNivel(nivelInfo.nivel)}
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">

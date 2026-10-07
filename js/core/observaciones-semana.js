@@ -6,6 +6,7 @@
 // que…", nunca "causa" ni "porque".
 import { formatCurrency } from '../utils/currency.js';
 import { conMayuscula } from '../utils/fecha.js';
+import { formatNumero } from '../utils/numero.js';
 
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 const DIAS_PLURAL = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'];
@@ -18,7 +19,7 @@ const MAGNITUD_MAX = 3;
 const MIN_SEMANAS_PREVIAS = 3;
 
 // "3,6" (un decimal, coma).
-const dec = (n) => n.toFixed(1).replace('.', ',');
+const dec = (n) => formatNumero(n, { decimales: 1 });
 const promedio = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
 // Montos redondeados a la centena para que la frase se lea fácil.
 const monto = (n) => formatCurrency(Math.round(n / 100) * 100);

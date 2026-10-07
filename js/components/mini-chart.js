@@ -1,3 +1,4 @@
+import { formatNumero } from '../utils/numero.js';
 // js/components/mini-chart.js
 
 /**
@@ -16,7 +17,10 @@ export function renderMiniChart(data, opts = {}) {
     label = '',
     emptyText = 'Sin datos suficientes todavía.',
     height = 90,
-    width = 300
+    width = 300,
+    // Cómo escribir cada valor: números es-CL por defecto; un monto pasa
+    // formatCurrency (utils/currency.js).
+    formato = formatNumero
   } = opts;
 
   const valores = (data || []).filter(v => typeof v === 'number' && !isNaN(v));
@@ -59,7 +63,7 @@ export function renderMiniChart(data, opts = {}) {
     // Número (valor) encima del punto, si es mayor a 0
     if (v > 0) {
       const textY = cy < 15 ? cy + 12 : cy - 6; 
-      dataPointsHtml += `<text x="${cx}" y="${textY}" fill="var(--text-secondary)" font-size="9" font-weight="500" text-anchor="middle">${v}</text>`;
+      dataPointsHtml += `<text x="${cx}" y="${textY}" fill="var(--text-secondary)" font-size="9" font-weight="500" text-anchor="middle">${formato(v)}</text>`;
     }
     // Círculo en cada punto (más grande el último)
     if (v > 0 || i === valores.length - 1) {
@@ -72,7 +76,7 @@ export function renderMiniChart(data, opts = {}) {
   return `
     <div>
       <div style="display:flex; align-items:baseline; margin-bottom: 8px;">
-        <span style="font-size: 28px; font-weight: 800; color: var(--text-primary); line-height:1;">${actual}${unidad}</span>
+        <span style="font-size: 28px; font-weight: 800; color: var(--text-primary); line-height:1;">${formato(actual)}${unidad}</span>
         ${deltaHtml}
       </div>
       <div style="padding-bottom: 16px;"> <!-- Extra padding para las labels S1, S2 -->

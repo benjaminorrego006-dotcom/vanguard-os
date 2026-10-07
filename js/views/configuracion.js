@@ -16,6 +16,7 @@ import { getEstadoSincronizacion } from '../core/sync.js';
 import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import { exportarFotos, importarFotos, estimarBytes, textoTamano } from '../utils/fotos-respaldo.js';
 import { isErrorTrackingConfigured, isErrorReportingEnabled, setErrorReportingEnabled } from '../core/error-tracking.js';
+import { formatNumero } from '../utils/numero.js';
 
 const NIVEL_LABELS = { 'menos-1': 'Menos de 1 año', '1-3': '1 a 3 años', 'mas-3': 'Más de 3 años' };
 
@@ -44,7 +45,7 @@ export async function render() {
   ]);
 
   const perfilResumen = profile
-    ? `${profile.pesoKg} kg · ${profile.estaturaCm} cm · ${profile.edad} años`
+    ? `${formatNumero(profile.pesoKg)} kg · ${formatNumero(profile.estaturaCm)} cm · ${profile.edad} ${profile.edad === 1 ? 'año' : 'años'}`
     : 'Todavía no completaste tu perfil.';
   const nivelResumen = nivel ? `Nivel declarado: ${NIVEL_LABELS[nivel.tiempoEntrenando] || nivel.tiempoEntrenando}` : 'Nivel de entrenamiento sin declarar.';
 

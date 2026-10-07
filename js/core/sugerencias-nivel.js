@@ -17,6 +17,7 @@ import { getNivel } from './estandares-fuerza.js';
 import { CATALOGO_EJERCICIOS, getEjercicioPorId, getEjercicioMetadata, idDeEntradaEjercicio } from './ejercicios-catalogo.js';
 import { RAMA_ORDEN, RAMA_LABELS, ARBOL_PROGRESIONES, profundidadNodo, contarSeriesLimpias } from './progresiones.js';
 import { diaKeyDe, diasEntre, claveDiaDe } from '../utils/fecha.js';
+import { formatNumero } from '../utils/numero.js';
 
 const NIVEL_RANGO = { principiante: 0, intermedio: 1, avanzado: 2 };
 const NIVEL_DESDE_RANGO = ['principiante', 'intermedio', 'avanzado'];
@@ -146,7 +147,7 @@ function evaluarPorRatio(entry, sesiones, hoyClave, pesoKg, sexo) {
   const nivelInfo = getNivel(entry.id, sexo, ratio);
   if (!nivelInfo) return null;
   if (RANGO_FUERZA[nivelInfo.nivel] < RANGO_FUERZA[entry.criterioAvance.valor]) return null;
-  return `Tu ${entry.nombre.toLowerCase()} está en ${nivelInfo.label} (${ratio.toFixed(2)}× tu peso corporal, en las últimas 4 semanas).`;
+  return `Tu ${entry.nombre.toLowerCase()} está en ${nivelInfo.label} (${formatNumero(ratio, { decimales: 2 })}× tu peso corporal, en las últimas 4 semanas).`;
 }
 
 // Siguiente ejercicio de la cadena: algún hijo por progresionDe. Si hay

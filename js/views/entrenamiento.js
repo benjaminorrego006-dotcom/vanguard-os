@@ -15,6 +15,7 @@ import { calcularIMC } from '../utils/bodyMetrics.js';
 import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
 import { formatFechaCorta, diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
+import { formatNumero } from '../utils/numero.js';
 import { detectarSugerencias } from '../core/sugerencias-nivel.js';
 import { Toast, hayModalAbierto, ConfirmDialog } from '../utils/states.js';
 import { leerBorrador, borrarBorrador, esBorradorLargo } from '../utils/sesion-borrador.js';
@@ -338,7 +339,7 @@ export async function render() {
     const imc = calcularIMC(profile.pesoKg, profile.estaturaCm);
     imcHtml = `
       <div style="display: flex; align-items: baseline; gap: 6px;">
-        <span class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${imc.valor}</span>
+        <span class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${formatNumero(imc.valor)}</span>
       </div>
       <div style="font-size: 11.5px; font-weight: 700; color: ${imc.color}; margin-top: 2px;">${imc.categoria}</div>
     `;

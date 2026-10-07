@@ -165,6 +165,7 @@ async function renderHitos() {
   const ahorroChartHtml = renderMiniChart(tendenciaAhorro, {
     color: 'var(--am)',
     unidad: '',
+    formato: formatCurrency,
     label: 'Ahorro guardado por mes (últimos 6 meses)',
     emptyText: 'Registra algunos meses de ahorro para ver la tendencia.'
   });

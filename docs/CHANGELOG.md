@@ -11,10 +11,15 @@ Supabase, un solo servidor y pruebas en primer plano.
 | Fase | Caché | Qué cambia |
 |---|---|---|
 | L1 — Esquinas fuera del Laboratorio | v296 | Decisión del usuario: se mantiene la regla de MK III, que lleva chaflán solo en las tarjetas principales (`card-hero`); el resto de las tarjetas, rectas. La medición mostró que las tarjetas de Entreno, Finanzas y Configuración ya se veían rectas por esa regla, aunque tenían radios en línea sin efecto. Se sacaron todos los radios en línea (salvo los círculos, `50%`) de `hiit-timer.js`, `hiit-rutina-form.js`, `rutina-form.js`, `rutinas-lista.js`, `entrenamiento.js`, `finanzas.js`, `goal-card.js` y `activity-heatmap.js` (celdas del mapa de calor). También de las pestañas, selectores, botones y marcas de `laboratorio.js`, `lab-entreno.js`, `lab-finanzas.js`, `lab-tareas.js` y `donut-chart.js`. El control segmentado (`components.css`: pestañas de Finanzas, sub-pestañas de Tareas) queda recto. Las tarjetas del Laboratorio siguen con chaflán. |
+| L2 — Números es-CL | v297 | Los números visibles con punto decimal pasan por `utils/numero.js`. IMC de Entreno ("25,9"). `mini-chart.js` suma la opción `formato` (por defecto `formatNumero`) para el número grande y las etiquetas: el volumen semanal de Entreno queda "19.596,5" y el ahorro por mes del Laboratorio de Finanzas va con `formatCurrency`. Estándares de fuerza: 1RM y ratio ("1,25×"). Mensaje de sugerencia de nivel: ratio. Observaciones de la semana: `dec` usaba `toFixed` y `replace` a mano. Configuración › Perfil: peso y estatura ("78,4 kg · 174 cm · 28 años", con "año" en singular para 1). Los `toFixed` de `foco.js` y `racha-reactor.js` quedan: son coordenadas de SVG y no se muestran. |
 
 ### L1 — QA
 
 - 375×812 y 1280×800 (`qa-l1`): Entreno, rutinas GYM y HIIT, formulario de rutina, formulario HIIT, timer HIIT (desde la plantilla Tabata), las 5 pestañas de Finanzas y las metas del Laboratorio. Ningún elemento visible queda con radio, salvo los círculos, y ningún texto cae dentro del chaflán de las `card-hero`. Regresión: chaflanes del Laboratorio. Consola limpia; ESLint `no-undef` limpio. Capturas `l1-*`.
+
+### L2 — QA
+
+- 375×812 y 1280×800 (`qa-l2`, con una medida de 78,4 kg): ningún texto visible tiene un decimal con punto en Entreno, Cuerpo, Progreso (estándares de fuerza), Configuración ni en todas las pestañas del Laboratorio de Entreno y de Finanzas. IMC "25,9", volumen "19.596,5" y perfil "78,4 kg · 174 cm · 28 años". Consola limpia; ESLint `no-undef` limpio. Capturas `l2-*`.
 
 ## 5 oct 2026 — Fase 6: medidas corporales y fotos (`docs/FASE6-MEDIDAS.md`)
 
