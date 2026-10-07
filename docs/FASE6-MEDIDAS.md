@@ -62,4 +62,4 @@ Origen: docs/PLAN.md › Pendiente › FASE 6.
 | F2 Registro y lista | 753139c | v290 |
 | F3 Gráficos | def4638 | v291 |
 | F4 Fotos (local) | db35fb8 | v293 |
-| F5 Exportar e importar fotos | | |
+| F5 Exportar e importar fotos | b22d0f0 | v295 |
