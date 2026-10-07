@@ -346,6 +346,11 @@ export async function applyRemoteEvent(event) {
       case 'medida_eliminada':
         await idb.remove('medidas', entidadId);
         break;
+      // Fotos de progreso: solo auditoría. Las fotos no salen del
+      // dispositivo, así que en otro no hay nada que reflejar.
+      case 'foto_agregada':
+      case 'foto_eliminada':
+        break;
 
       default:
         console.warn('[sync] Tipo de evento sin handler de replay:', tipo);

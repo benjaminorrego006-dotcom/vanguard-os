@@ -2195,6 +2195,38 @@ export const db = {
     await this.saveProfile({ ...perfil, pesoKg: medida.pesoKg });
   },
 
+  // --- FOTOS DE PROGRESO (Fase 6, F4) ---
+  // Solo en este dispositivo: store 'fotos_progreso' con el Blob ya
+  // reducido ({ id, fecha, blob, ancho, alto, medidaId?, createdAt }). No van
+  // al log ni a Supabase ni al respaldo JSON: los eventos foto_agregada /
+  // foto_eliminada llevan solo id y fecha, como auditoría (sin replay).
+  // Excepción documentada a "todo se reconstruye desde events".
+  async getFotos() {
+    const fotos = await idbGetArray('fotos_progreso');
+    return fotos.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  },
+  async getFoto(id) {
+    return idb.getOne('fotos_progreso', id);
+  },
+  async agregarFoto({ blob, ancho, alto, fecha, medidaId = null }) {
+    if (!(blob instanceof Blob) || !blob.size) throw new Error('La foto no es válida.');
+    const dia = typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? fecha : diaKeyDe(new Date());
+    const foto = { id: generateId(), fecha: dia, blob, ancho: Number(ancho) || 0, alto: Number(alto) || 0, createdAt: new Date().toISOString() };
+    if (medidaId) foto.medidaId = medidaId;
+    await idb.put('fotos_progreso', foto);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'perfil', tipo: 'foto_agregada', entidadId: foto.id, payload: { id: foto.id, fecha: foto.fecha } });
+    return foto;
+  },
+  async eliminarFoto(id) {
+    const foto = await idb.getOne('fotos_progreso', id);
+    if (!foto) return false;
+    await idb.remove('fotos_progreso', id);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'perfil', tipo: 'foto_eliminada', entidadId: id, payload: { id, fecha: foto.fecha } });
+    return true;
+  },
+
   // --- CONFIG DEL GENERADOR DE RUTINAS (Etapa 4a) ---
   // Deliberadamente separado de 'profile' (que es para IMC/gasto calórico):
   // saveProfile() reconstruye el objeto entero desde los campos que conoce,

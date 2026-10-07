@@ -23,6 +23,7 @@ import { renderMiniChart } from '../components/mini-chart.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
 import { renderSesionesHistorial, initSesionesHistorialListeners } from '../components/sesiones-historial.js';
 import { renderCuerpoTarjeta, renderCuerpoHistorial, renderMedidaForm, setupMedidaForm, initCuerpo, initCuerpoGraficos, cleanupCuerpoGraficos } from '../components/cuerpo.js';
+import { renderFotoModales, setupFotoModales, setupFotosHoja, cleanupFotos } from '../components/fotos-progreso.js';
 
 // Placeholder hasta que exista el sistema de nivel del backlog (onboarding
 // de nivel dedicado, filtrado de rutinas por nivel, detección automática de
@@ -149,6 +150,7 @@ export function cleanup() {
   cleanupProgreso();
   cleanupEjercicioCharts();
   cleanupCuerpoGraficos();
+  cleanupFotos();
   cleanupSessionTimer();
   cleanupHiitTimer();
 
@@ -427,6 +429,7 @@ export async function render() {
 
       ${renderProfileForm()}
       ${renderMedidaForm()}
+      ${renderFotoModales()}
       ${renderGeneradorConfigForm()}
       ${renderNivelOnboardingForm()}
     </div>
@@ -472,6 +475,8 @@ mountListeners = () => {
   document.getElementById('link-historial-sesiones')?.addEventListener('click', (e) => { e.preventDefault(); goToHistorial(); });
   // Cuerpo (Fase 6): la hoja de medidas y la tarjeta de la vista principal.
   setupMedidaForm();
+  setupFotosHoja();
+  setupFotoModales();
   initCuerpo({ repintar: refreshFull, abrirHistorial: () => goToCuerpo() });
 
   // Sesión en curso (borrador): Retomar la abre con todo restaurado;
@@ -679,8 +684,8 @@ mountListeners = () => {
     mostrarSubVista();
     const refreshCuerpo = async () => {
       if (viewState !== 'cuerpo') return;
-      const medidas = await db.getMedidas();
-      subContent.innerHTML = renderCuerpoHistorial(medidas);
+      const [medidas, fotos] = await Promise.all([db.getMedidas(), db.getFotos()]);
+      subContent.innerHTML = renderCuerpoHistorial(medidas, fotos);
       initCuerpo({ repintar: refreshCuerpo, signal });
       await initCuerpoGraficos(medidas);
     };

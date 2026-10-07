@@ -17,6 +17,7 @@ import { ensureChartJs, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio 
 import { formatNumero } from '../utils/numero.js';
 import { escapeHtml } from '../utils/escape.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
+import { renderFotosSeccion, initFotos, botonesAgregar, limpiarPendientes, guardarPendientes } from './fotos-progreso.js';
 
 const CAMPOS = [
   { k: 'pesoKg', etq: 'Peso', u: 'kg' },
@@ -101,7 +102,8 @@ export function renderCuerpoTarjeta(medidas) {
       ${cuerpo}
       <div class="cuerpo-acciones">
         <button type="button" id="btn-cuerpo-registrar" class="cuerpo-btn cuerpo-btn--primario tappable">Registrar medidas</button>
-        ${medidas.length ? '<button type="button" id="btn-cuerpo-historial" class="cuerpo-btn tappable">Historial</button>' : ''}
+        <!-- Siempre: la galería de fotos (F4) vive en el historial, también sin medidas. -->
+        <button type="button" id="btn-cuerpo-historial" class="cuerpo-btn tappable">Historial y fotos</button>
       </div>
     </section>`;
 }
@@ -199,7 +201,8 @@ export async function initCuerpoGraficos(medidas) {
 }
 
 // --- Historial (sub-vista) ---------------------------------------------------------
-export function renderCuerpoHistorial(medidas) {
+// `fotos`: db.getFotos() (F4), para la galería.
+export function renderCuerpoHistorial(medidas, fotos = []) {
   const filas = medidas.map(m => {
     const valores = CAMPOS.filter(c => typeof m[c.k] === 'number')
       .map(c => `<span class="cuerpo-valor"><span class="cuerpo-valor-etq">${c.etq}</span> ${conUnidad(m[c.k], c.u)}</span>`).join('');
@@ -222,6 +225,7 @@ export function renderCuerpoHistorial(medidas) {
         <button type="button" id="btn-cuerpo-hist-registrar" class="cuerpo-btn cuerpo-btn--primario tappable">Registrar medidas</button>
       </div>
       ${medidas.length ? renderGraficos(medidas) : ''}
+      ${renderFotosSeccion(fotos)}
       ${medidas.length
         ? `<ul class="cuerpo-lista">${filas}</ul>`
         : '<p class="cuerpo-sub">Todavía no hay medidas registradas.</p>'}
@@ -247,6 +251,11 @@ export function renderMedidaForm() {
                 <input type="text" inputmode="decimal" id="medida-${c.k}" data-campo="${c.k}" autocomplete="off" placeholder="—">
                 <small class="cuerpo-anterior" id="medida-ant-${c.k}"></small>
               </label>`).join('')}
+          </div>
+          <div class="cuerpo-campo" id="medida-fotos">
+            <span>Fotos (opcional)</span>
+            <div class="cuerpo-fotos-acciones">${botonesAgregar('medida-foto')}</div>
+            <div id="medida-fotos-pend" class="fotos-pend"></div>
           </div>
           <label class="cuerpo-campo">
             <span>Nota (opcional)</span>
@@ -285,6 +294,7 @@ export async function abrirMedidaForm(medida = null) {
     modal.querySelector(`#medida-ant-${c.k}`).innerHTML = ant ? `Anterior: ${conUnidad(ant[c.k], c.u)} · ${escapeHtml(fechaCorta(ant.fecha))}` : '';
   });
   modal.querySelector('#medida-nota').value = medida && medida.nota ? medida.nota : '';
+  limpiarPendientes();
   const error = modal.querySelector('#medida-error');
   error.hidden = true;
   error.textContent = '';
@@ -305,7 +315,7 @@ async function cerrarMedidaForm() {
 export function setupMedidaForm() {
   const modal = document.getElementById('medida-modal');
   if (!modal) return;
-  modal.querySelector('#medida-cancelar').addEventListener('click', () => cerrarMedidaForm());
+  modal.querySelector('#medida-cancelar').addEventListener('click', () => { limpiarPendientes(); cerrarMedidaForm(); });
   modal.querySelector('#medida-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = modal.querySelector('#medida-guardar');
@@ -314,18 +324,20 @@ export function setupMedidaForm() {
     const datos = { fecha: modal.querySelector('#medida-fecha').value, nota: modal.querySelector('#medida-nota').value };
     CAMPOS.forEach(c => { datos[c.k] = modal.querySelector(`#medida-${c.k}`).value.trim(); });
     btn.disabled = true;
+    let guardada;
     try {
-      if (id) await db.editarMedida(id, datos);
-      else await db.registrarMedida(datos);
+      guardada = id ? await db.editarMedida(id, datos) : await db.registrarMedida(datos);
     } catch (err) {
       error.textContent = err.message || 'No se pudo guardar. Inténtalo de nuevo.';
       error.hidden = false;
       btn.disabled = false;
       return;
     }
+    // Fotos elegidas en la hoja: con la fecha y el id de la medida.
+    const nFotos = await guardarPendientes({ fecha: guardada.fecha, medidaId: guardada.id });
     btn.disabled = false;
     await cerrarMedidaForm();
-    Toast(id ? 'Medidas actualizadas' : 'Medidas registradas', 'success');
+    Toast(`${id ? 'Medidas actualizadas' : 'Medidas registradas'}${nFotos ? ` con ${nFotos === 1 ? '1 foto' : `${nFotos} fotos`}` : ''}`, 'success');
     if (alCambiar) await alCambiar();
   });
 }
@@ -339,6 +351,7 @@ export function initCuerpo({ repintar, abrirHistorial, signal } = {}) {
   // La tarjeta sigue en el DOM (oculta) con el historial abierto: ids distintos.
   document.getElementById(abrirHistorial ? 'btn-cuerpo-registrar' : 'btn-cuerpo-hist-registrar')?.addEventListener('click', () => abrirMedidaForm(), opts);
   document.getElementById('btn-cuerpo-historial')?.addEventListener('click', () => abrirHistorial && abrirHistorial(), opts);
+  initFotos({ repintar: alCambiar, signal });
   document.querySelectorAll('.cuerpo-rango').forEach(b => b.addEventListener('click', async () => {
     rangoPeso = Number(b.dataset.rango) || 90;
     if (alCambiar) await alCambiar();
