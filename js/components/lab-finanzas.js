@@ -106,7 +106,7 @@ async function renderMovimientos() {
   return `
     <div>
       <div style="display: flex; gap: 6px; margin-bottom: 16px;">
-        ${RANGOS.map(r => `<button type="button" class="btn-lab-fin-mov-rango" data-rango="${r.v}" style="flex: 1; padding: 8px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid ${finMovRango === r.v ? 'var(--am)' : 'var(--surface-border)'}; background: ${finMovRango === r.v ? 'var(--am)' : 'transparent'}; color: ${finMovRango === r.v ? 'var(--bg-base)' : 'var(--text-secondary)'};">${r.l}</button>`).join('')}
+        ${RANGOS.map(r => `<button type="button" class="btn-lab-fin-mov-rango" data-rango="${r.v}" style="flex: 1; padding: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid ${finMovRango === r.v ? 'var(--am)' : 'var(--surface-border)'}; background: ${finMovRango === r.v ? 'var(--am)' : 'transparent'}; color: ${finMovRango === r.v ? 'var(--bg-base)' : 'var(--text-secondary)'};">${r.l}</button>`).join('')}
       </div>
       <div style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 12px;">${txs.length} movimiento${txs.length === 1 ? '' : 's'} — vista de solo lectura, edita desde Finanzas &gt; Movimientos.</div>
       <style>#lab-fin-mov-list .delete-tx { display: none; }</style>
@@ -122,14 +122,14 @@ async function renderMetas() {
     return `
       <div>
         ${EmptyState('Sin metas de ahorro todavía', 'Ej. "Fondo de emergencia", "Vacaciones" o "Pie para depto"')}
-        <button id="btn-lab-fin-nueva-meta" style="margin-top: 12px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
+        <button id="btn-lab-fin-nueva-meta" style="margin-top: 12px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
       </div>`;
   }
 
   return `
     <div style="display: flex; flex-direction: column; gap: 12px;">
       ${metas.map(g => renderGoalCard(g)).join('')}
-      <button id="btn-lab-fin-nueva-meta" style="margin-top: 4px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
+      <button id="btn-lab-fin-nueva-meta" style="margin-top: 4px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
     </div>`;
 }
 

@@ -147,7 +147,7 @@ async function renderHistorial() {
   return `
     <div>
       <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
-        <button type="button" id="btn-lab-tareas-historial-orden" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 6px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 700; cursor: pointer;">${tareasHistorialOrden === 'desc' ? 'Más reciente primero' : 'Más antigua primero'}</button>
+        <button type="button" id="btn-lab-tareas-historial-orden" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 6px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer;">${tareasHistorialOrden === 'desc' ? 'Más reciente primero' : 'Más antigua primero'}</button>
       </div>
       <div class="card" style="padding: 4px 18px;">${rowsHtml}</div>
     </div>

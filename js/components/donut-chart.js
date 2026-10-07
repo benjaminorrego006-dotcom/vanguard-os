@@ -87,7 +87,7 @@ export function renderDonutLegend(entries) {
   return entries.map(e => `
     <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0;">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="width: 10px; height: 10px; border-radius: 3px; background: ${e.color}; flex-shrink: 0;"></span>
+        <span style="width: 10px; height: 10px; background: ${e.color}; flex-shrink: 0;"></span>
         <span style="font-size: 12.5px; color: var(--text-primary); font-weight: 600;">${e.label}</span>
       </div>
       <span class="num" style="font-size: 12.5px; color: var(--text-secondary); font-weight: 700;">${total > 0 ? Math.round(e.valor / total * 100) : 0}%</span>

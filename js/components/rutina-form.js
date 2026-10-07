@@ -23,7 +23,7 @@ const generarIdGrupo = () =>
 
 export function renderRutinaForm(categoria) {
   return `
-    <div class="card" style="padding: 22px; border-radius: 20px;">
+    <div class="card" style="padding: 22px;">
       <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 20px 0; color: var(--text-primary); letter-spacing: -0.3px;">Crear Rutina</h2>
 
       <div class="input-group" style="margin-bottom: 20px;">
@@ -38,11 +38,11 @@ export function renderRutinaForm(categoria) {
         <!-- Ejercicios dynamically added here -->
       </div>
 
-      <div style="background: color-mix(in srgb, var(--accent-teal) 10%, transparent); border-left: 3px solid var(--accent-teal); border-radius: 0 10px 10px 0; padding: 10px 12px; font-size: 11.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
+      <div style="background: color-mix(in srgb, var(--accent-teal) 10%, transparent); border-left: 3px solid var(--accent-teal); padding: 10px 12px; font-size: 11.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
         Empieza a escribir y elige de la lista para que tus series cuenten en <b style="color: var(--accent-teal);">Estándares de Fuerza</b> y en el <b style="color: var(--accent-teal);">Árbol de Progresión</b>. Puedes seguir escribiendo cualquier nombre si prefieres.
       </div>
 
-      <button id="btn-add-ejercicio" type="button" class="tappable" style="width: 100%; padding: 13px; border-radius: 12px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 24px;">
+      <button id="btn-add-ejercicio" type="button" class="tappable" style="width: 100%; padding: 13px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 24px;">
         + Agregar ejercicio
       </button>
 
@@ -65,14 +65,14 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
   const createSerieRowHTML = () => {
     return `
       <div class="serie-row" style="display: flex; gap: 8px; align-items: center;">
-        <select class="serie-tipo" style="flex: 1; min-width:0; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 16px;">
+        <select class="serie-tipo" style="flex: 1; min-width:0; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 9px 8px; color: var(--text-primary); font-size: 16px;">
           <option value="normal">Normal</option>
           <option value="calentamiento">Calentamiento</option>
           <option value="fallo">Fallo</option>
           <option value="dropset">Drop Set</option>
         </select>
-        <input type="text" inputmode="numeric" class="serie-reps" placeholder="Reps" style="width: 60px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">
-        <input type="number" inputmode="decimal" enterkeyhint="done" class="serie-peso" placeholder="Peso" style="width: 70px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">
+        <input type="text" inputmode="numeric" class="serie-reps" placeholder="Reps" style="width: 60px; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">
+        <input type="number" inputmode="decimal" enterkeyhint="done" class="serie-peso" placeholder="Peso" style="width: 70px; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">
         <button class="btn-remove-serie" style="background: transparent; border: none; color: var(--text-disabled); cursor: pointer; font-size: 18px; flex-shrink: 0;">&times;</button>
       </div>
     `;
@@ -81,13 +81,13 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
   const addEjercicioRow = () => {
     const div = document.createElement('div');
     div.className = 'ejercicio-block';
-    div.style.cssText = 'background: var(--surface-2); padding: 16px; border-radius: 16px; border: 1px solid var(--surface-border); display: flex; flex-direction: column; gap: 12px; position: relative;';
+    div.style.cssText = 'background: var(--surface-2); padding: 16px; border: 1px solid var(--surface-border); display: flex; flex-direction: column; gap: 12px; position: relative;';
 
     div.innerHTML = `
       <button class="btn-remove-ej" style="position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: var(--text-disabled); cursor: pointer; font-size: 20px;">&times;</button>
       <div class="ej-nombre-wrap" style="position: relative; width: calc(100% - 30px); margin-bottom: 4px;">
         <input type="text" class="ej-nombre" placeholder="Nombre del ejercicio" autocomplete="off" style="width: 100%; box-sizing: border-box; background: transparent; border: none; border-bottom: 1px solid var(--surface-border); padding: 4px 0; color: var(--text-primary); font-size: 16px; font-weight: 700; outline: none;">
-        <div class="ej-nombre-ac" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 10px; overflow: hidden; z-index: 20; box-shadow: 0 8px 24px rgba(0,0,0,0.4);"></div>
+        <div class="ej-nombre-ac" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface-1); border: 1px solid var(--surface-border); overflow: hidden; z-index: 20; box-shadow: 0 8px 24px rgba(0,0,0,0.4);"></div>
       </div>
 
       <div style="font-size: 11px; color: var(--text-secondary); font-weight: 600; margin-bottom: -4px;">Series, Repeticiones y Peso${pesoHelper}</div>
@@ -95,8 +95,8 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
         ${createSerieRowHTML()}
       </div>
 
-      <button class="btn-add-serie" style="background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); border-radius: 10px; padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 4px;">+ Añadir serie</button>
-      <button class="btn-agrupar-sup" style="background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); border-radius: 10px; padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 4px;">${linkSvg}Agrupar en superserie con el anterior</button>
+      <button class="btn-add-serie" style="background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 4px;">+ Añadir serie</button>
+      <button class="btn-agrupar-sup" style="background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 4px;">${linkSvg}Agrupar en superserie con el anterior</button>
     `;
 
     div.dataset.superset = 'false';
@@ -108,10 +108,10 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
       const prevBlock = div.previousElementSibling;
       const prevNombre = (prevBlock && prevBlock.querySelector('.ej-nombre').value.trim()) || 'el ejercicio anterior';
       if (activo) {
-        btnAgrupar.style.cssText = 'display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--state-medium) 14%, transparent); border: 1px solid var(--state-medium); color: var(--state-medium); border-radius: 10px; padding: 8px; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; margin-top: 4px;';
+        btnAgrupar.style.cssText = 'display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--state-medium) 14%, transparent); border: 1px solid var(--state-medium); color: var(--state-medium); padding: 8px; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; margin-top: 4px;';
         btnAgrupar.innerHTML = `${linkSvg}Agrupado en superserie con ${escapeHtml(prevNombre)}`;
       } else {
-        btnAgrupar.style.cssText = 'display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); border-radius: 10px; padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 4px;';
+        btnAgrupar.style.cssText = 'display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 4px;';
         btnAgrupar.innerHTML = `${linkSvg}Agrupar en superserie con el anterior`;
       }
     };
@@ -146,7 +146,7 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
       const itemsHtml = matches.map(e => `
         <div class="ac-item tappable" data-nombre="${escapeHtml(e.nombre)}" style="padding: 10px 12px; font-size: 12.5px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; border-bottom: 1px solid var(--surface-border);">
           <span style="color: var(--text-primary); font-weight: 600; min-width: 0;">${escapeHtml(e.nombre)} <span style="color: var(--text-disabled); font-weight: 500;">· ${GRUPO_MUSCULAR_LABELS[e.grupoMuscular] || e.grupoMuscular}</span></span>
-          ${e.esEstandar ? `<span style="font-size: 9px; font-weight: 700; color: var(--accent-teal); background: color-mix(in srgb, var(--accent-teal) 14%, transparent); padding: 1px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0;">Estándar</span>` : ''}
+          ${e.esEstandar ? `<span style="font-size: 9px; font-weight: 700; color: var(--accent-teal); background: color-mix(in srgb, var(--accent-teal) 14%, transparent); padding: 1px 6px; text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0;">Estándar</span>` : ''}
         </div>
       `).join('');
       const libreHtml = `<div class="ac-item ac-item-libre tappable" style="padding: 10px 12px; font-size: 12px; cursor: pointer; color: var(--text-secondary); font-style: italic;">+ Usar "${escapeHtml(inputNombre.value.trim())}" tal cual (no vinculado a Estándares)</div>`;

@@ -580,9 +580,9 @@ export async function init() {
 
 const renderAgeOfMoneyHTML = (b) => {
   return `
-    <div class="card" id="card-ageofmoney" style="padding: 16px; margin-bottom: 24px; border-radius: 16px; background: linear-gradient(145deg, var(--surface-1), var(--surface-2)); display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--surface-border);">
+    <div class="card" id="card-ageofmoney" style="padding: 16px; margin-bottom: 24px; background: linear-gradient(145deg, var(--surface-1), var(--surface-2)); display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--surface-border);">
       <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(255, 182, 39, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-purple);">
+        <div style="width: 48px; height: 48px; background: rgba(255, 182, 39, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-purple);">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
         </div>
         <div>
@@ -741,12 +741,12 @@ const renderGoalsHTML = (b) => {
   if (b.goals.length === 0) {
     html += `
        ${finEmptyState('Sin metas', 'Sin metas de ahorro todavía', 'Crea una para apartar dinero mes a mes hacia algo puntual.')}
-       <button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
+       <button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
     `;
   } else {
     html += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
     html += b.goals.map(g => renderGoalCard(g)).join('');
-    html += `<button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>`;
+    html += `<button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>`;
     html += `</div>`;
   }
   return html;
@@ -781,7 +781,7 @@ const alertBadgeHtml = (usoCatPct, compact = false) => {
     return `<span role="img" aria-label="${mensaje}" title="${mensaje}" style="display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:${bg}; color:${color}; font-size:10px; font-weight:800; line-height:1; flex-shrink:0;">!</span>`;
   }
   const label = isOver ? 'Excedido' : '80%+';
-  return `<span title="${mensaje}" style="display:inline-flex; align-items:center; gap:4px; background:${bg}; color:${color}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px;">${label}</span>`;
+  return `<span title="${mensaje}" style="display:inline-flex; align-items:center; gap:4px; background:${bg}; color:${color}; font-size:10px; font-weight:700; padding:2px 8px;">${label}</span>`;
 };
 
 // Palabras que no aportan como pista de categoría en el gasto rápido.
@@ -959,7 +959,7 @@ const renderDailyAvailable = (b) => {
   const diasRestantes = Math.max(1, daysInMonth - now.getDate() + 1);
   const saldoDiario = Math.max(0, b.remaining) / diasRestantes;
   return `
-    <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px; display: flex; align-items: center; gap: 14px;">
+    <div class="card" style="padding: 18px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px;">
       <div class="icon-chip" style="width: 40px; height: 40px; background: rgba(34, 197, 94, 0.15); color: var(--state-success); flex-shrink: 0;">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
       </div>
@@ -1207,8 +1207,8 @@ export async function render() {
           const h = Math.max(4, Math.round(((d.expenses + d.saved) / maxVal) * 100));
           const isCurrent = d.month === b.currentMonth;
           return `<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
-            <div style="width: 100%; height: 100px; background: var(--surface-2); border-radius: 6px; position: relative; overflow: hidden;">
-              <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: ${h}%; background: ${isCurrent ? 'var(--text-primary)' : 'var(--text-secondary)'}; border-radius: 6px; transition: height 0.5s ease;"></div>
+            <div style="width: 100%; height: 100px; background: var(--surface-2); position: relative; overflow: hidden;">
+              <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: ${h}%; background: ${isCurrent ? 'var(--text-primary)' : 'var(--text-secondary)'}; transition: height 0.5s ease;"></div>
             </div>
             <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600;">${d.month.split('-')[1]}</div>
           </div>`;
@@ -1240,7 +1240,6 @@ export async function render() {
       background: var(--surface-1);
       background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0) 30%);
       width: 100%; max-width: 500px;
-      border-radius: 28px 28px 0 0;
       border: 1px solid var(--glass-border); border-bottom: none;
       padding: 14px 24px calc(28px + env(safe-area-inset-bottom)) 24px;
       transform: translateY(100%); opacity: 0;
@@ -1249,13 +1248,13 @@ export async function render() {
       box-shadow: 0 -20px 60px -20px rgba(0,0,0,0.6);
     }
     .modal-content::before {
-      content: ''; display: block; width: 36px; height: 4px; border-radius: 2px;
+      content: ''; display: block; width: 36px; height: 4px;
       background: var(--surface-border); margin: 0 auto 18px auto;
     }
     .modal-overlay.open .modal-content { transform: translateY(0); opacity: 1; }
     @media (min-width: 640px) {
       .modal-overlay { align-items: center; padding: 20px; }
-      .modal-content { border-radius: 24px; border-bottom: 1px solid var(--glass-border); transform: scale(0.95) translateY(20px); padding: 30px 24px; }
+      .modal-content { border-bottom: 1px solid var(--glass-border); transform: scale(0.95) translateY(20px); padding: 30px 24px; }
       .modal-content::before { display: none; }
       .modal-overlay.open .modal-content { transform: scale(1) translateY(0); }
     }
@@ -1263,7 +1262,7 @@ export async function render() {
     .input-group label { display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
     .input-group input, .input-group select {
       width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary);
-      padding: 14px 16px; border-radius: 14px; font-size: 16px; box-sizing: border-box; outline: none;
+      padding: 14px 16px; font-size: 16px; box-sizing: border-box; outline: none;
       font-family: inherit; transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .input-group input:focus, .input-group select:focus {
@@ -1271,14 +1270,14 @@ export async function render() {
       box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
     }
     .tab-btn { flex: 1; padding: 12px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; }
-    .cat-item { cursor: pointer; padding: 4px; border-radius: 4px; transition: background 0.2s; }
+    .cat-item { cursor: pointer; padding: 4px; transition: background 0.2s; }
     .cat-item.active { background: rgba(255,255,255,0.1); }
     .tx-row { cursor: pointer; }
     .tx-row:hover { background: var(--surface-2) !important; }
     .top-card { cursor: pointer; }
-    .numpad-btn { background: transparent; border: none; font-size: 24px; font-weight: 500; padding: 16px; border-radius: 12px; cursor: pointer; color: var(--text-primary); transition: background 0.1s; }
+    .numpad-btn { background: transparent; border: none; font-size: 24px; font-weight: 500; padding: 16px; cursor: pointer; color: var(--text-primary); transition: background 0.1s; }
     .numpad-btn:active { background: var(--surface-2); }
-    .chip { padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+    .chip { padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
     .chip.active { border-color: rgba(255,255,255,0.2); }
   `;
 
@@ -1292,7 +1291,7 @@ export async function render() {
       <div style="position: sticky; top: 0; z-index: 100; padding: 20px 4px 16px 4px; background: var(--bg-base); margin: 0 -4px 12px -4px;">
         <div class="flex-between">
           <h1 style="font-size: 30px; font-weight: 800; margin: 0; letter-spacing: -0.5px; color: var(--text-primary);">Finanzas</h1>
-          <div style="background: var(--surface-2); border: 1px solid var(--surface-border); padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+          <div style="background: var(--surface-2); border: 1px solid var(--surface-border); padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
             <span>${formatMonth(currentMonth)}</span>
           </div>
@@ -1329,15 +1328,15 @@ export async function render() {
 
         <!-- BOTONES FAB MOVIDOS AQUÍ -->
         <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-          <button id="btn-fab-ingreso" class="tappable" style="flex: 1; padding: 14px 8px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
+          <button id="btn-fab-ingreso" class="tappable" style="flex: 1; padding: 14px 8px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
             <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(34, 197, 94, 0.15); color: var(--state-success);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"></path></svg></div>
             <span style="font-size: 11px; font-weight: 700;">Ingreso</span>
           </button>
-          <button id="btn-fab-gasto" class="tappable" style="flex: 1; padding: 14px 8px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
+          <button id="btn-fab-gasto" class="tappable" style="flex: 1; padding: 14px 8px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
             <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.15); color: var(--state-high);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7 7 7-7"></path></svg></div>
             <span style="font-size: 11px; font-weight: 700;">Gasto</span>
           </button>
-          <button id="btn-fab-ahorro" class="tappable" style="flex: 1; padding: 14px 8px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
+          <button id="btn-fab-ahorro" class="tappable" style="flex: 1; padding: 14px 8px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
             <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(255, 182, 39, 0.15); color: var(--accent-purple);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg></div>
             <span style="font-size: 11px; font-weight: 700;">Ahorro</span>
           </button>
@@ -1355,9 +1354,9 @@ export async function render() {
           <div style="position: relative; display: flex; align-items: stretch; gap: 8px;">
             <div style="position: relative; flex: 1; min-width: 0;">
               <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
-              <input type="text" id="quick-gasto-input" inputmode="text" enterkeyhint="go" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px rgba(239,68,68,0.15)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+              <input type="text" id="quick-gasto-input" inputmode="text" enterkeyhint="go" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px rgba(239,68,68,0.15)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
             </div>
-            <button type="submit" id="btn-quick-gasto-submit" class="tappable" title="Agregar gasto" style="flex-shrink: 0; width: 48px; border-radius: 16px; background: var(--state-high); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <button type="submit" id="btn-quick-gasto-submit" class="tappable" title="Agregar gasto" style="flex-shrink: 0; width: 48px; background: var(--state-high); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;">
               <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
             </button>
           </div>
@@ -1367,7 +1366,7 @@ export async function render() {
         <div id="daily-available-container">${renderDailyAvailable(b)}</div>
 
         <!-- Donut real (Chart.js) -->
-        <div class="card card--glass" style="padding: 28px; margin-bottom: 24px; text-align: center; border-radius: 24px;">
+        <div class="card card--glass" style="padding: 28px; margin-bottom: 24px; text-align: center;">
           <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 20px 0; text-align: left;">Distribución del gasto</h3>
           <div style="position: relative; width: 150px; height: 150px; margin: 0 auto;">
             <canvas id="donut-chart-resumen" width="150" height="150"></canvas>
@@ -1382,7 +1381,7 @@ export async function render() {
         </div>
 
         <!-- Mapa de actividad -->
-        <div class="card" style="padding: 18px 20px; margin-bottom: 24px; border-radius: 18px;">
+        <div class="card" style="padding: 18px 20px; margin-bottom: 24px;">
           <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
           ${heatmapHtml}
         </div>
@@ -1422,10 +1421,10 @@ export async function render() {
           <button class="history-tab" data-filter="Ahorro" style="background: transparent; color: var(--text-secondary);">Ahorro</button>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
-          <input type="date" id="history-date-from" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; border-radius: 12px; font-size: 16px; box-sizing: border-box; outline: none; font-family: inherit;">
+          <input type="date" id="history-date-from" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; font-size: 16px; box-sizing: border-box; outline: none; font-family: inherit;">
           <span style="color: var(--text-disabled); font-size: 12px;">a</span>
-          <input type="date" id="history-date-to" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; border-radius: 12px; font-size: 16px; box-sizing: border-box; outline: none; font-family: inherit;">
-          <button id="btn-clear-date-filter" style="background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">Limpiar</button>
+          <input type="date" id="history-date-to" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; font-size: 16px; box-sizing: border-box; outline: none; font-family: inherit;">
+          <button id="btn-clear-date-filter" style="background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 12px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">Limpiar</button>
         </div>
         <div class="card" style="padding: 0; margin-bottom: 24px; overflow: hidden;">
           <div id="history-list-content" class="fin-row-list">

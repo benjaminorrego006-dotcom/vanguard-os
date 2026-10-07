@@ -49,7 +49,7 @@ function renderEjerciciosRutina(ejercicios) {
         j++;
       }
       html += `
-        <div class="sup-bracket" style="display: flex; gap: 8px; align-items: stretch; margin-top: 8px; padding-left: 10px; border-left: 2px solid var(--state-medium); border-radius: 2px;">
+        <div class="sup-bracket" style="display: flex; gap: 8px; align-items: stretch; margin-top: 8px; padding-left: 10px; border-left: 2px solid var(--state-medium);">
           <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--text-secondary);">
             ${grupo.map(g => `<div>${escapeHtml(g.nombre)}${setsResumen(g.series)}</div>`).join('')}
           </div>
@@ -78,10 +78,10 @@ export async function renderRutinasLista(categoria) {
   let html = `
     <div style="margin-bottom: 24px;">
       <h2 style="font-size: 26px; font-weight: 800; margin: 0 0 16px 0; color: var(--text-primary); letter-spacing: -0.4px;">${catName}</h2>
-      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: var(--accent-teal); border: none; color: #000; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px;">
+      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; background: var(--accent-teal); border: none; color: #000; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px;">
         + Nueva rutina
       </button>
-      <button id="btn-generar-rutina" class="tappable" style="width: 100%; padding: 14px; border-radius: 14px; background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); font-size: 15px; font-weight: 700; cursor: pointer;">
+      <button id="btn-generar-rutina" class="tappable" style="width: 100%; padding: 14px; background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); font-size: 15px; font-weight: 700; cursor: pointer;">
         Generar Rutina
       </button>
     </div>
@@ -105,27 +105,27 @@ export async function renderRutinasLista(categoria) {
     }
 
     balanceHtml = `
-      <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 24px;">
+      <div class="card" style="padding: 18px; margin-bottom: 24px;">
         <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Balance semanal (7 días)</h3>
 
         <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <div style="width: 60px; color: var(--text-secondary);">Empuje</div>
-            <div style="flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden;">
+            <div style="flex: 1; height: 8px; background: var(--surface-2); overflow: hidden;">
               <div style="height: 100%; width: ${wEmp}%; background: var(--cy2);"></div>
             </div>
             <div style="width: 24px; text-align: right; color: var(--text-primary);">${emp}</div>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <div style="width: 60px; color: var(--text-secondary);">Tracción</div>
-            <div style="flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden;">
+            <div style="flex: 1; height: 8px; background: var(--surface-2); overflow: hidden;">
               <div style="height: 100%; width: ${wTra}%; background: var(--accent-teal);"></div>
             </div>
             <div style="width: 24px; text-align: right; color: var(--text-primary);">${tra}</div>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <div style="width: 60px; color: var(--text-secondary);">Piernas</div>
-            <div style="flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden;">
+            <div style="flex: 1; height: 8px; background: var(--surface-2); overflow: hidden;">
               <div style="height: 100%; width: ${wPie}%; background: var(--cy3);"></div>
             </div>
             <div style="width: 24px; text-align: right; color: var(--text-primary);">${pie}</div>
@@ -142,7 +142,7 @@ export async function renderRutinasLista(categoria) {
   if (categoria === 'gym' || categoria === 'calistenia') {
     const mapPrefix = categoria === 'gym' ? 'gym' : 'calistenia';
     muscleMapHtml = `
-      <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 24px; display: flex; flex-direction: column; align-items: center;">
+      <div class="card" style="padding: 18px; margin-bottom: 24px; display: flex; flex-direction: column; align-items: center;">
         <div class="flex-between" style="width: 100%; margin-bottom: 12px;">
           <h3 style="font-size: 14px; font-weight: 600; margin: 0; color: var(--text-primary);">Mapa muscular · fatiga actual</h3>
           <div class="mk3-muscle-map-controles" id="${mapPrefix}-muscle-map-controles">
@@ -163,7 +163,7 @@ export async function renderRutinasLista(categoria) {
     const necesitaDeload = await db.detectarNecesidadDeload(categoria);
     if (necesitaDeload) {
       deloadHtml = `
-        <div class="card" style="background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); padding: 14px 16px; border-radius: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+        <div class="card" style="background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
           <div class="icon-chip" style="width: 32px; height: 32px; background: rgba(245, 158, 11, 0.18); color: var(--state-medium); flex-shrink: 0;">
             ${warningSvg}
           </div>
@@ -203,14 +203,14 @@ export async function renderRutinasLista(categoria) {
 
       boxes += `
         <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <div style="width: 24px; height: 24px; background: ${color}; border-radius: 4px; border: ${border};"></div>
+          <div style="width: 24px; height: 24px; background: ${color}; border: ${border};"></div>
           <span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase;">${dayName}</span>
         </div>
       `;
     }
 
     heatmapHtml = `
-      <div class="card" style="padding: 18px; border-radius: 18px; margin-bottom: 24px;">
+      <div class="card" style="padding: 18px; margin-bottom: 24px;">
         <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Constancia HIIT (7 días)</h3>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           ${boxes}
@@ -236,7 +236,7 @@ export async function renderRutinasLista(categoria) {
         ? `<p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0 0 16px 0;">Configuración HIIT</p>`
         : `<div style="margin-bottom: 16px;"><p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0;">${eCount} ejercicio${eCount === 1 ? '' : 's'}</p>${renderEjerciciosRutina(r.ejercicios || [])}</div>`;
       html += `
-        <div class="card" style="padding: 20px; border-radius: 18px;">
+        <div class="card" style="padding: 20px;">
           <div class="flex-between" style="margin-bottom: 12px;">
             <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: var(--text-primary);">${escapeHtml(r.nombre)}</h3>
             <button class="btn-eliminar-rutina" data-id="${r.id}" aria-label="Eliminar rutina ${escapeHtml(r.nombre)}" style="background: transparent; border: none; color: var(--text-disabled); cursor: pointer;" title="Eliminar">
@@ -264,10 +264,10 @@ export async function renderRutinasLista(categoria) {
     `;
     plantillas.forEach(p => {
       html += `
-        <div class="card tappable btn-preview-plantilla" data-id="${p.id}" style="background: var(--surface-2); padding: 14px 16px; border-radius: 14px; cursor: pointer; position: relative;">
+        <div class="card tappable btn-preview-plantilla" data-id="${p.id}" style="background: var(--surface-2); padding: 14px 16px; cursor: pointer; position: relative;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
             <h4 style="font-size: 15px; font-weight: 600; margin: 0; color: var(--text-primary);">${p.nombre}</h4>
-            <span style="background: var(--surface-1); color: var(--text-secondary); font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">${p.nivel}</span>
+            <span style="background: var(--surface-1); color: var(--text-secondary); font-size: 10px; font-weight: 600; padding: 2px 6px; text-transform: uppercase;">${p.nivel}</span>
           </div>
           <p style="color: var(--text-secondary); font-size: 12.5px; margin: 0;">${p.resumen}</p>
         </div>
@@ -289,7 +289,7 @@ export async function renderRutinasLista(categoria) {
 
 export function renderPlantillaPreview(plantilla) {
   let html = `
-    <div class="card" style="padding: 22px; border-radius: 20px;">
+    <div class="card" style="padding: 22px;">
       <div style="margin-bottom: 24px;">
         <h2 style="font-size: 22px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-primary); letter-spacing: -0.3px;">${plantilla.nombre}</h2>
         <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin: 0;">${plantilla.descripcion}</p>
@@ -298,13 +298,13 @@ export function renderPlantillaPreview(plantilla) {
 
   plantilla.rutinas.forEach(rut => {
     html += `
-      <div style="background: var(--surface-2); padding: 16px; border-radius: 14px; border: 1px solid var(--surface-border); margin-bottom: 16px;">
+      <div style="background: var(--surface-2); padding: 16px; border: 1px solid var(--surface-border); margin-bottom: 16px;">
         <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 12px 0; color: var(--text-primary);">${rut.nombre}</h4>
     `;
 
     const grupoHeaderHtml = (label) => `
       <div style="display: flex; align-items: center; gap: 7px; margin: 10px 0 2px 0;">
-        <div style="width: 3px; height: 13px; background: var(--accent-teal); border-radius: 2px;"></div>
+        <div style="width: 3px; height: 13px; background: var(--accent-teal);"></div>
         <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent-teal);">${label}</span>
       </div>
     `;
@@ -560,7 +560,7 @@ export function renderGeneradorPreview(plan, categoria) {
         `).join('');
 
     return `
-      <div style="background: var(--surface-2); padding: 16px; border-radius: 14px; border: 1px solid var(--surface-border); margin-bottom: 16px;">
+      <div style="background: var(--surface-2); padding: 16px; border: 1px solid var(--surface-border); margin-bottom: 16px;">
         <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 0 12px 0;">
           <h4 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text-primary);">${dia.nombre}</h4>
           ${indicador}
@@ -571,7 +571,7 @@ export function renderGeneradorPreview(plan, categoria) {
   }).join('');
 
   return `
-    <div class="card" style="padding: 22px; border-radius: 20px;">
+    <div class="card" style="padding: 22px;">
       <div style="margin-bottom: 24px;">
         <h2 style="font-size: 22px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-primary); letter-spacing: -0.3px;">Tu rutina generada</h2>
         <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin: 0;">Según tu progreso actual en cada patrón de movimiento y el equipo que declaraste. Puedes editarla después como cualquier otra rutina.</p>

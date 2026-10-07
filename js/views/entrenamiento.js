@@ -270,7 +270,7 @@ export async function render() {
   // Racha en cian (--cy): es un logro, no una alerta — el rojo (--state-high)
   // en MK III queda reservado para alertas reales (ver auditoría de Fase 6).
   const rachaHtml = racha.actual > 0
-    ? `<div style="display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 3px 10px 3px 8px; border-radius: 999px; flex-shrink: 0;">
+    ? `<div style="display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 3px 10px 3px 8px; flex-shrink: 0;">
         🔥 <span class="num">${racha.actual}</span> día${racha.actual === 1 ? '' : 's'} seguido${racha.actual === 1 ? '' : 's'}
       </div>`
     : '';
@@ -352,7 +352,7 @@ export async function render() {
         <div class="flex-between" style="padding: 20px 0 8px 0; margin-bottom: 20px;">
           <div>
             <h1 style="font-size: 30px; font-weight: 800; margin: 0; letter-spacing: -0.5px; color: var(--text-primary);">Entreno</h1>
-            <div style="display: inline-flex; align-items: center; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; margin-top: 6px;">${nivelPillLabel}</div>
+            <div style="display: inline-flex; align-items: center; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary); font-size: 11px; font-weight: 700; padding: 3px 10px; margin-top: 6px;">${nivelPillLabel}</div>
           </div>
           <div style="display: flex; gap: 8px; flex-shrink: 0;">
             <!-- Perfil y nivel de entrenamiento se editan desde Configuración
@@ -371,7 +371,7 @@ export async function render() {
              una segunda pasada — ver conversación de reestructuración). -->
         <div style="position: relative; margin-bottom: 20px;">
           <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" id="entreno-buscador" placeholder="Buscar ejercicio o rutina..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 14px 20px 14px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-teal)'; this.style.boxShadow='0 0 0 4px color-mix(in srgb, var(--accent-teal) 18%, transparent)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+          <input type="text" id="entreno-buscador" placeholder="Buscar ejercicio o rutina..." style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 14px 20px 14px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--accent-teal)'; this.style.boxShadow='0 0 0 4px color-mix(in srgb, var(--accent-teal) 18%, transparent)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
         </div>
 
         ${renderSesionEnCurso()}
@@ -379,7 +379,7 @@ export async function render() {
         ${hoyTocaHtml}
 
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-          <div class="card tappable btn-explorar" data-cat="gym" style="flex: 1; padding: 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; border-radius: 18px; cursor: pointer; text-align: center;">
+          <div class="card tappable btn-explorar" data-cat="gym" style="flex: 1; padding: 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; text-align: center;">
             ${ringHtml('gym')}
             <div>
               <h3 style="font-size: 13px; font-weight: 700; margin: 0; color: var(--text-primary);">GYM</h3>
@@ -387,7 +387,7 @@ export async function render() {
             </div>
           </div>
 
-          <div class="card tappable btn-explorar" data-cat="calistenia" style="flex: 1; padding: 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; border-radius: 18px; cursor: pointer; text-align: center;">
+          <div class="card tappable btn-explorar" data-cat="calistenia" style="flex: 1; padding: 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; text-align: center;">
             ${ringHtml('calistenia')}
             <div>
               <h3 style="font-size: 13px; font-weight: 700; margin: 0; color: var(--text-primary);">Calistenia</h3>
@@ -395,7 +395,7 @@ export async function render() {
             </div>
           </div>
 
-          <div class="card tappable btn-explorar" data-cat="hiit" style="flex: 1; padding: 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; border-radius: 18px; cursor: pointer; text-align: center;">
+          <div class="card tappable btn-explorar" data-cat="hiit" style="flex: 1; padding: 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; text-align: center;">
             ${ringHtml('hiit')}
             <div>
               <h3 style="font-size: 13px; font-weight: 700; margin: 0; color: var(--text-primary);">HIIT</h3>
@@ -405,16 +405,16 @@ export async function render() {
         </div>
 
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-          <div class="card" style="flex: 1.3; padding: 14px 16px; border-radius: 16px;">
+          <div class="card" style="flex: 1.3; padding: 14px 16px;">
             <div style="font-size: 10px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Volumen semanal</div>
             ${volumenSparklineHtml}
           </div>
-          <div class="card" style="flex: 1; padding: 14px 16px; border-radius: 16px; display: flex; flex-direction: column; justify-content: center;">
+          <div class="card" style="flex: 1; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center;">
             <div style="font-size: 10px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Sesiones</div>
             <span class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${sesionesEstaSemana}</span>
             <div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 2px;">esta semana</div>
           </div>
-          <div class="card" style="flex: 1; padding: 14px 16px; border-radius: 16px; display: flex; flex-direction: column; justify-content: center;">
+          <div class="card" style="flex: 1; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center;">
             <div style="font-size: 10px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">IMC</div>
             ${imcHtml}
           </div>

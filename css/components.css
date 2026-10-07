@@ -92,12 +92,12 @@
   display: flex; gap: 4px;
   background: var(--surface-2);
   padding: 4px;
-  border-radius: 14px;
+  border-radius: 0; /* MK III: pestañas rectas */
 }
 .segmented-control button {
   flex: 1 0 auto;
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: 0;
   border: none;
   font-weight: 600;
   font-size: 13px;

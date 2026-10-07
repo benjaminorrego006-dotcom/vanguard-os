@@ -1,5 +1,21 @@
 # Vanguard OS — Changelog
 
+## 7 oct 2026 — Limpieza y Recordatorios (`docs/RECORDATORIOS-PLAN.md`)
+
+Base: `9b709fc` (v295). Primero la limpieza (L1, L2), después el plan
+de Recordatorios por fases; el plan y su tabla de estado están en
+`docs/RECORDATORIOS-PLAN.md`. QA con Playwright de a una, a 375×812 y
+1280×800, zona `America/Santiago`, reloj simulado, contextos limpios sin
+Supabase, un solo servidor y pruebas en primer plano.
+
+| Fase | Caché | Qué cambia |
+|---|---|---|
+| L1 — Esquinas fuera del Laboratorio | v296 | Decisión del usuario: se mantiene la regla de MK III, que lleva chaflán solo en las tarjetas principales (`card-hero`); el resto de las tarjetas, rectas. La medición mostró que las tarjetas de Entreno, Finanzas y Configuración ya se veían rectas por esa regla, aunque tenían radios en línea sin efecto. Se sacaron todos los radios en línea (salvo los círculos, `50%`) de `hiit-timer.js`, `hiit-rutina-form.js`, `rutina-form.js`, `rutinas-lista.js`, `entrenamiento.js`, `finanzas.js`, `goal-card.js` y `activity-heatmap.js` (celdas del mapa de calor). También de las pestañas, selectores, botones y marcas de `laboratorio.js`, `lab-entreno.js`, `lab-finanzas.js`, `lab-tareas.js` y `donut-chart.js`. El control segmentado (`components.css`: pestañas de Finanzas, sub-pestañas de Tareas) queda recto. Las tarjetas del Laboratorio siguen con chaflán. |
+
+### L1 — QA
+
+- 375×812 y 1280×800 (`qa-l1`): Entreno, rutinas GYM y HIIT, formulario de rutina, formulario HIIT, timer HIIT (desde la plantilla Tabata), las 5 pestañas de Finanzas y las metas del Laboratorio. Ningún elemento visible queda con radio, salvo los círculos, y ningún texto cae dentro del chaflán de las `card-hero`. Regresión: chaflanes del Laboratorio. Consola limpia; ESLint `no-undef` limpio. Capturas `l1-*`.
+
 ## 5 oct 2026 — Fase 6: medidas corporales y fotos (`docs/FASE6-MEDIDAS.md`)
 
 Base real: `8ce593a` (v288), después de los arreglos A y B. Plan por

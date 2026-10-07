@@ -25,22 +25,22 @@ let currentState = {
 
 export function renderHiitTimer(rutina) {
   return `
-    <div id="hiit-container" class="card" style="padding: 22px; border-radius: 20px; min-height: 70vh; display: flex; flex-direction: column;">
+    <div id="hiit-container" class="card" style="padding: 22px; min-height: 70vh; display: flex; flex-direction: column;">
       <div class="flex-between" style="margin-bottom: 24px;">
         <h2 style="font-size: 21px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.3px;">${escapeHtml(rutina.nombre)}</h2>
       </div>
 
       ${rutina.ejercicios && rutina.ejercicios.length ? `
-        <div id="hiit-ejercicios-lista" style="background: var(--surface-2); border-radius: 14px; padding: 12px 14px; margin-bottom: 20px;">
+        <div id="hiit-ejercicios-lista" style="background: var(--surface-2); padding: 12px 14px; margin-bottom: 20px;">
           <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-secondary); margin-bottom: 8px;">Ejercicios de este circuito</div>
           <div style="display: flex; flex-direction: column; gap: 4px;">
-            ${rutina.ejercicios.map((ej, i) => `<div class="hiit-ej-item" data-idx="${i}" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); padding: 7px 10px; border-radius: 8px; transition: background 0.2s, color 0.2s;">${escapeHtml(ej.nombre)}</div>`).join('')}
+            ${rutina.ejercicios.map((ej, i) => `<div class="hiit-ej-item" data-idx="${i}" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); padding: 7px 10px; transition: background 0.2s, color 0.2s;">${escapeHtml(ej.nombre)}</div>`).join('')}
           </div>
         </div>
       ` : ''}
 
       <div id="hiit-setup-view" style="display: flex; flex-direction: column; flex: 1;">
-        <div id="hiit-streak-container" style="display: flex; gap: 12px; margin-bottom: 24px; background: var(--surface-2); padding: 14px; border-radius: 16px; border: 1px solid var(--surface-border);">
+        <div id="hiit-streak-container" style="display: flex; gap: 12px; margin-bottom: 24px; background: var(--surface-2); padding: 14px; border: 1px solid var(--surface-border);">
           <div style="flex: 1; text-align: center;">
             <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Racha Actual</div>
             <div id="hiit-racha-actual" class="num" style="font-size: 20px; font-weight: 800; color: var(--text-primary);">0${fireSvg}</div>
@@ -52,17 +52,17 @@ export function renderHiitTimer(rutina) {
           </div>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
-          <button class="hiit-mode-btn active" data-mode="free" style="padding: 13px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--accent-teal); font-weight: 700; cursor: pointer;">Libre</button>
-          <button class="hiit-mode-btn" data-mode="tabata" style="padding: 13px; border-radius: 12px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">Tabata</button>
-          <button class="hiit-mode-btn" data-mode="emom" style="padding: 13px; border-radius: 12px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">EMOM</button>
-          <button class="hiit-mode-btn" data-mode="amrap" style="padding: 13px; border-radius: 12px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">AMRAP</button>
+          <button class="hiit-mode-btn active" data-mode="free" style="padding: 13px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--accent-teal); font-weight: 700; cursor: pointer;">Libre</button>
+          <button class="hiit-mode-btn" data-mode="tabata" style="padding: 13px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">Tabata</button>
+          <button class="hiit-mode-btn" data-mode="emom" style="padding: 13px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">EMOM</button>
+          <button class="hiit-mode-btn" data-mode="amrap" style="padding: 13px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">AMRAP</button>
         </div>
 
-        <div id="hiit-settings-content" style="background: var(--surface-2); padding: 16px; border-radius: 16px; margin-bottom: 16px;">
+        <div id="hiit-settings-content" style="background: var(--surface-2); padding: 16px; margin-bottom: 16px;">
           <!-- Injected based on mode -->
         </div>
 
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--surface-2); border-radius: 16px; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--surface-2); margin-bottom: 24px;">
           <label for="hiit-voice-toggle" style="font-size: 14px; color: var(--text-primary); font-weight: 600;">Anuncios de voz</label>
           <input type="checkbox" id="hiit-voice-toggle" style="width: 20px; height: 20px; accent-color: var(--accent-teal);">
         </div>
@@ -85,10 +85,10 @@ export function renderHiitTimer(rutina) {
         <div id="hiit-next-exercise" style="font-size: 16px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px; display: none;"></div>
         <div id="hiit-amrap-record" class="num" style="font-size: 14px; color: var(--text-secondary); font-weight: 700; margin-bottom: 24px; display: none;"></div>
         
-        <button id="btn-amrap-add" class="tappable" style="display: none; background: rgba(92, 225, 230, 0.1); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 14px 24px; border-radius: 16px; font-size: 18px; font-weight: 700; margin-bottom: 24px; cursor: pointer;">+1 Ronda Completada</button>
+        <button id="btn-amrap-add" class="tappable" style="display: none; background: rgba(92, 225, 230, 0.1); border: 1px dashed var(--accent-teal); color: var(--accent-teal); padding: 14px 24px; font-size: 18px; font-weight: 700; margin-bottom: 24px; cursor: pointer;">+1 Ronda Completada</button>
 
         <div style="display: flex; gap: 16px; width: 100%; margin-top: auto;">
-          <button id="btn-hiit-stop" class="tappable" style="flex: 1; padding: 15px; border-radius: 14px; background: rgba(239, 68, 68, 0.1); color: var(--state-high); font-size: 15px; font-weight: 700; border: none; cursor: pointer;">
+          <button id="btn-hiit-stop" class="tappable" style="flex: 1; padding: 15px; background: rgba(239, 68, 68, 0.1); color: var(--state-high); font-size: 15px; font-weight: 700; border: none; cursor: pointer;">
             Terminar Sesión
           </button>
         </div>
@@ -179,16 +179,16 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
           <div style="flex: 1;">
             <label for="hiit-s-work" style="font-size: 11px; color: var(--text-secondary);">Trabajo (seg)</label>
-            <input type="number" inputmode="numeric" id="hiit-s-work" value="${currentState.workSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
+            <input type="number" inputmode="numeric" id="hiit-s-work" value="${currentState.workSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
           </div>
           <div style="flex: 1;">
             <label for="hiit-s-rest" style="font-size: 11px; color: var(--text-secondary);">Descanso (seg)</label>
-            <input type="number" inputmode="numeric" id="hiit-s-rest" value="${currentState.restSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
+            <input type="number" inputmode="numeric" id="hiit-s-rest" value="${currentState.restSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
           </div>
         </div>
         <div>
           <label for="hiit-s-rounds" style="font-size: 11px; color: var(--text-secondary);">Rondas Totales</label>
-          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-s-rounds" value="${currentState.totalRounds || 8}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-s-rounds" value="${currentState.totalRounds || 8}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
         </div>
       `;
     } else if (currentState.mode === 'tabata') {
@@ -198,11 +198,11 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
         <div style="display: flex; gap: 8px;">
           <div style="flex: 1;">
             <label for="hiit-s-emom-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
-            <input type="number" inputmode="numeric" id="hiit-s-emom-mins" value="${currentState.emomTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
+            <input type="number" inputmode="numeric" id="hiit-s-emom-mins" value="${currentState.emomTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
           </div>
           <div style="flex: 1;">
             <label for="hiit-s-emom-sec" style="font-size: 11px; color: var(--text-secondary);">Intervalo (seg)</label>
-            <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-s-emom-sec" value="${currentState.emomIntervalSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
+            <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-s-emom-sec" value="${currentState.emomIntervalSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
           </div>
         </div>
       `;
@@ -210,7 +210,7 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
       c.innerHTML = `
         <div>
           <label for="hiit-s-amrap-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
-          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-s-amrap-mins" value="${currentState.amrapTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-s-amrap-mins" value="${currentState.amrapTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
         </div>
       `;
     }

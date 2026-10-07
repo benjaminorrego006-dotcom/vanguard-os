@@ -90,9 +90,9 @@ export async function renderLaboratorio() {
   return `
     <div class="lab-mk3">
       ${renderSelectorModulo()}
-      ${modActual.mod.sinPestanas ? '' : `<div style="display: flex; gap: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 14px; padding: 5px; margin-bottom: 22px; overflow-x: auto;">
+      ${modActual.mod.sinPestanas ? '' : `<div style="display: flex; gap: 6px; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 5px; margin-bottom: 22px; overflow-x: auto;">
         ${tabs.map(t => `
-          <button type="button" class="lab-tab" data-tab="${t.id}" style="flex: 1; padding: 9px 6px; border-radius: 10px; border: none; cursor: pointer; font-size: 12.5px; font-weight: 700; white-space: nowrap; background: ${activeTab === t.id ? modActual.accent : 'transparent'}; color: ${activeTab === t.id ? 'var(--bg-base)' : 'var(--text-secondary)'};">${t.label}</button>
+          <button type="button" class="lab-tab" data-tab="${t.id}" style="flex: 1; padding: 9px 6px; border: none; cursor: pointer; font-size: 12.5px; font-weight: 700; white-space: nowrap; background: ${activeTab === t.id ? modActual.accent : 'transparent'}; color: ${activeTab === t.id ? 'var(--bg-base)' : 'var(--text-secondary)'};">${t.label}</button>
         `).join('')}
       </div>`}
       <div id="lab-tab-content">${contentHtml}</div>

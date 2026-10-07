@@ -16,7 +16,7 @@ let formState = {
 
 export function renderHiitRutinaForm() {
   return `
-    <div class="card" style="padding: 22px; border-radius: 20px;">
+    <div class="card" style="padding: 22px;">
       <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 20px 0; color: var(--text-primary); letter-spacing: -0.3px;">Crear Rutina HIIT</h2>
 
       <div class="input-group">
@@ -27,14 +27,14 @@ export function renderHiitRutinaForm() {
       <div style="margin-bottom: 16px;">
         <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Modo</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <button type="button" class="hiit-rf-mode-btn" data-mode="free" style="padding: 13px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--accent-teal); font-weight: 700; cursor: pointer;">Libre</button>
-          <button type="button" class="hiit-rf-mode-btn" data-mode="tabata" style="padding: 13px; border-radius: 12px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">Tabata</button>
-          <button type="button" class="hiit-rf-mode-btn" data-mode="emom" style="padding: 13px; border-radius: 12px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">EMOM</button>
-          <button type="button" class="hiit-rf-mode-btn" data-mode="amrap" style="padding: 13px; border-radius: 12px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">AMRAP</button>
+          <button type="button" class="hiit-rf-mode-btn" data-mode="free" style="padding: 13px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--accent-teal); font-weight: 700; cursor: pointer;">Libre</button>
+          <button type="button" class="hiit-rf-mode-btn" data-mode="tabata" style="padding: 13px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">Tabata</button>
+          <button type="button" class="hiit-rf-mode-btn" data-mode="emom" style="padding: 13px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">EMOM</button>
+          <button type="button" class="hiit-rf-mode-btn" data-mode="amrap" style="padding: 13px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">AMRAP</button>
         </div>
       </div>
 
-      <div id="hiit-rf-settings" style="background: var(--surface-2); padding: 16px; border-radius: 16px; margin-bottom: 20px;">
+      <div id="hiit-rf-settings" style="background: var(--surface-2); padding: 16px; margin-bottom: 20px;">
         <!-- Se llena según el modo -->
       </div>
 
@@ -42,7 +42,7 @@ export function renderHiitRutinaForm() {
         <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Ejercicios del circuito (opcional)</div>
         <div style="font-size: 11px; color: var(--text-secondary); margin: -4px 0 10px 0; line-height: 1.4;">Se usan para mostrar "Siguiente: ..." durante los descansos. Déjalo vacío si es solo un temporizador.</div>
         <div id="hiit-rf-ejercicios-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
-        <button id="btn-hiit-rf-add-ejercicio" type="button" style="background: transparent; color: var(--text-secondary); border: 1px dashed var(--surface-border); padding: 8px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 13px;">+ Agregar ejercicio</button>
+        <button id="btn-hiit-rf-add-ejercicio" type="button" style="background: transparent; color: var(--text-secondary); border: 1px dashed var(--surface-border); padding: 8px; cursor: pointer; width: 100%; font-size: 13px;">+ Agregar ejercicio</button>
       </div>
 
       <button id="btn-guardar-hiit-rutina" class="btn-primary tappable" style="background: var(--accent-teal);">
@@ -94,16 +94,16 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
           <div style="flex: 1;">
             <label for="hiit-rf-s-work" style="font-size: 11px; color: var(--text-secondary);">Trabajo (seg)</label>
-            <input type="number" inputmode="numeric" id="hiit-rf-s-work" value="${formState.workSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+            <input type="number" inputmode="numeric" id="hiit-rf-s-work" value="${formState.workSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
           <div style="flex: 1;">
             <label for="hiit-rf-s-rest" style="font-size: 11px; color: var(--text-secondary);">Descanso (seg)</label>
-            <input type="number" inputmode="numeric" id="hiit-rf-s-rest" value="${formState.restSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+            <input type="number" inputmode="numeric" id="hiit-rf-s-rest" value="${formState.restSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
         </div>
         <div>
           <label for="hiit-rf-s-rounds" style="font-size: 11px; color: var(--text-secondary);">Rondas Totales</label>
-          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-rounds" value="${formState.totalRounds}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-rounds" value="${formState.totalRounds}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
         </div>
       `;
     } else if (formState.mode === 'tabata') {
@@ -113,11 +113,11 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
         <div style="display: flex; gap: 8px;">
           <div style="flex: 1;">
             <label for="hiit-rf-s-emom-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
-            <input type="number" inputmode="numeric" id="hiit-rf-s-emom-mins" value="${formState.emomTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+            <input type="number" inputmode="numeric" id="hiit-rf-s-emom-mins" value="${formState.emomTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
           <div style="flex: 1;">
             <label for="hiit-rf-s-emom-sec" style="font-size: 11px; color: var(--text-secondary);">Intervalo (seg)</label>
-            <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-emom-sec" value="${formState.emomIntervalSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+            <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-emom-sec" value="${formState.emomIntervalSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
         </div>
       `;
@@ -125,7 +125,7 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
       settingsEl.innerHTML = `
         <div>
           <label for="hiit-rf-s-amrap-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
-          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-amrap-mins" value="${formState.amrapTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); border-radius:10px; padding:10px 8px; color:var(--text-primary); text-align:center;">
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-amrap-mins" value="${formState.amrapTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
         </div>
       `;
     }
@@ -148,7 +148,7 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
     div.style.display = 'flex';
     div.style.gap = '8px';
     div.innerHTML = `
-      <input type="text" class="hiit-rf-ej-nombre" placeholder="Ej. Burpees" style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; border-radius: 8px; font-size: 16px;">
+      <input type="text" class="hiit-rf-ej-nombre" placeholder="Ej. Burpees" style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 16px;">
       <button class="tappable btn-remove-hiit-ej" type="button" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
     `;
     div.querySelector('.btn-remove-hiit-ej').addEventListener('click', () => div.remove(), { signal });

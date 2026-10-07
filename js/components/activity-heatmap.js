@@ -40,7 +40,7 @@ export function renderActivityHeatmap({ id, monthLabel, year, month, countByDay,
     const fullLabel = `${day} de ${monthLabel}: ${detailText}`;
     return `
       <div class="heatmap-cell tappable" data-day="${day}" data-detail="${escapeHtml(fullLabel)}" title="${escapeHtml(fullLabel)}"
-        style="aspect-ratio: 1; width: 100%; border-radius: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-sizing: border-box; border: 1.5px solid transparent; font-size: clamp(10px, 3.6vw, 14px); font-weight: 700; transition: border-color 0.15s ease, transform 0.1s ease; background: ${count === 0 ? 'var(--surface-2)' : accentVar}; opacity: ${count === 0 ? 1 : alpha}; color: ${count === 0 ? 'var(--text-disabled)' : '#000'};">
+        style="aspect-ratio: 1; width: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-sizing: border-box; border: 1.5px solid transparent; font-size: clamp(10px, 3.6vw, 14px); font-weight: 700; transition: border-color 0.15s ease, transform 0.1s ease; background: ${count === 0 ? 'var(--surface-2)' : accentVar}; opacity: ${count === 0 ? 1 : alpha}; color: ${count === 0 ? 'var(--text-disabled)' : '#000'};">
         ${day}
       </div>`;
   };
@@ -59,9 +59,9 @@ export function renderActivityHeatmap({ id, monthLabel, year, month, countByDay,
       <div id="${id}-detail" style="min-height: 16px; margin-top: 10px; font-size: 11.5px; color: var(--text-secondary); font-weight: 600;"></div>
       <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 10px; font-size: 10px; color: var(--text-disabled);">
         Menos
-        <div style="width: 9px; height: 9px; border-radius: 2px; background: var(--surface-2);"></div>
-        <div style="width: 9px; height: 9px; border-radius: 2px; background: ${accentVar}; opacity: 0.4;"></div>
-        <div style="width: 9px; height: 9px; border-radius: 2px; background: ${accentVar};"></div>
+        <div style="width: 9px; height: 9px; background: var(--surface-2);"></div>
+        <div style="width: 9px; height: 9px; background: ${accentVar}; opacity: 0.4;"></div>
+        <div style="width: 9px; height: 9px; background: ${accentVar};"></div>
         Más
       </div>
     </div>

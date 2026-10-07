@@ -118,7 +118,7 @@ async function renderDesglose() {
   const leyendaHtml = entries.map(e => `
     <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0;">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="width: 10px; height: 10px; border-radius: 3px; background: ${e.color}; flex-shrink: 0;"></span>
+        <span style="width: 10px; height: 10px; background: ${e.color}; flex-shrink: 0;"></span>
         <span style="font-size: 12.5px; color: var(--text-primary); font-weight: 600;">${e.label}</span>
       </div>
       <span style="font-size: 12.5px; color: var(--text-secondary); font-weight: 700;">${totalMetrica > 0 ? Math.round(e.valor / totalMetrica * 100) : 0}%</span>
@@ -131,7 +131,7 @@ async function renderDesglose() {
 
   return `
     <div>
-      <select id="lab-entreno-desglose-metrica" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 12px;">
+      <select id="lab-entreno-desglose-metrica" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 12px;">
         <option value="series" ${desgloseMetrica === 'series' ? 'selected' : ''}>Series por grupo muscular</option>
         <option value="volumen" ${desgloseMetrica === 'volumen' ? 'selected' : ''}>Volumen por grupo muscular</option>
         <option value="reps" ${desgloseMetrica === 'reps' ? 'selected' : ''}>Repeticiones totales</option>
@@ -139,7 +139,7 @@ async function renderDesglose() {
 
       <div style="display: flex; gap: 8px; margin-bottom: ${desglosePeriodo === 'personalizado' ? '14px' : '18px'};">
         ${['semana', 'mes', 'personalizado'].map(p => `
-          <button type="button" class="btn-lab-entreno-periodo" data-periodo="${p}" style="flex: 1; padding: 8px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid ${desglosePeriodo === p ? 'var(--cy)' : 'var(--surface-border)'}; background: ${desglosePeriodo === p ? 'var(--cy)' : 'transparent'}; color: ${desglosePeriodo === p ? 'var(--bg-base)' : 'var(--text-secondary)'};">${p === 'semana' ? 'Semana' : p === 'mes' ? 'Mes' : 'Personalizado'}</button>
+          <button type="button" class="btn-lab-entreno-periodo" data-periodo="${p}" style="flex: 1; padding: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid ${desglosePeriodo === p ? 'var(--cy)' : 'var(--surface-border)'}; background: ${desglosePeriodo === p ? 'var(--cy)' : 'transparent'}; color: ${desglosePeriodo === p ? 'var(--bg-base)' : 'var(--text-secondary)'};">${p === 'semana' ? 'Semana' : p === 'mes' ? 'Mes' : 'Personalizado'}</button>
         `).join('')}
       </div>
 
@@ -229,22 +229,22 @@ async function renderEjercicios() {
 
   return `
     <div>
-      <select id="lab-entreno-ejercicio-grupo" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 10px;">
+      <select id="lab-entreno-ejercicio-grupo" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 10px;">
         <option value="todos">Todos los grupos</option>
         ${gruposPresentes.map(g => `<option value="${g}" ${ejercicioGrupoFiltro === g ? 'selected' : ''}>${GRUPO_MUSCULAR_LABELS[g] || g}</option>`).join('')}
       </select>
 
-      <select id="lab-entreno-ejercicio-select" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); border-radius: 12px; padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 14px;">
+      <select id="lab-entreno-ejercicio-select" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; font-size: 16px; font-weight: 600; margin-bottom: 14px;">
         ${listaFiltrada.map(e => `<option value="${escapeHtml(e.nombre)}" ${e.nombre === ejercicioSeleccionado ? 'selected' : ''}>${escapeHtml(e.nombre)}</option>`).join('')}
       </select>
 
       <div style="display: flex; gap: 6px; margin-bottom: 14px;">
-        ${RANGOS.map(r => `<button type="button" class="btn-lab-entreno-rango" data-rango="${r.v}" style="flex: 1; padding: 7px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid ${ejercicioRango === r.v ? 'var(--cy)' : 'var(--surface-border)'}; background: ${ejercicioRango === r.v ? 'var(--cy)' : 'transparent'}; color: ${ejercicioRango === r.v ? 'var(--bg-base)' : 'var(--text-secondary)'};">${r.l}</button>`).join('')}
+        ${RANGOS.map(r => `<button type="button" class="btn-lab-entreno-rango" data-rango="${r.v}" style="flex: 1; padding: 7px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid ${ejercicioRango === r.v ? 'var(--cy)' : 'var(--surface-border)'}; background: ${ejercicioRango === r.v ? 'var(--cy)' : 'transparent'}; color: ${ejercicioRango === r.v ? 'var(--bg-base)' : 'var(--text-secondary)'};">${r.l}</button>`).join('')}
       </div>
 
       <div class="card" style="padding: 18px 20px;">
         <div style="display: flex; gap: 6px; margin-bottom: 14px;">
-          ${MODOS.map(m => `<button type="button" class="btn-lab-entreno-modo" data-modo="${m.v}" style="flex: 1; padding: 8px; border-radius: 8px; font-size: 11.5px; font-weight: 700; cursor: pointer; border: 1px solid ${ejercicioModo === m.v ? 'var(--cy)' : 'var(--surface-border)'}; background: ${ejercicioModo === m.v ? 'var(--cy)' : 'transparent'}; color: ${ejercicioModo === m.v ? 'var(--bg-base)' : 'var(--text-secondary)'};">${m.l}</button>`).join('')}
+          ${MODOS.map(m => `<button type="button" class="btn-lab-entreno-modo" data-modo="${m.v}" style="flex: 1; padding: 8px; font-size: 11.5px; font-weight: 700; cursor: pointer; border: 1px solid ${ejercicioModo === m.v ? 'var(--cy)' : 'var(--surface-border)'}; background: ${ejercicioModo === m.v ? 'var(--cy)' : 'transparent'}; color: ${ejercicioModo === m.v ? 'var(--bg-base)' : 'var(--text-secondary)'};">${m.l}</button>`).join('')}
         </div>
         ${chartSection}
       </div>
@@ -316,14 +316,14 @@ async function renderMetas() {
     return `
       <div>
         ${EmptyState('Sin metas todavía', 'Ej. "Levantar 100kg en sentadilla", "Completar 20 sesiones este trimestre" o "Correr 50km este mes"')}
-        <button id="btn-lab-entreno-nueva-meta" style="margin-top: 12px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
+        <button id="btn-lab-entreno-nueva-meta" style="margin-top: 12px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
       </div>`;
   }
 
   return `
     <div style="display: flex; flex-direction: column; gap: 12px;">
       ${metas.map(g => renderGoalCard(g)).join('')}
-      <button id="btn-lab-entreno-nueva-meta" style="margin-top: 4px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
+      <button id="btn-lab-entreno-nueva-meta" style="margin-top: 4px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
     </div>`;
 }
 
@@ -361,8 +361,8 @@ async function renderRecords() {
 
   const filtrosHtml = `
     <div style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 2px;">
-      <button type="button" class="btn-lab-records-grupo" data-grupo="todos" style="flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid ${recordsGrupoFiltro === 'todos' ? 'var(--cy)' : 'var(--surface-border)'}; background: ${recordsGrupoFiltro === 'todos' ? 'var(--cy)' : 'transparent'}; color: ${recordsGrupoFiltro === 'todos' ? 'var(--bg-base)' : 'var(--text-secondary)'};">Todos</button>
-      ${gruposPresentes.map(g => `<button type="button" class="btn-lab-records-grupo" data-grupo="${g}" style="flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid ${recordsGrupoFiltro === g ? 'var(--cy)' : 'var(--surface-border)'}; background: ${recordsGrupoFiltro === g ? 'var(--cy)' : 'transparent'}; color: ${recordsGrupoFiltro === g ? 'var(--bg-base)' : 'var(--text-secondary)'};">${GRUPO_MUSCULAR_LABELS[g] || g}</button>`).join('')}
+      <button type="button" class="btn-lab-records-grupo" data-grupo="todos" style="flex: 0 0 auto; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid ${recordsGrupoFiltro === 'todos' ? 'var(--cy)' : 'var(--surface-border)'}; background: ${recordsGrupoFiltro === 'todos' ? 'var(--cy)' : 'transparent'}; color: ${recordsGrupoFiltro === 'todos' ? 'var(--bg-base)' : 'var(--text-secondary)'};">Todos</button>
+      ${gruposPresentes.map(g => `<button type="button" class="btn-lab-records-grupo" data-grupo="${g}" style="flex: 0 0 auto; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid ${recordsGrupoFiltro === g ? 'var(--cy)' : 'var(--surface-border)'}; background: ${recordsGrupoFiltro === g ? 'var(--cy)' : 'transparent'}; color: ${recordsGrupoFiltro === g ? 'var(--bg-base)' : 'var(--text-secondary)'};">${GRUPO_MUSCULAR_LABELS[g] || g}</button>`).join('')}
     </div>`;
 
   const favHtml = (recordsGrupoFiltro === 'todos' && favoritos.length > 0) ? `
