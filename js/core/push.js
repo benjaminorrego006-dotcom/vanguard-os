@@ -63,18 +63,40 @@ async function guardarSuscripcion(session, sub) {
     auth: j.keys && j.keys.auth,
     dispositivo: dispositivo()
   }, { onConflict: 'user_id,endpoint' });
-  if (error) throw new Error(error.message);
+  if (error) {
+    // El error completo (código, detalle, pista) a la consola; el mensaje al aviso.
+    console.error('[push] Supabase no guardó la suscripción:', error);
+    throw new Error(`${error.message}${error.code ? ` (${error.code})` : ''}`);
+  }
 }
 
-// Pide permiso, crea la suscripción y la guarda. Devuelve el estado final.
-export async function activarPush() {
+// Pide el permiso de notificaciones. Hay que llamarla de forma síncrona en
+// el click, antes de cualquier await: si antes se espera algo (cargar
+// Supabase, la sesión), Chrome en Android ya no lo toma como acción del
+// usuario y descarta el pedido en silencio o lo manda a la interfaz
+// silenciosa. Devuelve la promesa del resultado ('granted' | 'denied' |
+// 'default').
+export function pedirPermisoNotificaciones() {
+  if (!('Notification' in window)) return Promise.resolve('denied');
+  try {
+    const r = Notification.requestPermission();
+    if (r && typeof r.then === 'function') return r;
+  } catch (e) { /* Safari viejo: solo acepta callback */ }
+  return new Promise(res => Notification.requestPermission(res));
+}
+
+// Con el permiso ya pedido (`pedido` = pedirPermisoNotificaciones() del
+// click): si se concedió, carga la sesión, crea la suscripción y la guarda.
+// 'activado' | 'bloqueado' (negado) | 'sin-respuesta' (se cerró o quedó
+// silenciado) | 'sin-sesion' | 'sin-soporte'. Si falla al guardar en
+// Supabase, lanza el error real.
+export async function activarPush(pedido) {
+  const permiso = await (pedido || pedirPermisoNotificaciones());
+  if (permiso === 'denied') return 'bloqueado';
+  if (permiso !== 'granted') return 'sin-respuesta';
+  if (!soportaPush()) return 'sin-soporte';
   const session = await sesionActual();
   if (!session) return 'sin-sesion';
-  if (esIOS() && !instalada()) return 'requiere-instalar';
-  if (!soportaPush()) return 'sin-soporte';
-  const permiso = await Notification.requestPermission();
-  if (permiso === 'denied') return 'bloqueado';
-  if (permiso !== 'granted') return 'desactivado';
   const reg = await navigator.serviceWorker.ready;
   const sub = (await reg.pushManager.getSubscription())
     || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: claveDesdeBase64Url(VAPID_PUBLICA) });

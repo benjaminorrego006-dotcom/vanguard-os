@@ -18,6 +18,7 @@ Supabase, un solo servidor y pruebas en primer plano.
 | F4 — Preferencias por tipo | v300 | Configuración › Recordatorios suma "Qué avisar" siempre que haya sesión (las preferencias son de la cuenta y valen para todos los dispositivos con avisos activados). Tiene un interruptor por tipo: Hábitos (a la hora de cada hábito, con cuántos tienen hora), Tareas de Lista (09:00), Cobros recurrentes (20:00, el día anterior) y Resumen del día (08:00), cada uno con su hora (`<input type="time">`, deshabilitada si está apagado). Cada cambio guarda el mapa completo (`db.savePrefsRecordatorios`, `configuracion_actualizada`), y eso dispara el recálculo de F3: apagar un tipo borra sus pendientes y cambiar la hora los mueve (mismos ids). Formulario de hábito: "Recordarme a las…" opcional, guardado en `settings.recordatorios.habitos.horas[id]` solo si cambió, con una nota según los avisos de hábitos estén encendidos o no. Las casillas usan el acento de la app. |
 | F5 — QA final y docs | — | Sin cambios de código (la caché queda en v300). `docs/PLAN.md`: Recordatorios y la limpieza pasan a Hecho, y la pasada de esquinas ya no está pendiente. `docs/RECORDATORIOS.md` suma "Prueba en el teléfono": 8 pasos para alguien que no programa (actualizar, iniciar sesión, activar, aviso de prueba, hábito, tarea y cobro con la app cerrada, y dejar las horas) y qué revisar si algo no llega. |
 | Arreglo — `enviado_en` fuera del upsert | v301 | `js/core/recordatorios.js`: el upsert de `sincronizar()` ya no manda `enviado_en`. Antes mandaba `null`, y un aviso que la Edge Function ya había marcado como enviado (con su hora todavía en el rango de 7 días) volvía a quedar pendiente en la siguiente sincronización y podía mandarse dos veces. Ahora una fila nueva queda en `null` por el default de la tabla y una ya enviada se mantiene enviada. |
+| Arreglo — Permiso de notificaciones en Android | v302 | Bug visto en el teléfono: "Activar en este dispositivo" no mostraba el permiso. `activarPush` esperaba la sesión de Supabase antes de `Notification.requestPermission()`, y Chrome en Android ya no lo tomaba como acción del usuario: lo descartaba en silencio o lo mandaba a la interfaz silenciosa. Ahora el click llama `pedirPermisoNotificaciones()` (`push.js`) primero, de forma síncrona y sin ningún await antes. `activarPush(pedido)` recién con el permiso concedido carga la sesión, se suscribe y guarda. Resultados: `activado`, `bloqueado` (negado) y `sin-respuesta` (se cerró o quedó silenciado). Siempre hay un aviso con el resultado. Con `sin-respuesta`, la sección explica cómo permitir a mano (app instalada: mantener presionado el ícono › Información de la app › Notificaciones; Chrome: candado › Permisos › Notificaciones › Permitir) y vuelve a ofrecer "Activar". Si Supabase rechaza la suscripción, el error completo va a la consola y el aviso muestra el mensaje y el código. |
 
 ### L1 — QA
 
@@ -105,6 +106,17 @@ Supabase, un solo servidor y pruebas en primer plano.
   - Cambiar la hora de Tareas a 10:40 mueve el pendiente, que sigue pendiente, y el enviado no vuelve a quedar pendiente.
   - Con el código anterior, la comprobación del aviso enviado habría fallado.
 - Regresión: `qa-rec3` (con la expectativa ajustada a "sin campo o null") y `qa-rec5`. Consola limpia; ESLint `no-undef` limpio.
+
+### Arreglo del permiso — QA
+
+- 375×812 y 1280×800 (`qa-permiso`, stub de Supabase). El permiso parte en `default`, y un espía registra cada llamada a `requestPermission` (y si ocurrió dentro del evento click) y a `getSession`.
+- **granted, denied y default:** en los tres, `requestPermission` es la primera llamada y ocurre dentro del click; `getSession` llega después.
+  - granted: suscripción guardada, "Avisos activados" y su aviso.
+  - denied: aviso de bloqueo, la sección explica cómo desbloquear y no guarda nada.
+  - default: aviso, instrucciones para permitir a mano (app instalada y Chrome) y otra vez el botón Activar.
+- **Supabase rechaza la suscripción** (RLS, 42501): el aviso muestra el mensaje y el código, el error completo queda en la consola y el botón vuelve a estar disponible.
+- Con el código anterior, la comprobación del orden habría fallado (`getSession` llegaba antes).
+- Regresión: `qa-rec2`. Consola limpia en los casos sin error; ESLint `no-undef` limpio. Captura `permiso-default-*`.
 
 ## 5 oct 2026 — Fase 6: medidas corporales y fotos (`docs/FASE6-MEDIDAS.md`)
 

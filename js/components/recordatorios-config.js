@@ -6,7 +6,7 @@
 // borra sus pendientes y cambiar la hora los mueve.
 // Sin cuenta, la sección solo explica que hace falta iniciar sesión.
 import { db } from '../core/db.js';
-import { estadoPush, activarPush, desactivarPush, enviarAvisoPrueba } from '../core/push.js';
+import { estadoPush, activarPush, desactivarPush, enviarAvisoPrueba, pedirPermisoNotificaciones } from '../core/push.js';
 import { Toast } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 
@@ -16,6 +16,7 @@ const TEXTO_ESTADO = {
   'sin-soporte': 'Este navegador no permite notificaciones push.',
   'bloqueado': 'Las notificaciones de Vanguard están bloqueadas en este navegador. Actívalas en los permisos del sitio (el candado junto a la dirección, o Ajustes › Notificaciones en el teléfono) y vuelve aquí.',
   'desactivado': 'Los avisos no están activados en este dispositivo.',
+  'sin-respuesta': 'No llegó la respuesta al permiso de notificaciones (se cerró o el teléfono lo silenció). Permítelas a mano: con la app instalada, mantén presionado el ícono de Vanguard › Información de la app › Notificaciones › Permitir; en Chrome, toca el candado junto a la dirección › Permisos › Notificaciones › Permitir. Después vuelve a tocar "Activar en este dispositivo".',
   'activado': 'Avisos activados en este dispositivo.'
 };
 
@@ -48,7 +49,7 @@ export function renderRecordatoriosSeccion(estado, prefs = null, habitosConHora 
     </div>` : '';
   return `
     <p id="cfg-push-estado" data-estado="${estado}" style="margin: 0; font-size: 13px; color: ${estado === 'activado' ? 'var(--text-primary)' : 'var(--text-secondary)'}; line-height: 1.45;">${TEXTO_ESTADO[estado] || ''}</p>
-    ${estado === 'desactivado' ? boton('btn-push-activar', 'Activar en este dispositivo', true) : ''}
+    ${estado === 'desactivado' || estado === 'sin-respuesta' ? boton('btn-push-activar', 'Activar en este dispositivo', true) : ''}
     ${estado === 'activado' ? boton('btn-push-prueba', 'Enviar aviso de prueba') + boton('btn-push-desactivar', 'Desactivar en este dispositivo') : ''}
     ${tipos}`;
 }
@@ -83,12 +84,31 @@ export function mountRecordatoriosSeccion(contenedor, vigente = () => true) {
       }
     });
   };
-  conBoton('btn-push-activar', async () => {
-    const e = await activarPush();
-    if (e === 'activado') Toast('Avisos activados en este dispositivo', 'success');
-    else if (e === 'bloqueado') Toast('Las notificaciones quedaron bloqueadas', 'error');
-    await repintar(e);
-  });
+  // "Activar": el permiso se pide PRIMERO, síncrono en el click, sin ningún
+  // await antes (ver pedirPermisoNotificaciones). Siempre hay un aviso con
+  // el resultado.
+  const btnActivar = contenedor.querySelector('#btn-push-activar');
+  if (btnActivar) {
+    btnActivar.addEventListener('click', () => {
+      const pedido = pedirPermisoNotificaciones();
+      btnActivar.disabled = true;
+      activarPush(pedido).then(async (e) => {
+        const aviso = {
+          activado: ['Avisos activados en este dispositivo', 'success'],
+          bloqueado: ['Las notificaciones están bloqueadas para Vanguard: actívalas en los permisos del sitio o de la app', 'error'],
+          'sin-respuesta': ['No hubo respuesta al permiso: en Recordatorios tienes cómo permitirlo a mano', 'info'],
+          'sin-sesion': ['Inicia sesión en Cuenta para activar los avisos', 'info'],
+          'sin-soporte': ['Este navegador no permite notificaciones push', 'error']
+        }[e] || ['No se pudieron activar los avisos', 'error'];
+        Toast(aviso[0], aviso[1], 5000);
+        await repintar(e === 'activado' ? 'activado' : e === 'bloqueado' ? 'bloqueado' : e === 'sin-respuesta' ? 'sin-respuesta' : undefined);
+      }).catch((err) => {
+        console.error('[recordatorios] No se pudo activar ni guardar la suscripción:', err);
+        Toast(`No se pudieron activar los avisos: ${(err && err.message) || err}`, 'error', 6000);
+        btnActivar.disabled = false;
+      });
+    });
+  }
   conBoton('btn-push-desactivar', async () => {
     await desactivarPush();
     Toast('Avisos desactivados en este dispositivo', 'info');
