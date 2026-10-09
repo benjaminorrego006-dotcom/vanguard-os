@@ -79,6 +79,38 @@ Para alguien que no programa; cada paso dice cómo saber que salió bien.
 7. **Comprobar.** En **SQL Editor**: `select status_code from net._http_response order by created desc limit 3;`
    Unos minutos después tienen que salir 200.
 
+## Prueba en el teléfono
+
+Para hacerla una vez, con el teléfono Android y la cuenta de Benjamin:
+
+1. **Actualizar la app.** Abre Vanguard (la app instalada). Si ya estaba
+   abierta, ciérrala del todo y vuelve a abrirla dos veces, para que tome la
+   versión nueva.
+2. **Iniciar sesión.** Menú ☰ › Configuración › Cuenta: tiene que decir
+   "Sesión iniciada".
+3. **Activar los avisos.** En Configuración › Recordatorios toca "Activar en
+   este dispositivo" y acepta el permiso de notificaciones. Tiene que decir
+   "Avisos activados en este dispositivo".
+4. **Aviso de prueba.** Toca "Enviar aviso de prueba", cierra la app y espera
+   uno o dos minutos: llega "Aviso de prueba". Al tocarlo se abre Vanguard.
+5. **Hábito.** En "Qué avisar" enciende Hábitos. Ve a Hábitos, abre uno que no
+   hayas marcado hoy › Editar › "Recordarme a las…" con una hora 3 o 4
+   minutos más tarde › Guardar. Cierra la app: a esa hora llega el aviso con
+   el nombre del hábito. Para ver que marcarlo lo cancela, repite con otro
+   hábito y márcalo antes de la hora: ese no llega.
+6. **Tarea.** Enciende "Tareas de Lista" y pon su hora 3 o 4 minutos más
+   tarde. Crea una tarea que venza hoy. Cierra la app: llega "Vence hoy: …".
+7. **Cobro.** Enciende "Cobros recurrentes" y pon su hora 3 o 4 minutos más
+   tarde. En Finanzas › Recurrentes crea uno que se cobre mañana. Cierra la
+   app: llega "Mañana se cobra …" con el monto.
+8. **Dejarlo como quieras.** Vuelve a poner las horas que te sirvan (por
+   defecto: tareas 09:00, cobros 20:00, resumen 08:00) y apaga lo que no uses.
+
+Si algo no llega: en Configuración › Recordatorios revisa que diga
+"activados"; en Ajustes del teléfono › Apps › Vanguard (o Chrome) ›
+Notificaciones, que estén permitidas; y que el teléfono no esté en modo
+ahorro de batería extremo, que puede retrasar los avisos.
+
 ## Verificación hecha en F1
 
 - Llamada sin el secreto: 401.
