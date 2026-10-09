@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vanguard-os-v297';
+const CACHE_NAME = 'vanguard-os-v298';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -21,6 +21,8 @@ const PRECACHE_URLS = [
   './js/core/supabase-client.js',
   './js/core/sync.js',
   './js/core/vista-activa.js',
+  './js/core/push.js',
+  './js/components/recordatorios-config.js',
   './js/core/error-tracking.js',
   './js/core/history.js',
   './js/core/audio.js',
@@ -159,6 +161,40 @@ self.addEventListener('message', event => {
   if (event.data && event.data.type === 'GET_VERSION' && event.ports[0]) {
     event.ports[0].postMessage(CACHE_NAME);
   }
+});
+
+// Recordatorios (docs/RECORDATORIOS-PLAN.md): la Edge Function
+// enviar-recordatorios manda { id, titulo, cuerpo, url }. El tag es el id
+// del aviso, así un reenvío reemplaza la notificación en vez de duplicarla.
+self.addEventListener('push', event => {
+  let datos = {};
+  try { datos = event.data ? event.data.json() : {}; }
+  catch (e) { datos = { cuerpo: event.data ? event.data.text() : '' }; }
+  const opciones = {
+    body: datos.cuerpo || '',
+    icon: './assets/icons/icon-192.png',
+    data: { url: datos.url || './' }
+  };
+  if (datos.id) opciones.tag = String(datos.id);
+  event.waitUntil(self.registration.showNotification(datos.titulo || 'Vanguard', opciones));
+});
+
+// Tocar la notificación: si la app ya está abierta, la enfoca y le pide ir a
+// la url del aviso (solo cambia el hash, sin recargar; ver app.js); si no,
+// la abre ahí.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const destino = new URL((event.notification.data && event.notification.data.url) || './', self.registration.scope).href;
+  event.waitUntil((async () => {
+    const ventanas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const abierta = ventanas.find(c => c.url.startsWith(self.registration.scope));
+    if (abierta) {
+      await abierta.focus();
+      abierta.postMessage({ type: 'ABRIR_URL', url: destino });
+      return;
+    }
+    await self.clients.openWindow(destino);
+  })());
 });
 
 self.addEventListener('fetch', event => {

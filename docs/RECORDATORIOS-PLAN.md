@@ -29,7 +29,7 @@ F5 · QA final y docs: recorrido completo a 375 y 1280, sin cuenta la app funcio
 ## Estado
 | Fase | Commit | Caché |
 |---|---|---|
-| F1 Servidor | | |
+| F1 Servidor | 0f6abc9 | v297 (sin cambios en la app) |
 | F2 Suscripción | | |
 | F3 Cálculo | | |
 | F4 Preferencias | | |

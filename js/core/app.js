@@ -9,6 +9,7 @@ import { initErrorTracking, reportError } from './error-tracking.js';
 import { Toast, ToastAccion, hayModalAbierto } from '../utils/states.js';
 import { initFoco } from '../components/foco.js';
 import { marcarNavegacion } from './vista-activa.js';
+import { refrescarSuscripcion } from './push.js';
 
 const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'configuracion'];
 
@@ -313,6 +314,16 @@ class Router {
     // Foco de tareas: registra uno que venció con la app cerrada y sigue el
     // que esté en curso (components/foco.js).
     initFoco().catch(err => console.error('Error iniciando el foco', err));
+    // Recordatorios: tocar una notificación con la app abierta (sw.js) solo
+    // cambia el hash; y si los avisos ya estaban activados, se vuelve a
+    // guardar la suscripción por si el navegador la renovó.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (e) => {
+        if (!e.data || e.data.type !== 'ABRIR_URL') return;
+        try { location.hash = new URL(e.data.url).hash || '#dashboard'; } catch (err) { /* url inválida */ }
+      });
+    }
+    refrescarSuscripcion();
 
     // El SW nuevo puede haber tomado el control antes de que app.js
     // terminara de cargar: se revisa el flag además de escuchar el evento.

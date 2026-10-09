@@ -15,6 +15,9 @@ import { getAuthSession, renderAuthSection, attachAuthListeners } from '../compo
 import { getEstadoSincronizacion } from '../core/sync.js';
 import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import { exportarFotos, importarFotos, estimarBytes, textoTamano } from '../utils/fotos-respaldo.js';
+import { estadoPush } from '../core/push.js';
+import { renderRecordatoriosSeccion, mountRecordatoriosSeccion } from '../components/recordatorios-config.js';
+import { guardiaVista } from '../core/vista-activa.js';
 import { isErrorTrackingConfigured, isErrorReportingEnabled, setErrorReportingEnabled } from '../core/error-tracking.js';
 import { formatNumero } from '../utils/numero.js';
 
@@ -32,7 +35,7 @@ function seccion(titulo, subtitulo, contenidoHtml) {
 const btnSecundario = (id, texto) => `<button id="${id}" type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border);">${escapeHtml(texto)}</button>`;
 
 export async function render() {
-  const [profile, nivel, restTimerSecs, rule, diasDesdeBackup, estadoAlmacenamiento, authSession, estadoSync, resumenFotos] = await Promise.all([
+  const [profile, nivel, restTimerSecs, rule, diasDesdeBackup, estadoAlmacenamiento, authSession, estadoSync, resumenFotos, estadoAvisos] = await Promise.all([
     db.getProfile(),
     db.getNivelEntrenamiento(),
     db.getRestTimerSecs(),
@@ -41,7 +44,8 @@ export async function render() {
     db.getEstadoAlmacenamiento(),
     getAuthSession(),
     getEstadoSincronizacion(),
-    db.getResumenFotos()
+    db.getResumenFotos(),
+    estadoPush().catch(() => 'sin-soporte')
   ]);
 
   const perfilResumen = profile
@@ -88,6 +92,10 @@ export async function render() {
 
       ${seccion('Cuenta', 'Sincroniza tus datos entre dispositivos con email y contraseña. Es opcional — la app sigue funcionando 100% offline sin esto.', `
         <div id="cfg-auth-container">${renderAuthSection(authSession, estadoSync.ultimaSyncTs)}</div>
+      `)}
+
+      ${seccion('Recordatorios', 'Avisos en el teléfono para tus hábitos, tareas y cobros, aunque la app esté cerrada. Funcionan en Android con la app instalada y en iPhone con la app en la pantalla de inicio (iOS 16.4 o más nuevo).', `
+        <div id="cfg-recordatorios">${renderRecordatoriosSeccion(estadoAvisos)}</div>
       `)}
 
       ${seccion('Perfil', escapeHtml(perfilResumen), btnSecundario('btn-cfg-perfil', 'Editar perfil'))}
@@ -186,6 +194,7 @@ export function mountListeners() {
   setupNivelOnboardingForm(refresh);
   attachPinSecurityListeners('cfg-pin-container');
   attachAuthListeners('cfg-auth-container');
+  mountRecordatoriosSeccion(document.getElementById('cfg-recordatorios'), guardiaVista('configuracion'));
 
   document.getElementById('btn-cfg-perfil')?.addEventListener('click', () => openProfileForm());
   document.getElementById('btn-cfg-nivel')?.addEventListener('click', () => openNivelOnboardingForm());
