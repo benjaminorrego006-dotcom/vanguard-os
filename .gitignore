@@ -31,3 +31,7 @@ node_modules/
 # Capturas y prompts locales
 PROMPT-*.md
 *-dashboard.png
+
+# CLI de Supabase: estado local (nunca al repo)
+supabase/.temp/
+supabase/.branches/

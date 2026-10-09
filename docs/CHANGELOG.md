@@ -12,6 +12,7 @@ Supabase, un solo servidor y pruebas en primer plano.
 |---|---|---|
 | L1 — Esquinas fuera del Laboratorio | v296 | Decisión del usuario: se mantiene la regla de MK III, que lleva chaflán solo en las tarjetas principales (`card-hero`); el resto de las tarjetas, rectas. La medición mostró que las tarjetas de Entreno, Finanzas y Configuración ya se veían rectas por esa regla, aunque tenían radios en línea sin efecto. Se sacaron todos los radios en línea (salvo los círculos, `50%`) de `hiit-timer.js`, `hiit-rutina-form.js`, `rutina-form.js`, `rutinas-lista.js`, `entrenamiento.js`, `finanzas.js`, `goal-card.js` y `activity-heatmap.js` (celdas del mapa de calor). También de las pestañas, selectores, botones y marcas de `laboratorio.js`, `lab-entreno.js`, `lab-finanzas.js`, `lab-tareas.js` y `donut-chart.js`. El control segmentado (`components.css`: pestañas de Finanzas, sub-pestañas de Tareas) queda recto. Las tarjetas del Laboratorio siguen con chaflán. |
 | L2 — Números es-CL | v297 | Los números visibles con punto decimal pasan por `utils/numero.js`. IMC de Entreno ("25,9"). `mini-chart.js` suma la opción `formato` (por defecto `formatNumero`) para el número grande y las etiquetas: el volumen semanal de Entreno queda "19.596,5" y el ahorro por mes del Laboratorio de Finanzas va con `formatCurrency`. Estándares de fuerza: 1RM y ratio ("1,25×"). Mensaje de sugerencia de nivel: ratio. Observaciones de la semana: `dec` usaba `toFixed` y `replace` a mano. Configuración › Perfil: peso y estatura ("78,4 kg · 174 cm · 28 años", con "año" en singular para 1). Los `toFixed` de `foco.js` y `racha-reactor.js` quedan: son coordenadas de SVG y no se muestran. |
+| F1 — Servidor (desplegado) | — | Sin cambios en la app (la caché queda en v297). Base real de Recordatorios: `7c91f92` (v297). `supabase/migrations/20261007120000_recordatorios_tablas.sql`: `push_suscripciones` (PK user_id + endpoint) y `recordatorios` (PK user_id + id, índice de pendientes), con RLS `user_id = auth.uid()`, grants a `authenticated` y también a `service_role` (en este proyecto la service role no ve una tabla nueva sin grant), y las extensiones pg_cron y pg_net. `20261007120100_recordatorios_cron.sql`: job `enviar-recordatorios` cada minuto con `net.http_post`, que manda el encabezado `x-cron-secret` leído de Vault (`recordatorios_cron_secret`). Edge Function `supabase/functions/enviar-recordatorios/index.ts` (Deno, `npm:web-push`): exige `x-cron-secret` (401 sin él), reclama los vencidos en un solo UPDATE con `enviado_en` (dos llamadas que se pisen no mandan dos veces), envía a todas las suscripciones del usuario, borra las que responden 404/410 y no manda los atrasados más de una hora. Desplegada con `--no-verify-jwt`, porque la clave pública nueva no es un JWT. Claves VAPID generadas con `web-push`: la privada, el subject y `CRON_SECRET` están solo en los secretos de Supabase (y el secreto del cron en Vault); la pública queda anotada en `docs/RECORDATORIOS.md` para F2. `docs/RECORDATORIOS.md`: cómo funciona, qué hay en Supabase, cómo se instaló con la CLI y los pasos para rehacerlo desde el panel web, escritos para alguien que no programa. `.gitignore`: `supabase/.temp/` y `supabase/.branches/`. |
 
 ### L1 — QA
 
@@ -20,6 +21,16 @@ Supabase, un solo servidor y pruebas en primer plano.
 ### L2 — QA
 
 - 375×812 y 1280×800 (`qa-l2`, con una medida de 78,4 kg): ningún texto visible tiene un decimal con punto en Entreno, Cuerpo, Progreso (estándares de fuerza), Configuración ni en todas las pestañas del Laboratorio de Entreno y de Finanzas. IMC "25,9", volumen "19.596,5" y perfil "78,4 kg · 174 cm · 28 años". Consola limpia; ESLint `no-undef` limpio. Capturas `l2-*`.
+
+### F1 — QA
+
+- Instalado con la CLI (`npx supabase`), con la sesión iniciada por Benjamin y sin la contraseña de la base (`db query --linked` va por la API de gestión).
+- Tablas: las dos con RLS, sus políticas, los grants a `authenticated` y a `service_role`, y pg_cron 1.6.4 y pg_net 0.20.4 activos. Los secretos `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` y `CRON_SECRET` existen. El job `enviar-recordatorios` está activo cada minuto.
+- Llamada sin el secreto: 401.
+- Con un recordatorio de prueba en la cuenta de Benjamin, vencido hace 20 s, la llamada manual respondió `tomados: 1` y el aviso quedó con `enviado_en`. `enviados: 0`, porque todavía no hay dispositivos suscritos.
+- En otro intento lo tomó el cron solo, en el tic del minuto. pg_net registró respuestas 200: el camino pg_cron → pg_net → función funciona.
+- Antes de corregir el grant de la service role, la función respondía `permission denied for table recordatorios`.
+- El recordatorio de prueba se borró. En el repo no hay claves privadas.
 
 ## 5 oct 2026 — Fase 6: medidas corporales y fotos (`docs/FASE6-MEDIDAS.md`)
 
