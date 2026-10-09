@@ -10,6 +10,7 @@ import { Toast, ToastAccion, hayModalAbierto } from '../utils/states.js';
 import { initFoco } from '../components/foco.js';
 import { marcarNavegacion } from './vista-activa.js';
 import { refrescarSuscripcion } from './push.js';
+import { initRecordatorios } from './recordatorios.js';
 
 const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'configuracion'];
 
@@ -324,6 +325,9 @@ class Router {
       });
     }
     refrescarSuscripcion();
+    // Recordatorios: sube los avisos de los próximos 7 días al abrir, al
+    // cambiar algo que los afecte y después de cada sync (core/recordatorios.js).
+    initRecordatorios();
 
     // El SW nuevo puede haber tomado el control antes de que app.js
     // terminara de cargar: se revisa el flag además de escuchar el evento.

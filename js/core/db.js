@@ -5,6 +5,9 @@ import { EQUIPO_OPCIONES } from './trainingConfig.js';
 import { generarObservaciones } from './observaciones-semana.js';
 import { seriesDeTrabajo } from '../utils/tipo-serie.js';
 import { pesoDificultad } from '../utils/dificultad.js';
+import { habitoDiaAplicable, habitoCumplidoEnFecha } from '../utils/habito-dias.js';
+import { claveEnMes, proximaFechaRecurrente } from '../utils/recurrentes.js';
+import { normalizarPrefs } from './recordatorios-calculo.js';
 import { estadoNetoSesion, sesionesVigentesDesdeEventos } from './sesiones-estado.js';
 
 function toSafeNumber(value) {
@@ -273,33 +276,6 @@ function diasUnicosDesdeEventos(eventos) {
 // 'YYYY-MM-DD' (Hábitos) en vez de eventos con `ts` — ya son claves.
 function diasUnicosDesdeFechas(fechas) {
   return Array.from(new Set(fechas)).sort().reverse();
-}
-
-// --- Recurrentes: cuándo toca la próxima ---------------------------------
-// Clave del día `dia` del mes `mesOffset` meses después del de `clave`
-// (dayOfMonth se limita a 28 en la UI, así que no hay desborde de mes).
-function claveEnMes(clave, mesOffset, dia) {
-  const [y, m] = clave.split('-').map(Number);
-  return diaKeyDe(new Date(y, m - 1 + mesOffset, dia));
-}
-
-// Próxima fecha pendiente de una recurrente ('YYYY-MM-DD'): el día
-// dayOfMonth del mes de lastProcessed (o de createdAt si nunca se procesó)
-// y, si ya se procesó o se creó ese mismo día o después, el del mes
-// siguiente. La usan processRecurringTransactions (para generar) y
-// getProyeccionRecurrentes (para avisar) — mismo cálculo, sin guardar
-// ningún "nextDate". El único candado contra procesar dos veces la misma
-// recurrencia es lastProcessed (los ids de las transacciones generadas son
-// aleatorios). lastProcessed se guarda como clave, pero puede venir como
-// ISO de versiones anteriores (toISOString() de las 00:00 locales):
-// claveDiaDe acepta ambos y da el mismo día local. OJO: nunca
-// new Date(lastProcessed) con una clave — se leería en UTC (en Chile, el
-// día anterior), el mes base podría retroceder uno y duplicar la
-// recurrencia.
-function proximaFechaRecurrente(req) {
-  const base = claveDiaDe(req.lastProcessed || req.createdAt);
-  const enMesBase = claveEnMes(base, 0, req.dayOfMonth);
-  return (base >= enMesBase || req.lastProcessed) ? claveEnMes(enMesBase, 1, req.dayOfMonth) : enMesBase;
 }
 
 // Transferencia entre sobres (nueva o antigua) o asignación heredada
@@ -625,35 +601,6 @@ function actividadGlobalPorDia(eventos, { historica = false } = {}) {
   });
   if (!historica) sesionesVigentesDesdeEventos(eventos).forEach(s => sumar(claveDiaDe(s.fecha)));
   return porDia;
-}
-
-// --- Hábitos con frecuencia: helpers de "¿aplica/se cumplió este día?" ---
-// habito.frecuencia = { tipo: 'diario' } (default, todo día aplica) |
-// { tipo: 'dias', dias: [0..6] } (0=lunes..6=domingo, mismo orden que
-// DOW_SHORT en habitos.js) | { tipo: 'semanal', vecesObjetivo: N }.
-// habito.meta = { cantidad, unidad } opcional — si existe, marcas[fecha]
-// guarda la CANTIDAD registrada ese día (número), no un booleano, y
-// "cumplido" pasa a ser "llegó a la meta" en vez de "tiene una marca".
-function habitoDiaAplicable(habito, fechaIso) {
-  const frecuencia = habito.frecuencia || { tipo: 'diario' };
-  if (frecuencia.tipo !== 'dias') return true; // diario y semanal: no hay días "no aplicables" a nivel día individual
-  const d = new Date(fechaIso + 'T12:00:00');
-  const dow = (d.getDay() + 6) % 7; // reindexa domingo=0 a lunes=0
-  return (frecuencia.dias || []).includes(dow);
-}
-
-function habitoCumplidoEnFecha(habito, fechaIso) {
-  const valor = (habito.marcas || {})[fechaIso];
-  if (habito.meta && toSafeNumber(habito.meta.cantidad) > 0) {
-    // Una marca "true" (booleana) es de ANTES de que el hábito tuviera meta
-    // numérica -- el usuario lo dio por cumplido bajo esas reglas viejas, así
-    // que se sigue contando como completo en vez de compararla como si fuera
-    // un número (Number(true) da 1, lo que rompería la racha para cualquier
-    // meta real y además rompería el toggle en la UI).
-    if (valor === true) return true;
-    return toSafeNumber(valor) >= toSafeNumber(habito.meta.cantidad);
-  }
-  return !!valor;
 }
 
 // Ancla fija para numerar semanas: la usan la racha semanal de Entreno
@@ -1392,6 +1339,27 @@ export const db = {
     await idbSetSingleton('settings', settings); this._triggerUpdate();
     await logEvent({ modulo: 'entreno', tipo: 'configuracion_actualizada', payload: { descansoPorEjercicio: mapa } });
     return Number.isFinite(mapa[clave]) ? mapa[clave] : null;
+  },
+
+  // --- Recordatorios (docs/RECORDATORIOS-PLAN.md) ---
+  // settings.recordatorios: { habitos: { activo, horas: { [id]: 'HH:MM' } },
+  // tareas: { activo, hora }, cobros: { activo, hora }, resumen: { activo,
+  // hora } }. Todo apagado si no hay nada guardado.
+  async getPrefsRecordatorios() {
+    const settings = await idbGetSingleton('settings', DEFAULT_SETTINGS_SHAPE);
+    return normalizarPrefs(settings.recordatorios);
+  },
+
+  // Guarda el mapa completo (normalizado). El evento lleva el mapa entero,
+  // igual que descansoPorEjercicio: el replay (mergeSingleton) reemplaza la
+  // clave de primer nivel.
+  async savePrefsRecordatorios(prefs) {
+    const settings = await idbGetSingleton('settings', { ...DEFAULT_SETTINGS_SHAPE });
+    const recordatorios = normalizarPrefs(prefs);
+    settings.recordatorios = recordatorios;
+    await idbSetSingleton('settings', settings); this._triggerUpdate();
+    await logEvent({ modulo: 'perfil', tipo: 'configuracion_actualizada', payload: { recordatorios } });
+    return recordatorios;
   },
 
   // --- Onboarding inicial (ver components/onboarding-inicial.js) ---
