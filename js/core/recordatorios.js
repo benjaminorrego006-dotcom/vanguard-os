@@ -38,7 +38,9 @@ async function sincronizar() {
   if (errLeer) throw new Error(errLeer.message);
 
   if (lista.length) {
-    const { error } = await sb.from('recordatorios').upsert(lista.map(r => ({ user_id: uid, ...r, enviado_en: null })), { onConflict: 'user_id,id' });
+    // Sin enviado_en: una fila nueva queda en null por el default de la tabla
+    // y una que el servidor ya marcó como enviada no vuelve a quedar pendiente.
+    const { error } = await sb.from('recordatorios').upsert(lista.map(r => ({ user_id: uid, ...r })), { onConflict: 'user_id,id' });
     if (error) throw new Error(error.message);
   }
   const vigentes = new Set(lista.map(r => r.id));
