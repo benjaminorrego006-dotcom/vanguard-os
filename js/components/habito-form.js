@@ -66,6 +66,14 @@ export function renderHabitoForm() {
             </div>
           </div>
 
+          <!-- Recordatorio opcional (docs/RECORDATORIOS-PLAN.md, F4): la hora
+               vive en settings.recordatorios.habitos.horas[id]. -->
+          <div class="input-group" style="margin: 18px 0 0;">
+            <label for="habito-recordar">Recordarme a las… (opcional)</label>
+            <input type="time" id="habito-recordar" class="num" style="max-width: 160px;">
+            <div id="habito-recordar-nota" style="font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.4;"></div>
+          </div>
+
           <div style="display: flex; gap: 12px; margin-top: 24px;">
             <button type="button" id="btn-cancel-habito" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Cancelar</button>
             <button type="submit" id="btn-save-habito" class="btn-primary" style="background: var(--accent-purple); color: #000; flex: 1;">Guardar</button>
@@ -160,11 +168,24 @@ export function setupHabitoForm(onSaveCallback) {
     const meta = tieneMeta ? { cantidad, unidad: unidad || 'veces' } : null;
 
     const id = document.getElementById('habito-id').value;
+    const horaAviso = document.getElementById('habito-recordar').value;
+    let idGuardado = id;
     if (id) {
       await db.renombrarHabito(id, nombre);
       await db.actualizarConfigHabito(id, { frecuencia, meta });
     } else {
-      await db.crearHabito(nombre, { frecuencia, meta });
+      const nuevo = await db.crearHabito(nombre, { frecuencia, meta });
+      idGuardado = nuevo && nuevo.id;
+    }
+    // La hora del recordatorio: solo se guarda si cambió.
+    if (idGuardado) {
+      const prefs = await db.getPrefsRecordatorios();
+      const antes = prefs.habitos.horas[idGuardado] || '';
+      if (antes !== horaAviso) {
+        if (horaAviso) prefs.habitos.horas[idGuardado] = horaAviso;
+        else delete prefs.habitos.horas[idGuardado];
+        await db.savePrefsRecordatorios(prefs);
+      }
     }
     close();
     if (onSaveCallback) setTimeout(onSaveCallback, 300);
@@ -204,6 +225,19 @@ export function openHabitoForm(habito = null) {
     idInput.value = '';
     nombreInput.value = '';
   }
+
+  // Hora del recordatorio (id capturado antes del await).
+  const idAviso = habito ? habito.id : null;
+  const inputAviso = document.getElementById('habito-recordar');
+  const notaAviso = document.getElementById('habito-recordar-nota');
+  inputAviso.value = '';
+  db.getPrefsRecordatorios().then(prefs => {
+    if (document.getElementById('habito-id').value !== (idAviso || '')) return;
+    inputAviso.value = (idAviso && prefs.habitos.horas[idAviso]) || '';
+    notaAviso.textContent = prefs.habitos.activo
+      ? 'Llega solo los días que aplica y si todavía no lo marcas.'
+      : 'Los avisos de hábitos están apagados: actívalos en Configuración › Recordatorios.';
+  });
 
   modal.style.display = 'flex';
   setTimeout(() => { modal.classList.add('open'); nombreInput.focus(); }, 10);

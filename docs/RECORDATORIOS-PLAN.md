@@ -31,5 +31,5 @@ F5 · QA final y docs: recorrido completo a 375 y 1280, sin cuenta la app funcio
 |---|---|---|
 | F1 Servidor | 0f6abc9 | v297 (sin cambios en la app) |
 | F2 Suscripción | cb6e1ad | v298 |
-| F3 Cálculo | | |
+| F3 Cálculo | 3631c44 | v299 |
 | F4 Preferencias | | |

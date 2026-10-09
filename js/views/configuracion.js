@@ -15,8 +15,7 @@ import { getAuthSession, renderAuthSection, attachAuthListeners } from '../compo
 import { getEstadoSincronizacion } from '../core/sync.js';
 import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import { exportarFotos, importarFotos, estimarBytes, textoTamano } from '../utils/fotos-respaldo.js';
-import { estadoPush } from '../core/push.js';
-import { renderRecordatoriosSeccion, mountRecordatoriosSeccion } from '../components/recordatorios-config.js';
+import { renderRecordatoriosSeccion, mountRecordatoriosSeccion, datosRecordatoriosSeccion } from '../components/recordatorios-config.js';
 import { guardiaVista } from '../core/vista-activa.js';
 import { isErrorTrackingConfigured, isErrorReportingEnabled, setErrorReportingEnabled } from '../core/error-tracking.js';
 import { formatNumero } from '../utils/numero.js';
@@ -45,7 +44,7 @@ export async function render() {
     getAuthSession(),
     getEstadoSincronizacion(),
     db.getResumenFotos(),
-    estadoPush().catch(() => 'sin-soporte')
+    datosRecordatoriosSeccion()
   ]);
 
   const perfilResumen = profile
@@ -95,7 +94,7 @@ export async function render() {
       `)}
 
       ${seccion('Recordatorios', 'Avisos en el teléfono para tus hábitos, tareas y cobros, aunque la app esté cerrada. Funcionan en Android con la app instalada y en iPhone con la app en la pantalla de inicio (iOS 16.4 o más nuevo).', `
-        <div id="cfg-recordatorios">${renderRecordatoriosSeccion(estadoAvisos)}</div>
+        <div id="cfg-recordatorios">${renderRecordatoriosSeccion(estadoAvisos.estado, estadoAvisos.prefs, estadoAvisos.habitosConHora)}</div>
       `)}
 
       ${seccion('Perfil', escapeHtml(perfilResumen), btnSecundario('btn-cfg-perfil', 'Editar perfil'))}
