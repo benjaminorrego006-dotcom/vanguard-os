@@ -352,6 +352,15 @@ export async function applyRemoteEvent(event) {
       case 'foto_eliminada':
         break;
 
+      // --- Días: descanso planificado y nota (keyPath = fecha). El payload
+      // de dia_actualizado es la fila completa.
+      case 'dia_actualizado':
+        await idb.put('dias', { ...payload, fecha: entidadId });
+        break;
+      case 'dia_borrado':
+        await idb.remove('dias', entidadId);
+        break;
+
       default:
         console.warn('[sync] Tipo de evento sin handler de replay:', tipo);
     }
@@ -381,8 +390,9 @@ export async function applyRemoteEvent(event) {
 // 'medidas' (Fase 6) necesita su tabla en Supabase con la misma forma que
 // las demás (id, user_id, data, updated_at; PRIMARY KEY (user_id, id), RLS
 // por user_id). 'fotos_progreso' no se refleja: las fotos no salen del
-// dispositivo.
-const MIRROR_STORES = ['envelopes', 'goals', 'habitos', 'medidas', 'notas', 'notas_categorias', 'planificador', 'recurrentes', 'ritual', 'rutinas', 'sesiones', 'tareas', 'transacciones'];
+// dispositivo. 'dias' y 'gastos_anuales' (DB v6) tienen sus tablas con la
+// misma forma (supabase/migrations/20261010120000_dias_gastos_anuales.sql).
+const MIRROR_STORES = ['dias', 'envelopes', 'gastos_anuales', 'goals', 'habitos', 'medidas', 'notas', 'notas_categorias', 'planificador', 'recurrentes', 'ritual', 'rutinas', 'sesiones', 'tareas', 'transacciones'];
 
 function mirrorTargetFor(event) {
   const { modulo, tipo, entidadId } = event;
@@ -443,6 +453,10 @@ function mirrorTargetFor(event) {
       return { store: 'medidas', id: entidadId };
     case 'medida_eliminada':
       return { store: 'medidas', id: entidadId, deleted: true };
+    case 'dia_actualizado':
+      return { store: 'dias', id: entidadId };
+    case 'dia_borrado':
+      return { store: 'dias', id: entidadId, deleted: true };
     default:
       return null; // rutina_generada y demás eventos de solo-auditoría: ningún store que reflejar
   }
@@ -518,7 +532,7 @@ async function backfillMirrorTables() {
   for (const store of MIRROR_STORES) {
     const rows = await idb.getAll(store);
     if (rows.length === 0) continue;
-    const idField = store === 'ritual' ? 'fecha' : 'id';
+    const idField = store === 'ritual' || store === 'dias' ? 'fecha' : 'id';
     await upsertChunked(store, rows.map(r => ({ id: r[idField], user_id: uid, data: r, updated_at: now })));
   }
 

@@ -473,7 +473,22 @@ export function calcularSaldosConArrastre(sobres, txs, eventos, mes, mesHoy = me
 // agregar un store nuevo en idb.js hay que sumarlo acá, o el respaldo lo
 // pierde en silencio (así pasó con ritual/planificador/notas, que faltaban).
 // 'medidas' entra en el respaldo; 'fotos_progreso' no (va en su archivo aparte).
-const STORES_RESPALDO = ['sesiones', 'rutinas', 'goals', 'transacciones', 'envelopes', 'recurrentes', 'tareas', 'habitos', 'ritual', 'planificador', 'notas', 'notas_categorias', 'medidas'];
+const STORES_RESPALDO = ['sesiones', 'rutinas', 'goals', 'transacciones', 'envelopes', 'recurrentes', 'tareas', 'habitos', 'ritual', 'planificador', 'notas', 'notas_categorias', 'medidas', 'dias', 'gastos_anuales'];
+// Stores que un respaldo viejo puede no traer y que se vacían al restaurarlo:
+// como el log se reemplaza entero, sus filas locales quedarían sin eventos.
+const STORES_VACIAR_SI_FALTAN = new Set(['medidas', 'dias', 'gastos_anuales']);
+
+// --- Días: descanso planificado y nota del día -----------------------------
+const NOTA_DIA_MAX = 140;
+const CLAVE_DIA_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Recorta y limita la nota a 140 caracteres (por punto de código, para no
+// cortar un emoji por la mitad).
+function normalizarNotaDia(nota) {
+  const texto = String(nota == null ? '' : nota).trim();
+  const chars = [...texto];
+  return chars.length > NOTA_DIA_MAX ? chars.slice(0, NOTA_DIA_MAX).join('').trim() : texto;
+}
 
 // --- Días activos de la racha global -------------------------------------
 // Clave de día -> cantidad de actividad (la cantidad solo la usa el
@@ -1219,14 +1234,12 @@ export const db = {
 
   // Reemplaza cada store que venga como arreglo en `datos`; los que no
   // vengan (ej. un respaldo anterior a ritual/planificador/notas) quedan
-  // como están. No emite logEvent: el log de eventos se restaura tal cual
-  // desde el propio respaldo.
+  // como están, salvo los de STORES_VACIAR_SI_FALTAN. No emite logEvent: el
+  // log de eventos se restaura tal cual desde el propio respaldo.
   async restaurarDatosRespaldo(datos) {
     for (const store of STORES_RESPALDO) {
       if (Array.isArray(datos[store])) await idb.putAllReplacing(store, datos[store]);
-      // Un respaldo anterior a la Fase 6 no trae 'medidas': como el log se
-      // reemplaza entero, las medidas locales quedarían sin sus eventos.
-      else if (store === 'medidas') await idb.putAllReplacing(store, []);
+      else if (STORES_VACIAR_SI_FALTAN.has(store)) await idb.putAllReplacing(store, []);
     }
     if (Array.isArray(datos.singletons)) await idb.putAllReplacing('singletons', datos.singletons);
     if (Array.isArray(datos.events)) await idb.putAllReplacing('events', datos.events);
@@ -3688,6 +3701,63 @@ export const db = {
       ],
       breakdown
     };
+  },
+
+  // =====================================================================
+  // DÍAS (docs/PLAN-PENDIENTES-OCT.md): descanso planificado y nota del día.
+  // Una fila por día en el store `dias` (keyPath = clave de día):
+  // { fecha, descanso, nota, actualizadoEn }. Eventos (modulo 'dias'):
+  // dia_actualizado con la fila completa, dia_borrado cuando queda sin
+  // descanso y sin nota (la fila se borra).
+  // =====================================================================
+  async getDia(fecha) {
+    try { return (await idb.getOne('dias', claveDiaDe(fecha))) || null; }
+    catch (e) { console.error('[Vanguard OS] Error leyendo día', fecha, e); return null; }
+  },
+
+  // Días entre `desde` y `hasta` (claves, ambos incluidos), en orden. Sin
+  // límites, todos.
+  async getDias(desde = null, hasta = null) {
+    const filas = await idbGetArray('dias');
+    return filas
+      .filter(d => (!desde || d.fecha >= desde) && (!hasta || d.fecha <= hasta))
+      .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  },
+
+  async esDescanso(fecha) {
+    const dia = await this.getDia(fecha);
+    return !!(dia && dia.descanso);
+  },
+
+  // Guarda el descanso y la nota de un día. El descanso solo se puede
+  // marcar hoy o en un día futuro (es planificado); quitarlo se puede
+  // siempre, y un día pasado que ya era de descanso puede editar su nota
+  // sin perderlo. La nota se recorta y queda en 140 caracteres como máximo.
+  // Sin descanso y sin nota, la fila se borra. Devuelve la fila o null.
+  // Lanza Error con un mensaje para mostrar si los datos no son válidos.
+  async guardarDia({ fecha, descanso = false, nota = '' } = {}) {
+    if (typeof fecha !== 'string' || !CLAVE_DIA_RE.test(fecha)) throw new Error('Fecha no válida.');
+    const actual = await this.getDia(fecha);
+    const quiereDescanso = !!descanso;
+    if (quiereDescanso && !(actual && actual.descanso) && fecha < diaKeyDe(new Date())) {
+      throw new Error('El descanso se planifica: solo puedes marcarlo para hoy o un día futuro.');
+    }
+    const texto = normalizarNotaDia(nota);
+
+    if (!quiereDescanso && !texto) {
+      if (!actual) return null;
+      await idb.remove('dias', fecha);
+      this._triggerUpdate();
+      await logEvent({ modulo: 'dias', tipo: 'dia_borrado', entidadId: fecha, payload: { fecha } });
+      return null;
+    }
+    if (actual && !!actual.descanso === quiereDescanso && (actual.nota || '') === texto) return actual;
+
+    const fila = { fecha, descanso: quiereDescanso, nota: texto, actualizadoEn: new Date().toISOString() };
+    await idb.put('dias', fila);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'dias', tipo: 'dia_actualizado', entidadId: fecha, payload: fila });
+    return fila;
   },
 
   // =====================================================================

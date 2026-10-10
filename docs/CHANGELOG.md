@@ -1,5 +1,26 @@
 # Vanguard OS — Changelog
 
+## 10 oct 2026 — Días, Gastos anuales y catálogo (`docs/PLAN-PENDIENTES-OCT.md`)
+
+Base: `1ed244e` (v302). Recordatorios queda en pausa. QA con scripts propios
+de Playwright, de a una prueba, a 375×812 y 1280×800, zona
+`America/Santiago`, reloj simulado, contextos limpios con `supabase.co`
+bloqueado (stub del bundle cuando hace falta sesión), un solo servidor
+dentro de la propia prueba y el navegador cerrado al final de cada una.
+
+| Fase | Caché | Qué cambia |
+|---|---|---|
+| A1 — Días: datos (DB v6) | v303 | `idb.js`: `DB_VERSION` 6 con los stores `dias` (keyPath `fecha`) y `gastos_anuales` (keyPath `id`). La migración solo crea stores. `db.js`: `getDia(fecha)`, `getDias(desde, hasta)` (inclusivo, en orden), `esDescanso(fecha)` y `guardarDia({ fecha, descanso, nota })`. El descanso solo se marca para hoy o un día futuro. Quitarlo se puede siempre, y un día pasado que ya era de descanso puede editar su nota sin perderlo. La nota se recorta y queda en 140 caracteres como máximo, contados por punto de código para no partir un emoji. Sin descanso y sin nota, la fila se borra. Guardar sin cambios no emite nada. Eventos (modulo `dias`): `dia_actualizado` con la fila completa y `dia_borrado`. `sync.js`: su replay, su destino en el espejo (`dias`, id = fecha) y `dias` y `gastos_anuales` en `MIRROR_STORES`. El backfill usa `fecha` como id de `dias`. Respaldo: los dos stores van en `STORES_RESPALDO`. Al restaurar un respaldo que no los trae, se vacían igual que `medidas` (el log se reemplaza entero; nuevo `STORES_VACIAR_SI_FALTAN`). Supabase: `supabase/migrations/20261010120000_dias_gastos_anuales.sql`, con las tablas espejo `dias` y `gastos_anuales` (PK user_id + id, RLS `user_id = auth.uid()`, grants a `authenticated` y a `service_role`), aplicada con la CLI. |
+
+### A1 — QA
+
+- Migración (`a1-migracion`): con el código de `1ed244e` se importó el respaldo demo de 3 meses (base v5, 701 eventos). Después se abrió una segunda pestaña con el código nuevo en el mismo origen. La pestaña vieja mostró "Hay una versión nueva. Recarga la app." y la base quedó en v6 con `dias` y `gastos_anuales` vacíos. Las filas de los 16 stores v5 siguen todas, idénticas. Solo cambiaron los 4 recurrentes que se procesaron al abrir Hoy en octubre (8 eventos nuevos, `recurrente_procesado` y `movimiento_registrado`). Ningún evento ni singleton se perdió y todas las pestañas cargan.
+- Datos (`a1-dias`). Todavía no hay interfaz (llega en A3), así que estos casos se probaron llamando a `db` desde la página. Casos: descanso y nota hoy, descanso ayer rechazado, nota ayer aceptada, descanso mañana, nota de 142 caracteres que queda en 140 sin partir el emoji, fecha mal formada rechazada y guardar sin cambios sin evento. Editar emite `dia_actualizado` con la fila completa. Con el reloj dos días adelante, el día de descanso ya pasado mantiene el descanso al editar su nota, se le puede quitar y no se le puede volver a poner. Vaciar borra la fila y emite `dia_borrado`; vaciar un día inexistente no emite nada.
+- Espejo con el stub: la tabla `dias` queda igual al store (id = fecha) y los 8 eventos suben al log remoto. Un segundo contexto limpio con ese log reconstruye `dias` idéntico.
+- Respaldo por Configuración: el archivo exportado trae `dias` y `gastos_anuales`, e importarlo en el segundo contexto restaura `dias`. Importar el respaldo demo, anterior a v6, deja `dias` vacío.
+- Supabase: las dos tablas con RLS, una política y los grants a `authenticated` y a `service_role`, comprobados con `db query --linked`.
+- Consola limpia en todas las pruebas. ESLint `no-undef` limpio.
+
 ## 7 oct 2026 — Limpieza y Recordatorios (`docs/RECORDATORIOS-PLAN.md`)
 
 Base: `9b709fc` (v295). Primero la limpieza (L1, L2), después el plan
