@@ -3,6 +3,7 @@ import { renderDonut } from '../utils/donut.js';
 import { db, esMovimientoEntreSobres } from '../core/db.js';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
+import { renderAnualesHTML, renderAnualForm, initAnuales, repintarAnuales } from '../components/gastos-anuales.js';
 import { renderIngresoForm, initIngresoForm } from '../components/IngresoForm.js';
 import { renderGastoForm, initGastoForm } from '../components/GastoForm.js';
 import { renderAhorroForm, initAhorroForm } from '../components/AhorroForm.js';
@@ -181,6 +182,7 @@ export async function init() {
       recurringContainer.innerHTML = renderRecurringHTML(b);
       attachRecurringListeners();
     }
+    repintarAnuales();
 
     const goalsContainer = document.getElementById('goals-container');
     if(goalsContainer) {
@@ -467,6 +469,7 @@ export async function init() {
     initEnvelopeForm(db, refresh);
     initTransferForm(db, () => b, refresh);
     initRecurringForm(db, () => b, refresh);
+    initAnuales();
 
     window.addEventListener('budget-updated', refresh);
 
@@ -1462,6 +1465,10 @@ export async function render() {
         <div id="recurring-container">
           ${renderRecurringHTML(b)}
         </div>
+        <!-- Gastos anuales prorrateados (components/gastos-anuales.js). -->
+        <div id="anuales-container" style="margin-top: 24px;">
+          ${await renderAnualesHTML()}
+        </div>
       </div>
 
       <!-- TAB 5: CUENTAS -->
@@ -1484,5 +1491,6 @@ export async function render() {
       ${renderGastoForm()}
       ${renderAhorroForm()}
       ${renderTransferForm()}
+      ${renderAnualForm()}
     `;
   }

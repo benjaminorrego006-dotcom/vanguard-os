@@ -526,6 +526,10 @@ export function calcularApartarGastoAnual(gasto, base, hoyKey) {
   return { sugerido: Math.ceil(falta / meses), meses, vence, falta };
 }
 
+// Ajuste mensual de presupuestos de gastos anuales en curso (ver
+// db.ajustarPresupuestosGastosAnuales).
+let ajusteAnualesEnCurso = null;
+
 // Valida y normaliza los datos de un gasto anual. Lanza Error con un mensaje
 // para mostrar.
 function normalizarGastoAnual(datos = {}) {
@@ -3683,6 +3687,7 @@ export const db = {
 
   async getBudget(monthFilter = null) {
     await this.processRecurringTransactions();
+    await this.ajustarPresupuestosGastosAnuales();
     const txsAll = await idbGetArray('transacciones');
 
     if (!monthFilter) {
@@ -3928,6 +3933,47 @@ export const db = {
     this._triggerUpdate();
     await logEvent({ modulo: 'finanzas', tipo: 'gasto_anual_editado', entidadId: id, payload: fila });
     return fila;
+  },
+
+  // Al empezar cada mes (B2), el presupuesto del sobre de cada gasto pasa a
+  // la sugerencia del mes nuevo, salvo que ESTE mes ya se haya cambiado a
+  // mano (un sobre_actualizado de este mes con el monto actual, distinto del
+  // automático). Un cambio a mano de un mes anterior no frena el ajuste. Se
+  // llama desde getBudget; con nada pendiente no escribe. Un candado evita
+  // dos ajustes a la vez (varias lecturas de getBudget en paralelo).
+  async ajustarPresupuestosGastosAnuales() {
+    if (ajusteAnualesEnCurso) return ajusteAnualesEnCurso;
+    ajusteAnualesEnCurso = (async () => {
+      const mes = mesKeyDe(new Date());
+      const pendientes = (await idbGetArray('gastos_anuales')).filter(g => !g.presupuestoAuto || g.presupuestoAuto.mes !== mes);
+      let ajustados = 0;
+      for (const g of pendientes) {
+        const { env, base } = await this._saldoSobreGastoAnual(g.sobreId);
+        if (!env || env.archivado) continue;
+        const actual = Number(env.assignedAmount) || 0;
+        const auto = g.presupuestoAuto ? g.presupuestoAuto.monto : null;
+        const eventos = await leerEventosCompartido();
+        const manualEsteMes = actual !== auto && eventos.some(e =>
+          e.entidadId === env.id && (e.tipo === 'sobre_actualizado' || e.tipo === 'sobre_creado') &&
+          mesKeyDe(new Date(e.ts)) === mes && Number(e.payload && e.payload.assignedAmount) === actual);
+        let fila;
+        if (manualEsteMes) {
+          // Se respeta; presupuestoAuto conserva el monto automático, así el
+          // sobre se sigue viendo como "cambiado a mano" este mes.
+          fila = { ...g, presupuestoAuto: { mes, monto: auto } };
+        } else {
+          const { sugerido } = calcularApartarGastoAnual(g, base, diaKeyDe(new Date()));
+          if (sugerido !== actual) await this.updateEnvelope(env.id, { assignedAmount: sugerido });
+          fila = { ...g, presupuestoAuto: { mes, monto: sugerido } };
+          ajustados++;
+        }
+        await idb.put('gastos_anuales', fila);
+        await logEvent({ modulo: 'finanzas', tipo: 'gasto_anual_editado', entidadId: g.id, payload: fila });
+      }
+      if (pendientes.length) this._triggerUpdate();
+      return ajustados;
+    })();
+    try { return await ajusteAnualesEnCurso; } finally { ajusteAnualesEnCurso = null; }
   },
 
   // Borra el gasto y archiva su sobre (no lo borra: su historial y saldo
