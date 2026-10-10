@@ -15,6 +15,7 @@ import { lineaFocoHoy, abrirPantallaFoco } from '../components/foco.js';
 import * as Anotaciones from './anotaciones.js';
 import { svgEscudo, avisarPrimeraVidaSiCorresponde } from '../components/racha-reactor.js';
 import { pedirSemana, rangoHtml } from '../components/lab-semana.js';
+import { abrirHojaDia } from '../components/dia-hoja.js';
 
 // Llamado por el router (app.js) antes de desmontar Inicio. El laboratorio
 // puede tener una instancia de Chart.js viva (el donut de "Distribución del
@@ -377,7 +378,7 @@ export async function render() {
   // y leída en paralelo Hoy mostraba la racha anterior (86 en vez de 87)
   // hasta el siguiente render. El resto de las lecturas sigue en paralelo.
   const rachaTrasRecurrentes = presupuesto.then(() => db.getRachaGlobal());
-  const [[budget, alertasCaja], stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, diasDesdeBackup, plan, perfil, estadoSync] = await Promise.all([
+  const [[budget, alertasCaja], stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, diasDesdeBackup, plan, perfil, estadoSync, diaHoy] = await Promise.all([
     budgetYProyeccion,
     db.getDashboardStats(),
     db.getSesiones(),
@@ -389,7 +390,8 @@ export async function render() {
     getDiasDesdeUltimoBackup(),
     db.getTareasPlan(),
     db.getProfile(),
-    getEstadoSincronizacion()
+    getEstadoSincronizacion(),
+    db.getDia(hoyIso)
   ]);
   // Semana (Planificador): los de hoy van a la agenda; los de días
   // anteriores sin hacer, a las atrasadas junto con las de Tareas.
@@ -478,10 +480,16 @@ export async function render() {
           <h1 style="font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.4px;">${saludoPorHora()}${nombre ? `, ${escapeHtml(nombre)}` : ''}</h1>
           <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">${escapeHtml(fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1))}</div>
         </div>
+        <div style="flex-shrink: 0; display: flex; align-items: center; gap: 6px;">
+        <!-- Hoja "Día" (descanso planificado y nota de hoy). -->
+        <button type="button" id="btn-dia-hoy" class="dia-abrir tappable${diaHoy && diaHoy.descanso ? ' dia-abrir--descanso' : ''}" aria-label="Día de hoy: descanso planificado y nota${diaHoy && diaHoy.descanso ? ' (hoy es de descanso)' : ''}${diaHoy && diaHoy.nota ? ' (con nota)' : ''}">
+          ${diaHoy && diaHoy.descanso ? 'Descanso' : 'Día'}${diaHoy && diaHoy.nota ? '<span class="dia-punto" aria-hidden="true"></span>' : ''}
+        </button>
         <button id="chip-racha" class="tappable" aria-label="Racha de ${rachaGlobal.actual} ${rachaGlobal.actual === 1 ? 'día' : 'días'}, ${rachaGlobal.vidas} ${rachaGlobal.vidas === 1 ? 'vida extra' : 'vidas extra'}. Ver hábitos" style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 6px 12px 6px 10px; border-radius: 999px; cursor: pointer;">
           🔥 <span class="num">${rachaGlobal.actual}</span>
           <span class="chip-vidas${rachaGlobal.vidas > 0 ? '' : ' chip-vidas--vacio'}" aria-hidden="true">· ${svgEscudo({ lleno: rachaGlobal.vidas > 0, size: 12 })}<span class="num">${rachaGlobal.vidas}</span></span>
         </button>
+        </div>
       </div>
 
       ${lineaFocoHoy()}
@@ -675,6 +683,8 @@ export function mountListeners() {
   }
   const chipRacha = document.getElementById('chip-racha');
   if (chipRacha) chipRacha.addEventListener('click', () => go('habitos'));
+  const btnDiaHoy = document.getElementById('btn-dia-hoy');
+  if (btnDiaHoy) btnDiaHoy.addEventListener('click', () => abrirHojaDia(diaKeyDe(new Date()), { alGuardar: () => refresh() }));
   const ultimaNotaEl = document.getElementById('ultima-nota');
   if (ultimaNotaEl) ultimaNotaEl.addEventListener('click', () => go('anotaciones'));
 

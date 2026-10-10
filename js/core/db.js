@@ -2534,14 +2534,18 @@ export const db = {
     // forma de siempre para la UI existente; el resto es nuevo.
     const { actual, vidas, diasProtegidos, maxHistorica, ultimaVidaUsada, faltanParaVida } = calcularRachaConVidas(new Set(activityByDay.keys()), hoy, descansos);
 
-    // Últimos 7 días (incluye hoy) para el mini-gráfico de línea.
+    // Últimos 7 días (incluye hoy) para el mini-gráfico de línea. `descanso`:
+    // día de descanso planificado (la tira lo pinta rayado si no hubo actividad).
     const last7 = [];
     for (let i = 6; i >= 0; i--) {
       const dia = sumarDias(hoy, -i);
-      last7.push({ date: dia, count: activityByDay.get(dia) || 0 });
+      last7.push({ date: dia, count: activityByDay.get(dia) || 0, descanso: descansos.has(dia) });
     }
+    // Descansos del mes en curso (también los planificados para más adelante).
+    const mes = mesKeyDe(new Date());
+    const descansosMes = [...descansos].filter(d => d.slice(0, 7) === mes).length;
 
-    return { actual, last7, vidas, diasProtegidos, maxHistorica, ultimaVidaUsada, faltanParaVida };
+    return { actual, last7, vidas, diasProtegidos, maxHistorica, ultimaVidaUsada, faltanParaVida, descansosMes };
   },
 
   // Actividad por día de un mes para un módulo+tipo de evento dado — la

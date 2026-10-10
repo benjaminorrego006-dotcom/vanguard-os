@@ -26,7 +26,8 @@ function textoVidas(racha) {
 }
 
 // Últimos 7 días de la racha global (last7): activo, protegido por una vida
-// (escudo + borde discontinuo), vacío, y hoy pendiente. Clases en
+// (escudo + borde discontinuo), descanso planificado sin actividad (rayado
+// neutro), vacío, y hoy pendiente. Clases en
 // components.css (.racha-semana), con el acento de Hábitos.
 function renderSemanaRacha(racha) {
   const protegidos = new Set(racha.diasProtegidos || []);
@@ -34,8 +35,8 @@ function renderSemanaRacha(racha) {
   return `
     <div class="racha-semana" role="list" aria-label="Últimos 7 días de la racha">
       ${racha.last7.map(d => {
-        const estado = protegidos.has(d.date) ? 'protegido' : d.count > 0 ? 'activo' : 'vacio';
-        const etiqueta = estado === 'protegido' ? 'protegido por una vida extra' : estado === 'activo' ? 'con actividad' : (d.date === hoy ? 'hoy, pendiente' : 'sin actividad');
+        const estado = protegidos.has(d.date) ? 'protegido' : d.count > 0 ? 'activo' : d.descanso ? 'descanso' : 'vacio';
+        const etiqueta = estado === 'protegido' ? 'protegido por una vida extra' : estado === 'activo' ? 'con actividad' : estado === 'descanso' ? 'descanso planificado' : (d.date === hoy ? 'hoy, pendiente' : 'sin actividad');
         const letra = formatDiaSemana(fechaLocalDe(d.date)).toUpperCase();
         return `
           <div class="racha-dia racha-dia--${estado}${d.date === hoy ? ' racha-dia--hoy' : ''}" role="listitem" data-fecha="${d.date}" aria-label="${letra} ${d.date.slice(8)}: ${etiqueta}">
@@ -182,6 +183,7 @@ export async function renderCabeceraRacha({ lineaSecundaria = '' } = {}) {
     <div class="card card-hero" style="margin-right: 20px; padding: 24px 18px; margin-bottom: 16px;">
       ${renderReactor({ cyPct, amPct, viPct, rachaGlobal })}
       <div id="reactor-vidas-texto" class="reactor-vidas-texto">${textoVidas(rachaGlobal)}</div>
+      ${rachaGlobal.descansosMes > 0 ? `<div id="reactor-descansos" class="reactor-descansos"><span class="num">${rachaGlobal.descansosMes}</span> ${rachaGlobal.descansosMes === 1 ? 'descanso' : 'descansos'} este mes</div>` : ''}
       ${lineaSecundaria ? `<div class="reactor-linea-secundaria">${lineaSecundaria}</div>` : ''}
       ${renderSemanaRacha(rachaGlobal)}
     </div>

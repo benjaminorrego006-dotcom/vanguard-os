@@ -8,10 +8,24 @@ import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { renderCabeceraRacha } from '../components/racha-reactor.js';
 import { guardiaVista } from '../core/vista-activa.js';
+import { abrirHojaDia } from '../components/dia-hoja.js';
 
 // Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
 // un repintado que termina después de cambiar de vista no escribe encima.
 let vistaVigente = () => true;
+
+// Días de la semana en curso con descanso planificado o nota (store `dias`):
+// fecha -> { descanso, nota }. Se lee en cada render (lista y detalle). En
+// las franjas, un día de descanso sin marcar se ve rayado y neutro (no
+// fallado) y un día con nota lleva un punto chico.
+let diasSemana = new Map();
+async function cargarDiasSemana() {
+  const s = semanaActual();
+  const filas = await db.getDias(diaKeyDe(s[0]), diaKeyDe(s[6]));
+  diasSemana = new Map(filas.map(d => [d.fecha, d]));
+}
+const esDescansoDia = (iso) => !!(diasSemana.get(iso) && diasSemana.get(iso).descanso);
+const notaDia = (iso) => (diasSemana.get(iso) && diasSemana.get(iso).nota) || '';
 
 // Lunes primero (convención es-CL) — a diferencia de la franja rodante
 // anterior (últimos 7 días terminando hoy), esta es la semana calendario
@@ -208,6 +222,9 @@ function semanaActual() {
 // adelantado. Los días NO aplicables (frecuencia 'dias' que no incluye esa
 // fecha) reciben el mismo tratamiento visual que un futuro: no hay nada
 // que marcar ahí, así que no se distingue de "todavía no llega".
+// Días: mantener presionado (o clic derecho) un día abre la hoja "Día"; por
+// eso los días inactivos llevan aria-disabled en vez de disabled (un botón
+// disabled no recibe el toque largo) y el toque normal los ignora.
 function renderFranjaSemanal(habito, hoyIso) {
   const tieneMeta = !!habito.meta;
   const dias7 = semanaActual();
@@ -230,14 +247,19 @@ function renderFranjaSemanal(habito, hoyIso) {
     const labelWeight = esHoy ? '800' : '700';
     const claseBoton = tieneMeta ? 'day-progreso' : 'day-toggle';
     const etiquetaInactivo = esFuturo ? 'todavía no llega' : 'no aplica este día';
+    const descanso = esDescansoDia(iso);
+    const nota = notaDia(iso);
+    const extraDia = [descanso ? 'descanso planificado' : '', nota ? `nota: ${nota}` : ''].filter(Boolean).join(', ');
     return `
-      <button class="${claseBoton} tappable" data-id="${habito.id}" data-fecha="${iso}"
-        ${inactivo ? 'disabled' : ''}
-        aria-label="${inactivo ? `${escapeHtml(habito.nombre)} el ${diaLabel} (${etiquetaInactivo})` : `${accion} ${escapeHtml(habito.nombre)} el ${diaLabel}`}"
+      <button class="${claseBoton} tappable" data-id="${habito.id}" data-fecha="${iso}" data-dia-largo="1"
+        ${inactivo ? 'aria-disabled="true"' : ''}
+        aria-label="${inactivo ? `${escapeHtml(habito.nombre)} el ${diaLabel} (${etiquetaInactivo})` : `${accion} ${escapeHtml(habito.nombre)} el ${diaLabel}`}${extraDia ? ` · ${escapeHtml(extraDia)}` : ''}"
+        ${nota ? `title="${escapeHtml(nota)}"` : ''}
         aria-pressed="${marcado}"
-        style="flex: 1; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; background: transparent; border: none; cursor: ${inactivo ? 'default' : 'pointer'}; padding: 0; opacity: ${inactivo ? '0.4' : '1'};">
+        style="position: relative; flex: 1; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; background: transparent; border: none; cursor: ${inactivo ? 'default' : 'pointer'}; padding: 0; opacity: ${inactivo && !descanso ? '0.4' : '1'}; -webkit-touch-callout: none; user-select: none;">
+        ${nota ? '<span class="dia-punto" aria-hidden="true"></span>' : ''}
         <span aria-hidden="true" style="font-size: 11px; font-weight: ${labelWeight}; color: ${labelColor}; letter-spacing: 0.4px;">${DOW_SHORT[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span>
-        <span aria-hidden="true" class="day-toggle-circle" data-check-size="8" style="width: 50%; aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : 'var(--surface-border)'}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; transition: background 0.15s ease, border-color 0.15s ease; font-size: 8px; font-weight: 800; color: #fff;">
+        <span aria-hidden="true" class="day-toggle-circle${descanso && !marcado ? ' dia-rayado' : ''}" data-check-size="8" style="width: 50%; aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : 'var(--surface-border)'}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; transition: background 0.15s ease, border-color 0.15s ease; font-size: 8px; font-weight: 800; color: #fff;">
           ${tieneMeta && valor ? escapeHtml(String(valor)) : (marcado ? '<svg width="8" height="8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '')}
         </span>
       </button>
@@ -286,16 +308,20 @@ function renderMiniSemana(habito, hoyIso) {
     const esFuturo = iso > hoyIso;
     const aplicable = esDiaAplicable(habito, iso);
     // "Fallado" (borde rojizo) solo tiene sentido en un día que de verdad
-    // aplicaba — un día fuera de la frecuencia declarada no es una falla.
-    const fallado = !marcado && !esHoy && !esFuturo && aplicable;
+    // aplicaba — un día fuera de la frecuencia declarada no es una falla, y
+    // un día de descanso planificado tampoco (va rayado y neutro).
+    const descanso = esDescansoDia(iso);
+    const nota = notaDia(iso);
+    const fallado = !marcado && !esHoy && !esFuturo && aplicable && !descanso;
     const borderColor = fallado
       ? 'color-mix(in srgb, var(--state-high) 45%, var(--surface-border))'
       : 'var(--surface-border)';
     const ring = esHoy ? 'box-shadow: 0 0 0 1.5px var(--accent-purple) inset;' : '';
     const dim = (esFuturo || !aplicable) ? 'opacity: 0.4;' : '';
     return `
-      <div aria-hidden="true" style="flex: 1; display: flex; align-items: center; justify-content: center;">
-        <div style="width: 50%; aspect-ratio: 1; border-radius: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : borderColor}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; ${ring} ${dim}">
+      <div aria-hidden="true" style="position: relative; flex: 1; display: flex; align-items: center; justify-content: center;">
+        ${nota ? '<span class="dia-punto" aria-hidden="true"></span>' : ''}
+        <div class="${descanso && !marcado ? 'dia-rayado' : ''}" style="width: 50%; aspect-ratio: 1; border-radius: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : borderColor}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; ${ring} ${dim}">
           ${marcado ? '<svg width="8" height="8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
         </div>
       </div>`;
@@ -332,7 +358,7 @@ async function renderResumenHabitos(habitos, hoyIso) {
   // sin marcar — con un solo hábito no hay "el más flojo" que destacar,
   // ya lo cubre la tarjeta de racha global de arriba.
   let riesgoHtml = '';
-  if (habitos.length >= 2) {
+  if (habitos.length >= 2 && !esDescansoDia(hoyIso)) {
     const sinMarcarHoy = habitos.filter(h => esDiaAplicable(h, hoyIso) && !estaCumplido(h, hoyIso));
     if (sinMarcarHoy.length > 0) {
       const masFlojo = [...sinMarcarHoy].sort((a, b) => (a._racha?.actual || 0) - (b._racha?.actual || 0))[0];
@@ -444,6 +470,7 @@ async function initTendenciaChart() {
 }
 
 async function renderDetalle(id) {
+  await cargarDiasSemana();
   const habitos = await db.getHabitos();
   const habito = habitos.find(h => h.id === id);
   if (!habito) { vista = 'lista'; return render(); }
@@ -479,6 +506,7 @@ async function renderDetalle(id) {
         <div style="display: flex; gap: 8px;">
           ${renderFranjaSemanal(habito, hoyIso)}
         </div>
+        <div class="habitos-franja-ayuda">Mantén presionado un día para planificar un descanso o anotar algo.</div>
       </div>
 
       <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">${diasRegistrados} día${diasRegistrados === 1 ? '' : 's'} marcado${diasRegistrados === 1 ? '' : 's'} en total.</div>
@@ -495,6 +523,7 @@ async function renderDetalle(id) {
 }
 
 async function renderLista() {
+  await cargarDiasSemana();
   const habitos = await db.getHabitos();
   const rachaGlobal = await db.getRachaHabitosGlobal();
   const hoyIso = diaKeyDe(new Date());
@@ -688,12 +717,37 @@ export function mountListeners() {
       : '';
   };
 
+  // Días: mantener presionado (500 ms) o clic derecho un día de la franja del
+  // detalle abre la hoja "Día". El click que sigue al toque largo se descarta
+  // para no marcar el hábito de paso.
+  let ultimoLargo = 0;
+  const abrirDia = (fecha) => { ultimoLargo = Date.now(); abrirHojaDia(fecha, { alGuardar: () => refresh() }); };
+  document.querySelectorAll('[data-dia-largo]').forEach(btn => {
+    let timer = null;
+    const cancelar = () => { clearTimeout(timer); timer = null; };
+    btn.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      cancelar();
+      timer = setTimeout(() => { timer = null; abrirDia(btn.getAttribute('data-fecha')); }, 500);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => btn.addEventListener(t, cancelar));
+    btn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      // En táctil, el contextmenu llega junto con el toque largo: no abrir dos veces.
+      if (Date.now() - ultimoLargo < 800) return;
+      cancelar();
+      abrirDia(btn.getAttribute('data-fecha'));
+    });
+  });
+  const descartarClick = (el) => el.getAttribute('aria-disabled') === 'true' || Date.now() - ultimoLargo < 800;
+
   // Hábitos con meta numérica: un tap abre el mini-modal de cantidad en
   // vez de togglear un booleano — necesitan un valor, no un check.
   document.querySelectorAll('.day-progreso-hoy, .day-progreso').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const el = e.currentTarget;
+      if (descartarClick(el)) return;
       const id = el.getAttribute('data-id');
       const fecha = el.getAttribute('data-fecha');
       const habitos = await db.getHabitos();
@@ -706,6 +760,7 @@ export function mountListeners() {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const el = e.currentTarget;
+      if (descartarClick(el)) return;
       const id = el.getAttribute('data-id');
       const fecha = el.getAttribute('data-fecha');
       const estabaMarcado = el.getAttribute('aria-pressed') === 'true';

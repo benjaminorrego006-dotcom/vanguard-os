@@ -3,8 +3,16 @@
 // acento que le corresponde (--accent-teal en Entreno, --accent-purple en
 // Tareas y Finanzas) — este componente no sabe nada de sesiones, tareas ni
 // transacciones, solo dibuja la grilla y maneja la interacción.
+//
+// Días (docs/PLAN-PENDIENTES-OCT.md, A3): al montar los listeners lee el
+// descanso y la nota de cada día del mes (db.getDias) y decora las celdas:
+// descanso sin actividad rayado y neutro, nota con un punto chico. El
+// detalle del día tocado suma el descanso, la nota y un botón "Día" que
+// abre la hoja para editarlos.
 
 import { escapeHtml } from '../utils/escape.js';
+import { db } from '../core/db.js';
+import { abrirHojaDia } from './dia-hoja.js';
 
 const WEEKDAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']; // lunes primero
 
@@ -39,8 +47,8 @@ export function renderActivityHeatmap({ id, monthLabel, year, month, countByDay,
     const detailText = details.length ? details.join(', ') : emptyLabel;
     const fullLabel = `${day} de ${monthLabel}: ${detailText}`;
     return `
-      <div class="heatmap-cell tappable" data-day="${day}" data-detail="${escapeHtml(fullLabel)}" title="${escapeHtml(fullLabel)}"
-        style="aspect-ratio: 1; width: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-sizing: border-box; border: 1.5px solid transparent; font-size: clamp(10px, 3.6vw, 14px); font-weight: 700; transition: border-color 0.15s ease, transform 0.1s ease; background: ${count === 0 ? 'var(--surface-2)' : accentVar}; opacity: ${count === 0 ? 1 : alpha}; color: ${count === 0 ? 'var(--text-disabled)' : '#000'};">
+      <div class="heatmap-cell tappable" data-day="${day}" data-count="${count}" data-detail="${escapeHtml(fullLabel)}" title="${escapeHtml(fullLabel)}"
+        style="position: relative; aspect-ratio: 1; width: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-sizing: border-box; border: 1.5px solid transparent; font-size: clamp(10px, 3.6vw, 14px); font-weight: 700; transition: border-color 0.15s ease, transform 0.1s ease; background: ${count === 0 ? 'var(--surface-2)' : accentVar}; opacity: ${count === 0 ? 1 : alpha}; color: ${count === 0 ? 'var(--text-disabled)' : '#000'};">
         ${day}
       </div>`;
   };
@@ -53,7 +61,7 @@ export function renderActivityHeatmap({ id, monthLabel, year, month, countByDay,
   for (let i = 0; i < trailing; i++) cells += `<div style="aspect-ratio: 1; width: 100%;"></div>`;
 
   return `
-    <div id="${id}">
+    <div id="${id}" data-year="${year}" data-month="${month}">
       <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: ${GAP}px; margin-bottom: 8px; width: 100%; max-width: ${GRID_MAX}px;">${weekdayHeaderHtml}</div>
       <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: ${GAP}px; width: 100%; max-width: ${GRID_MAX}px;">${cells}</div>
       <div id="${id}-detail" style="min-height: 16px; margin-top: 10px; font-size: 11.5px; color: var(--text-secondary); font-weight: 600;"></div>
@@ -68,18 +76,70 @@ export function renderActivityHeatmap({ id, monthLabel, year, month, countByDay,
   `;
 }
 
-// Click/tap (funciona igual con mouse y touch) muestra el detalle del día
-// bajo la grilla; el `title` nativo ya cubre el hover instantáneo en desktop.
+// Click/tap (funciona igual con mouse y touch) o Enter muestra el detalle
+// del día bajo la grilla; el `title` nativo ya cubre el hover en desktop.
 export function initActivityHeatmapListeners(id, accentVar) {
   const container = document.getElementById(id);
   if (!container) return;
   const detailEl = document.getElementById(`${id}-detail`);
+  const year = Number(container.dataset.year);
+  const month = Number(container.dataset.month);
+  const pad = (n) => String(n).padStart(2, '0');
+  const fechaDe = (day) => `${year}-${pad(month + 1)}-${pad(day)}`;
+  let dias = new Map(); // día del mes -> { descanso, nota }
+  let seleccionado = null;
+
+  const mostrarDetalle = (cell) => {
+    if (!detailEl) return;
+    const day = Number(cell.getAttribute('data-day'));
+    const info = dias.get(day);
+    const partes = [escapeHtml(cell.getAttribute('data-detail'))];
+    if (info && info.descanso) partes.push('Descanso planificado');
+    detailEl.innerHTML = `
+      <div>${partes.join(' · ')}</div>
+      ${info && info.nota ? `<div class="dia-detalle-nota">${escapeHtml(info.nota)}</div>` : ''}
+      <div class="dia-detalle-acciones">
+        <button type="button" class="dia-abrir tappable" data-fecha="${fechaDe(day)}" aria-label="Descanso y nota del ${day}">${info ? 'Editar día' : 'Día'}</button>
+      </div>`;
+    detailEl.querySelector('.dia-abrir').addEventListener('click', (e) => {
+      e.stopPropagation();
+      abrirHojaDia(e.currentTarget.getAttribute('data-fecha'), { alGuardar: () => cargarDias() });
+    });
+  };
+
+  const decorar = () => {
+    container.querySelectorAll('.heatmap-cell').forEach(cell => {
+      const day = Number(cell.getAttribute('data-day'));
+      const info = dias.get(day);
+      const sinActividad = cell.getAttribute('data-count') === '0';
+      cell.classList.toggle('dia-rayado', !!(info && info.descanso && sinActividad));
+      const punto = cell.querySelector('.dia-punto');
+      if (info && info.nota && !punto) cell.insertAdjacentHTML('beforeend', '<span class="dia-punto" aria-hidden="true"></span>');
+      if (!(info && info.nota) && punto) punto.remove();
+      const extra = [info && info.descanso ? 'descanso planificado' : '', info && info.nota ? 'con nota' : ''].filter(Boolean).join(', ');
+      cell.setAttribute('aria-label', cell.getAttribute('data-detail') + (extra ? ` (${extra})` : ''));
+    });
+    if (seleccionado && seleccionado.isConnected) mostrarDetalle(seleccionado);
+  };
+
+  async function cargarDias() {
+    const filas = await db.getDias(fechaDe(1), fechaDe(31));
+    if (!container.isConnected) return; // la vista se repintó mientras tanto
+    dias = new Map(filas.map(d => [Number(d.fecha.slice(8)), d]));
+    decorar();
+  }
 
   container.querySelectorAll('.heatmap-cell').forEach(cell => {
-    cell.addEventListener('click', () => {
+    cell.setAttribute('role', 'button');
+    cell.setAttribute('tabindex', '0');
+    const elegir = () => {
       container.querySelectorAll('.heatmap-cell').forEach(c => { c.style.borderColor = 'transparent'; });
       cell.style.borderColor = accentVar;
-      if (detailEl) detailEl.textContent = cell.getAttribute('data-detail');
-    });
+      seleccionado = cell;
+      mostrarDetalle(cell);
+    };
+    cell.addEventListener('click', elegir);
+    cell.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); elegir(); } });
   });
+  cargarDias();
 }
