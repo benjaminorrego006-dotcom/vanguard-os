@@ -361,6 +361,16 @@ export async function applyRemoteEvent(event) {
         await idb.remove('dias', entidadId);
         break;
 
+      // --- Gastos anuales: el payload es la fila completa. Su sobre llega
+      // por sus propios eventos de sobre (creado, actualizado, archivado).
+      case 'gasto_anual_creado':
+      case 'gasto_anual_editado':
+        await idb.put('gastos_anuales', { ...payload, id: entidadId });
+        break;
+      case 'gasto_anual_eliminado':
+        await idb.remove('gastos_anuales', entidadId);
+        break;
+
       default:
         console.warn('[sync] Tipo de evento sin handler de replay:', tipo);
     }
@@ -457,6 +467,10 @@ function mirrorTargetFor(event) {
       return { store: 'dias', id: entidadId };
     case 'dia_borrado':
       return { store: 'dias', id: entidadId, deleted: true };
+    case 'gasto_anual_creado': case 'gasto_anual_editado':
+      return { store: 'gastos_anuales', id: entidadId };
+    case 'gasto_anual_eliminado':
+      return { store: 'gastos_anuales', id: entidadId, deleted: true };
     default:
       return null; // rutina_generada y demás eventos de solo-auditoría: ningún store que reflejar
   }

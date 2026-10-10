@@ -496,6 +496,50 @@ function normalizarNotaDia(nota) {
   return chars.length > NOTA_DIA_MAX ? chars.slice(0, NOTA_DIA_MAX).join('').trim() : texto;
 }
 
+// --- Gastos anuales prorrateados (docs/PLAN-PENDIENTES-OCT.md, B) ----------
+// Un gasto que vence una vez al año ({ nombre, monto, mes 1–12, dia 1–31 })
+// con un sobre propio: el arrastre de saldos de sobres hace de alcancía.
+
+// Próximo vencimiento desde `hoyKey` (incluido): el día `dia` del mes `mes`
+// de este año o, si ya pasó, del siguiente. Un día que el mes no tiene
+// (31 en abril, 29 en febrero) cae en el último día del mes.
+export function proximoVencimientoGastoAnual({ mes, dia }, hoyKey) {
+  const anioHoy = Number(hoyKey.slice(0, 4));
+  const fecha = (anio) => {
+    const ultimo = new Date(anio, mes, 0).getDate();
+    return diaKeyDe(new Date(anio, mes - 1, Math.min(dia, ultimo)));
+  };
+  const esteAnio = fecha(anioHoy);
+  return esteAnio >= hoyKey ? esteAnio : fecha(anioHoy + 1);
+}
+
+// "Apartar este mes" = (monto − base) / meses que faltan hasta el
+// vencimiento, contando el mes en curso; nunca negativo, en pesos enteros
+// (hacia arriba, para no quedar corto). `base` es el saldo del sobre SIN lo
+// asignado este mes (arrastre ± movimientos del mes): si se usara el saldo
+// completo, la sugerencia dependería de sí misma apenas se asigna.
+// Devuelve { sugerido, meses, vence, falta }.
+export function calcularApartarGastoAnual(gasto, base, hoyKey) {
+  const vence = proximoVencimientoGastoAnual(gasto, hoyKey);
+  const meses = (Number(vence.slice(0, 4)) - Number(hoyKey.slice(0, 4))) * 12 + (Number(vence.slice(5, 7)) - Number(hoyKey.slice(5, 7))) + 1;
+  const falta = Math.max(0, toSafeNumber(gasto.monto) - toSafeNumber(base));
+  return { sugerido: Math.ceil(falta / meses), meses, vence, falta };
+}
+
+// Valida y normaliza los datos de un gasto anual. Lanza Error con un mensaje
+// para mostrar.
+function normalizarGastoAnual(datos = {}) {
+  const nombre = String(datos.nombre == null ? '' : datos.nombre).trim().slice(0, 40);
+  if (!nombre) throw new Error('Ponle un nombre al gasto.');
+  const monto = Math.round(toSafeNumber(datos.monto));
+  if (!(monto > 0)) throw new Error('El monto tiene que ser mayor que cero.');
+  const mes = Number(datos.mes);
+  if (!Number.isInteger(mes) || mes < 1 || mes > 12) throw new Error('Elige un mes válido.');
+  const dia = Number(datos.dia);
+  if (!Number.isInteger(dia) || dia < 1 || dia > 31) throw new Error('Elige un día entre 1 y 31.');
+  return { nombre, monto, mes, dia };
+}
+
 // --- Días activos de la racha global -------------------------------------
 // Clave de día -> cantidad de actividad (la cantidad solo la usa el
 // mini-gráfico `last7`). Dos fuentes:
@@ -3803,6 +3847,100 @@ export const db = {
     this._triggerUpdate();
     await logEvent({ modulo: 'dias', tipo: 'dia_actualizado', entidadId: fecha, payload: fila });
     return fila;
+  },
+
+  // =====================================================================
+  // GASTOS ANUALES (docs/PLAN-PENDIENTES-OCT.md, B1). Store `gastos_anuales`:
+  // { id, nombre, monto, mes, dia, sobreId, activo, createdAt,
+  // presupuestoAuto: { mes, monto } }. Cada gasto tiene un sobre propio de
+  // Finanzas (con gastoAnualId) creado junto con él; el arrastre de saldos
+  // de sobres hace de alcancía. presupuestoAuto es el último presupuesto que
+  // puso la app (no el usuario): si el assignedAmount del sobre ya no
+  // coincide, el usuario lo cambió a mano y se respeta. Eventos (modulo
+  // 'finanzas'): gasto_anual_creado / gasto_anual_editado con la fila
+  // completa y gasto_anual_eliminado.
+  // =====================================================================
+  // En orden de próximo vencimiento.
+  async getGastosAnuales() {
+    const hoy = diaKeyDe(new Date());
+    const filas = await idbGetArray('gastos_anuales');
+    return filas
+      .map(g => ({ g, vence: proximoVencimientoGastoAnual(g, hoy) }))
+      .sort((a, b) => a.vence.localeCompare(b.vence) || (a.g.nombre || '').localeCompare(b.g.nombre || ''))
+      .map(x => x.g);
+  },
+
+  // Saldo del sobre de un gasto (mes actual, con arrastre) y su base: el
+  // saldo sin lo asignado este mes. Sin sobre (o archivado), todo en 0.
+  async _saldoSobreGastoAnual(sobreId) {
+    const mes = mesKeyDe(new Date());
+    const envs = await this.getEnvelopes();
+    const env = envs.find(e => e.id === sobreId);
+    if (!env || env.archivado) return { env: env || null, saldo: 0, base: 0 };
+    const [fila] = calcularSaldosConArrastre([env], await idbGetArray('transacciones'), await leerEventosCompartido(), mes);
+    return { env, saldo: fila.saldo, base: fila.saldo - fila.asignado };
+  },
+
+  // { sugerido, meses, vence, falta, saldo, base } para `gasto` hoy.
+  async apartarSugerido(gasto, hoy = new Date()) {
+    const { saldo, base } = await this._saldoSobreGastoAnual(gasto.sobreId);
+    return { ...calcularApartarGastoAnual(gasto, base, diaKeyDe(hoy)), saldo, base };
+  },
+
+  // Crea el gasto y su sobre (mismo nombre, Necesidad), con la sugerencia
+  // del mes como presupuesto. Lanza Error si los datos no son válidos.
+  async crearGastoAnual(datos) {
+    const g = normalizarGastoAnual(datos);
+    const id = generateId();
+    const hoy = new Date();
+    const { sugerido } = calcularApartarGastoAnual(g, 0, diaKeyDe(hoy));
+    const sobre = await this.createEnvelope({ name: g.nombre, category: 'Needs', icon: 'shield', assignedAmount: sugerido, gastoAnualId: id });
+    const fila = { id, ...g, sobreId: sobre.id, activo: true, createdAt: hoy.toISOString(), presupuestoAuto: { mes: mesKeyDe(hoy), monto: sugerido } };
+    await idb.put('gastos_anuales', fila);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'gasto_anual_creado', entidadId: id, payload: fila });
+    return fila;
+  },
+
+  // `cambios`: nombre, monto, mes y/o dia. El sobre se renombra con el
+  // gasto. Si cambia el monto o la fecha y el presupuesto del sobre sigue
+  // siendo el que puso la app, se ajusta a la sugerencia nueva.
+  async editarGastoAnual(id, cambios = {}) {
+    const actual = await idb.getOne('gastos_anuales', id);
+    if (!actual) throw new Error('El gasto ya no existe.');
+    const g = normalizarGastoAnual({ ...actual, ...cambios });
+    const fila = { ...actual, ...g };
+    const { env, base } = await this._saldoSobreGastoAnual(actual.sobreId);
+    if (env && !env.archivado) {
+      const cambiosSobre = {};
+      if (env.name !== g.nombre) cambiosSobre.name = g.nombre;
+      const cambioPlan = g.monto !== actual.monto || g.mes !== actual.mes || g.dia !== actual.dia;
+      const automatico = actual.presupuestoAuto && Number(env.assignedAmount) === actual.presupuestoAuto.monto;
+      if (cambioPlan && automatico) {
+        const { sugerido } = calcularApartarGastoAnual(g, base, diaKeyDe(new Date()));
+        if (sugerido !== Number(env.assignedAmount)) cambiosSobre.assignedAmount = sugerido;
+        fila.presupuestoAuto = { mes: mesKeyDe(new Date()), monto: sugerido };
+      }
+      if (Object.keys(cambiosSobre).length) await this.updateEnvelope(env.id, cambiosSobre);
+    }
+    if (JSON.stringify(fila) === JSON.stringify(actual)) return actual;
+    await idb.put('gastos_anuales', fila);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'gasto_anual_editado', entidadId: id, payload: fila });
+    return fila;
+  },
+
+  // Borra el gasto y archiva su sobre (no lo borra: su historial y saldo
+  // quedan). Si el sobre tiene recurrentes, no se puede archivar y queda
+  // activo: { ok, sobreArchivado, recurrentes }.
+  async eliminarGastoAnual(id) {
+    const actual = await idb.getOne('gastos_anuales', id);
+    if (!actual) return { ok: false, sobreArchivado: false, recurrentes: [] };
+    await idb.remove('gastos_anuales', id);
+    this._triggerUpdate();
+    await logEvent({ modulo: 'finanzas', tipo: 'gasto_anual_eliminado', entidadId: id, payload: { sobreId: actual.sobreId } });
+    const r = await this.archivarSobre(actual.sobreId);
+    return { ok: true, sobreArchivado: !!r.ok, recurrentes: r.recurrentes || [] };
   },
 
   // =====================================================================
