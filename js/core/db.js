@@ -223,6 +223,9 @@ function calcularRachaDesdeDias(diasDesc) {
 //   protegido, la racha se mantiene pero no suma, y la cuenta de 7 se
 //   reinicia. Sin vidas, la racha se corta (y la cuenta también).
 // - Hoy sin actividad está pendiente: nunca consume vida.
+// - Día de descanso planificado (store `dias`) sin actividad: se salta. No
+//   corta ni suma, no consume vida y no toca la cuenta de 7. Con actividad,
+//   cuenta como cualquier día activo (eso lo resuelve la primera rama).
 // Devuelve { actual, vidas, diasProtegidos (los de la racha en curso),
 // maxHistorica (la racha más larga alcanzada alguna vez),
 // ultimaVidaUsada (clave del último día protegido, o null),
@@ -230,8 +233,9 @@ function calcularRachaDesdeDias(diasDesc) {
 // si ya tiene el máximo) }.
 const VIDAS_MAX = 2;
 const DIAS_POR_VIDA = 7;
-function calcularRachaConVidas(diasActivos, hoyKey) {
+export function calcularRachaConVidas(diasActivos, hoyKey, descansos = new Set()) {
   const activos = diasActivos instanceof Set ? diasActivos : new Set(diasActivos);
+  const libres = descansos instanceof Set ? descansos : new Set(descansos);
   const r = { actual: 0, vidas: 0, diasProtegidos: [], maxHistorica: 0, ultimaVidaUsada: null, faltanParaVida: DIAS_POR_VIDA };
   if (activos.size === 0) return r;
   const primero = [...activos].sort()[0];
@@ -247,6 +251,8 @@ function calcularRachaConVidas(diasActivos, hoyKey) {
         seguidos = 0;
       }
       if (r.actual > r.maxHistorica) r.maxHistorica = r.actual;
+    } else if (libres.has(dia)) {
+      // Descanso planificado: el día no cuenta para nada.
     } else if (dia === hoyKey) {
       // Hoy todavía no termina: pendiente, no consume ni corta.
     } else if (r.actual > 0 && r.vidas > 0) {
@@ -640,6 +646,20 @@ function dowDeClave(clave) {
 // claves de día de más reciente a más antigua — es la secuencia sobre la
 // que calcularRachaDiasAplicables cuenta pasos consecutivos (no sobre el
 // calendario continuo, que incluiría días que nunca iban a marcarse).
+// Hábitos en días de descanso planificado: el día no cuenta como fallado.
+// Un hábito que tocaba ese día cuenta solo si igual se cumplió (suma como
+// siempre). Si no, se excluye: no rompe la racha, no rompe el día perfecto y
+// no entra al denominador del % de cumplimiento.
+function habitoCuentaEnDia(habito, clave, descansos) {
+  if (!habitoDiaAplicable(habito, clave)) return false;
+  return !descansos.has(clave) || habitoCumplidoEnFecha(habito, clave);
+}
+
+// Claves de los días marcados como descanso planificado.
+async function diasDescansoSet() {
+  return new Set((await idbGetArray('dias')).filter(d => d && d.descanso).map(d => d.fecha));
+}
+
 function generarDiasAplicables(habito, hoy) {
   const frecuencia = habito.frecuencia || { tipo: 'diario' };
   const dias = frecuencia.dias || [];
@@ -801,7 +821,8 @@ function memoize(fn) {
 // - general: días activos, días protegidos y vidas al cierre (misma racha
 //   que getRachaGlobal), días con Ritual y energía promedio.
 // - porDia: 7 entradas (lunes a domingo) con los datos diarios.
-export function resumirSemana({ eventos = [], sesiones = [], transacciones = [], sobres = [], tareas = [], plan = [], habitos = [], ritual = [], generadorConfig = null }, lunesKey, hoyKey = diaKeyDe(new Date())) {
+export function resumirSemana({ eventos = [], sesiones = [], transacciones = [], sobres = [], tareas = [], plan = [], habitos = [], ritual = [], diasRegistro = [], generadorConfig = null }, lunesKey, hoyKey = diaKeyDe(new Date())) {
+  const descansos = new Set(diasRegistro.filter(d => d && d.descanso).map(d => d.fecha));
   const lunes = sumarDias(claveDiaDe(lunesKey), -dowDeClave(claveDiaDe(lunesKey)));
   const domingo = sumarDias(lunes, 6);
   const parcial = hoyKey >= lunes && hoyKey <= domingo;
@@ -886,7 +907,7 @@ export function resumirSemana({ eventos = [], sesiones = [], transacciones = [],
     let aplicables = 0; let cumplidos = 0;
     diarios.forEach((h, i) => {
       if (h.createdAt && claveDiaDe(h.createdAt) > k) return;
-      if (!habitoDiaAplicable(h, k)) return;
+      if (!habitoCuentaEnDia(h, k, descansos)) return;
       aplicables++; porHabito[i].aplicables++;
       if (habitoCumplidoEnFecha(h, k)) { cumplidos++; porHabito[i].cumplidos++; }
     });
@@ -911,7 +932,7 @@ export function resumirSemana({ eventos = [], sesiones = [], transacciones = [],
   const activosHastaCierre = new Set([...actividad.keys()].filter(k => k <= ultimoDia));
   // Semana cerrada: el domingo ya terminó, así que se evalúa con el lunes
   // siguiente como "hoy" (pendiente); en curso, con hoy.
-  const racha = futura ? null : calcularRachaConVidas(activosHastaCierre, parcial ? hoyKey : sumarDias(domingo, 1));
+  const racha = futura ? null : calcularRachaConVidas(activosHastaCierre, parcial ? hoyKey : sumarDias(domingo, 1), descansos);
   const protegidos = new Set(racha ? racha.diasProtegidos : []);
   ritual.forEach(r => {
     const d = r.fecha && dia(r.fecha);
@@ -1014,7 +1035,7 @@ const presupuestoDelMesMemo = memoize(async function presupuestoDelMes(mes) {
 // que memoize: un logEvent la invalida). La clave incluye el día de hoy, así
 // la semana en curso se recalcula al cambiar de día.
 const resumenSemanaMemo = memoize(async function resumenSemana(lunesKey, hoyKey) {
-  const [eventos, sesiones, transacciones, sobres, tareas, plan, habitos, ritual, generadorConfig] = await Promise.all([
+  const [eventos, sesiones, transacciones, sobres, tareas, plan, habitos, ritual, diasRegistro, generadorConfig] = await Promise.all([
     leerEventosCompartido(),
     idbGetArray('sesiones'),
     idbGetArray('transacciones'),
@@ -1023,10 +1044,11 @@ const resumenSemanaMemo = memoize(async function resumenSemana(lunesKey, hoyKey)
     idbGetArray('planificador'),
     idbGetArray('habitos'),
     idbGetArray('ritual'),
+    idbGetArray('dias'),
     idbGetSingleton('entrenoGeneradorConfig', null)
   ]);
   // Las 4 semanas anteriores salen de la misma lectura, para las observaciones.
-  const datos = { eventos, sesiones, transacciones, sobres, tareas, plan, habitos, ritual, generadorConfig };
+  const datos = { eventos, sesiones, transacciones, sobres, tareas, plan, habitos, ritual, diasRegistro, generadorConfig };
   const semana = resumirSemana(datos, lunesKey, hoyKey);
   const previas = [4, 3, 2, 1].map(n => resumirSemana(datos, sumarDias(semana.lunes, -7 * n), hoyKey));
   return { ...semana, observaciones: generarObservaciones(semana, previas) };
@@ -2503,13 +2525,14 @@ export const db = {
   },
 
   async getRachaGlobal() {
-    const activityByDay = actividadGlobalPorDia(await leerEventosCompartido());
+    const [eventos, descansos] = await Promise.all([leerEventosCompartido(), diasDescansoSet()]);
+    const activityByDay = actividadGlobalPorDia(eventos);
     const hoy = diaKeyDe(new Date());
 
     // Racha con vida extra (calcularRachaConVidas): los días sin actividad
     // se cubren con vidas mientras haya. `actual` y `last7` mantienen su
     // forma de siempre para la UI existente; el resto es nuevo.
-    const { actual, vidas, diasProtegidos, maxHistorica, ultimaVidaUsada, faltanParaVida } = calcularRachaConVidas(new Set(activityByDay.keys()), hoy);
+    const { actual, vidas, diasProtegidos, maxHistorica, ultimaVidaUsada, faltanParaVida } = calcularRachaConVidas(new Set(activityByDay.keys()), hoy, descansos);
 
     // Últimos 7 días (incluye hoy) para el mini-gráfico de línea.
     const last7 = [];
@@ -2657,9 +2680,8 @@ export const db = {
   // Lee `events` con leerEventosCompartido: junto con getRachaGlobal (que
   // se pide en el mismo render de Hábitos) es una sola lectura del store.
   async getBadges() {
-    const [eventos, racha, goals] = await Promise.all([
+    const [eventos, goals] = await Promise.all([
       leerEventosCompartido(),
-      this.getRachaGlobal(),
       this.getGoals()
     ]);
 
@@ -2668,13 +2690,17 @@ export const db = {
     // fecha editada siguen contando, así una insignia ganada no se pierde
     // (la racha visible sí se recalcula).
     const diezSesiones = eventos.filter(e => e.modulo === 'entreno' && e.tipo === 'sesion_registrada').length >= 10;
-    const maxHistorica = calcularRachaConVidas(new Set(actividadGlobalPorDia(eventos, { historica: true }).keys()), diaKeyDe(new Date())).maxHistorica;
+    // Las dos rachas van sin descansos planificados: las insignias no cambian
+    // con ellos (racha_7 da lo mismo que antes de que existieran).
+    const hoy = diaKeyDe(new Date());
+    const maxHistorica = calcularRachaConVidas(new Set(actividadGlobalPorDia(eventos, { historica: true }).keys()), hoy).maxHistorica;
+    const maxVisible = calcularRachaConVidas(new Set(actividadGlobalPorDia(eventos).keys()), hoy).maxHistorica;
 
     const mesSinExceder = (await this.getMesesSinExceder(6)).length > 0;
 
     return [
       // "Alguna vez llegó a 7": no se vuelve a bloquear al cortarse la racha.
-      { id: 'racha_7', label: '7 días de racha', unlocked: Math.max(racha.maxHistorica, maxHistorica) >= 7 },
+      { id: 'racha_7', label: '7 días de racha', unlocked: Math.max(maxVisible, maxHistorica) >= 7 },
       { id: 'primera_meta', label: 'Primera meta cumplida', unlocked: primeraMetaCumplida },
       { id: 'mes_sin_exceder', label: 'Mes de presupuesto sin excederte', unlocked: mesSinExceder },
       { id: 'diez_sesiones', label: '10 sesiones de entrenamiento', unlocked: diezSesiones }
@@ -3446,8 +3472,10 @@ export const db = {
   //   meta", no días seguidos.
   // En todos los casos, "cumplido" usa habitoCumplidoEnFecha (respeta meta
   // numérica si el hábito tiene una).
+  // Días de descanso planificado: ver habitoCuentaEnDia (no cortan la racha
+  // diaria ni la de días específicos; la semanal cuenta marcas, no fallos).
   async getRachaHabito(id) {
-    const habitos = await idbGetArray('habitos');
+    const [habitos, descansos] = await Promise.all([idbGetArray('habitos'), diasDescansoSet()]);
     const habito = habitos.find(h => h.id === id);
     if (!habito) return { actual: 0, mejor: 0 };
     const frecuencia = habito.frecuencia || { tipo: 'diario' };
@@ -3465,10 +3493,23 @@ export const db = {
     }
 
     if (frecuencia.tipo === 'dias') {
-      const diasAplicables = generarDiasAplicables(habito, new Date());
+      const diasAplicables = generarDiasAplicables(habito, new Date()).filter(k => habitoCuentaEnDia(habito, k, descansos));
       return calcularRachaDiasAplicables(new Set(fechasCumplidas), diasAplicables);
     }
 
+    // Diario con descansos: la secuencia de días que cuentan (del primer día
+    // cumplido a hoy, sin los descansos no cumplidos) sobre
+    // calcularRachaDiasAplicables. Sin descansos da lo mismo que
+    // calcularRachaDesdeDias, que se mantiene para ese caso.
+    if (descansos.size > 0 && fechasCumplidas.length > 0) {
+      const hoy = diaKeyDe(new Date());
+      const primero = fechasCumplidas.reduce((a, b) => (b < a ? b : a));
+      const dias = [];
+      for (let k = hoy; k >= primero; k = sumarDias(k, -1)) {
+        if (habitoCuentaEnDia(habito, k, descansos)) dias.push(k);
+      }
+      return calcularRachaDiasAplicables(new Set(fechasCumplidas), dias);
+    }
     return calcularRachaDesdeDias(diasUnicosDesdeFechas(fechasCumplidas));
   },
 
@@ -3481,8 +3522,10 @@ export const db = {
   // - hábitos 'dias' solo cuentan en SUS días aplicables — un día donde a
   //   ningún hábito activo le tocaba, no es ni perfecto ni fallado, se
   //   omite (mismo espíritu que "sin hábitos, no hay racha que mostrar").
+  // Días de descanso planificado: un día de descanso sin todo cumplido se
+  // omite igual que un día sin hábitos aplicables (habitoCuentaEnDia).
   async getRachaHabitosGlobal() {
-    const habitos = await idbGetArray('habitos');
+    const [habitos, descansos] = await Promise.all([idbGetArray('habitos'), diasDescansoSet()]);
     const relevantes = habitos.filter(h => (h.frecuencia?.tipo || 'diario') !== 'semanal');
     if (!relevantes.length) return { actual: 0, mejor: 0 };
 
@@ -3509,7 +3552,7 @@ export const db = {
     const diasConAplicable = [];
     const diasPerfectosSet = new Set();
     for (let iso = hoy; iso >= inicio; iso = sumarDias(iso, -1)) {
-      const aplicables = relevantes.filter(h => habitoDiaAplicable(h, iso));
+      const aplicables = relevantes.filter(h => habitoCuentaEnDia(h, iso, descansos));
       if (aplicables.length > 0) {
         diasConAplicable.push(iso);
         if (aplicables.every(h => habitoCumplidoEnFecha(h, iso))) diasPerfectosSet.add(iso);
@@ -3528,21 +3571,20 @@ export const db = {
   // (por no llegar nunca al 100% justo) no serviría para ver progreso
   // parcial. Orden cronológico (antiguo -> reciente), mismo criterio que
   // getTendenciaSemanal/getTendenciaTareasCompletadas.
+  // Días de descanso: ver habitoCuentaEnDia (fuera del denominador).
   async getTendenciaCumplimientoHabitos(semanas = 8) {
-    const habitos = await idbGetArray('habitos');
+    const [habitos, descansos] = await Promise.all([idbGetArray('habitos'), diasDescansoSet()]);
     const relevantes = habitos.filter(h => (h.frecuencia?.tipo || 'diario') !== 'semanal');
     if (!relevantes.length) return Array.from({ length: semanas }, () => 0);
 
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const hoy = diaKeyDe(new Date());
     const porSemana = Array.from({ length: semanas }, () => ({ suma: 0, dias: 0 }));
 
     for (let i = 0; i < semanas * 7; i++) {
-      const d = new Date(hoy);
-      d.setDate(d.getDate() - i);
-      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const iso = sumarDias(hoy, -i);
       const weekIdx = semanas - 1 - Math.floor(i / 7);
       if (weekIdx < 0 || weekIdx >= semanas) continue;
-      const aplicables = relevantes.filter(h => habitoDiaAplicable(h, iso));
+      const aplicables = relevantes.filter(h => habitoCuentaEnDia(h, iso, descansos));
       if (aplicables.length === 0) continue;
       const cumplidos = aplicables.filter(h => habitoCumplidoEnFecha(h, iso)).length;
       porSemana[weekIdx].suma += (cumplidos / aplicables.length) * 100;
@@ -3557,18 +3599,17 @@ export const db = {
   // semana — usada por el gráfico de barras del Laboratorio, que quiere el
   // avance día a día en vez de un número por semana. Orden cronológico
   // (antiguo -> reciente).
+  // Días de descanso: ver habitoCuentaEnDia (fuera del denominador).
   async getCumplimientoDiarioHabitos(dias = 30) {
-    const habitos = await idbGetArray('habitos');
+    const [habitos, descansos] = await Promise.all([idbGetArray('habitos'), diasDescansoSet()]);
     const relevantes = habitos.filter(h => (h.frecuencia?.tipo || 'diario') !== 'semanal');
     if (!relevantes.length) return Array.from({ length: dias }, () => 0);
 
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const hoy = diaKeyDe(new Date());
     const serie = [];
     for (let i = dias - 1; i >= 0; i--) {
-      const d = new Date(hoy);
-      d.setDate(d.getDate() - i);
-      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const aplicables = relevantes.filter(h => habitoDiaAplicable(h, iso));
+      const iso = sumarDias(hoy, -i);
+      const aplicables = relevantes.filter(h => habitoCuentaEnDia(h, iso, descansos));
       const cumplidos = aplicables.filter(h => habitoCumplidoEnFecha(h, iso)).length;
       serie.push(aplicables.length > 0 ? Math.round((cumplidos / aplicables.length) * 100) : 0);
     }
