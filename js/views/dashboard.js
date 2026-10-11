@@ -1,7 +1,7 @@
 import { db } from '../core/db.js';
 import { formatCurrency } from '../utils/currency.js';
 import { Toast } from '../utils/states.js';
-import { parseQuickGasto } from './finanzas.js';
+import { parseQuickGasto, pedirPestanaFinanzas } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
 import { diaKeyDe, diasEntre, formatFechaCorta, fechaLocalDe, sumarDias } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
@@ -378,7 +378,9 @@ export async function render() {
   // y leída en paralelo Hoy mostraba la racha anterior (86 en vez de 87)
   // hasta el siguiente render. El resto de las lecturas sigue en paralelo.
   const rachaTrasRecurrentes = presupuesto.then(() => db.getRachaGlobal());
-  const [[budget, alertasCaja], stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, diasDesdeBackup, plan, perfil, estadoSync, diaHoy] = await Promise.all([
+  // Gastos anuales: después de getBudget (que ajusta el presupuesto del mes).
+  const anualesTrasPresupuesto = presupuesto.then(() => db.getEstadoGastosAnuales());
+  const [[budget, alertasCaja], stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, diasDesdeBackup, plan, perfil, estadoSync, diaHoy, estadoAnuales] = await Promise.all([
     budgetYProyeccion,
     db.getDashboardStats(),
     db.getSesiones(),
@@ -391,7 +393,8 @@ export async function render() {
     db.getTareasPlan(),
     db.getProfile(),
     getEstadoSincronizacion(),
-    db.getDia(hoyIso)
+    db.getDia(hoyIso),
+    anualesTrasPresupuesto
   ]);
   // Semana (Planificador): los de hoy van a la agenda; los de días
   // anteriores sin hacer, a las atrasadas junto con las de Tareas.
@@ -420,6 +423,28 @@ export async function render() {
     `;
   }
 
+  // Gastos anuales por vencer (B3): un solo aviso agrupado desde 30 días
+  // antes si el sobre no alcanza. Ámbar; rojo (alerta real) si alguno vence
+  // en 7 días o menos sin alcanzar. Lleva a Finanzas › Recurrentes.
+  const avisosAnuales = estadoAnuales.avisos;
+  if (avisosAnuales.length > 0) {
+    const rojo = avisosAnuales.some(a => a.rojo);
+    const visibles = avisosAnuales.slice(0, 3);
+    const extra = avisosAnuales.length - visibles.length;
+    const cuando = (a) => (a.dias === 0 ? 'Hoy' : a.dias === 1 ? 'Mañana' : `En ${a.dias} días`);
+    alertasHtml += `
+      <button id="alerta-anual" type="button" class="card tappable alerta-caja alerta-anual${rojo ? ' alerta-anual--rojo' : ''}" aria-label="${avisosAnuales.length === 1 ? 'Un gasto anual' : `${avisosAnuales.length} gastos anuales`} por vencer sin saldo suficiente. Ver Finanzas">
+        <span class="icon-chip alerta-caja-icono" aria-hidden="true">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        </span>
+        <span class="alerta-caja-cuerpo">
+          <span class="alerta-caja-titulo">Gastos anuales por vencer</span>
+          ${visibles.map(a => `<span class="alerta-caja-linea${a.rojo ? ' alerta-anual-linea--rojo' : ''}">${cuando(a)} (${formatFechaCorta(fechaLocalDe(a.vence))}) vence <b>${escapeHtml(a.nombre)}</b> (${formatCurrency(a.monto)}). Faltan ${formatCurrency(a.falta)} en su sobre.</span>`).join('')}
+          ${extra > 0 ? `<span class="alerta-caja-linea alerta-caja-mas">y ${extra} más en Finanzas</span>` : ''}
+        </span>
+      </button>
+    `;
+  }
 
   // Sin esto, alguien que recién instaló la app y todavía no cargó nada
   // ve el aviso de respaldo cuando no hay nada real que respaldar.
@@ -842,6 +867,8 @@ export function mountListeners() {
 
   const alertaCaja = document.getElementById('alerta-caja');
   if (alertaCaja) alertaCaja.addEventListener('click', () => go('finanzas'));
+  const alertaAnual = document.getElementById('alerta-anual');
+  if (alertaAnual) alertaAnual.addEventListener('click', () => { pedirPestanaFinanzas('recurrentes'); go('finanzas'); });
 
   const qaGasto = document.getElementById('qa-gasto');
   const qaEntreno = document.getElementById('qa-entreno');

@@ -87,6 +87,6 @@ Recordatorios queda en pausa por decisión de Benjamin: no tocar push.js, record
 | A2 Días: racha y hábitos | 9fd0315 | v304 |
 | A3 Días: interfaz | bda8a19 | v305 |
 | B1 Gastos anuales: datos | aebd0f7 | v306 |
-| B2 Gastos anuales: interfaz | | v307 |
-| B3 Gastos anuales: avisos y Laboratorio | | |
+| B2 Gastos anuales: interfaz | 6787565 | v307 |
+| B3 Gastos anuales: avisos y Laboratorio | | v308 |
 | C1 Catálogo N7 y N8 | | |

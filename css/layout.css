@@ -1118,3 +1118,11 @@ html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
 .anual-acciones .anual-btn { flex: 1; }
 .anual-eliminar { display: block; width: 100%; min-height: 44px; margin-top: 10px; background: transparent; border: none; color: var(--rd); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .anual-eliminar[hidden] { display: none; }
+/* B3: aviso de gastos anuales en Hoy. Reusa .alerta-caja (rojo); ámbar
+   mientras ninguno vence en 7 días o menos sin alcanzar. */
+.alerta-caja.alerta-anual:not(.alerta-anual--rojo) { background: color-mix(in srgb, var(--am) 8%, transparent); border-color: color-mix(in srgb, var(--am) 40%, transparent); }
+.alerta-anual:not(.alerta-anual--rojo) .alerta-caja-icono { background: color-mix(in srgb, var(--am) 18%, transparent); color: var(--am); }
+.alerta-anual:not(.alerta-anual--rojo) .alerta-caja-titulo { color: var(--am); }
+.alerta-anual-linea--rojo b { color: var(--state-high); }
+.lab-fin-anuales { margin-top: 12px; padding: 14px 16px; font-size: 13.5px; font-weight: 600; color: var(--text-secondary); }
+.lab-fin-anuales .num { color: var(--am); font-weight: 800; }

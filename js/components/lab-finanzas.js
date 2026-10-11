@@ -41,6 +41,7 @@ export async function tieneDatos() {
 
 async function renderDesglose() {
   const budget = await db.getBudget();
+  const anuales = await db.getEstadoGastosAnuales();
 
   const entries = budget.allocations
     .filter(a => a.amount > 0)
@@ -72,6 +73,7 @@ async function renderDesglose() {
         ${resumenCardHtml('Ahorro', formatCurrency(budget.savedThisMonth))}
         ${resumenCardHtml('Transacciones', budget.breakdown.length)}
       </div>
+      ${anuales.filas.length ? `<div id="lab-fin-anuales" class="card lab-fin-anuales">Anuales: <span class="num">${formatCurrency(anuales.apartado)}</span> apartado de <span class="num">${formatCurrency(anuales.total)}</span></div>` : ''}
     </div>
   `;
 }

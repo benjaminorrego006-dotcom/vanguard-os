@@ -3935,6 +3935,38 @@ export const db = {
     return fila;
   },
 
+  // Estado de los gastos anuales para Hoy y el Laboratorio (B3):
+  // { filas, avisos, apartado, total }. Por gasto: vencimiento, días que
+  // faltan, saldo del sobre y lo que falta. Lo pagado desde su sobre en los
+  // 30 días previos al vencimiento cuenta como cubierto (si no, el día que
+  // vence, ya pagado, el saldo en ~0 seguiría avisando). avisos: los que
+  // vencen en 30 días o menos y no alcanzan; rojo con 7 días o menos.
+  // apartado: suma de saldos (los negativos cuentan 0); total: suma de montos.
+  async getEstadoGastosAnuales() {
+    const hoy = diaKeyDe(new Date());
+    const gastos = await this.getGastosAnuales();
+    if (!gastos.length) return { filas: [], avisos: [], apartado: 0, total: 0 };
+    const txs = await idbGetArray('transacciones');
+    const filas = [];
+    for (const g of gastos) {
+      const ap = await this.apartarSugerido(g);
+      const desde = sumarDias(ap.vence, -30);
+      const pagado = txs
+        .filter(t => t.type === 'Gasto' && t.envelopeId === g.sobreId && t.date && claveDiaDe(t.date) > desde && claveDiaDe(t.date) <= ap.vence)
+        .reduce((s, t) => s + toSafeNumber(t.amount), 0);
+      const dias = diasEntre(hoy, ap.vence);
+      const falta = Math.max(0, g.monto - ap.saldo - pagado);
+      filas.push({ id: g.id, nombre: g.nombre, monto: g.monto, vence: ap.vence, dias, saldo: ap.saldo, pagado, falta });
+    }
+    const avisos = filas.filter(f => f.dias <= 30 && f.falta > 0).map(f => ({ ...f, rojo: f.dias <= 7 }));
+    return {
+      filas,
+      avisos,
+      apartado: filas.reduce((s, f) => s + Math.max(0, f.saldo), 0),
+      total: filas.reduce((s, f) => s + f.monto, 0)
+    };
+  },
+
   // Al empezar cada mes (B2), el presupuesto del sobre de cada gasto pasa a
   // la sugerencia del mes nuevo, salvo que ESTE mes ya se haya cambiado a
   // mano (un sobre_actualizado de este mes con el monto actual, distinto del
