@@ -89,4 +89,5 @@ Recordatorios queda en pausa por decisión de Benjamin: no tocar push.js, record
 | B1 Gastos anuales: datos | aebd0f7 | v306 |
 | B2 Gastos anuales: interfaz | 6787565 | v307 |
 | B3 Gastos anuales: avisos y Laboratorio | 68b4bd8 | v308 |
-| C1 Catálogo N7 y N8 | | v309 |
+| C1 Catálogo N7 y N8 | a648d15 | v309 |
+| C2 QA final y docs | | sin cambio (solo docs) |

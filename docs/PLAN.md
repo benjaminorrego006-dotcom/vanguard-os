@@ -36,7 +36,7 @@ el resumen.
 
 ## Hecho
 
-Estado al 9 oct 2026 (`CACHE_NAME` v300). El detalle de cada tanda (commits,
+Estado al 12 oct 2026 (`CACHE_NAME` v309). El detalle de cada tanda (commits,
 caché y QA) está en `docs/CHANGELOG.md`.
 
 | | Estado |
@@ -68,19 +68,21 @@ caché y QA) está en `docs/CHANGELOG.md`.
 | Dificultad y foco de tareas (`docs/PLAN-DIFICULTAD-FOCO.md`): dificultad fácil/media/difícil en el formulario (sin campo = media), marcas en Lista y Semana y puntos por semana en Laboratorio; foco de 25 min + 5 de pausa desde el detalle, el ⋯ de Semana y la línea de Hoy, que sobrevive a recargar y a cerrar la app, con `foco_completado` en el log, "N focos · X min" en el detalle y minutos por semana y tarea con más foco del mes en Laboratorio | hecho (`ef75014` → F5, v282–v286) |
 | Fase 6 — Medidas corporales y fotos de progreso (`docs/FASE6-MEDIDAS.md`): IndexedDB v5 con `medidas` (derivado del log, en respaldo y espejo) y `fotos_progreso` (Blobs solo del dispositivo); Entreno › Cuerpo con tarjeta de peso y variación a 30 días, hoja de registro, historial, gráfico de peso (30/90/365 días, media de 7 días), mini-gráficos de perímetros, fila "Peso" en el Laboratorio, fotos reducidas a 1080 px con galería y comparación antes / ahora, y "Exportar / Importar fotos" en un archivo aparte. Además: chaflanes en el Laboratorio, foco en curso fuera del respaldo, aviso al actualizar la base con varias ventanas y navegación desde sub-vistas sin repintados tardíos | hecho (`2a5e623` → F6, v287–v295) |
 | Limpieza: sin esquinas redondeadas salvo círculos (regla MK III: chaflán solo en `card-hero`) y números visibles en es-CL | hecha (`3d48cbc`, `7c91f92`, v296–v297) |
-| Recordatorios (`docs/RECORDATORIOS-PLAN.md`, `docs/RECORDATORIOS.md`): Web Push con VAPID sobre el Supabase de la sync. Tablas `push_suscripciones` y `recordatorios` con RLS, pg_cron cada minuto y la Edge Function `enviar-recordatorios` desplegada. Suscripción por dispositivo en Configuración, con aviso de prueba. El teléfono calcula los avisos de 7 días (hábitos a su hora, tareas el día que vencen, cobros el día anterior, resumen diario) y los sube; marcar o completar los borra. Interruptor y hora por tipo, y hora por hábito | hecho (`0f6abc9` → F5, v297–v300); falta la prueba real en el teléfono |
+| Recordatorios (`docs/RECORDATORIOS-PLAN.md`, `docs/RECORDATORIOS.md`): Web Push con VAPID sobre el Supabase de la sync. Tablas `push_suscripciones` y `recordatorios` con RLS, pg_cron cada minuto y la Edge Function `enviar-recordatorios` desplegada. Suscripción por dispositivo en Configuración, con aviso de prueba. El teléfono calcula los avisos de 7 días (hábitos a su hora, tareas el día que vencen, cobros el día anterior, resumen diario) y los sube; marcar o completar los borra. Interruptor y hora por tipo, y hora por hábito | hecho (`0f6abc9` → F5, v297–v300); **en pausa** (ver Pendiente) |
+| Días: descanso planificado y nota por día (ideas 1 y 2, `docs/PLAN-PENDIENTES-OCT.md`). IndexedDB v6 con `dias` (derivado del log, en respaldo y espejo). La racha global y los cálculos de Hábitos saltan los días de descanso sin actividad; las insignias no cambian. Hoja "Día" desde Hoy, los mapas de actividad y la franja de Hábitos (mantener presionado), con rayado para el descanso y punto para la nota | hecho (`7042737` → `bda8a19`, v303–v305) |
+| Gastos anuales prorrateados (idea 3): cada uno con su sobre, apartado sugerido por mes y ajuste automático del presupuesto al empezar el mes (respeta un cambio a mano del mismo mes). Sección en Finanzas › Recurrentes, aviso agrupado en Hoy (ámbar desde 30 días; rojo con 7 días o menos sin alcanzar) y línea "Anuales" en el Laboratorio. Tabla `gastos_anuales` en el espejo | hecho (`aebd0f7` → `68b4bd8`, v306–v308) |
+| Catálogo: N8 Windshield Wipers (Limpiaparabrisas), Core avanzado con barra, viene de L-Sit y pide Dead Hang; N7 Puente de glúteo a una pierna revisado contra la propuesta y completado | hecho (`a648d15`, v309) |
 
 ---
 
 ## Pendiente
 
-### Más ejercicios (N7, N8)
+### Recordatorios — en pausa
 
-- **N8. Windshield wipers** (calistenia, core, avanzado, aislamiento): falta
-  en el catálogo.
-- **N7. Puente de glúteo a una pierna** (calistenia, cadera, intermedio): ya
-  está en `js/core/ejercicios-catalogo-calistenia.js`; revisar que su ficha
-  coincida con la propuesta antes de darlo por cerrado.
+En pausa por decisión de Benjamin (10 oct 2026). Falta la prueba real en el
+teléfono. Mientras siga en pausa, no tocar `js/core/push.js`,
+`js/**/recordatorios*.js` ni la Edge Function `enviar-recordatorios`, salvo
+que otro cambio los rompa.
 
 ### Code review
 
@@ -93,11 +95,9 @@ Sin hallazgos abiertos (`docs/PENDIENTES-CODE-REVIEW.md`).
 Vienen de comparar con apps de referencia (Strong, Hevy, YNAB, Todoist,
 Habitify, Way of Life):
 
-1. **Estado "omitido" en racha/heatmap** (sí / no / omitido): un descanso
-   planificado no debería contar igual que un día sin actividad. La vida extra
-   cubre parte del problema, pero no el descanso planificado.
-2. **Notas contextuales en el heatmap:** mostrar por qué, no solo cuánto.
-3. **Gastos anuales prorrateados** en Finanzas (patente, seguro, matrícula).
+Las ideas 1 (estado "omitido" = descanso planificado), 2 (notas en el
+heatmap) y 3 (gastos anuales prorrateados) quedaron hechas en octubre (ver
+Hecho). No quedan ideas abiertas.
 
 ### Decisiones de diseño tomadas — no revisar
 
