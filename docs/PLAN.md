@@ -68,7 +68,7 @@ caché y QA) está en `docs/CHANGELOG.md`.
 | Dificultad y foco de tareas (`docs/PLAN-DIFICULTAD-FOCO.md`): dificultad fácil/media/difícil en el formulario (sin campo = media), marcas en Lista y Semana y puntos por semana en Laboratorio; foco de 25 min + 5 de pausa desde el detalle, el ⋯ de Semana y la línea de Hoy, que sobrevive a recargar y a cerrar la app, con `foco_completado` en el log, "N focos · X min" en el detalle y minutos por semana y tarea con más foco del mes en Laboratorio | hecho (`ef75014` → F5, v282–v286) |
 | Fase 6 — Medidas corporales y fotos de progreso (`docs/FASE6-MEDIDAS.md`): IndexedDB v5 con `medidas` (derivado del log, en respaldo y espejo) y `fotos_progreso` (Blobs solo del dispositivo); Entreno › Cuerpo con tarjeta de peso y variación a 30 días, hoja de registro, historial, gráfico de peso (30/90/365 días, media de 7 días), mini-gráficos de perímetros, fila "Peso" en el Laboratorio, fotos reducidas a 1080 px con galería y comparación antes / ahora, y "Exportar / Importar fotos" en un archivo aparte. Además: chaflanes en el Laboratorio, foco en curso fuera del respaldo, aviso al actualizar la base con varias ventanas y navegación desde sub-vistas sin repintados tardíos | hecho (`2a5e623` → F6, v287–v295) |
 | Limpieza: sin esquinas redondeadas salvo círculos (regla MK III: chaflán solo en `card-hero`) y números visibles en es-CL | hecha (`3d48cbc`, `7c91f92`, v296–v297) |
-| Recordatorios (`docs/RECORDATORIOS-PLAN.md`, `docs/RECORDATORIOS.md`): Web Push con VAPID sobre el Supabase de la sync. Tablas `push_suscripciones` y `recordatorios` con RLS, pg_cron cada minuto y la Edge Function `enviar-recordatorios` desplegada. Suscripción por dispositivo en Configuración, con aviso de prueba. El teléfono calcula los avisos de 7 días (hábitos a su hora, tareas el día que vencen, cobros el día anterior, resumen diario) y los sube; marcar o completar los borra. Interruptor y hora por tipo, y hora por hábito | hecho (`0f6abc9` → F5, v297–v300); **en pausa** (ver Pendiente) |
+| Recordatorios (`docs/RECORDATORIOS-PLAN.md`, `docs/RECORDATORIOS.md`): Web Push con VAPID sobre el Supabase de la sync. Tablas `push_suscripciones` y `recordatorios` con RLS, pg_cron cada minuto y la Edge Function `enviar-recordatorios` desplegada. Suscripción por dispositivo en Configuración, con aviso de prueba. El teléfono calcula los avisos de 7 días (hábitos a su hora, tareas el día que vencen, cobros el día anterior, resumen diario) y los sube; marcar o completar los borra. Interruptor y hora por tipo, y hora por hábito | hecho (`0f6abc9` → F5, v297–v300); verificado en el teléfono de Benjamin el 12 oct (ver Pendiente) |
 | Días: descanso planificado y nota por día (ideas 1 y 2, `docs/PLAN-PENDIENTES-OCT.md`). IndexedDB v6 con `dias` (derivado del log, en respaldo y espejo). La racha global y los cálculos de Hábitos saltan los días de descanso sin actividad; las insignias no cambian. Hoja "Día" desde Hoy, los mapas de actividad y la franja de Hábitos (mantener presionado), con rayado para el descanso y punto para la nota | hecho (`7042737` → `bda8a19`, v303–v305) |
 | Gastos anuales prorrateados (idea 3): cada uno con su sobre, apartado sugerido por mes y ajuste automático del presupuesto al empezar el mes (respeta un cambio a mano del mismo mes). Sección en Finanzas › Recurrentes, aviso agrupado en Hoy (ámbar desde 30 días; rojo con 7 días o menos sin alcanzar) y línea "Anuales" en el Laboratorio. Tabla `gastos_anuales` en el espejo | hecho (`aebd0f7` → `68b4bd8`, v306–v308) |
 | Catálogo: N8 Windshield Wipers (Limpiaparabrisas), Core avanzado con barra, viene de L-Sit y pide Dead Hang; N7 Puente de glúteo a una pierna revisado contra la propuesta y completado | hecho (`a648d15`, v309) |
@@ -79,15 +79,14 @@ caché y QA) está en `docs/CHANGELOG.md`.
 
 ## Pendiente
 
-### Recordatorios — en pausa
+### Recordatorios — probar con uso real
 
-En pausa por decisión de Benjamin (10 oct 2026): en su teléfono los avisos no
-llegan y no se sabe en qué paso falla. Siguiente paso: que Benjamin abra
-Configuración › Recordatorios › Diagnóstico en el teléfono y mande lo que
-copia "Copiar diagnóstico" (12 oct). Mientras siga en pausa, no tocar
-`js/core/push.js`, `js/**/recordatorios*.js` ni la Edge Function
-`enviar-recordatorios`, salvo que otro cambio los rompa (el Diagnóstico solo
-agregó el registro del último error en sus `catch`).
+Ya no está en pausa (12 oct 2026). El Diagnóstico desde el teléfono de
+Benjamin (Android 10, Chrome 154, en pestaña) salió completo: permiso
+concedido, service worker activo y controlando la página, suscripción creada,
+fila en `push_suscripciones` y sin errores; el aviso de prueba llegó. Falta
+solo probarlo con uso real y la app cerrada: un hábito con hora, una tarea
+que vence y un cobro recurrente.
 
 ### Code review
 

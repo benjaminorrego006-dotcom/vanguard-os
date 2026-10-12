@@ -1,5 +1,14 @@
 # Vanguard OS — Changelog
 
+## 12 oct 2026 — Recordatorios funcionando en el teléfono
+
+Solo docs, sin cambio de caché. Benjamin pegó el Diagnóstico desde su
+teléfono (Android 10, Chrome 154, en pestaña): permiso concedido, service
+worker activo y controlando la página, suscripción creada, fila en
+`push_suscripciones` y sin errores. El aviso de prueba llegó. Recordatorios
+deja de estar en pausa y pasa a "Hecho" en `docs/PLAN.md`; queda pendiente
+probarlo con uso real y la app cerrada (hábito, tarea y cobro).
+
 ## 12 oct 2026 — Pasada mínima de pulido
 
 Base: `8f549d5` (v314). Un commit por punto con su caché; cada punto
