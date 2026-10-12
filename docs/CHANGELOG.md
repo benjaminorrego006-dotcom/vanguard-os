@@ -24,6 +24,10 @@ probado a 375×812 y una pasada final a 1280×800, con el mismo método de QA
 
 - `m3-toast`: "Copiar diagnóstico" y "Exportar respaldo" (Configuración) muestran sus toasts rectos (0 px en las cuatro esquinas; en la base, 8 px) y con el punto de color en 50%. Consola limpia. ESLint `no-undef` limpio.
 
+### Pasada final a 1280
+
+- `m1-meta`, `m2-fin-modales` y `m3-toast`, y como regresión `p1-modales` y `b2-ui`: 5/5 a 1280×800, con la consola limpia. Desde 768 px, "Nueva meta" empieza después del riel. Memoria: mínimo 789 MB.
+
 ## 12 oct 2026 — Cierre de octubre (`docs/PLAN-CIERRE-OCT.md`)
 
 Base: `696a4b8` (v310). Mismo método de QA que la tanda anterior: scripts
