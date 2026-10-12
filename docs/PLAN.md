@@ -36,7 +36,7 @@ el resumen.
 
 ## Hecho
 
-Estado al 12 oct 2026 (`CACHE_NAME` v310). El detalle de cada tanda (commits,
+Estado al 12 oct 2026 (`CACHE_NAME` v314). El detalle de cada tanda (commits,
 caché y QA) está en `docs/CHANGELOG.md`.
 
 | | Estado |
@@ -72,6 +72,7 @@ caché y QA) está en `docs/CHANGELOG.md`.
 | Días: descanso planificado y nota por día (ideas 1 y 2, `docs/PLAN-PENDIENTES-OCT.md`). IndexedDB v6 con `dias` (derivado del log, en respaldo y espejo). La racha global y los cálculos de Hábitos saltan los días de descanso sin actividad; las insignias no cambian. Hoja "Día" desde Hoy, los mapas de actividad y la franja de Hábitos (mantener presionado), con rayado para el descanso y punto para la nota | hecho (`7042737` → `bda8a19`, v303–v305) |
 | Gastos anuales prorrateados (idea 3): cada uno con su sobre, apartado sugerido por mes y ajuste automático del presupuesto al empezar el mes (respeta un cambio a mano del mismo mes). Sección en Finanzas › Recurrentes, aviso agrupado en Hoy (ámbar desde 30 días; rojo con 7 días o menos sin alcanzar) y línea "Anuales" en el Laboratorio. Tabla `gastos_anuales` en el espejo | hecho (`aebd0f7` → `68b4bd8`, v306–v308) |
 | Catálogo: N8 Windshield Wipers (Limpiaparabrisas), Core avanzado con barra, viene de L-Sit y pide Dead Hang; N7 Puente de glúteo a una pierna revisado contra la propuesta y completado | hecho (`a648d15`, v309) |
+| Cierre de octubre (`docs/PLAN-CIERRE-OCT.md`): mapa de Finanzas en ámbar; modales, hojas y diálogos rectos en todas las vistas (también ConfirmDialog y Laboratorio); saludo de Hoy en una línea a 375, con "Día" junto a la fecha y área de toque de 44 px; Diagnóstico de Recordatorios en Configuración (solo lectura, con "Copiar diagnóstico"); MCP "playwright" solo en scope project | hecho (`a63acd2` → `147011a`, v311–v314) |
 
 ---
 
@@ -79,10 +80,13 @@ caché y QA) está en `docs/CHANGELOG.md`.
 
 ### Recordatorios — en pausa
 
-En pausa por decisión de Benjamin (10 oct 2026). Falta la prueba real en el
-teléfono. Mientras siga en pausa, no tocar `js/core/push.js`,
-`js/**/recordatorios*.js` ni la Edge Function `enviar-recordatorios`, salvo
-que otro cambio los rompa.
+En pausa por decisión de Benjamin (10 oct 2026): en su teléfono los avisos no
+llegan y no se sabe en qué paso falla. Siguiente paso: que Benjamin abra
+Configuración › Recordatorios › Diagnóstico en el teléfono y mande lo que
+copia "Copiar diagnóstico" (12 oct). Mientras siga en pausa, no tocar
+`js/core/push.js`, `js/**/recordatorios*.js` ni la Edge Function
+`enviar-recordatorios`, salvo que otro cambio los rompa (el Diagnóstico solo
+agregó el registro del último error en sus `catch`).
 
 ### Code review
 
