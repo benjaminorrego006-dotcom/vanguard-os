@@ -11,10 +11,15 @@ de 450 MB.
 | Punto | Caché | Qué cambia |
 |---|---|---|
 | P1.1 — Mapa de Finanzas en ámbar | v311 | El mapa de actividad de Finanzas (celdas, leyenda y borde del día elegido) pasa de `--accent-purple` (el dorado heredado, `#C9A24A`) a `--am`, el ámbar del módulo. El mapa de Tareas no cambia. |
+| P1.2 — Modales y hojas rectos | v312 | `css/components.css`: `.modal-content` pierde su radio base (28 px arriba en móvil, 24 px desde 640 px) y la barrita de arrastre (`::before`) de `.modal-content` y `.sheet-content` queda recta. Regla global nueva: `.modal-overlay .modal-content` y todo lo que va dentro de un `.modal-overlay` quedan con `border-radius: 0 !important`, en cualquier vista. Así cubre las vistas sin scope `mk3-*` (Laboratorio, por ejemplo), los radios inline de las plantillas viejas (chips de 20 px, inputs de 14 px, botones de 12 px) y ConfirmDialog (`#global-confirm-modal`), que tenía 24 px. Se excluyen los círculos: `.icon-chip`, `.avatar`, `.avatar-circle`, `.dia-punto` y todo lo que lleva 50% inline (en el código, todos los círculos usan una de esas formas). El chaflán de `.sheet-content` no cambia. |
 
 ### P1.1 — QA
 
 - `p1-heatmap` con el respaldo demo: las 22 celdas con movimientos de septiembre, los dos cuadros con color de la leyenda y el borde del día tocado dan `rgb(217, 138, 61)` (`--am`). Consola limpia. ESLint `no-undef` limpio.
+
+### P1.2 — QA
+
+- `p1-modales` abre 8 modales por la UI y mide el radio de la hoja, su barrita y todo lo visible adentro: Día y nueva tarea (Hoy), gasto, ingreso (`.sheet-content`) y ConfirmDialog al archivar un sobre (Finanzas), nuevo hábito, generador (Entreno) y nueva meta (Laboratorio). Corrida sobre la base (`a63acd2`, todavía sin el caso del ingreso): 6 de 7 tenían radio (ConfirmDialog 24 px y sus botones 12 px, la meta del Laboratorio 15 elementos, chips de 20 px en el gasto, barritas de 2 px). Con el cambio: los 8 rectos, y el círculo de 64 px de la confirmación de ingreso sigue en 50%. Consola limpia. ESLint `no-undef` limpio.
 
 ## 10 oct 2026 — Días, Gastos anuales y catálogo (`docs/PLAN-PENDIENTES-OCT.md`)
 

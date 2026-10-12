@@ -184,7 +184,7 @@
   background: var(--surface-1);
   background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0) 30%);
   width: 100%; max-width: 500px;
-  border-radius: 28px 28px 0 0;
+  border-radius: 0;
   border: 1px solid var(--glass-border); border-bottom: none;
   padding: 14px 24px calc(28px + env(safe-area-inset-bottom)) 24px;
   transform: translateY(100%); opacity: 0;
@@ -194,13 +194,23 @@
      ya separa la hoja del fondo oscuro detrás. */
 }
 .modal-content::before {
-  content: ''; display: block; width: 36px; height: 4px; border-radius: 2px;
+  content: ''; display: block; width: 36px; height: 4px;
   background: var(--surface-border); margin: 0 auto 18px auto;
 }
 @media (min-width: 640px) {
   .modal-overlay { align-items: center; padding: 20px; }
-  .modal-content { border-radius: 24px; border-bottom: 1px solid var(--glass-border); transform: scale(0.95) translateY(20px); padding: 30px 24px; }
+  .modal-content { border-bottom: 1px solid var(--glass-border); transform: scale(0.95) translateY(20px); padding: 30px 24px; }
   .modal-content::before { display: none; }
+}
+/* MK III: modales, hojas y diálogos rectos en todas las vistas, también en
+   las que no tienen scope mk3-* (Laboratorio, Ritual…) y en lo que va
+   adentro (inputs, chips, filas, botones con radio inline). El !important
+   le gana a los radios inline de las plantillas viejas. Los círculos y
+   anillos quedan: icon-chip, avatares, el punto de nota y todo lo que
+   lleva 50% inline. */
+.modal-overlay .modal-content,
+.modal-overlay *:not(.icon-chip):not(.avatar):not(.avatar-circle):not(.dia-punto):not([style*="50%"]) {
+  border-radius: 0 !important;
 }
 
 /* Sin esto, Chrome/Android dibuja el texto e ícono de type="date" con su
@@ -728,7 +738,7 @@ button.semana-bloque { cursor: pointer; }
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
 }
 .sheet-content::before {
-  content: ''; display: block; width: 36px; height: 4px; border-radius: 2px;
+  content: ''; display: block; width: 36px; height: 4px;
   background: var(--surface-border); margin: 0 auto 18px auto;
   cursor: grab;
 }
