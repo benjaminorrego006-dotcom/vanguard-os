@@ -502,14 +502,18 @@ export async function render() {
            el del encabezado global de la app, ver index.html). -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px;">
         <div style="min-width: 0;">
-          <h1 style="font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.4px;">${saludoPorHora()}${nombre ? `, ${escapeHtml(nombre)}` : ''}</h1>
-          <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">${escapeHtml(fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1))}</div>
+          <h1 style="font-size: clamp(18px, 5.3vw, 22px); font-weight: 800; margin: 0; letter-spacing: -0.4px;">${saludoPorHora()}${nombre ? `, ${escapeHtml(nombre)}` : ''}</h1>
+          <!-- Hoja "Día" (descanso planificado y nota de hoy): va en la línea
+               de la fecha, compacto, para que el saludo no se parta en dos
+               líneas a 375 px; el ::after le da el área de toque de 44 px. -->
+          <div class="hoy-fecha-fila">
+            <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">${escapeHtml(fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1))}</div>
+            <button type="button" id="btn-dia-hoy" class="dia-abrir dia-abrir--compacto tappable${diaHoy && diaHoy.descanso ? ' dia-abrir--descanso' : ''}" aria-label="Día de hoy: descanso planificado y nota${diaHoy && diaHoy.descanso ? ' (hoy es de descanso)' : ''}${diaHoy && diaHoy.nota ? ' (con nota)' : ''}">
+              ${diaHoy && diaHoy.descanso ? 'Descanso' : 'Día'}${diaHoy && diaHoy.nota ? '<span class="dia-punto" aria-hidden="true"></span>' : ''}
+            </button>
+          </div>
         </div>
         <div style="flex-shrink: 0; display: flex; align-items: center; gap: 6px;">
-        <!-- Hoja "Día" (descanso planificado y nota de hoy). -->
-        <button type="button" id="btn-dia-hoy" class="dia-abrir tappable${diaHoy && diaHoy.descanso ? ' dia-abrir--descanso' : ''}" aria-label="Día de hoy: descanso planificado y nota${diaHoy && diaHoy.descanso ? ' (hoy es de descanso)' : ''}${diaHoy && diaHoy.nota ? ' (con nota)' : ''}">
-          ${diaHoy && diaHoy.descanso ? 'Descanso' : 'Día'}${diaHoy && diaHoy.nota ? '<span class="dia-punto" aria-hidden="true"></span>' : ''}
-        </button>
         <button id="chip-racha" class="tappable" aria-label="Racha de ${rachaGlobal.actual} ${rachaGlobal.actual === 1 ? 'día' : 'días'}, ${rachaGlobal.vidas} ${rachaGlobal.vidas === 1 ? 'vida extra' : 'vidas extra'}. Ver hábitos" style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 6px 12px 6px 10px; border-radius: 999px; cursor: pointer;">
           🔥 <span class="num">${rachaGlobal.actual}</span>
           <span class="chip-vidas${rachaGlobal.vidas > 0 ? '' : ' chip-vidas--vacio'}" aria-hidden="true">· ${svgEscudo({ lleno: rachaGlobal.vidas > 0, size: 12 })}<span class="num">${rachaGlobal.vidas}</span></span>

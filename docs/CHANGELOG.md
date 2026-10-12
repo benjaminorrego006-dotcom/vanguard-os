@@ -12,6 +12,7 @@ de 450 MB.
 |---|---|---|
 | P1.1 — Mapa de Finanzas en ámbar | v311 | El mapa de actividad de Finanzas (celdas, leyenda y borde del día elegido) pasa de `--accent-purple` (el dorado heredado, `#C9A24A`) a `--am`, el ámbar del módulo. El mapa de Tareas no cambia. |
 | P1.2 — Modales y hojas rectos | v312 | `css/components.css`: `.modal-content` pierde su radio base (28 px arriba en móvil, 24 px desde 640 px) y la barrita de arrastre (`::before`) de `.modal-content` y `.sheet-content` queda recta. Regla global nueva: `.modal-overlay .modal-content` y todo lo que va dentro de un `.modal-overlay` quedan con `border-radius: 0 !important`, en cualquier vista. Así cubre las vistas sin scope `mk3-*` (Laboratorio, por ejemplo), los radios inline de las plantillas viejas (chips de 20 px, inputs de 14 px, botones de 12 px) y ConfirmDialog (`#global-confirm-modal`), que tenía 24 px. Se excluyen los círculos: `.icon-chip`, `.avatar`, `.avatar-circle`, `.dia-punto` y todo lo que lleva 50% inline (en el código, todos los círculos usan una de esas formas). El chaflán de `.sheet-content` no cambia. |
+| P1.3 — Saludo de Hoy en una línea | v313 | El botón "Día" sale de la fila del saludo y pasa a la línea de la fecha (`.hoy-fecha-fila`), compacto (`.dia-abrir--compacto`: 24 px de alto, 11 px de letra). Un `::after` invisible le da un área de toque de 44 × 44 px, o el ancho del botón si es mayor ("Descanso"); antes medía 41 × 32. Decisión técnica: con la racha sola, "Buenas tardes, Benjamin" ya se partía antes de A3 (necesita 260 px y la fila deja 241 a 375; medido también en la base `1ed244e`). Por eso el saludo pasa a `font-size: clamp(18px, 5.3vw, 22px)`: ~20 px a 375 y los 22 px de siempre desde unos 415 px. |
 
 ### P1.1 — QA
 
@@ -20,6 +21,10 @@ de 450 MB.
 ### P1.2 — QA
 
 - `p1-modales` abre 8 modales por la UI y mide el radio de la hoja, su barrita y todo lo visible adentro: Día y nueva tarea (Hoy), gasto, ingreso (`.sheet-content`) y ConfirmDialog al archivar un sobre (Finanzas), nuevo hábito, generador (Entreno) y nueva meta (Laboratorio). Corrida sobre la base (`a63acd2`, todavía sin el caso del ingreso): 6 de 7 tenían radio (ConfirmDialog 24 px y sus botones 12 px, la meta del Laboratorio 15 elementos, chips de 20 px en el gasto, barritas de 2 px). Con el cambio: los 8 rectos, y el círculo de 64 px de la confirmación de ingreso sigue en 50%. Consola limpia. ESLint `no-undef` limpio.
+
+### P1.3 — QA
+
+- `p1-saludo` con el nombre "Benjamin" a las 9, 15 y 21 h, y con descanso y nota guardados desde la hoja: el saludo queda en una línea en los 4 casos (en la base: 2 líneas, y 3 con "Descanso"). El botón se ve de 35 × 24 ("Día") o 76 × 24 ("Descanso"), y los cuatro puntos a 21 px de su centro lo tocan. Tocarlo abre la hoja. Regresión: `a3-ui` vuelve a pasar. Consola limpia. ESLint `no-undef` limpio.
 
 ## 10 oct 2026 — Días, Gastos anuales y catálogo (`docs/PLAN-PENDIENTES-OCT.md`)
 

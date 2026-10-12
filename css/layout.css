@@ -1071,6 +1071,12 @@ html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
 /* Botón chico "Día" del encabezado de Hoy y del detalle de un mapa. */
 .dia-abrir { position: relative; flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 10px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .dia-abrir--descanso { border-color: var(--vi); color: var(--vi); }
+/* Hoy: "Día" compacto junto a la fecha. Se ve de 24 px, pero el ::after
+   invisible lleva el área de toque a 44 × 44 px (o al ancho del botón si
+   es mayor, como "Descanso"). */
+.hoy-fecha-fila { display: flex; align-items: center; gap: 10px; margin-top: 2px; min-width: 0; }
+.dia-abrir--compacto { min-height: 24px; padding: 0 8px; font-size: 11px; }
+.dia-abrir--compacto::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: 44px; transform: translate(-50%, -50%); }
 .dia-abrir:focus-visible { outline: 2px solid var(--vi); outline-offset: 2px; }
 /* Rayado neutro del descanso y punto de nota. */
 .dia-rayado { background: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--text-secondary) 55%, transparent) 3px 5px), var(--surface-2) !important; opacity: 1 !important; color: var(--text-secondary) !important; }
