@@ -124,9 +124,9 @@
   font-weight: 600;
   text-transform: uppercase;
 }
-.badge--high { background-color: rgba(239, 68, 68, 0.15); color: var(--state-high); }
-.badge--medium { background-color: rgba(245, 158, 11, 0.15); color: var(--state-medium); }
-.badge--low { background-color: rgba(34, 197, 94, 0.15); color: var(--state-low); }
+.badge--high { background-color: color-mix(in srgb, var(--fondo-alerta) 15%, transparent); color: var(--state-high-t); }
+.badge--medium { background-color: color-mix(in srgb, var(--fondo-aviso) 15%, transparent); color: var(--state-medium-t); }
+.badge--low { background-color: color-mix(in srgb, var(--fondo-exito) 15%, transparent); color: var(--state-low-t); }
 
 /* Avatares */
 .avatar {
@@ -263,6 +263,7 @@ input[type="date"] { color-scheme: dark; }
   --accent-teal: var(--cy);
   --accent-primary: var(--cy); /* focus ring de inputs (.input-group input:focus) */
   --state-high: var(--rd); /* el rojo solo debe verse en alertas reales */
+  --accent-teal-t: var(--cy-t); --accent-primary-t: var(--cy-t); --state-high-t: var(--rd-t); /* tokens de texto (tema Gris, variables.css) */
   font-variant-numeric: tabular-nums;
 }
 
@@ -277,6 +278,7 @@ input[type="date"] { color-scheme: dark; }
   --accent-purple: var(--am); /* Finanzas dejaba de compartir el morado con Tareas */
   --accent-primary: var(--am);
   --state-high: var(--rd);
+  --accent-purple-t: var(--am-t); --accent-primary-t: var(--am-t); --state-high-t: var(--rd-t);
   font-variant-numeric: tabular-nums;
 }
 
@@ -291,6 +293,7 @@ input[type="date"] { color-scheme: dark; }
   --accent-purple: var(--vi); /* Tareas ya no comparte el morado con Finanzas */
   --accent-primary: var(--vi);
   --state-high: var(--rd);
+  --accent-purple-t: var(--vi-t); --accent-primary-t: var(--vi-t); --state-high-t: var(--rd-t);
   font-variant-numeric: tabular-nums;
 }
 
@@ -309,6 +312,7 @@ input[type="date"] { color-scheme: dark; }
   --text-secondary: var(--t2);
   --text-disabled: var(--t3);
   --state-high: var(--rd);
+  --state-high-t: var(--rd-t);
   font-variant-numeric: tabular-nums;
 }
 
@@ -415,7 +419,7 @@ input[type="date"] { color-scheme: dark; }
 .mk3-entreno .progreso-cat.active {
   border-color: var(--cy);
   background: var(--cyb);
-  color: var(--cy);
+  color: var(--cy-t);
 }
 /* clip-path recorta el outline y también buena parte del drop-shadow (en
    la práctica queda solo el brillo interior), así que el foco suma el
@@ -433,7 +437,7 @@ input[type="date"] { color-scheme: dark; }
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  color: var(--vi);
+  color: var(--vi-t);
 }
 .chip-vidas--vacio { color: var(--text-disabled); }
 .escudo-vida { display: block; flex-shrink: 0; }
@@ -444,7 +448,7 @@ input[type="date"] { color-scheme: dark; }
   margin-top: 6px;
   color: var(--vib);
 }
-.reactor-vida--llena { color: var(--vi); }
+.reactor-vida--llena { color: var(--vi-t); }
 .reactor-vidas-texto {
   margin-top: 14px;
   text-align: center;
@@ -484,7 +488,7 @@ input[type="date"] { color-scheme: dark; }
   box-sizing: border-box;
   border: 1px solid var(--surface-border);
   border-radius: 0;
-  color: var(--vi);
+  color: var(--vi-t);
 }
 .racha-dia--activo .racha-dia-marca {
   background: var(--vi);
@@ -664,7 +668,7 @@ button.semana-bloque { cursor: pointer; }
   height: 36px;
   flex-shrink: 0;
   background: color-mix(in srgb, var(--state-high) 18%, transparent);
-  color: var(--state-high);
+  color: var(--state-high-t);
 }
 .alerta-caja-cuerpo {
   flex: 1;
@@ -676,7 +680,7 @@ button.semana-bloque { cursor: pointer; }
 .alerta-caja-titulo {
   font-size: 13px;
   font-weight: 700;
-  color: var(--state-high);
+  color: var(--state-high-t);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -786,6 +790,7 @@ button.semana-bloque { cursor: pointer; }
   --rtp: rgba(139, 124, 255, 0.14);  /* tinte del círculo de racha */
   --accent-primary: var(--accent-ritual);
   --state-high: var(--rd);
+  --accent-ritual-t: #8B7CFF; --accent-primary-t: var(--accent-ritual-t); --state-high-t: var(--rd-t);
   font-variant-numeric: tabular-nums;
 }
 
@@ -800,6 +805,7 @@ button.semana-bloque { cursor: pointer; }
   --accent-plan: #4ADE80;            /* verde: distinto de cian/ámbar/violeta */
   --accent-primary: var(--accent-plan);
   --state-high: var(--rd);
+  --accent-plan-t: #4ADE80; --accent-primary-t: var(--accent-plan-t); --state-high-t: var(--rd-t);
   font-variant-numeric: tabular-nums;
 }
 
@@ -814,6 +820,7 @@ button.semana-bloque { cursor: pointer; }
   --accent-notas: #94A3B8;           /* gris azulado: la nota manda, no el color */
   --accent-primary: var(--accent-notas);
   --state-high: var(--rd);
+  --accent-notas-t: #94A3B8; --accent-primary-t: var(--accent-notas-t); --state-high-t: var(--rd-t);
   font-variant-numeric: tabular-nums;
 }
 
@@ -921,8 +928,8 @@ button.semana-bloque { cursor: pointer; }
 /* Tarjeta de sobre (R5): líneas de arrastre/transferencia y mini-gráfico
    de gasto contra el disponible de cada mes. Rojo solo con saldo negativo. */
 .sobre-linea { margin-top: 2px; color: var(--text-secondary); font-size: 11.5px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.sobre-linea.negativo { color: var(--state-high); }
-.fin-bc-figures.sobre-sobregiro { color: var(--state-high); }
+.sobre-linea.negativo { color: var(--state-high-t); }
+.fin-bc-figures.sobre-sobregiro { color: var(--state-high-t); }
 .sobre-spark { display: flex; align-items: flex-end; gap: 2px; height: 12px; flex-shrink: 0; }
 .sobre-spark div { width: 3px; background: var(--accent-primary); opacity: 0.7; }
 .sobre-spark div.excedido { background: var(--state-high); }

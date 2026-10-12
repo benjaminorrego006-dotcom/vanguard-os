@@ -10,13 +10,13 @@ import { mountSetPinFlow, requestPinVerification } from '../core/lock.js';
 export function renderPinSecuritySection() {
   if (db.isPinEnabled()) {
     return `
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 13px; color: var(--state-success); font-weight: 600;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 13px; color: var(--state-success-t); font-weight: 600;">
         <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--state-success); flex-shrink: 0;"></span>
         PIN activado
       </div>
       <div style="display: flex; gap: 12px;">
         <button id="btn-change-pin" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-weight: 600; cursor: pointer;">Cambiar PIN</button>
-        <button id="btn-disable-pin" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: transparent; color: var(--state-high); border: 1px solid var(--state-high); font-weight: 600; cursor: pointer;">Desactivar</button>
+        <button id="btn-disable-pin" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: transparent; color: var(--state-high-t); border: 1px solid var(--state-high); font-weight: 600; cursor: pointer;">Desactivar</button>
       </div>
     `;
   }

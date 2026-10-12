@@ -160,3 +160,89 @@
   --disco-5: #eeeeee; --disco-2-5: #212121; --disco-1-25: #757575; --disco-otro: #555555;
   --disco-texto: #ffffff; --disco-texto-claro: #000000; --disco-barra: #bdbdbd; --disco-manga: #9e9e9e;
 }
+
+/* --- Tema "Gris" (docs/PLAN-TEMA-GRIS.md): interfaz en grises, color solo
+   en el texto. Cada acento tiene dos tokens:
+   - --X (sin sufijo): fondo, borde, relleno, trazo, íconos y gráficos. En
+     html[data-tema="gris"] pasa a gris (abajo).
+   - --X-t: color de TEXTO. Mantiene el color en los dos temas.
+   En el tema "Color" los dos valen lo mismo, así que se ve igual que antes.
+   Los scopes MK III (components.css) repiten el par: si un scope redefine
+   --accent-primary, también redefine --accent-primary-t. --- */
+:root {
+  --cy-t: #4FA6B3; --am-t: #D98A3D; --vi-t: #737AB4; --rd-t: #C56056;
+  --accent-primary-t: #C9A24A;
+  --accent-purple-t: #C9A24A;
+  --accent-teal-t: #06B6D4;
+  --accent-orange-t: #F59E0B;
+  --accent-blue-t: #3B82F6;
+  --accent-ritual-t: #8B7CFF;
+  --accent-plan-t: #4ADE80;
+  --accent-notas-t: #94A3B8;
+  --state-high-t: #EF4444;
+  --state-medium-t: #F59E0B;
+  --state-low-t: #22C55E;
+  --state-success-t: #22C55E;
+  --state-info-t: #3B82F6;
+
+  /* Tintes de fondo de los estados (badges, íconos de alerta, toasts): el
+     mismo valor que --state-* tiene fuera de los scopes, con su
+     transparencia puesta en un color-mix donde se usa. */
+  --fondo-alerta: #EF4444;
+  --fondo-exito: #22C55E;
+  --fondo-aviso: #F59E0B;
+  --fondo-info: #3B82F6;
+}
+
+/* Grises del tema: cada familia de acento conserva una luminosidad propia
+   (cian la más clara, rojo la más oscura) para que barras, anillos y
+   series de gráficos se sigan distinguiendo entre sí sin color. Los
+   derivados (--cy2…, --amb…, --vib…) pasan al gris de su misma
+   luminosidad. Los tokens de texto (--X-t) no se tocan acá. Los scopes
+   MK III que redefinen un acento con var(--cy) etc. heredan el gris solos;
+   los que lo fijan con un valor propio se pisan en el bloque siguiente. */
+html[data-tema="gris"] {
+  --bg-base: #0A0A0B;
+  --surface-1: #151517;
+  --surface-2: #1E1E21;
+  --surface-border: rgba(46, 46, 50, 0.4);
+  --text-primary: #F5F5F7;
+  --text-secondary: #8E8E93;
+  --text-disabled: #4C4C52;
+  --glass-bg: rgba(20, 20, 22, 0.72);
+
+  --bg: #060607; --panel: #111113; --line: #2A2A2E; --div: #1C1C1F;
+  --t1: #E4E4E8; --t2: #A0A0A6; --t3: #86868C; --t4: #828288; --t5: #8A8A90;
+
+  --cy: #B4B4BA; --cy2: #6A6A70; --cy3: #46464B; --cy4: #38383D; --cyb: #2C2C30; --cyp: #0E0E10;
+  --am: #9C9CA2; --am2: #6A6A70; --amd: #46464B; --amb: #222225; --amp: #0E0E10;
+  --vi: #88888F; --vib: #3A3A3F; --vid: #2E2E33; --vip: #0D0D0F; --vis: #161618;
+  --rd: #8E8E94; --rdb: #333337; --rd2: #4A4A4F;
+
+  --accent-primary: #D0D0D4;
+  --accent-purple: #D0D0D4;
+  --accent-teal: #B4B4BA;
+  --accent-orange: #9C9CA2;
+  --accent-muscular: #C8C8CC;
+  --accent-blue: #7A7A80;
+  --accent-ritual: #9A9AA0;
+  --accent-plan: #A8A8AE;
+  --accent-notas: #8E8E94;
+
+  --state-high: #8E8E94;
+  --state-medium: #9C9CA2;
+  --state-low: #A8A8AE;
+  --state-success: #A8A8AE;
+  --state-info: #7A7A80;
+  --fondo-alerta: #8E8E94;
+  --fondo-exito: #A8A8AE;
+  --fondo-aviso: #9C9CA2;
+  --fondo-info: #7A7A80;
+
+  --disco-25: #4A4A4F; --disco-20: #5E5E64; --disco-15: #CFCFD3; --disco-10: #747479;
+  --disco-5: #EEEEEE; --disco-2-5: #212121; --disco-1-25: #757575; --disco-otro: #555555;
+}
+
+html[data-tema="gris"] .mk3-ritual { --accent-ritual: #9A9AA0; --rtp: rgba(160, 160, 166, 0.14); }
+html[data-tema="gris"] .mk3-planificador { --accent-plan: #A8A8AE; }
+html[data-tema="gris"] .mk3-anotaciones { --accent-notas: #8E8E94; }

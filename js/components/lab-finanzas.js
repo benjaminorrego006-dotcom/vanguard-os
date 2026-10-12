@@ -57,7 +57,7 @@ async function renderDesglose() {
     : `<div style="height: 200px;"><canvas id="lab-fin-donut"></canvas></div><div style="margin-top: 14px;">${renderDonutLegend(entries)}</div>`;
 
   const trendHtml = budget.trend
-    ? `<div style="font-size: 12.5px; font-weight: 700; margin-top: 10px; color: ${budget.trend.isUp ? 'var(--rd)' : 'var(--state-success)'};">Gastaste ${budget.trend.pct}% ${budget.trend.isUp ? 'más' : 'menos'} que ${budget.trend.hastaDia ? 'a esta altura del mes pasado' : 'el mes pasado'}</div>`
+    ? `<div style="font-size: 12.5px; font-weight: 700; margin-top: 10px; color: ${budget.trend.isUp ? 'var(--rd-t)' : 'var(--state-success-t)'};">Gastaste ${budget.trend.pct}% ${budget.trend.isUp ? 'más' : 'menos'} que ${budget.trend.hastaDia ? 'a esta altura del mes pasado' : 'el mes pasado'}</div>`
     : '';
 
   return `
@@ -153,7 +153,7 @@ async function renderHitos() {
     : mesesSinExceder.map(m => `
         <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--surface-border);">
           <span style="font-size: 13px; color: var(--text-primary);">${mesLabel(m.mes)}</span>
-          <span style="font-size: 12px; color: var(--state-success); font-weight: 700;">✓ Sin excederte</span>
+          <span style="font-size: 12px; color: var(--state-success-t); font-weight: 700;">✓ Sin excederte</span>
         </div>`).join('');
 
   const categoriasHtml = categoriasFuera.length === 0
@@ -161,7 +161,7 @@ async function renderHitos() {
     : categoriasFuera.map(c => `
         <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--surface-border);">
           <span style="font-size: 13px; color: var(--text-primary);">${c.categoria}</span>
-          <span style="font-size: 12px; color: var(--rd); font-weight: 700;">${c.meses}/${c.totalMeses} meses</span>
+          <span style="font-size: 12px; color: var(--rd-t); font-weight: 700;">${c.meses}/${c.totalMeses} meses</span>
         </div>`).join('');
 
   const ahorroChartHtml = renderMiniChart(tendenciaAhorro, {

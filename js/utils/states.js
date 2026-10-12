@@ -54,9 +54,9 @@ export function Toast(message, type = 'info', duration = 2500) {
 
   let bgColor = 'var(--surface-2)';
   let color = 'var(--text-primary)';
-  if (type === 'success') { bgColor = 'rgba(34, 197, 94, 0.15)'; color = 'var(--state-success)'; }
-  if (type === 'error') { bgColor = 'rgba(239, 68, 68, 0.15)'; color = 'var(--state-high)'; }
-  if (type === 'info') { bgColor = 'rgba(59, 130, 246, 0.15)'; color = 'var(--state-info)'; }
+  if (type === 'success') { bgColor = 'color-mix(in srgb, var(--fondo-exito) 15%, transparent)'; color = 'var(--state-success)'; }
+  if (type === 'error') { bgColor = 'color-mix(in srgb, var(--fondo-alerta) 15%, transparent)'; color = 'var(--state-high)'; }
+  if (type === 'info') { bgColor = 'color-mix(in srgb, var(--fondo-info) 15%, transparent)'; color = 'var(--state-info)'; }
   if (type === 'pr') { bgColor = 'color-mix(in srgb, var(--accent-purple) 15%, transparent)'; color = 'var(--accent-purple)'; }
 
   const toast = document.createElement('div');

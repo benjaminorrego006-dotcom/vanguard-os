@@ -169,8 +169,8 @@ export function renderTaskForm() {
           `).join('')}
         </div>
 
-        <div id="task-focos" hidden style="margin:-12px 0 18px; font-size:13px; font-weight:600; color:var(--vi);"></div>
-        <button type="button" id="btn-task-foco" class="tappable" hidden style="width:100%; min-height:44px; margin:-10px 0 20px; background:transparent; border:1px solid var(--vi); color:var(--vi); font:inherit; font-size:13px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; cursor:pointer;">Foco 25 min</button>
+        <div id="task-focos" hidden style="margin:-12px 0 18px; font-size:13px; font-weight:600; color:var(--vi-t);"></div>
+        <button type="button" id="btn-task-foco" class="tappable" hidden style="width:100%; min-height:44px; margin:-10px 0 20px; background:transparent; border:1px solid var(--vi); color:var(--vi-t); font:inherit; font-size:13px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; cursor:pointer;">Foco 25 min</button>
 
         <div class="input-group">
           <label for="task-title">Título</label>
@@ -225,7 +225,7 @@ export function renderTaskForm() {
 
         <div style="display: flex; gap: 10px; margin-top: 20px;">
           <button id="btn-save-task" class="btn-primary" style="background: var(--accent-purple); color: var(--bg-base); flex: 1; margin-top:0;">Guardar</button>
-          <button id="btn-delete-task-modal" type="button" style="display:none; background: transparent; border: 1.5px solid var(--rdb); color: var(--rd); padding: 0 18px; font-weight:700; font-size:13px; cursor:pointer;">Eliminar</button>
+          <button id="btn-delete-task-modal" type="button" style="display:none; background: transparent; border: 1.5px solid var(--rdb); color: var(--rd-t); padding: 0 18px; font-weight:700; font-size:13px; cursor:pointer;">Eliminar</button>
         </div>
         <button id="btn-cancel-task" type="button" style="background: transparent; border: none; color: var(--text-secondary); width: 100%; padding: 12px; margin-top: 8px; cursor: pointer; font-size: 13px;">Cancelar</button>
       </div>

@@ -367,7 +367,7 @@ async function renderResumenHabitos(habitos, hoyIso) {
         : 'Sin racha y todavía sin marcar hoy.';
       riesgoHtml = `
         <div class="card" style="padding: 16px; border-color: color-mix(in srgb, var(--state-high) 35%, var(--surface-border));">
-          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--state-high); margin-bottom: 8px;">En riesgo hoy</div>
+          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--state-high-t); margin-bottom: 8px;">En riesgo hoy</div>
           <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${escapeHtml(masFlojo.nombre)}</div>
           <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px;">${rachaTxt}</div>
         </div>`;
@@ -513,7 +513,7 @@ async function renderDetalle(id) {
 
       <div style="display: flex; gap: 12px;">
         <button id="btn-editar-habito-detalle" class="tappable" style="flex: 1; min-height: 44px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-weight: 700; cursor: pointer;">Editar nombre</button>
-        <button id="btn-eliminar-habito-detalle" class="tappable" style="flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--surface-border); color: var(--state-high); font-weight: 700; cursor: pointer;">Eliminar</button>
+        <button id="btn-eliminar-habito-detalle" class="tappable" style="flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--surface-border); color: var(--state-high-t); font-weight: 700; cursor: pointer;">Eliminar</button>
       </div>
 
       ${renderHabitoForm()}

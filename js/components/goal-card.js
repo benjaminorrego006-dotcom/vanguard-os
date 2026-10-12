@@ -80,7 +80,7 @@ export function renderGoalCard(goal) {
     const diasRestantes = diasEntre(diaKeyDe(new Date()), goal.deadline);
     const fechaLabel = formatFechaCorta(fechaLimite);
     const vencida = diasRestantes < 0 && !goal.completed;
-    deadlineHtml = `<div style="font-size: 11px; color: ${vencida ? 'var(--state-high)' : 'var(--text-disabled)'}; margin-top: 6px;">${vencida ? 'Venció el' : 'Vence el'} ${fechaLabel}${!vencida && !goal.completed ? ` &bull; ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}` : ''}</div>`;
+    deadlineHtml = `<div style="font-size: 11px; color: ${vencida ? 'var(--state-high-t)' : 'var(--text-disabled)'}; margin-top: 6px;">${vencida ? 'Venció el' : 'Vence el'} ${fechaLabel}${!vencida && !goal.completed ? ` &bull; ${diasRestantes} día${diasRestantes === 1 ? '' : 's'}` : ''}</div>`;
   }
 
   const autoTrackHtml = goal.autoTrack

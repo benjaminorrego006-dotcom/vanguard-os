@@ -39,7 +39,7 @@ export function renderRutinaForm(categoria) {
       </div>
 
       <div style="background: color-mix(in srgb, var(--accent-teal) 10%, transparent); border-left: 3px solid var(--accent-teal); padding: 10px 12px; font-size: 11.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
-        Empieza a escribir y elige de la lista para que tus series cuenten en <b style="color: var(--accent-teal);">Estándares de Fuerza</b> y en el <b style="color: var(--accent-teal);">Árbol de Progresión</b>. Puedes seguir escribiendo cualquier nombre si prefieres.
+        Empieza a escribir y elige de la lista para que tus series cuenten en <b style="color: var(--accent-teal-t);">Estándares de Fuerza</b> y en el <b style="color: var(--accent-teal-t);">Árbol de Progresión</b>. Puedes seguir escribiendo cualquier nombre si prefieres.
       </div>
 
       <button id="btn-add-ejercicio" type="button" class="tappable" style="width: 100%; padding: 13px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 24px;">
@@ -108,7 +108,7 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
       const prevBlock = div.previousElementSibling;
       const prevNombre = (prevBlock && prevBlock.querySelector('.ej-nombre').value.trim()) || 'el ejercicio anterior';
       if (activo) {
-        btnAgrupar.style.cssText = 'display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--state-medium) 14%, transparent); border: 1px solid var(--state-medium); color: var(--state-medium); padding: 8px; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; margin-top: 4px;';
+        btnAgrupar.style.cssText = 'display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--state-medium) 14%, transparent); border: 1px solid var(--state-medium); color: var(--state-medium-t); padding: 8px; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; margin-top: 4px;';
         btnAgrupar.innerHTML = `${linkSvg}Agrupado en superserie con ${escapeHtml(prevNombre)}`;
       } else {
         btnAgrupar.style.cssText = 'display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 4px;';
@@ -146,7 +146,7 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
       const itemsHtml = matches.map(e => `
         <div class="ac-item tappable" data-nombre="${escapeHtml(e.nombre)}" style="padding: 10px 12px; font-size: 12.5px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; border-bottom: 1px solid var(--surface-border);">
           <span style="color: var(--text-primary); font-weight: 600; min-width: 0;">${escapeHtml(e.nombre)} <span style="color: var(--text-disabled); font-weight: 500;">· ${GRUPO_MUSCULAR_LABELS[e.grupoMuscular] || e.grupoMuscular}</span></span>
-          ${e.esEstandar ? `<span style="font-size: 9px; font-weight: 700; color: var(--accent-teal); background: color-mix(in srgb, var(--accent-teal) 14%, transparent); padding: 1px 6px; text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0;">Estándar</span>` : ''}
+          ${e.esEstandar ? `<span style="font-size: 9px; font-weight: 700; color: var(--accent-teal-t); background: color-mix(in srgb, var(--accent-teal) 14%, transparent); padding: 1px 6px; text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0;">Estándar</span>` : ''}
         </div>
       `).join('');
       const libreHtml = `<div class="ac-item ac-item-libre tappable" style="padding: 10px 12px; font-size: 12px; cursor: pointer; color: var(--text-secondary); font-style: italic;">+ Usar "${escapeHtml(inputNombre.value.trim())}" tal cual (no vinculado a Estándares)</div>`;

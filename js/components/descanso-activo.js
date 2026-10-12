@@ -28,7 +28,7 @@ export function renderDescansoActivoCard({ nombre, conBoton = false } = {}) {
       </div>
       <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px 0;">Hoy no toca fuerza: la semana ya quedó cubierta.</p>
       <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;">
-        ${SUGERENCIAS.map(s => `<li style="font-size: 13px; color: var(--text-primary); display: flex; gap: 8px;"><span aria-hidden="true" style="color: var(--accent-teal);">•</span><span>${s}</span></li>`).join('')}
+        ${SUGERENCIAS.map(s => `<li style="font-size: 13px; color: var(--text-primary); display: flex; gap: 8px;"><span aria-hidden="true" style="color: var(--accent-teal-t);">•</span><span>${s}</span></li>`).join('')}
       </ul>
       ${conBoton ? `<button type="button" id="btn-descanso-activo-hecho" class="btn-primary tappable" style="background: var(--accent-teal); color: #000; margin-top: 16px; padding: 12px; font-size: 14px;">Marcar como hecho</button>` : ''}
     </div>

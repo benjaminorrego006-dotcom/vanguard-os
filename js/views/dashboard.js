@@ -91,12 +91,12 @@ function renderAgenda({ tareasHoy, planHoy, habitosPend, atrasadas, hoyIso }) {
       </button>
       <div style="flex: 1; min-width: 0;">
         <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(t.texto)}</div>
-        <div style="font-size: 11px; color: var(--state-high); margin-top: 1px;">${t.tipo === 'plan' ? '<span style="color: var(--text-secondary);">Semana · </span>' : ''}${haceTexto(diasAtras(t.fecha))}</div>
+        <div style="font-size: 11px; color: var(--state-high-t); margin-top: 1px;">${t.tipo === 'plan' ? '<span style="color: var(--text-secondary);">Semana · </span>' : ''}${haceTexto(diasAtras(t.fecha))}</div>
       </div>
       <button class="agenda-mover tappable" data-tipo="${t.tipo}" data-id="${t.id}" style="flex-shrink: 0; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 8px 10px; font-size: 12px; font-weight: 600; cursor: pointer;">Mover a hoy</button>
     </div>`;
   const atrasadasHtml = atrasadas.length === 0 ? '' : `
-      <button id="hoy-atrasadas-toggle" class="tappable" aria-expanded="${atrasadasAbierta}" aria-controls="hoy-atrasadas-lista" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: color-mix(in srgb, var(--state-high) 12%, transparent); border: 1px solid color-mix(in srgb, var(--state-high) 40%, transparent); color: var(--state-high); padding: 10px 12px; margin: 4px 0 6px; font-size: 13px; font-weight: 700; cursor: pointer;">
+      <button id="hoy-atrasadas-toggle" class="tappable" aria-expanded="${atrasadasAbierta}" aria-controls="hoy-atrasadas-lista" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: color-mix(in srgb, var(--state-high) 12%, transparent); border: 1px solid color-mix(in srgb, var(--state-high) 40%, transparent); color: var(--state-high-t); padding: 10px 12px; margin: 4px 0 6px; font-size: 13px; font-weight: 700; cursor: pointer;">
         <span>${atrasadas.length} ${atrasadas.length === 1 ? 'atrasada' : 'atrasadas'}</span>
         <svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition: transform 150ms ease; transform: rotate(${atrasadasAbierta ? 180 : 0}deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </button>
@@ -458,7 +458,7 @@ export async function render() {
 
   const installBannerHtml = debeMostrarBannerInstalar() ? `
     <div id="install-banner" class="card" style="padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
-      <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(92, 225, 230, 0.15); color: var(--cy); flex-shrink: 0;">
+      <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(92, 225, 230, 0.15); color: var(--cy-t); flex-shrink: 0;">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
       </div>
       <div style="flex: 1; min-width: 0;">
@@ -586,7 +586,7 @@ export async function render() {
       <div style="margin-bottom: 20px;">
         <div class="flex-between" style="margin: 0 0 4px 0;">
           <h2 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-primary);">Laboratorio</h2>
-          <a href="#laboratorio" style="font-size: 12.5px; font-weight: 700; color: var(--cy); text-decoration: none;">Ver todo →</a>
+          <a href="#laboratorio" style="font-size: 12.5px; font-weight: 700; color: var(--cy-t); text-decoration: none;">Ver todo →</a>
         </div>
         <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 14px 0;">Tu distribución de gasto del mes.</p>
         <div id="lab-section-content">
@@ -598,7 +598,7 @@ export async function render() {
       <!-- Última nota -->
       ${ultimaNota ? `
         <div id="ultima-nota" class="card tappable" style="padding: 14px 16px; margin-bottom: 20px; cursor: pointer;">
-          <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-notas); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Última nota${catUltimaNota ? ` · ${escapeHtml(catUltimaNota.nombre)}` : ''}</div>
+          <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-notas-t); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Última nota${catUltimaNota ? ` · ${escapeHtml(catUltimaNota.nombre)}` : ''}</div>
           <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">${escapeHtml(ultimaNota.titulo || 'Sin título')}</div>
           ${ultimaNota.texto ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(ultimaNota.texto)}</div>` : ''}
         </div>

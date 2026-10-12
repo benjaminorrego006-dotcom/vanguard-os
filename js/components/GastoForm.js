@@ -8,7 +8,7 @@ export function renderGastoForm() {
     <div id="gasto-modal" class="modal-overlay sheet-overlay">
       <div class="sheet-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); position: relative;">
         <div id="gasto-confirm-overlay" style="display:none; position:absolute; inset:0; z-index:5; background: var(--surface-1); border-radius: inherit; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
-          <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); display: flex; align-items: center; justify-content: center; animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: color-mix(in srgb, var(--fondo-alerta) 15%, transparent); display: flex; align-items: center; justify-content: center; animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
             <svg width="30" height="30" fill="none" stroke="var(--state-high)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </div>
           <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">Gasto registrado</div>
@@ -17,7 +17,7 @@ export function renderGastoForm() {
           <button class="btn-close-modal" style="width: 40px; height: 40px; flex-shrink: 0; background: var(--surface-2); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
             <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           </button>
-          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--state-high);">Registrar Gasto</h2>
+          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--state-high-t);">Registrar Gasto</h2>
         </div>
 
         <input type="hidden" id="gasto-tx-id">
@@ -113,7 +113,7 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
     if (env) {
       const rem = env.balance - num;
       if (rem < 0) {
-        context.style.color = 'var(--state-high)';
+        context.style.color = 'var(--state-high-t)';
         context.innerText = `Excederías tu sobre de ${env.name} en ${formatCurrency(Math.abs(rem))}`;
       } else {
         context.style.color = 'var(--text-secondary)';

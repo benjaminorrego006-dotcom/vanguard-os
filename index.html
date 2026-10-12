@@ -63,7 +63,19 @@
   <meta name="theme-color" content="#05070A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  
+  <script>
+    // Tema (docs/PLAN-TEMA-GRIS.md): "gris" por defecto o "color". Se pone
+    // data-tema en <html> antes de cargar el CSS para que el primer pintado
+    // ya salga con el tema elegido (sin parpadeo). Misma lectura que
+    // temaActual() en js/utils/tema.js.
+    (function () {
+      var t = 'gris';
+      try { if (localStorage.getItem('vg-tema') === 'color') t = 'color'; } catch (e) { /* sin almacenamiento: gris */ }
+      document.documentElement.setAttribute('data-tema', t);
+      if (t === 'gris') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#060607');
+    })();
+  </script>
+
   <!-- Inter/Space Grotesk/IBM Plex Mono autoalojadas (ver @font-face en
        variables.css) — nada de fonts.googleapis.com: una PWA offline-first
        no puede depender de una petición externa para verse bien, y menos

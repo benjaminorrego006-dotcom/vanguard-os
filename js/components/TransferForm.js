@@ -58,7 +58,7 @@ export function initTransferForm(db, getBudgetFn, refreshCallback) {
     const envFrom = b.envelopes.find(e => e.id === selectFrom.value);
     
     if (envFrom && num > envFrom.balance) {
-      context.style.color = 'var(--state-high)';
+      context.style.color = 'var(--state-high-t)';
       context.innerText = `No tienes suficientes fondos en ${envFrom.name} (Max: ${formatCurrency(envFrom.balance)})`;
     } else {
       context.style.color = 'var(--text-secondary)';

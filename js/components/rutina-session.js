@@ -146,7 +146,7 @@ export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = 
         resultsContainer.innerHTML = matches.map(e => `
           <button type="button" class="picker-item tappable" data-key="${escapeHtml(e.key)}" data-nombre="${escapeHtml(e.nombre)}" style="width: 100%; flex-shrink: 0; text-align: left; font: inherit; color: var(--text-primary); padding: 13px 16px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
             <span style="font-weight: 600; font-size: 15px;">${escapeHtml(e.nombre)}</span>
-            <span style="font-size: 11px; color: var(--accent-teal); text-transform: uppercase; border: 1px solid var(--accent-teal); padding: 2px 6px; border-radius: 4px;">${e.musculo}</span>
+            <span style="font-size: 11px; color: var(--accent-teal-t); text-transform: uppercase; border: 1px solid var(--accent-teal); padding: 2px 6px; border-radius: 4px;">${e.musculo}</span>
           </button>
         `).join('');
 
@@ -1616,7 +1616,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         ? `<ol style="margin: 6px 0 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px;">${meta.pasosEjecucion.map(p => `<li style="font-size: 13px; color: var(--text-primary); line-height: 1.4;">${p}</li>`).join('')}</ol>`
         : '';
       const erroresHtml = (meta.erroresComunes && meta.erroresComunes.length)
-        ? `<ul style="margin: 6px 0 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px;">${meta.erroresComunes.map(er => `<li style="font-size: 13px; color: var(--state-high); line-height: 1.4;">${er}</li>`).join('')}</ul>`
+        ? `<ul style="margin: 6px 0 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px;">${meta.erroresComunes.map(er => `<li style="font-size: 13px; color: var(--state-high-t); line-height: 1.4;">${er}</li>`).join('')}</ul>`
         : '';
 
       const overlay = document.createElement('div');
@@ -1630,19 +1630,19 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
           </div>
           ${meta.posturaInicial ? `
             <div style="margin-bottom: 14px;">
-              <div style="font-size: 11px; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Postura inicial</div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--accent-teal-t); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Postura inicial</div>
               <div style="font-size: 13px; color: var(--text-primary); line-height: 1.4;">${meta.posturaInicial}</div>
             </div>
           ` : ''}
           ${pasosHtml ? `
             <div style="margin-bottom: 14px;">
-              <div style="font-size: 11px; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 0.5px;">Ejecución</div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--accent-teal-t); text-transform: uppercase; letter-spacing: 0.5px;">Ejecución</div>
               ${pasosHtml}
             </div>
           ` : ''}
           ${erroresHtml ? `
             <div style="margin-bottom: ${meta.musculoSecundario ? '14px' : '0'};">
-              <div style="font-size: 11px; font-weight: 700; color: var(--state-high); text-transform: uppercase; letter-spacing: 0.5px;">Errores comunes</div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--state-high-t); text-transform: uppercase; letter-spacing: 0.5px;">Errores comunes</div>
               ${erroresHtml}
             </div>
           ` : ''}
@@ -2196,7 +2196,7 @@ function preguntarOpciones({ id, titulo, texto, opciones }) {
       ? 'background: var(--cy); border: 1px solid var(--cy); color: var(--bg); font-weight: 800;'
       : o.neutro
         ? 'background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); font-weight: 700;'
-        : 'background: transparent; border: 1px solid var(--cy); color: var(--cy); font-weight: 700;';
+        : 'background: transparent; border: 1px solid var(--cy); color: var(--cy-t); font-weight: 700;';
     overlay.innerHTML = `
       <div class="modal-content" style="padding: 22px;">
         <h3 id="${id}-titulo" style="margin: 0 0 6px 0; font-size: 18px; font-weight: 800; color: var(--text-primary);">${titulo}</h3>

@@ -108,7 +108,7 @@ async function renderSugerenciaNivelBanner() {
   const visibles = sugerenciasExpandido ? sugerencias : sugerencias.slice(0, SUGERENCIAS_VISIBLES);
   const tarjeta = (s) => `
     <div class="card card-hero sugerencia-nivel" data-rama="${s.rama}" style="padding: 14px 16px; margin-bottom: 12px; border-left: 3px solid var(--accent-teal);">
-      <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Listo para avanzar · ${NIVEL_SUGERIDO_LABEL[s.nivelSugerido]}</div>
+      <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-teal-t); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Listo para avanzar · ${NIVEL_SUGERIDO_LABEL[s.nivelSugerido]}</div>
       <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1.3;">${escapeHtml(s.ramaLabel)}: ${escapeHtml(s.ejercicioActual.nombre)} → ${escapeHtml(s.ejercicioSiguiente.nombre)}</div>
       <div title="${escapeHtml(s.evidencia)}" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(s.evidencia)}</div>
       <div style="display: flex; gap: 10px; margin-top: 12px;">
@@ -117,7 +117,7 @@ async function renderSugerenciaNivelBanner() {
       </div>
     </div>`;
   const verMas = sugerencias.length > SUGERENCIAS_VISIBLES
-    ? `<button id="btn-sugerencias-ver-mas" class="tappable" style="background: transparent; border: none; color: var(--accent-teal); font-size: 12.5px; font-weight: 700; padding: 4px 0 16px; cursor: pointer;">${sugerenciasExpandido ? 'Ver menos' : `Ver ${sugerencias.length - SUGERENCIAS_VISIBLES} más`}</button>`
+    ? `<button id="btn-sugerencias-ver-mas" class="tappable" style="background: transparent; border: none; color: var(--accent-teal-t); font-size: 12.5px; font-weight: 700; padding: 4px 0 16px; cursor: pointer;">${sugerenciasExpandido ? 'Ver menos' : `Ver ${sugerencias.length - SUGERENCIAS_VISIBLES} más`}</button>`
     : '';
   contenedor.innerHTML = visibles.map(tarjeta).join('') + verMas;
 
@@ -227,7 +227,7 @@ function renderSesionEnCurso() {
   const marcadas = b.ejercicios.reduce((n, ej) => n + (ej.series || []).filter(s => s.checked).length, 0);
   return `
     <section id="entreno-sesion-en-curso" aria-label="Sesión en curso" style="background: var(--surface-1); border: 1px solid var(--cy3); border-left: 3px solid var(--cy); padding: 14px 16px; margin-bottom: 20px;">
-      <div style="font-size: 12px; color: var(--cy); font-weight: 700; margin-bottom: 4px;">Tienes una sesión en curso</div>
+      <div style="font-size: 12px; color: var(--cy-t); font-weight: 700; margin-bottom: 4px;">Tienes una sesión en curso</div>
       <div style="font-size: 16px; font-weight: 800; color: var(--text-primary);">${nombre} <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">· ${tiempo}</span></div>
       <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;"><span class="num">${marcadas}</span> ${marcadas === 1 ? 'serie marcada' : 'series marcadas'}</div>
       <div style="display: flex; gap: 8px; margin-top: 12px;">
@@ -258,7 +258,7 @@ export async function render() {
   const faltaNivel = !nivelGuardado;
   const tarjetaPerfilHtml = (faltaPerfil || faltaNivel) && !tarjetaPerfilOcultaHoy() ? `
     <div id="entreno-tarjeta-perfil" class="card card-hero" style="padding: 16px; margin-bottom: 20px;">
-      <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">${faltaPerfil ? 'Perfil' : 'Nivel'}</div>
+      <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-teal-t); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">${faltaPerfil ? 'Perfil' : 'Nivel'}</div>
       <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); line-height: 1.3;">${faltaPerfil ? 'Completa tu perfil para calcular tu nivel e IMC' : 'Define tu nivel para ajustar tus rutinas'}</div>
       <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">${faltaPerfil && faltaNivel ? 'Tu peso y estatura calculan el IMC; tu nivel ajusta la exigencia del generador.' : faltaPerfil ? 'Con tu peso y estatura calculamos tu IMC.' : 'Con tu experiencia el generador elige ejercicios de tu nivel.'}</div>
       <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">
@@ -311,11 +311,11 @@ export async function render() {
     // botones usan los mismos flujos que la lista de rutinas de esa categoría.
     ? `
       <div id="entreno-vacio" class="card card-hero" data-cat="gym" style="padding: 20px; margin-bottom: 20px;">
-        <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Entreno</div>
+        <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-teal-t); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Entreno</div>
         <h2 style="font-size: 19px; font-weight: 800; margin: 0 0 6px 0; color: var(--text-primary);">Arma tu primera rutina</h2>
         <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 14px 0; line-height: 1.45;">Genérala a tu medida según tus días y tu equipo, o créala a mano ejercicio por ejercicio.</p>
         <div role="group" aria-label="Categoría" style="display: flex; gap: 6px; margin-bottom: 14px;">
-          ${['gym', 'calistenia', 'hiit'].map((cat, i) => `<button type="button" class="entreno-vacio-cat tappable" data-cat="${cat}" aria-pressed="${i === 0}" style="flex: 1; padding: 9px 4px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid ${i === 0 ? 'var(--accent-teal)' : 'var(--surface-border)'}; background: ${i === 0 ? 'color-mix(in srgb, var(--accent-teal) 14%, transparent)' : 'transparent'}; color: ${i === 0 ? 'var(--accent-teal)' : 'var(--text-secondary)'};">${catNames[cat]}</button>`).join('')}
+          ${['gym', 'calistenia', 'hiit'].map((cat, i) => `<button type="button" class="entreno-vacio-cat tappable" data-cat="${cat}" aria-pressed="${i === 0}" style="flex: 1; padding: 9px 4px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid ${i === 0 ? 'var(--accent-teal)' : 'var(--surface-border)'}; background: ${i === 0 ? 'color-mix(in srgb, var(--accent-teal) 14%, transparent)' : 'transparent'}; color: ${i === 0 ? 'var(--accent-teal-t)' : 'var(--text-secondary)'};">${catNames[cat]}</button>`).join('')}
         </div>
         <button id="btn-entreno-vacio-generar" type="button" class="btn-primary tappable" style="background: var(--accent-teal); color: #000; margin-bottom: 8px;">Generar mi rutina</button>
         <button id="btn-entreno-vacio-manual" type="button" class="tappable" style="width: 100%; padding: 12px; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer;">Crear rutina a mano</button>
@@ -358,7 +358,7 @@ export async function render() {
           <div style="display: flex; gap: 8px; flex-shrink: 0;">
             <!-- Perfil y nivel de entrenamiento se editan desde Configuración
                  (ver Más → Configuración) — este ícono es solo el atajo. -->
-            <button id="btn-open-cfg-entreno" class="icon-chip tappable" title="Configuración" style="width: 44px; height: 44px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal); flex-shrink: 0; border: none; cursor: pointer;">
+            <button id="btn-open-cfg-entreno" class="icon-chip tappable" title="Configuración" style="width: 44px; height: 44px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal-t); flex-shrink: 0; border: none; cursor: pointer;">
               <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
           </div>
@@ -423,8 +423,8 @@ export async function render() {
 
         ${renderCuerpoTarjeta(medidas)}
 
-        ${sesiones.length > 0 ? '<a id="link-historial-sesiones" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal); text-decoration: none; padding: 8px 0;">Historial de sesiones →</a>' : ''}
-        <a id="link-ver-progreso-completo" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal); text-decoration: none; padding: 8px 0 24px 0;">Ver progreso completo →</a>
+        ${sesiones.length > 0 ? '<a id="link-historial-sesiones" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal-t); text-decoration: none; padding: 8px 0;">Historial de sesiones →</a>' : ''}
+        <a id="link-ver-progreso-completo" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal-t); text-decoration: none; padding: 8px 0 24px 0;">Ver progreso completo →</a>
       </div>
 
       <!-- SUB VIEW (ROUTINES, FORMS, SESSIONS) -->
@@ -793,7 +793,7 @@ mountListeners = () => {
           b.setAttribute('aria-pressed', String(activo));
           b.style.borderColor = activo ? 'var(--accent-teal)' : 'var(--surface-border)';
           b.style.background = activo ? 'color-mix(in srgb, var(--accent-teal) 14%, transparent)' : 'transparent';
-          b.style.color = activo ? 'var(--accent-teal)' : 'var(--text-secondary)';
+          b.style.color = activo ? 'var(--accent-teal-t)' : 'var(--text-secondary)';
         });
       });
     });

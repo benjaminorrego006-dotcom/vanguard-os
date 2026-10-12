@@ -118,7 +118,7 @@ export async function init() {
     const elDisponible = document.getElementById('disponible-mes-value');
     if (elDisponible) {
       elDisponible.innerText = formatDisponible(b.remaining);
-      elDisponible.style.color = (b.remaining >= 0) ? 'var(--state-success)' : 'var(--state-high)';
+      elDisponible.style.color = (b.remaining >= 0) ? 'var(--state-success-t)' : 'var(--state-high-t)';
     }
 
     // Donut de Presupuesto (SVG dibujado a mano, sin cambios) + gráficos
@@ -493,7 +493,7 @@ export async function init() {
       const parsed = parseQuickGasto(text, b.envelopes);
       if (!parsed) {
         quickGastoHint.textContent = 'No pude leer el monto — prueba algo como "50 en supermercado"';
-        quickGastoHint.style.color = 'var(--state-high)';
+        quickGastoHint.style.color = 'var(--state-high-t)';
         return;
       }
 
@@ -588,7 +588,7 @@ const renderAgeOfMoneyHTML = (b) => {
   return `
     <div class="card" id="card-ageofmoney" style="padding: 16px; margin-bottom: 24px; background: linear-gradient(145deg, var(--surface-1), var(--surface-2)); display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--surface-border);">
       <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 48px; height: 48px; background: rgba(255, 182, 39, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-purple);">
+        <div style="width: 48px; height: 48px; background: rgba(255, 182, 39, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-purple-t);">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
         </div>
         <div>
@@ -724,7 +724,7 @@ const renderEnvelopesHTML = async (b) => {
           <div style="font-weight: 600; font-size: 14px;">${escapeHtml(env.name)}</div>
           ${sparklineHtml}
         </div>
-        <div class="fin-bal" style="color: ${negativo ? 'var(--state-high)' : 'var(--text-primary)'};">${formatCurrency(env.saldo)}</div>
+        <div class="fin-bal" style="color: ${negativo ? 'var(--state-high-t)' : 'var(--text-primary)'};">${formatCurrency(env.saldo)}</div>
         <div class="fin-meter"><i class="${meterCls}" style="width:${pct}%"></i></div>
         ${sobregiroAcumulado
           ? `<div class="fin-bc-figures sobre-sobregiro">Sobregiro de ${formatCurrency(sobregiroAcumulado)} acumulado</div>`
@@ -780,7 +780,7 @@ const finEmptyState = (eyebrow, title, desc) => `
 const alertBadgeHtml = (usoCatPct, compact = false) => {
   if (usoCatPct < 80) return '';
   const isOver = usoCatPct >= 100;
-  const bg = isOver ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+  const bg = isOver ? 'color-mix(in srgb, var(--fondo-alerta) 15%, transparent)' : 'color-mix(in srgb, var(--fondo-aviso) 15%, transparent)';
   const color = isOver ? 'var(--state-high)' : 'var(--state-medium)';
   const mensaje = isOver ? 'Superaste el presupuesto de esta categoría' : 'Ya usaste el 80% o más del presupuesto de esta categoría';
   if (compact) {
@@ -966,7 +966,7 @@ const renderDailyAvailable = (b) => {
   const saldoDiario = Math.max(0, b.remaining) / diasRestantes;
   return `
     <div class="card" style="padding: 18px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px;">
-      <div class="icon-chip" style="width: 40px; height: 40px; background: rgba(34, 197, 94, 0.15); color: var(--state-success); flex-shrink: 0;">
+      <div class="icon-chip" style="width: 40px; height: 40px; background: color-mix(in srgb, var(--fondo-exito) 15%, transparent); color: var(--state-success-t); flex-shrink: 0;">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
       </div>
       <div>
@@ -1145,8 +1145,8 @@ const renderPresupuestoLegend = (b) => {
     const usoCatPctClamped = Math.min(100, usoCatPct);
     const meterCls = usoCatPct >= 100 ? 'danger' : usoCatPct >= 80 ? 'warn' : '';
     const note = usoCatPct >= 100
-      ? `<p style="margin-top:8px; font-size:11px; color:var(--state-high);">Superaste el presupuesto de este mes.</p>`
-      : (usoCatPct >= 80 ? `<p style="margin-top:8px; font-size:11px; color:var(--state-medium);">Estás cerca del límite.</p>` : '');
+      ? `<p style="margin-top:8px; font-size:11px; color:var(--state-high-t);">Superaste el presupuesto de este mes.</p>`
+      : (usoCatPct >= 80 ? `<p style="margin-top:8px; font-size:11px; color:var(--state-medium-t);">Estás cerca del límite.</p>` : '');
 
     return `
       <div class="card legend-item tappable" data-cat="${catKey}">
@@ -1297,31 +1297,31 @@ export async function render() {
         <div class="fin-grid3" style="margin-bottom: 24px;">
           <div class="card fin-stat card-hero" id="card-disponible" style="min-width: 0;">
             <p class="fin-eyebrow">Balance</p>
-            <div id="disponible-mes-value" class="fin-stat-value" style="color: ${isHealthy ? 'var(--state-success)' : 'var(--state-high)'}; overflow-wrap: anywhere;">${fullStr}</div>
+            <div id="disponible-mes-value" class="fin-stat-value" style="color: ${isHealthy ? 'var(--state-success-t)' : 'var(--state-high-t)'}; overflow-wrap: anywhere;">${fullStr}</div>
             <div id="month-trend-container">${renderMonthTrend(b)}</div>
           </div>
           <div class="card fin-stat tappable" id="card-gastos" style="min-width: 0;">
             <p class="fin-eyebrow">Gastos del mes</p>
-            <div id="stat-expense" class="fin-stat-value" style="color: var(--state-high); overflow-wrap: anywhere;">${formatDisponible(b.expenses)}</div>
+            <div id="stat-expense" class="fin-stat-value" style="color: var(--state-high-t); overflow-wrap: anywhere;">${formatDisponible(b.expenses)}</div>
           </div>
           <div class="card fin-stat tappable" id="card-ingresos" style="min-width: 0;">
             <p class="fin-eyebrow">Ingresos del mes</p>
-            <div id="stat-income" class="fin-stat-value" style="color: var(--state-success); overflow-wrap: anywhere;">${formatDisponible(b.income)}</div>
+            <div id="stat-income" class="fin-stat-value" style="color: var(--state-success-t); overflow-wrap: anywhere;">${formatDisponible(b.income)}</div>
           </div>
         </div>
 
         <!-- BOTONES FAB MOVIDOS AQUÍ -->
         <div style="display: flex; gap: 12px; margin-bottom: 24px;">
           <button id="btn-fab-ingreso" class="tappable" style="flex: 1; padding: 14px 8px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
-            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(34, 197, 94, 0.15); color: var(--state-success);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"></path></svg></div>
+            <div class="icon-chip" style="width: 36px; height: 36px; background: color-mix(in srgb, var(--fondo-exito) 15%, transparent); color: var(--state-success-t);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"></path></svg></div>
             <span style="font-size: 11px; font-weight: 700;">Ingreso</span>
           </button>
           <button id="btn-fab-gasto" class="tappable" style="flex: 1; padding: 14px 8px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
-            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.15); color: var(--state-high);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7 7 7-7"></path></svg></div>
+            <div class="icon-chip" style="width: 36px; height: 36px; background: color-mix(in srgb, var(--fondo-alerta) 15%, transparent); color: var(--state-high-t);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7 7 7-7"></path></svg></div>
             <span style="font-size: 11px; font-weight: 700;">Gasto</span>
           </button>
           <button id="btn-fab-ahorro" class="tappable" style="flex: 1; padding: 14px 8px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
-            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(255, 182, 39, 0.15); color: var(--accent-purple);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg></div>
+            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(255, 182, 39, 0.15); color: var(--accent-purple-t);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg></div>
             <span style="font-size: 11px; font-weight: 700;">Ahorro</span>
           </button>
         </div>
@@ -1338,7 +1338,7 @@ export async function render() {
           <div style="position: relative; display: flex; align-items: stretch; gap: 8px;">
             <div style="position: relative; flex: 1; min-width: 0;">
               <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
-              <input type="text" id="quick-gasto-input" inputmode="text" enterkeyhint="go" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px rgba(239,68,68,0.15)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
+              <input type="text" id="quick-gasto-input" inputmode="text" enterkeyhint="go" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px color-mix(in srgb, var(--fondo-alerta) 15%, transparent)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
             </div>
             <button type="submit" id="btn-quick-gasto-submit" class="tappable" title="Agregar gasto" style="flex-shrink: 0; width: 48px; background: var(--state-high); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;">
               <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>

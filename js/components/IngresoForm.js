@@ -6,7 +6,7 @@ export function renderIngresoForm() {
     <div id="ingreso-modal" class="modal-overlay sheet-overlay">
       <div class="sheet-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); position: relative;">
         <div id="ingreso-confirm-overlay" style="display:none; position:absolute; inset:0; z-index:5; background: var(--surface-1); border-radius: inherit; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
-          <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(34, 197, 94, 0.15); display: flex; align-items: center; justify-content: center; animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: color-mix(in srgb, var(--fondo-exito) 15%, transparent); display: flex; align-items: center; justify-content: center; animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
             <svg width="30" height="30" fill="none" stroke="var(--state-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </div>
           <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">Ingreso registrado</div>
@@ -15,7 +15,7 @@ export function renderIngresoForm() {
           <button class="btn-close-modal" style="width: 40px; height: 40px; flex-shrink: 0; background: var(--surface-2); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
             <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           </button>
-          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--state-success);">Registrar Ingreso</h2>
+          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--state-success-t);">Registrar Ingreso</h2>
         </div>
 
         <input type="hidden" id="ingreso-tx-id">
@@ -26,7 +26,7 @@ export function renderIngresoForm() {
         </div>
         
         <!-- Live Context Display -->
-        <div id="ingreso-context-display" style="text-align: center; font-size: 13px; font-weight: 500; color: var(--state-success); margin-bottom: 16px; min-height: 16px;">Nuevo balance: -</div>
+        <div id="ingreso-context-display" style="text-align: center; font-size: 13px; font-weight: 500; color: var(--state-success-t); margin-bottom: 16px; min-height: 16px;">Nuevo balance: -</div>
 
         <!-- Chips Row -->
         <div style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 8px; white-space: nowrap;">

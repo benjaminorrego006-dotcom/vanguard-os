@@ -121,7 +121,7 @@ function renderRama(rama, historialPorNombre, categoria, desbloqueadosManuales, 
 
   return `
     <div style="margin-bottom: 24px;">
-      <h3 style="font-size: 13px; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 10px 0;">${RAMA_LABELS[rama]}</h3>
+      <h3 style="font-size: 13px; font-weight: 700; color: var(--accent-teal-t); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 10px 0;">${RAMA_LABELS[rama]}</h3>
       ${nodosNormalesHtml}
       ${nodosEstaticosHtml}
     </div>

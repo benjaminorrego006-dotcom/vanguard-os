@@ -96,7 +96,7 @@ export async function render() {
 
       ${completo ? `
         <div class="card" style="margin-top: 16px; padding: 16px 20px; border-color: var(--accent-ritual);">
-          <div style="font-size: 15px; font-weight: 700; color: var(--accent-ritual);">Ritual completo</div>
+          <div style="font-size: 15px; font-weight: 700; color: var(--accent-ritual-t);">Ritual completo</div>
           <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Ya sabes cómo se ve un buen día de hoy. Ahora ejecútalo.</div>
         </div>` : ''}
     </div>`;

@@ -147,7 +147,7 @@ function renderAdvanceButton(task) {
   if (task.status === 'done') return '';
   const to = task.status === 'todo' ? 'in-progress' : 'done';
   return `
-    <button class="btn-advance-task tappable" data-id="${task.id}" data-from="${task.status}" data-to="${to}" title="Avanzar a ${STATE_LABELS[to]}" style="width:32px; height:32px; padding:0; background:transparent; border:none; color:var(--accent-purple); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;">
+    <button class="btn-advance-task tappable" data-id="${task.id}" data-from="${task.status}" data-to="${to}" title="Avanzar a ${STATE_LABELS[to]}" style="width:32px; height:32px; padding:0; background:transparent; border:none; color:var(--accent-purple-t); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
     </button>
   `;
@@ -166,7 +166,7 @@ function renderUrgentTask(task) {
           ${renderAdvanceButton(task)}
         </div>
       </div>
-      ${due ? `<div style="margin-top:8px; font-size:11px; font-weight:700; letter-spacing:0.4px; color:${due.urgente ? 'var(--rd)' : 'var(--text-secondary)'};">${due.text}</div>` : ''}
+      ${due ? `<div style="margin-top:8px; font-size:11px; font-weight:700; letter-spacing:0.4px; color:${due.urgente ? 'var(--rd-t)' : 'var(--text-secondary)'};">${due.text}</div>` : ''}
     </div>
   `;
 }
@@ -202,7 +202,7 @@ function renderStatusTask(task) {
           ${renderAdvanceButton(task)}
         </div>
       </div>
-      ${due ? `<div style="margin-top:8px; font-size:11px; font-weight:700; letter-spacing:0.4px; color:${due.urgente && !isDone ? 'var(--rd)' : 'var(--text-secondary)'};">${due.text}</div>` : ''}
+      ${due ? `<div style="margin-top:8px; font-size:11px; font-weight:700; letter-spacing:0.4px; color:${due.urgente && !isDone ? 'var(--rd-t)' : 'var(--text-secondary)'};">${due.text}</div>` : ''}
     </div>
   `;
 }

@@ -20,6 +20,7 @@ import { recolectarDiagnostico, filasDiagnostico, textoDiagnostico } from '../co
 import { guardiaVista } from '../core/vista-activa.js';
 import { isErrorTrackingConfigured, isErrorReportingEnabled, setErrorReportingEnabled } from '../core/error-tracking.js';
 import { formatNumero } from '../utils/numero.js';
+import { temaActual, aplicarTema } from '../utils/tema.js';
 
 const NIVEL_LABELS = { 'menos-1': 'Menos de 1 año', '1-3': '1 a 3 años', 'mas-3': 'Más de 3 años' };
 
@@ -94,7 +95,13 @@ export async function render() {
         <div id="cfg-auth-container">${renderAuthSection(authSession, estadoSync.ultimaSyncTs)}</div>
       `)}
 
-      ${seccion('Recordatorios', 'Avisos en el teléfono para tus hábitos, tareas y cobros, aunque la app esté cerrada. Funcionan en Android con la app instalada y en iPhone con la app en la pantalla de inicio (iOS 16.4 o más nuevo).', `
+      ${seccion('Apariencia', 'Gris deja la interfaz en grises y el color solo en el texto. Color es el tema de siempre. Se guarda en este dispositivo.', `
+        <div class="segmented-control" role="radiogroup" aria-label="Tema">
+          ${[['gris', 'Gris'], ['color', 'Color']].map(([t, etiqueta]) => `<button type="button" class="cfg-tema-btn tappable${temaActual() === t ? ' active' : ''}" role="radio" aria-checked="${temaActual() === t}" data-tema="${t}" style="min-height: 44px;">${etiqueta}</button>`).join('')}
+        </div>
+      `)}
+
+      ${seccion('Recordatorios','Avisos en el teléfono para tus hábitos, tareas y cobros, aunque la app esté cerrada. Funcionan en Android con la app instalada y en iPhone con la app en la pantalla de inicio (iOS 16.4 o más nuevo).', `
         <div id="cfg-recordatorios">${renderRecordatoriosSeccion(estadoAvisos.estado, estadoAvisos.prefs, estadoAvisos.habitosConHora)}</div>
         <details id="cfg-diagnostico" class="cfg-diag">
           <summary class="cfg-diag-sum tappable">Diagnóstico</summary>
@@ -164,7 +171,7 @@ export async function render() {
         </div>
       `)}
 
-      ${isErrorTrackingConfigured() ? seccion('Reportes de errores', 'Si la app falla, envía un aviso técnico automático (el mensaje del error y el tipo de dispositivo y navegador) para poder arreglarlo. A propósito no incluye el contenido de tus datos ni tu email. <a href="privacidad.html" style="color: var(--accent-primary);">Más info</a>', `
+      ${isErrorTrackingConfigured() ? seccion('Reportes de errores', 'Si la app falla, envía un aviso técnico automático (el mensaje del error y el tipo de dispositivo y navegador) para poder arreglarlo. A propósito no incluye el contenido de tus datos ni tu email. <a href="privacidad.html" style="color: var(--accent-primary-t);">Más info</a>', `
         <label for="cfg-error-reporting" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; color: var(--text-primary);">
           <input type="checkbox" id="cfg-error-reporting" ${isErrorReportingEnabled() ? 'checked' : ''} style="width: 20px; height: 20px; flex-shrink: 0;">
           Enviar reportes de errores
@@ -177,7 +184,7 @@ export async function render() {
         : btnSecundario('btn-cfg-demo', 'Cargar datos de demostración'))}
 
       ${seccion('Datos', 'Elimina todo lo guardado en este dispositivo. Esta acción no se puede deshacer — exporta un respaldo antes si no estás seguro.', `
-        <button id="btn-cfg-wipe" type="button" class="tappable" style="width: 100%; padding: 12px; background: transparent; border: 1px solid var(--state-high); color: var(--state-high); font-weight: 700; cursor: pointer;">Borrar todos los datos</button>
+        <button id="btn-cfg-wipe" type="button" class="tappable" style="width: 100%; padding: 12px; background: transparent; border: 1px solid var(--state-high); color: var(--state-high-t); font-weight: 700; cursor: pointer;">Borrar todos los datos</button>
       `)}
 
       ${seccion('Acerca de', null, `
@@ -247,6 +254,16 @@ export function mountListeners() {
   attachAuthListeners('cfg-auth-container');
   mountRecordatoriosSeccion(document.getElementById('cfg-recordatorios'), guardiaVista('configuracion'));
   mountDiagnostico();
+
+  // Apariencia: cambia el tema al instante, sin recargar.
+  document.querySelectorAll('.cfg-tema-btn').forEach(btn => btn.addEventListener('click', () => {
+    const t = aplicarTema(btn.dataset.tema);
+    document.querySelectorAll('.cfg-tema-btn').forEach(b => {
+      const activo = b.dataset.tema === t;
+      b.classList.toggle('active', activo);
+      b.setAttribute('aria-checked', String(activo));
+    });
+  }));
 
   document.getElementById('btn-cfg-perfil')?.addEventListener('click', () => openProfileForm());
   document.getElementById('btn-cfg-nivel')?.addEventListener('click', () => openNivelOnboardingForm());

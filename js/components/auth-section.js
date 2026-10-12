@@ -23,7 +23,7 @@ export async function getAuthSession() {
 // Página estática aparte (privacidad.html en la raíz, no una vista del
 // router). "Volver a Vanguard OS" en esa página cubre la PWA instalada, que
 // no tiene botón atrás del navegador.
-const PRIVACIDAD_LINK = `<p style="font-size: 12px; color: var(--text-secondary); margin: 14px 0 0;">Al usar una cuenta se guarda una copia de tus datos en la nube. <a href="privacidad.html" style="color: var(--accent-primary);">Política de privacidad</a></p>`;
+const PRIVACIDAD_LINK = `<p style="font-size: 12px; color: var(--text-secondary); margin: 14px 0 0;">Al usar una cuenta se guarda una copia de tus datos en la nube. <a href="privacidad.html" style="color: var(--accent-primary-t);">Política de privacidad</a></p>`;
 
 export function renderAuthSection(session, ultimaSyncTs = null) {
   const estado = estadoSupabase();
@@ -39,14 +39,14 @@ export function renderAuthSection(session, ultimaSyncTs = null) {
 
   if (session?.user) {
     return `
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 13px; color: var(--state-success); font-weight: 600;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 13px; color: var(--state-success-t); font-weight: 600;">
         <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--state-success); flex-shrink: 0;"></span>
         Sesión iniciada: ${escapeHtml(session.user.email)}
       </div>
       <p id="auth-ultima-sync" style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 14px;">${ultimaSyncTs ? `Sincronizado ${formatHaceCuanto(ultimaSyncTs)}` : 'Todavía sin sincronizar en este dispositivo'}</p>
       <div style="display: flex; gap: 10px;">
         <button id="btn-auth-sync" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-weight: 600; cursor: pointer;">Sincronizar ahora</button>
-        <button id="btn-auth-logout" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: transparent; color: var(--state-high); border: 1px solid var(--state-high); font-weight: 600; cursor: pointer;">Cerrar sesión</button>
+        <button id="btn-auth-logout" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: transparent; color: var(--state-high-t); border: 1px solid var(--state-high); font-weight: 600; cursor: pointer;">Cerrar sesión</button>
       </div>
       ${PRIVACIDAD_LINK}
     `;

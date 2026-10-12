@@ -104,7 +104,7 @@ async function renderLista() {
         </ul>
       </section>`).join('')}
     ${semanas.length > visibles.length ? `
-      <button type="button" id="btn-hist-cargar-mas" class="tappable" style="width: 100%; background: transparent; border: 1px solid var(--surface-border); color: var(--accent-teal); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 24px;">Cargar más</button>` : ''}`;
+      <button type="button" id="btn-hist-cargar-mas" class="tappable" style="width: 100%; background: transparent; border: 1px solid var(--surface-border); color: var(--accent-teal-t); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 24px;">Cargar más</button>` : ''}`;
 }
 
 function renderDetalle(s, categoria) {
@@ -145,7 +145,7 @@ function renderDetalle(s, categoria) {
     <ul style="list-style: none; margin: 0 0 16px 0; padding: 0;">${ejercicios || '<li style="font-size: 13px; color: var(--text-secondary);">Sin series registradas.</li>'}</ul>
     <div class="sesion-detalle-acciones" style="display: flex; gap: 8px; background: var(--surface-1); padding-top: 12px; border-top: 1px solid var(--surface-border);">
       <button type="button" id="btn-sesion-eliminar" class="tappable" style="flex: 1; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Eliminar</button>
-      <button type="button" id="btn-sesion-editar" class="tappable" style="flex: 1; background: transparent; border: 1px solid var(--cy); color: var(--cy); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Editar</button>
+      <button type="button" id="btn-sesion-editar" class="tappable" style="flex: 1; background: transparent; border: 1px solid var(--cy); color: var(--cy-t); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Editar</button>
     </div>`;
 }
 
@@ -222,12 +222,12 @@ function renderEdicion(s, b) {
         <ol style="list-style: none; margin: 0 0 8px 0; padding: 0; display: flex; flex-direction: column; gap: 6px;">
           ${ej.series.map((sr, si) => filaSerieEdicion(sr, ei, si, nombre)).join('')}
         </ol>
-        <button type="button" class="ed-campo tappable" data-accion="agregar-serie" data-ej="${ei}" aria-label="Agregar una serie a ${escapeHtml(nombre)}" style="width: 100%; min-height: 44px; background: transparent; border: 1px dashed var(--cy3); color: var(--cy); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;">+ Agregar serie</button>
+        <button type="button" class="ed-campo tappable" data-accion="agregar-serie" data-ej="${ei}" aria-label="Agregar una serie a ${escapeHtml(nombre)}" style="width: 100%; min-height: 44px; background: transparent; border: 1px dashed var(--cy3); color: var(--cy-t); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;">+ Agregar serie</button>
       </li>`;
   }).join('');
   return `
     <div style="margin-bottom: 12px;">
-      <div style="font-size: 12px; color: var(--cy); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Editar sesión</div>
+      <div style="font-size: 12px; color: var(--cy-t); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Editar sesión</div>
       <h2 id="sesion-detalle-titulo" style="font-size: 20px; font-weight: 800; margin: 4px 0 0 0; color: var(--text-primary);">${escapeHtml(s.nombreRutina || 'Entrenamiento')}</h2>
     </div>
     <form id="sesion-edicion-form" novalidate>
@@ -244,9 +244,9 @@ function renderEdicion(s, b) {
       <label for="ed-notas" style="${ESTILO_ETIQUETA}">Notas</label>
       <textarea id="ed-notas" class="ed-campo" data-prop="notas" rows="2" style="${ESTILO_INPUT} font-family: inherit; resize: vertical; margin-bottom: 12px;">${escapeHtml(b.notas)}</textarea>
       <ul style="list-style: none; margin: 0; padding: 0;">${ejercicios || '<li style="font-size: 13px; color: var(--text-secondary); padding: 12px 0; border-top: 1px solid var(--surface-border);">Sin ejercicios. Agrega al menos uno para guardar.</li>'}</ul>
-      <button type="button" class="ed-campo tappable" data-accion="agregar-ejercicio" style="width: 100%; min-height: 44px; margin: 4px 0 16px 0; background: transparent; border: 1px solid var(--cy); color: var(--cy); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">+ Agregar ejercicio</button>
+      <button type="button" class="ed-campo tappable" data-accion="agregar-ejercicio" style="width: 100%; min-height: 44px; margin: 4px 0 16px 0; background: transparent; border: 1px solid var(--cy); color: var(--cy-t); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">+ Agregar ejercicio</button>
       <div class="sesion-detalle-acciones" style="background: var(--surface-1); padding-top: 12px; border-top: 1px solid var(--surface-border);">
-        <p id="sesion-edicion-error" role="alert" style="font-size: 13px; color: var(--rd); margin: 0;"></p>
+        <p id="sesion-edicion-error" role="alert" style="font-size: 13px; color: var(--rd-t); margin: 0;"></p>
         <div style="display: flex; gap: 8px;">
           <button type="button" class="ed-campo tappable" data-accion="cancelar" style="flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Cancelar</button>
           <button type="submit" class="ed-campo tappable" style="flex: 1; min-height: 44px; background: var(--cy); border: 1px solid var(--cy); color: var(--bg); padding: 12px; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;">Guardar</button>

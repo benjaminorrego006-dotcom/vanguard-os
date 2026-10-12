@@ -101,7 +101,7 @@ export async function renderRutinasLista(categoria) {
 
     let warningHtml = '';
     if (emp > 0 && tra < emp * 0.7) {
-      warningHtml = `<div style="font-size: 11px; color: var(--state-medium); font-weight: 600; margin-top: 8px; display: flex; align-items: center;">${warningSvg}Tu tracción está quedando atrás esta semana.</div>`;
+      warningHtml = `<div style="font-size: 11px; color: var(--state-medium-t); font-weight: 600; margin-top: 8px; display: flex; align-items: center;">${warningSvg}Tu tracción está quedando atrás esta semana.</div>`;
     }
 
     balanceHtml = `
@@ -163,12 +163,12 @@ export async function renderRutinasLista(categoria) {
     const necesitaDeload = await db.detectarNecesidadDeload(categoria);
     if (necesitaDeload) {
       deloadHtml = `
-        <div class="card" style="background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
-          <div class="icon-chip" style="width: 32px; height: 32px; background: rgba(245, 158, 11, 0.18); color: var(--state-medium); flex-shrink: 0;">
+        <div class="card" style="background: color-mix(in srgb, var(--fondo-aviso) 8%, transparent); border-color: color-mix(in srgb, var(--fondo-aviso) 30%, transparent); padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+          <div class="icon-chip" style="width: 32px; height: 32px; background: color-mix(in srgb, var(--fondo-aviso) 18%, transparent); color: var(--state-medium-t); flex-shrink: 0;">
             ${warningSvg}
           </div>
           <div>
-            <div style="font-size: 13px; font-weight: 700; color: var(--state-medium);">Considera una semana de descarga</div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--state-medium-t);">Considera una semana de descarga</div>
             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Tu volumen ha subido 3+ semanas seguidas. Bajar la intensidad esta semana ayuda a evitar el sobreentrenamiento.</div>
           </div>
         </div>
@@ -281,7 +281,7 @@ export async function renderRutinasLista(categoria) {
   // misma estructura de 3 pestañas de análisis dentro de GYM/Calistenia/HIIT
   // por separado (ver views/entrenamiento.js > goToProgreso).
   html += `
-    <a id="link-ver-progreso-categoria" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal); text-decoration: none; padding: 8px 0 4px 0;">Ver tu progreso en ${catName} →</a>
+    <a id="link-ver-progreso-categoria" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal-t); text-decoration: none; padding: 8px 0 4px 0;">Ver tu progreso en ${catName} →</a>
   `;
 
   return html;
@@ -305,7 +305,7 @@ export function renderPlantillaPreview(plantilla) {
     const grupoHeaderHtml = (label) => `
       <div style="display: flex; align-items: center; gap: 7px; margin: 10px 0 2px 0;">
         <div style="width: 3px; height: 13px; background: var(--accent-teal);"></div>
-        <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent-teal);">${label}</span>
+        <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent-teal-t);">${label}</span>
       </div>
     `;
 
@@ -529,7 +529,7 @@ export function renderGeneradorPreview(plan, categoria) {
       <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: flex-start; gap: 6px; line-height: 1.5;">
         ${hayFaltante ? warningSvg : ''}<span>Con el equipo que declaraste, algunos días tienen menos ejercicios en: <b style="color: var(--text-primary);">${patronesAviso.join(', ')}</b>.</span>
       </div>
-      <button type="button" id="btn-generador-agregar-equipo" class="tappable" style="margin-top: 10px; padding: 0; background: none; border: none; color: var(--accent-teal); font-size: 12px; font-weight: 700; cursor: pointer; min-height: 32px;">Agregar equipo →</button>
+      <button type="button" id="btn-generador-agregar-equipo" class="tappable" style="margin-top: 10px; padding: 0; background: none; border: none; color: var(--accent-teal-t); font-size: 12px; font-weight: 700; cursor: pointer; min-height: 32px;">Agregar equipo →</button>
     </div>
   `;
   // El aviso de volumen semanal es otra cosa (no depende del equipo): va
