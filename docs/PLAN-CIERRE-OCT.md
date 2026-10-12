@@ -37,6 +37,6 @@ El servidor "playwright" está definido dos veces (scope project con --executabl
 | P1.1 Mapa de Finanzas en ámbar | a63acd2 | v311 |
 | P1.2 Modales y hojas sin esquinas redondeadas | 9222aae | v312 |
 | P1.3 Saludo de Hoy en una línea a 375 | 78c0104 | v313 |
-| P2 Diagnóstico de Recordatorios | | v314 |
-| P3 MCP playwright sin duplicado | | |
+| P2 Diagnóstico de Recordatorios | 9f55737 | v314 |
+| P3 MCP playwright sin duplicado | | sin cambio (fuera del repo) |
 | Cierre: docs | | |
