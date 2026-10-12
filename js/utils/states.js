@@ -67,7 +67,6 @@ export function Toast(message, type = 'info', duration = 2500) {
     padding: 12px 16px;
     font-size: 14px;
     font-weight: 500;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     transform: translateY(20px);
     opacity: 0;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
