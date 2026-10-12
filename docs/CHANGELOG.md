@@ -9,10 +9,15 @@ probado a 375×812 y una pasada final a 1280×800, con el mismo método de QA
 | Punto | Caché | Qué cambia |
 |---|---|---|
 | M1 — "Nueva meta" sin tapar la navegación | v315 | `#goal-modal` y `#goal-contribute-modal` (los dos modales de `goal-form.js`, desde el Laboratorio y desde Finanzas) se suman a la regla de `layout.css` de los modales que dejan libre la navegación: en móvil terminan sobre la barra inferior, desde 768 px empiezan después del riel y su `.modal-content` hace scroll dentro de ese espacio. Decisión técnica: también `#goal-contribute-modal`, que tenía el mismo problema. |
+| M2 — Modales de Finanzas con la regla común | v316 | El CSS propio de Finanzas no tenía esquinas: lo que les ponía radio a sus modales eran los `border-radius` inline de las plantillas (12 px en botones, campos e íconos, 20 px en los chips de categoría; la regla global de P1.2 los tapaba con `!important`). Se quitan de `GastoForm.js`, `IngresoForm.js`, `AhorroForm.js`, `TransferForm.js` y `goal-form.js`; quedan los círculos (50%) y el `inherit` de las confirmaciones. Además, `finanzas.js` deja de traer su copia de `.modal-overlay`, `.modal-content` y su `::before` (con sombra), que le ganaba a la versión común mientras Finanzas estaba montada: ahora usa la de `components.css`, y se actualizó el comentario de ese archivo que avisaba de la copia. La apertura no cambia (estos formularios abren con `style.display` y la regla `.open` global de `layout.css`). |
 
 ### M1 — QA
 
 - `m1-meta`: Laboratorio › Finanzas › Metas › "+ Nueva meta". La barra queda libre (el elemento en su centro es la barra), "Guardar Meta" se ve y se puede tocar fuera de ella, y tocar Hoy en la barra navega y cierra el modal. En la base (`8f549d5`), la barra quedaba tapada y no se podía tocar. Consola limpia. ESLint `no-undef` limpio.
+
+### M2 — QA
+
+- `m2-fin-modales` abre por la UI gasto, ingreso, ahorro y transferencia. Los 4 quedan rectos, sin sombra y visibles (opacidad 1). En la base (`8f549d5`) estaba la copia propia de la geometría y había 13 radios inline (12 y 20 px); ahora no hay ni uno ni otro. Regresión: `p1-modales` y `b2-ui` vuelven a pasar. Consola limpia. ESLint `no-undef` limpio.
 
 ## 12 oct 2026 — Cierre de octubre (`docs/PLAN-CIERRE-OCT.md`)
 

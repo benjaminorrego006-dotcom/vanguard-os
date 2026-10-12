@@ -163,9 +163,8 @@
    Sistema global de modales (bottom sheet estilo iOS)
    Usado por TODAS las vistas (Finanzas, Entrenamiento, Tareas) y
    por el diálogo de confirmación global (#global-confirm-modal).
-   Nota: finanzas.js define su propia copia local (misma forma) que
-   gana la cascada mientras esa vista está montada; esta versión
-   global cubre al resto para que nunca queden sin estilo.
+   Finanzas también usa esta versión: la copia local que tenía en
+   finanzas.js (con sombra) se quitó en la pasada mínima del 12 oct.
    ============================================================ */
 .modal-overlay {
   position: fixed; inset: 0;

@@ -29,11 +29,11 @@ export function renderAhorroForm() {
         </div>
 
         <!-- Description -->
-        <input type="text" id="ahorro-label" placeholder="Descripción (opcional)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 16px; box-sizing: border-box; margin-bottom: 24px; outline: none;">
+        <input type="text" id="ahorro-label" placeholder="Descripción (opcional)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; font-size: 16px; box-sizing: border-box; margin-bottom: 24px; outline: none;">
 
         ${renderNumericKeypad()}
 
-        <button id="btn-submit-ahorro" class="tappable" style="width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; border: none; background: var(--accent-purple); color: #000; opacity: 0.5; pointer-events: none;">Guardar Ahorro</button>
+        <button id="btn-submit-ahorro" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--accent-purple); color: #000; opacity: 0.5; pointer-events: none;">Guardar Ahorro</button>
       </div>
     </div>
   `;

@@ -1240,30 +1240,8 @@ export async function render() {
       0% { transform: scale(0); opacity: 0; }
       100% { transform: scale(1); opacity: 1; }
     }
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 3000; display: none; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity 0.3s ease; padding: 0; }
-    .modal-overlay.open { opacity: 1; }
-    .modal-content {
-      background: var(--surface-1);
-      background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0) 30%);
-      width: 100%; max-width: 500px;
-      border: 1px solid var(--glass-border); border-bottom: none;
-      padding: 14px 24px calc(28px + env(safe-area-inset-bottom)) 24px;
-      transform: translateY(100%); opacity: 0;
-      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
-      max-height: 88vh; overflow-y: auto; box-sizing: border-box;
-      box-shadow: 0 -20px 60px -20px rgba(0,0,0,0.6);
-    }
-    .modal-content::before {
-      content: ''; display: block; width: 36px; height: 4px;
-      background: var(--surface-border); margin: 0 auto 18px auto;
-    }
-    .modal-overlay.open .modal-content { transform: translateY(0); opacity: 1; }
-    @media (min-width: 640px) {
-      .modal-overlay { align-items: center; padding: 20px; }
-      .modal-content { border-bottom: 1px solid var(--glass-border); transform: scale(0.95) translateY(20px); padding: 30px 24px; }
-      .modal-content::before { display: none; }
-      .modal-overlay.open .modal-content { transform: scale(1) translateY(0); }
-    }
+    /* Los modales usan la geometría común de components.css (rectos, sin
+       sombra); acá ya no hay una copia propia que le gane en Finanzas. */
     .input-group { margin-bottom: 20px; }
     .input-group label { display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
     .input-group input, .input-group select {

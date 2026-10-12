@@ -35,17 +35,17 @@ export function renderGastoForm() {
         </div>
 
         <!-- Description -->
-        <input type="text" id="gasto-label" placeholder="Descripción (opcional, ej. Supermercado)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 16px; box-sizing: border-box; margin-bottom: 12px; outline: none;">
+        <input type="text" id="gasto-label" placeholder="Descripción (opcional, ej. Supermercado)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; font-size: 16px; box-sizing: border-box; margin-bottom: 12px; outline: none;">
 
         <!-- Fecha (default hoy) -->
-        <input type="date" id="gasto-fecha" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; border-radius: 12px; font-size: 16px; box-sizing: border-box; margin-bottom: 16px; outline: none; font-family: inherit;">
+        <input type="date" id="gasto-fecha" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; font-size: 16px; box-sizing: border-box; margin-bottom: 16px; outline: none; font-family: inherit;">
 
         <!-- Recent Amounts Shortcut -->
         <div id="gasto-recent-amounts-container" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 24px; min-height: 32px; white-space: nowrap; padding-bottom: 4px;"></div>
 
         ${renderNumericKeypad()}
 
-        <button id="btn-submit-gasto" class="tappable" style="width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; border: none; background: var(--state-high); color: #000; opacity: 0.5; pointer-events: none;">Guardar Gasto</button>
+        <button id="btn-submit-gasto" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--state-high); color: #000; opacity: 0.5; pointer-events: none;">Guardar Gasto</button>
       </div>
     </div>
   `;
@@ -77,7 +77,7 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
     const distinct = [...new Set(recentAmounts)].slice(0, 3);
     
     if (distinct.length > 0) {
-      recentAmtsContainer.innerHTML = distinct.map(amt => `<div class="chip tappable" style="background: var(--surface-2); color: var(--text-secondary); padding: 6px 16px; font-size: 13px; font-weight: 600; border-radius: 20px; border: 1px solid transparent;" data-amt="${amt}">${formatCompactCurrency(amt)}</div>`).join('');
+      recentAmtsContainer.innerHTML = distinct.map(amt => `<div class="chip tappable" style="background: var(--surface-2); color: var(--text-secondary); padding: 6px 16px; font-size: 13px; font-weight: 600; border: 1px solid transparent;" data-amt="${amt}">${formatCompactCurrency(amt)}</div>`).join('');
       recentAmtsContainer.querySelectorAll('.chip').forEach(c => c.addEventListener('click', (e) => {
         vibrate();
         currentAmountStr = e.currentTarget.getAttribute('data-amt');

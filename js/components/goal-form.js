@@ -132,7 +132,7 @@ export function initGoalForm(refreshCallback) {
     const accent = dominio === 'entreno' ? 'var(--accent-teal)' : 'var(--accent-purple)';
     iconGrid.innerHTML = set.map(icon => `
       <button type="button" class="goal-icon-opt tappable" data-icon="${icon}" title="${labels[icon]}"
-        style="aspect-ratio: 1; background: var(--surface-2); border: 1px solid ${icon === iconInput.value ? accent : 'var(--surface-border)'}; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: ${icon === iconInput.value ? accent : 'var(--text-secondary)'}; cursor: pointer;">
+        style="aspect-ratio: 1; background: var(--surface-2); border: 1px solid ${icon === iconInput.value ? accent : 'var(--surface-border)'}; display: flex; align-items: center; justify-content: center; color: ${icon === iconInput.value ? accent : 'var(--text-secondary)'}; cursor: pointer;">
         ${getGoalSVG(icon, 'currentColor')}
       </button>
     `).join('');
