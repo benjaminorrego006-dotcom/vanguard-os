@@ -752,11 +752,13 @@ export const CATALOGO_CALISTENIA = {
     musculoSecundario: 'core',
     posturaInicial: 'Misma postura que el puente de glúteo, con una pierna extendida al aire.',
     pasosEjecucion: [
-      'Eleva la cadera con la pierna de apoyo, manteniendo la otra extendida.',
-      'Baja controladamente sin perder el equilibrio.'
+      'Eleva la cadera con la pierna de apoyo, apretando el glúteo hasta línea recta de hombro a rodilla, con la otra pierna extendida.',
+      'Baja controladamente sin perder el equilibrio.',
+      'Completa las repeticiones de un lado y luego cambia de pierna.'
     ],
     erroresComunes: [
       'Rotar la cadera hacia el lado sin apoyo.',
+      'Empujar con la pierna extendida o apoyarla para ayudarte.',
       'Rango de movimiento incompleto.'
     ],
     nivel: "intermedio",
@@ -967,6 +969,35 @@ export const CATALOGO_CALISTENIA = {
     criterioAvance: {"tipo":"segundos","valor":10,"series":3},
     tambienEn: [],
     equipo: "ninguno",
+    patronMovimiento: "core",
+    tipoMovimiento: "aislamiento"
+  },
+  'windshield wipers': {
+    id: 'windshield wipers',
+    nombre: 'Windshield Wipers (Limpiaparabrisas)',
+    categoria: 'calistenia',
+    grupoMuscular: 'core',
+    patron: 'core',
+    musculoSecundario: 'oblicuos, flexores de cadera, agarre',
+    posturaInicial: 'Colgado de una barra con agarre pronado, piernas juntas y extendidas.',
+    pasosEjecucion: [
+      'Sube las piernas extendidas hasta que los pies queden cerca de la barra.',
+      'Desde arriba, gira la cadera y lleva las piernas juntas hacia un lado, como un limpiaparabrisas.',
+      'Vuelve al centro con control y gira hacia el otro lado: cada lado cuenta como una repetición.',
+      'Al terminar la serie, baja las piernas sin dejarlas caer.'
+    ],
+    erroresComunes: [
+      'Doblar las rodillas para acortar la palanca.',
+      'Balancearse para ganar impulso en vez de girar con el core.',
+      'Recortar el giro hacia cada lado.',
+      'Colgar con los hombros sueltos en vez de mantener las escápulas activas.'
+    ],
+    nivel: "avanzado",
+    prerequisitos: ["l-sit", "dead hang"],
+    progresionDe: "l-sit",
+    criterioAvance: {"tipo":"reps","valor":10,"series":3},
+    tambienEn: [],
+    equipo: "barra-dominadas",
     patronMovimiento: "core",
     tipoMovimiento: "aislamiento"
   },
