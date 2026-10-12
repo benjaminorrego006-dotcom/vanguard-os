@@ -645,20 +645,22 @@ function motivoPara(patron, nivelInfo, relajado, nivelUsado, nombreElegido, moti
   if (nivelInfo.origen === 'arbol' && nivelInfo.frontierNombre === nombreElegido) {
     return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — es tu próximo paso pendiente en el árbol de progresión.${notaDominado}`;
   }
+  // Los nombres van sin paréntesis alrededor: varios ya traen los suyos
+  // ("Flexiones (Push-up)") y quedaba "…(Push-up))".
   if (nivelInfo.origen === 'arbol' && nivelInfo.frontierNombre) {
-    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — este ejercicio está a tu nivel (tu próximo paso pendiente en el árbol es ${nivelInfo.frontierNombre}).${notaDominado}`;
+    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — este ejercicio está a tu nivel. Tu próximo paso pendiente en el árbol es ${nivelInfo.frontierNombre}.${notaDominado}`;
   }
   if (nivelInfo.origen === 'arbol-maxeada') {
     return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — llegaste al techo de lo que cubre el árbol de progresión en este patrón.`;
   }
   if (nivelInfo.origen === 'arbol-bloqueada') {
     const detalle = nivelInfo.bloqueo
-      ? ` El siguiente paso (${nivelInfo.bloqueo.nombre}) todavía requiere ${nivelInfo.bloqueo.faltanteNombre} de ${RAMA_LABELS[nivelInfo.bloqueo.faltanteRama]}.`
+      ? ` El siguiente paso, ${nivelInfo.bloqueo.nombre}, todavía requiere ${nivelInfo.bloqueo.faltanteNombre} de ${RAMA_LABELS[nivelInfo.bloqueo.faltanteRama]}.`
       : '';
     return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} — no es que hayas llegado al techo, es que lo que sigue en el árbol está bloqueado por otro patrón.${detalle}`;
   }
   if (nivelInfo.origen === 'estandares') {
-    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel} (${nivelInfo.fuente}).`;
+    return `Tu nivel en ${ramaLabel} es ${nivelInfo.nivel}, según ${nivelInfo.fuente}.`;
   }
   if (nivelInfo.origen === 'declarado') {
     return `Todavía no registraste nada en ${ramaLabel} — usamos el nivel que declaraste al empezar. En cuanto entrenes este patrón, tu historial real va a mandar.`;

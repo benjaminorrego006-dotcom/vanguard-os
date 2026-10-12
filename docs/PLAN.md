@@ -36,7 +36,7 @@ el resumen.
 
 ## Hecho
 
-Estado al 12 oct 2026 (`CACHE_NAME` v309). El detalle de cada tanda (commits,
+Estado al 12 oct 2026 (`CACHE_NAME` v310). El detalle de cada tanda (commits,
 caché y QA) está en `docs/CHANGELOG.md`.
 
 | | Estado |
