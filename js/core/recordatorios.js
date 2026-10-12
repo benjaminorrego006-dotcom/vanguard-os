@@ -14,6 +14,7 @@ import { db } from './db.js';
 import { getSupabase } from './supabase-client.js';
 import { sesionActual } from './push.js';
 import { calcularRecordatorios, PREFIJOS_RECORDATORIO } from './recordatorios-calculo.js';
+import { registrarErrorRecordatorios } from './diagnostico-push.js';
 
 export { calcularRecordatorios };
 
@@ -56,7 +57,7 @@ async function sincronizar() {
 export function sincronizarRecordatorios() {
   if (enCurso) { otraVez = true; return enCurso; }
   enCurso = sincronizar()
-    .catch(err => { console.warn('[recordatorios] No se pudieron subir los avisos', err); return { error: err.message }; })
+    .catch(err => { console.warn('[recordatorios] No se pudieron subir los avisos', err); registrarErrorRecordatorios('al sincronizar los avisos', err); return { error: err.message }; })
     .finally(() => {
       enCurso = null;
       if (otraVez) { otraVez = false; programarSincronizacion(500); }

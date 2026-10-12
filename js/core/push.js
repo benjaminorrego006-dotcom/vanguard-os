@@ -5,6 +5,7 @@
 // manda ahí los avisos vencidos. La clave VAPID pública puede estar en el
 // código; la privada vive solo en los secretos de Supabase.
 import { cargarSupabase, isSupabaseConfigured, getSupabase } from './supabase-client.js';
+import { registrarErrorRecordatorios } from './diagnostico-push.js';
 
 export const VAPID_PUBLICA = 'BBKGgbN60jDdkTovkN_z1hdjJU9qm2SlSE9_fbMP6QXz1YBQbluhi1DXZaASW-x1FbTAKjVefzoYVbhm6Hv0MEA';
 
@@ -123,7 +124,7 @@ export async function refrescarSuscripcion() {
     const session = await sesionActual();
     const sub = session && await suscripcionActual();
     if (sub) await guardarSuscripcion(session, sub);
-  } catch (e) { console.warn('[push] No se pudo refrescar la suscripción', e); }
+  } catch (e) { console.warn('[push] No se pudo refrescar la suscripción', e); registrarErrorRecordatorios('al refrescar la suscripción', e); }
 }
 
 // Un aviso para dentro de un minuto (lo manda el cron del servidor).

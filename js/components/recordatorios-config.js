@@ -7,6 +7,7 @@
 // Sin cuenta, la sección solo explica que hace falta iniciar sesión.
 import { db } from '../core/db.js';
 import { estadoPush, activarPush, desactivarPush, enviarAvisoPrueba, pedirPermisoNotificaciones } from '../core/push.js';
+import { registrarErrorRecordatorios } from '../core/diagnostico-push.js';
 import { Toast } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 
@@ -79,6 +80,7 @@ export function mountRecordatoriosSeccion(contenedor, vigente = () => true) {
       try { await accion(); }
       catch (err) {
         console.error('[recordatorios]', err);
+        registrarErrorRecordatorios(id === 'btn-push-prueba' ? 'al enviar el aviso de prueba' : 'al desactivar', err);
         Toast('No se pudo completar. Revisa tu conexión e inténtalo de nuevo.', 'error');
         b.disabled = false;
       }
@@ -104,6 +106,7 @@ export function mountRecordatoriosSeccion(contenedor, vigente = () => true) {
         await repintar(e === 'activado' ? 'activado' : e === 'bloqueado' ? 'bloqueado' : e === 'sin-respuesta' ? 'sin-respuesta' : undefined);
       }).catch((err) => {
         console.error('[recordatorios] No se pudo activar ni guardar la suscripción:', err);
+        registrarErrorRecordatorios('al activar', err);
         Toast(`No se pudieron activar los avisos: ${(err && err.message) || err}`, 'error', 6000);
         btnActivar.disabled = false;
       });

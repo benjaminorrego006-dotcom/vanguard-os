@@ -58,6 +58,16 @@ export const formatFechaHora = (d) => {
   return `${fecha} · ${hora}`;
 };
 
+// Igual que formatFechaHora, pero siempre en hora de Chile aunque el
+// dispositivo esté en otra zona (Diagnóstico de Recordatorios: los avisos
+// se programan en hora de Chile).
+export const formatFechaHoraChile = (d) => {
+  const f = d instanceof Date ? d : new Date(d);
+  const fecha = f.toLocaleDateString('es-CL', { day: 'numeric', month: 'short', timeZone: 'America/Santiago' });
+  const hora = f.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Santiago' });
+  return `${fecha} · ${hora}`;
+};
+
 // "L" (weekday narrow, para la tira de 7 días de rutinas-lista.js). OJO:
 // bajo 'es-CL' martes y miércoles dan la misma letra ("M") — a diferencia
 // de 'es-ES', que distingue miércoles con "X" — porque el narrow weekday

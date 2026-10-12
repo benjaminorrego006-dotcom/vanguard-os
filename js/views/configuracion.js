@@ -16,6 +16,7 @@ import { getEstadoSincronizacion } from '../core/sync.js';
 import { exportAllData, importAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import { exportarFotos, importarFotos, estimarBytes, textoTamano } from '../utils/fotos-respaldo.js';
 import { renderRecordatoriosSeccion, mountRecordatoriosSeccion, datosRecordatoriosSeccion } from '../components/recordatorios-config.js';
+import { recolectarDiagnostico, filasDiagnostico, textoDiagnostico } from '../core/diagnostico-push.js';
 import { guardiaVista } from '../core/vista-activa.js';
 import { isErrorTrackingConfigured, isErrorReportingEnabled, setErrorReportingEnabled } from '../core/error-tracking.js';
 import { formatNumero } from '../utils/numero.js';
@@ -95,6 +96,15 @@ export async function render() {
 
       ${seccion('Recordatorios', 'Avisos en el teléfono para tus hábitos, tareas y cobros, aunque la app esté cerrada. Funcionan en Android con la app instalada y en iPhone con la app en la pantalla de inicio (iOS 16.4 o más nuevo).', `
         <div id="cfg-recordatorios">${renderRecordatoriosSeccion(estadoAvisos.estado, estadoAvisos.prefs, estadoAvisos.habitosConHora)}</div>
+        <details id="cfg-diagnostico" class="cfg-diag">
+          <summary class="cfg-diag-sum tappable">Diagnóstico</summary>
+          <p class="cfg-diag-ayuda">Para encontrar en qué paso fallan los avisos en este dispositivo. No muestra claves, tokens ni tu correo completo.</p>
+          <ul id="cfg-diag-lista" class="cfg-diag-lista"><li class="cfg-diag-cargando">Revisando…</li></ul>
+          <div class="cfg-diag-acciones">
+            <button id="btn-diag-copiar" type="button" class="btn-primary tappable" style="background: var(--accent-primary); color: #000;" disabled>Copiar diagnóstico</button>
+            <button id="btn-diag-actualizar" type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border);">Volver a revisar</button>
+          </div>
+        </details>
       `)}
 
       ${seccion('Perfil', escapeHtml(perfilResumen), btnSecundario('btn-cfg-perfil', 'Editar perfil'))}
@@ -182,6 +192,48 @@ export async function render() {
   `;
 }
 
+// Diagnóstico de Recordatorios (docs/PLAN-CIERRE-OCT.md, P2): plegado; se
+// revisa al abrirlo y con "Volver a revisar". "Copiar" lleva el mismo texto
+// que se ve.
+async function copiarTexto(texto) {
+  try { await navigator.clipboard.writeText(texto); return true; } catch (e) { /* sin permiso: método viejo */ }
+  try {
+    const area = document.createElement('textarea');
+    area.value = texto; area.setAttribute('readonly', ''); area.style.position = 'fixed'; area.style.opacity = '0';
+    document.body.appendChild(area); area.select();
+    const ok = document.execCommand('copy');
+    area.remove();
+    return ok;
+  } catch (e) { return false; }
+}
+
+function mountDiagnostico() {
+  const det = document.getElementById('cfg-diagnostico');
+  if (!det) return;
+  const lista = document.getElementById('cfg-diag-lista');
+  const btnCopiar = document.getElementById('btn-diag-copiar');
+  const vigente = guardiaVista('configuracion');
+  let texto = '';
+  let corrida = 0;
+  const revisar = async () => {
+    const n = ++corrida;
+    btnCopiar.disabled = true;
+    lista.innerHTML = '<li class="cfg-diag-cargando">Revisando…</li>';
+    const d = await recolectarDiagnostico();
+    if (!vigente() || !det.isConnected || n !== corrida) return;
+    texto = textoDiagnostico(d);
+    lista.innerHTML = filasDiagnostico(d).map(([r, v]) => `<li><span class="cfg-diag-rot">${escapeHtml(r)}</span><span class="cfg-diag-val">${escapeHtml(v)}</span></li>`).join('');
+    btnCopiar.disabled = false;
+  };
+  det.addEventListener('toggle', () => { if (det.open) revisar(); });
+  document.getElementById('btn-diag-actualizar')?.addEventListener('click', () => revisar());
+  btnCopiar.addEventListener('click', async () => {
+    if (!texto) return;
+    const ok = await copiarTexto(texto);
+    Toast(ok ? 'Diagnóstico copiado' : 'No se pudo copiar: selecciona el texto y cópialo a mano', ok ? 'success' : 'info', 2500);
+  });
+}
+
 export function mountListeners() {
   const refresh = async () => {
     const root = document.getElementById('view-root');
@@ -194,6 +246,7 @@ export function mountListeners() {
   attachPinSecurityListeners('cfg-pin-container');
   attachAuthListeners('cfg-auth-container');
   mountRecordatoriosSeccion(document.getElementById('cfg-recordatorios'), guardiaVista('configuracion'));
+  mountDiagnostico();
 
   document.getElementById('btn-cfg-perfil')?.addEventListener('click', () => openProfileForm());
   document.getElementById('btn-cfg-nivel')?.addEventListener('click', () => openNivelOnboardingForm());
