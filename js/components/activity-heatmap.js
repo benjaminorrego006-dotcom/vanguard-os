@@ -1,7 +1,7 @@
 // Mapa de calor tipo GitHub, reutilizable entre secciones: cada una arma su
 // propio countByDay/detailByDay a partir de sus datos y pasa el color de
-// acento que le corresponde (--accent-teal en Entreno, --accent-purple en
-// Tareas y Finanzas) — este componente no sabe nada de sesiones, tareas ni
+// acento que le corresponde (--accent-teal en Entreno, --am en Finanzas,
+// --accent-purple en Tareas) — este componente no sabe nada de sesiones, tareas ni
 // transacciones, solo dibuja la grilla y maneja la interacción.
 //
 // Días (docs/PLAN-PENDIENTES-OCT.md, A3): al montar los listeners lee el

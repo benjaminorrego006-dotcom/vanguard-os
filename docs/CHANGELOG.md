@@ -1,5 +1,21 @@
 # Vanguard OS — Changelog
 
+## 12 oct 2026 — Cierre de octubre (`docs/PLAN-CIERRE-OCT.md`)
+
+Base: `696a4b8` (v310). Mismo método de QA que la tanda anterior: scripts
+propios de Playwright, de a una prueba, `supabase.co` bloqueado, un solo
+servidor y el navegador cerrado al final de cada una. Cada punto a 375×812;
+pasada final de todo a 1280×800. Corte automático si la memoria libre baja
+de 450 MB.
+
+| Punto | Caché | Qué cambia |
+|---|---|---|
+| P1.1 — Mapa de Finanzas en ámbar | v311 | El mapa de actividad de Finanzas (celdas, leyenda y borde del día elegido) pasa de `--accent-purple` (el dorado heredado, `#C9A24A`) a `--am`, el ámbar del módulo. El mapa de Tareas no cambia. |
+
+### P1.1 — QA
+
+- `p1-heatmap` con el respaldo demo: las 22 celdas con movimientos de septiembre, los dos cuadros con color de la leyenda y el borde del día tocado dan `rgb(217, 138, 61)` (`--am`). Consola limpia. ESLint `no-undef` limpio.
+
 ## 10 oct 2026 — Días, Gastos anuales y catálogo (`docs/PLAN-PENDIENTES-OCT.md`)
 
 Base: `1ed244e` (v302). Recordatorios queda en pausa. QA con scripts propios

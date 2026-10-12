@@ -149,7 +149,7 @@ export async function init() {
     const heatmapContainer = document.getElementById('finanzas-heatmap');
     if (heatmapContainer) {
       heatmapContainer.outerHTML = buildFinanzasHeatmapHtml();
-      initActivityHeatmapListeners('finanzas-heatmap', 'var(--accent-purple)');
+      initActivityHeatmapListeners('finanzas-heatmap', 'var(--am)');
     }
 
     const trendContainer = document.getElementById('month-trend-container');
@@ -444,7 +444,7 @@ export async function init() {
       });
     });
 
-    initActivityHeatmapListeners('finanzas-heatmap', 'var(--accent-purple)');
+    initActivityHeatmapListeners('finanzas-heatmap', 'var(--am)');
 
     const elIncome = document.getElementById('stat-income');
     const elExpense = document.getElementById('stat-expense');
@@ -953,7 +953,7 @@ const buildFinanzasHeatmapHtml = () => {
     month: heatMonth,
     countByDay,
     detailByDay,
-    accentVar: 'var(--accent-purple)',
+    accentVar: 'var(--am)',
     emptyLabel: 'Sin movimientos'
   });
 };
