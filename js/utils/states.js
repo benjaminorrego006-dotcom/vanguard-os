@@ -65,7 +65,6 @@ export function Toast(message, type = 'info', duration = 2500) {
     border-left: 4px solid ${color};
     color: var(--text-primary);
     padding: 12px 16px;
-    border-radius: 8px;
     font-size: 14px;
     font-weight: 500;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
