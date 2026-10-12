@@ -1,5 +1,19 @@
 # Vanguard OS — Changelog
 
+## 12 oct 2026 — Pasada mínima de pulido
+
+Base: `8f549d5` (v314). Un commit por punto con su caché; cada punto
+probado a 375×812 y una pasada final a 1280×800, con el mismo método de QA
+(scripts propios de Playwright, de a una prueba, `supabase.co` bloqueado).
+
+| Punto | Caché | Qué cambia |
+|---|---|---|
+| M1 — "Nueva meta" sin tapar la navegación | v315 | `#goal-modal` y `#goal-contribute-modal` (los dos modales de `goal-form.js`, desde el Laboratorio y desde Finanzas) se suman a la regla de `layout.css` de los modales que dejan libre la navegación: en móvil terminan sobre la barra inferior, desde 768 px empiezan después del riel y su `.modal-content` hace scroll dentro de ese espacio. Decisión técnica: también `#goal-contribute-modal`, que tenía el mismo problema. |
+
+### M1 — QA
+
+- `m1-meta`: Laboratorio › Finanzas › Metas › "+ Nueva meta". La barra queda libre (el elemento en su centro es la barra), "Guardar Meta" se ve y se puede tocar fuera de ella, y tocar Hoy en la barra navega y cierra el modal. En la base (`8f549d5`), la barra quedaba tapada y no se podía tocar. Consola limpia. ESLint `no-undef` limpio.
+
 ## 12 oct 2026 — Cierre de octubre (`docs/PLAN-CIERRE-OCT.md`)
 
 Base: `696a4b8` (v310). Mismo método de QA que la tanda anterior: scripts

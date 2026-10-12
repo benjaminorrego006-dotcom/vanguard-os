@@ -38,15 +38,15 @@ body {
    pueda tocar otra pestaña con el modal abierto (navegar lo cierra, ver
    forgetOpenModals en history.js). El overlay normal cubre toda la pantalla
    con z-index 3000, por encima de la navegación (1000). */
-#profile-modal .modal-content, #nivel-onboarding-modal .modal-content, #sesion-detalle-modal .modal-content, #buscador-ejercicios-modal .modal-content, #sesion-duracion-modal .modal-content { max-height: 100% !important; }
+#profile-modal .modal-content, #nivel-onboarding-modal .modal-content, #sesion-detalle-modal .modal-content, #buscador-ejercicios-modal .modal-content, #sesion-duracion-modal .modal-content, #goal-modal .modal-content, #goal-contribute-modal .modal-content { max-height: 100% !important; }
 @media (max-width: 767px) {
-  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal, #buscador-ejercicios-modal, #sesion-duracion-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); }
+  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal, #buscador-ejercicios-modal, #sesion-duracion-modal, #goal-modal, #goal-contribute-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); }
 }
 @media (min-width: 768px) {
-  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal, #buscador-ejercicios-modal, #sesion-duracion-modal { left: 72px; }
+  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal, #buscador-ejercicios-modal, #sesion-duracion-modal, #goal-modal, #goal-contribute-modal { left: 72px; }
 }
 @media (min-width: 1024px) {
-  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal, #buscador-ejercicios-modal, #sesion-duracion-modal { left: 220px; }
+  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal, #buscador-ejercicios-modal, #sesion-duracion-modal, #goal-modal, #goal-contribute-modal { left: 220px; }
 }
 /* Detalle de una sesión: Eliminar/Editar quedan fijos al pie aunque la
    sesión sea larga. El sticky se mide dentro del relleno inferior de
