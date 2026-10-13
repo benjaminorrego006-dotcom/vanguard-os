@@ -53,8 +53,8 @@ Referencia visual: la maqueta "vanguard-gris-texto-color-v2.png" que Benjamin ap
 | Fase | Estado | Caché |
 |---|---|---|
 | G1 · Tokens y selector | hecho (`ed0fdc6`) | v319 |
-| G2 · Vistas | hecho | v320 |
-| G3 · Gráficos, mapas y contraste | pendiente | — |
+| G2 · Vistas | hecho (`66307e2`) | v320 |
+| G3 · Gráficos, mapas y contraste | hecho | v321 |
 | Cierre | pendiente | — |
 
 ### Nota de implementación (G1)
@@ -83,3 +83,20 @@ queda gris y no de color. Los usos como color de texto se pasaron a `-t`
   no pisar el verde y el rojo del dinero ni las etiquetas de acento.
 - Los emojis (🔥, 🌅, ✅) no se tocan: son texto y no se pueden pasar a gris
   sin un filtro.
+
+### Nota de implementación (G3)
+
+- Chart.js lee los tokens al dibujar (`cssVar` en `js/utils/charts.js`), así
+  que en Gris las series salen en los grises de cada familia sin tocar los
+  gráficos. Un gráfico ya dibujado cambia de tema al volver a pintarse (al
+  entrar a la vista); el selector está en Configuración, que no tiene
+  gráficos.
+- Mapa muscular: en Gris la intensidad va de #66666B a #F5F5F7.
+- Riel de escritorio: el filo de 2 px del ítem activo pasa a gris claro.
+- Contraste, solo en Gris: `--vi-t` #9097CC, `--rd-t` #DE7A70, `--am2-t`
+  #C08A55, `--state-high-t` #F06A6A, `--state-info-t`/`--accent-blue-t`
+  #5B9BF8, `--t3` #9A9AA0 y `--text-disabled` #808086 (las pestañas
+  inactivas de la barra estaban en 2,2:1). El "+" del toggle de hábito sin
+  marcar pasa a gris secundario (era negro, 1,5:1). Todo el texto medido en
+  17 vistas y 5 hojas pasa 4,5:1 en Gris. En Color quedan los mismos bajos
+  contrastes que antes (no se tocó el tema Color).

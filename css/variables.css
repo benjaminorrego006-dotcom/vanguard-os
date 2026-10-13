@@ -217,11 +217,19 @@ html[data-tema="gris"] {
   --surface-border: rgba(46, 46, 50, 0.4);
   --text-primary: #F5F5F7;
   --text-secondary: #8E8E93;
-  --text-disabled: #4C4C52;
   --glass-bg: rgba(20, 20, 22, 0.72);
 
   --bg: #060607; --panel: #111113; --line: #2A2A2E; --div: #1C1C1F;
-  --t1: #E4E4E8; --t2: #A0A0A6; --t3: #86868C; --t4: #828288; --t5: #8A8A90;
+  --t1: #E4E4E8; --t2: #A0A0A6; --t3: #9A9AA0; --t4: #828288; --t5: #8A8A90;
+  --text-disabled: #808086;
+
+  /* Contraste (G3): sobre las tarjetas grises, el violeta, el rojo y el
+     ámbar de "Necesidades" quedaban bajo 4,5:1 (también en Color, sobre
+     sus fondos azulados). Solo en Gris se aclara el tono del texto; --t3 y
+     --text-disabled (números del mapa de actividad, pestañas inactivas)
+     suben por lo mismo. */
+  --vi-t: #9097CC; --rd-t: #DE7A70; --am2-t: #C08A55;
+  --state-high-t: #F06A6A; --state-info-t: #5B9BF8; --accent-blue-t: #5B9BF8; /* fuera de los scopes (diálogos globales) */
 
   --cy: #B4B4BA; --cy2: #6A6A70; --cy3: #46464B; --cy4: #38383D; --cyb: #2C2C30; --cyp: #0E0E10;
   --am: #9C9CA2; --am2: #6A6A70; --amd: #46464B; --amb: #222225; --amp: #0E0E10;
@@ -232,7 +240,7 @@ html[data-tema="gris"] {
   --accent-purple: #D0D0D4;
   --accent-teal: #B4B4BA;
   --accent-orange: #9C9CA2;
-  --accent-muscular: #C8C8CC;
+  --accent-muscular: #F5F5F7;
   --accent-blue: #7A7A80;
   --accent-ritual: #9A9AA0;
   --accent-plan: #A8A8AE;

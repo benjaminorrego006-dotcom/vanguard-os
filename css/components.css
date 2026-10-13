@@ -977,6 +977,11 @@ html[data-tema="gris"] svg { color: oklch(from currentColor l 0 h); }
 /* Barra inferior y riel: el ícono activo en gris claro; el texto conserva
    el acento del módulo (.nav-item.active, layout.css). */
 html[data-tema="gris"] .nav-item.active .icon { color: #D0D0D4; }
+/* En el riel (escritorio) el filo de 2 px del ítem activo usaba
+   currentColor (el acento): pasa al mismo gris claro del ícono. */
+@media (min-width: 768px) {
+  html[data-tema="gris"] .nav-item.active { background-image: linear-gradient(#D0D0D4, #D0D0D4); }
+}
 
 /* Botón principal (y el FAB): gris claro con texto oscuro, en vez del
    acento del módulo. Los botones que usan .btn-primary como secundarios
@@ -998,6 +1003,9 @@ html[data-tema="gris"] :is(.btn-primary, #confirm-ok)[style*="state-high"] {
   color: var(--state-high-t) !important;
   border: 1px solid var(--surface-border) !important;
 }
+
+/* "+" del toggle de hábito sin marcar: era negro sobre gris (1,5:1). */
+html[data-tema="gris"] .day-toggle-circle { color: var(--text-secondary) !important; }
 
 /* Hoy (y Configuración, mismo scope): títulos y valores en blanco. */
 html[data-tema="gris"] .mk3-dashboard { --text-primary: #F5F5F7; }

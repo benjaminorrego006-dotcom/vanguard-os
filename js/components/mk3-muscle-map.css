@@ -166,3 +166,8 @@
   color: var(--mm-accent);
   text-align: center;
 }
+
+/* Tema "Gris" (docs/PLAN-TEMA-GRIS.md): la intensidad va de un gris oscuro
+   a casi blanco (--accent-muscular en gris es #F5F5F7), para que los
+   niveles se distingan sin el ámbar. */
+html[data-tema="gris"] .mk3-muscle-map { --mm-base: #66666B; }
