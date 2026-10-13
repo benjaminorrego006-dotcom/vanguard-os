@@ -963,3 +963,63 @@ button.semana-bloque { cursor: pointer; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================
+   Tema "Gris" (docs/PLAN-TEMA-GRIS.md) — reglas de componentes. Los
+   tokens están en variables.css; acá va lo que un token no alcanza.
+   ============================================================ */
+
+/* Íconos SVG: toman el gris de la misma luminosidad que el color que
+   heredan (croma 0 en oklch). Un ícono dentro de un texto de color queda
+   gris sin tocar cada plantilla; uno que ya era gris queda igual. */
+html[data-tema="gris"] svg { color: oklch(from currentColor l 0 h); }
+
+/* Barra inferior y riel: el ícono activo en gris claro; el texto conserva
+   el acento del módulo (.nav-item.active, layout.css). */
+html[data-tema="gris"] .nav-item.active .icon { color: #D0D0D4; }
+
+/* Botón principal (y el FAB): gris claro con texto oscuro, en vez del
+   acento del módulo. Los botones que usan .btn-primary como secundarios
+   (fondo --surface-2 o transparente) quedan como están: borde gris y texto
+   claro. Los de una acción peligrosa (fondo --state-high, p. ej. "Eliminar"
+   del ConfirmDialog) pasan a fondo gris con el texto en rojo. */
+html[data-tema="gris"] :is(.btn-primary, .mk3-fab, .cab-accion, #ctx-accion):not([style*="surface"]):not([style*="transparent"]):not([style*="bg-base"]):not([style*="state-high"]) {
+  background: #D0D0D4 !important;
+  color: #0B0B0D !important;
+}
+/* Botones rellenos con un acento sin ser .btn-primary (el "+" de Tareas y
+   Hábitos, un chip elegido): mismo gris claro con texto oscuro. */
+html[data-tema="gris"] button:is([style*="background: var(--cy)"], [style*="background:var(--cy)"], [style*="background: var(--am)"], [style*="background:var(--am)"], [style*="background: var(--vi)"], [style*="background:var(--vi)"], [style*="background: var(--accent-teal)"], [style*="background:var(--accent-teal)"], [style*="background: var(--accent-purple)"], [style*="background:var(--accent-purple)"], [style*="background: var(--accent-primary)"], [style*="background:var(--accent-primary)"], [style*="background: var(--accent-notas)"], [style*="background:var(--accent-notas)"], [style*="background: var(--accent-ritual)"], [style*="background:var(--accent-ritual)"], [style*="background: var(--accent-plan)"], [style*="background:var(--accent-plan)"]) {
+  background: #D0D0D4 !important;
+  color: #0B0B0D !important;
+}
+html[data-tema="gris"] :is(.btn-primary, #confirm-ok)[style*="state-high"] {
+  background: var(--surface-2) !important;
+  color: var(--state-high-t) !important;
+  border: 1px solid var(--surface-border) !important;
+}
+
+/* Hoy (y Configuración, mismo scope): títulos y valores en blanco. */
+html[data-tema="gris"] .mk3-dashboard { --text-primary: #F5F5F7; }
+
+/* Títulos y números destacados (h1–h4, .num; en Finanzas también
+   .fin-stat-value) con el acento del módulo, como texto. Dos partes, las
+   dos sin especificidad (:where) para no pisar ningún color propio:
+   - el color por defecto para los que no declaran uno;
+   - --text-primary/--t1 pasan al acento dentro de ellos, así los que
+     declaran el texto principal también lo toman.
+   Los que ya traen un color de texto (dinero en verde o rojo, alertas,
+   etiquetas de acento, texto secundario) lo conservan. Hoy y
+   Configuración no entran: van en blanco. */
+:where(html[data-tema="gris"] .mk3-entreno) :is(h1, h2, h3, h4, .num) { --text-primary: var(--cy-t); --t1: var(--cy-t); }
+:where(html[data-tema="gris"] .mk3-entreno :is(h1, h2, h3, h4, .num)) { color: var(--cy-t); }
+:where(html[data-tema="gris"] .mk3-finanzas) :is(h1, h2, h3, h4, .num, .fin-stat-value) { --text-primary: var(--am-t); --t1: var(--am-t); }
+:where(html[data-tema="gris"] .mk3-finanzas :is(h1, h2, h3, h4, .num, .fin-stat-value)) { color: var(--am-t); }
+:where(html[data-tema="gris"] .mk3-tareas) :is(h1, h2, h3, h4, .num) { --text-primary: var(--vi-t); --t1: var(--vi-t); }
+:where(html[data-tema="gris"] .mk3-tareas :is(h1, h2, h3, h4, .num)) { color: var(--vi-t); }
+:where(html[data-tema="gris"] .mk3-ritual) :is(h1, h2, h3, h4, .num) { --text-primary: var(--accent-ritual-t); --t1: var(--accent-ritual-t); }
+:where(html[data-tema="gris"] .mk3-ritual :is(h1, h2, h3, h4, .num)) { color: var(--accent-ritual-t); }
+:where(html[data-tema="gris"] .mk3-planificador) :is(h1, h2, h3, h4, .num) { --text-primary: var(--accent-plan-t); --t1: var(--accent-plan-t); }
+:where(html[data-tema="gris"] .mk3-planificador :is(h1, h2, h3, h4, .num)) { color: var(--accent-plan-t); }
+:where(html[data-tema="gris"] .mk3-anotaciones) :is(h1, h2, h3, h4, .num) { --text-primary: var(--accent-notas-t); --t1: var(--accent-notas-t); }
+:where(html[data-tema="gris"] .mk3-anotaciones :is(h1, h2, h3, h4, .num)) { color: var(--accent-notas-t); }

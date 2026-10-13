@@ -338,7 +338,7 @@ const renderPRCard = (pr) => {
       </div>
       <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
         <div class="num" style="font-size: 14px; font-weight: 800; color: var(--text-primary); white-space: nowrap;">${valorTxt}</div>
-        <button class="btn-lab-fav-pr" data-nombre="${escapeHtml(pr.nombre)}" aria-label="${pr.favorito ? 'Quitar de favoritos' : 'Marcar como favorito'} ${escapeHtml(pr.nombre)}" aria-pressed="${!!pr.favorito}" style="background: transparent; border: none; cursor: pointer; padding: 2px; color: ${pr.favorito ? '#FBBF24' : 'var(--text-disabled)'};">
+        <button class="btn-lab-fav-pr" data-nombre="${escapeHtml(pr.nombre)}" aria-label="${pr.favorito ? 'Quitar de favoritos' : 'Marcar como favorito'} ${escapeHtml(pr.nombre)}" aria-pressed="${!!pr.favorito}" style="background: transparent; border: none; cursor: pointer; padding: 2px; color: ${pr.favorito ? 'var(--estrella)' : 'var(--text-disabled)'};">
           <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="${pr.favorito ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
         </button>
       </div>
@@ -367,7 +367,7 @@ async function renderRecords() {
 
   const favHtml = (recordsGrupoFiltro === 'todos' && favoritos.length > 0) ? `
     <div style="margin-bottom: 20px;">
-      <h3 style="font-size: 12px; font-weight: 700; color: #FBBF24; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 10px 0;">⭐ Favoritos</h3>
+      <h3 style="font-size: 12px; font-weight: 700; color: var(--estrella-t); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 10px 0;">⭐ Favoritos</h3>
       <div style="display: flex; flex-direction: column; gap: 10px;">${favoritos.map(renderPRCard).join('')}</div>
     </div>` : '';
 

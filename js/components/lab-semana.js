@@ -11,6 +11,7 @@ import { escapeHtml } from '../utils/escape.js';
 import { formatNumero } from '../utils/numero.js';
 import { diaKeyDe, sumarDias, fechaLocalDe, formatDiaSemana } from '../utils/fecha.js';
 import { svgEscudo } from './racha-reactor.js';
+import { colorTexto } from '../utils/tema.js';
 
 export const TABS = [{ id: 'resumen', label: 'Resumen' }];
 export const sinPestanas = true;
@@ -77,7 +78,7 @@ function renderTira(s) {
 // Un bloque por módulo: botón (se navega con teclado) que lleva a su pestaña.
 function bloque({ modulo, color, titulo, lineas, aria }) {
   const inner = `
-      <div class="semana-bloque-titulo" style="color: ${color};">${titulo}</div>
+      <div class="semana-bloque-titulo" style="color: ${colorTexto(color)};">${titulo}</div>
       ${lineas.filter(Boolean).map(l => `<div class="semana-bloque-linea">${l}</div>`).join('')}`;
   return modulo
     ? `<button type="button" class="semana-bloque tappable" data-modulo="${modulo}" style="border-left-color: ${color};" aria-label="${escapeHtml(aria)}. Ver ${titulo} en el Laboratorio">${inner}</button>`

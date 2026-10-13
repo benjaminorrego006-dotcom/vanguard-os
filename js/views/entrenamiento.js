@@ -26,6 +26,7 @@ import { renderSesionesHistorial, initSesionesHistorialListeners } from '../comp
 import { renderCuerpoTarjeta, renderCuerpoHistorial, renderMedidaForm, setupMedidaForm, initCuerpo, initCuerpoGraficos, cleanupCuerpoGraficos } from '../components/cuerpo.js';
 import { renderFotoModales, setupFotoModales, setupFotosHoja, cleanupFotos } from '../components/fotos-progreso.js';
 import { guardiaVista } from '../core/vista-activa.js';
+import { colorTexto } from '../utils/tema.js';
 
 // Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
 // un repintado que termina después de cambiar de vista no escribe encima.
@@ -341,7 +342,7 @@ export async function render() {
       <div style="display: flex; align-items: baseline; gap: 6px;">
         <span class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${formatNumero(imc.valor)}</span>
       </div>
-      <div style="font-size: 11.5px; font-weight: 700; color: ${imc.color}; margin-top: 2px;">${imc.categoria}</div>
+      <div style="font-size: 11.5px; font-weight: 700; color: ${colorTexto(imc.color)}; margin-top: 2px;">${imc.categoria}</div>
     `;
   }
 
@@ -358,7 +359,7 @@ export async function render() {
           <div style="display: flex; gap: 8px; flex-shrink: 0;">
             <!-- Perfil y nivel de entrenamiento se editan desde Configuración
                  (ver Más → Configuración) — este ícono es solo el atajo. -->
-            <button id="btn-open-cfg-entreno" class="icon-chip tappable" title="Configuración" style="width: 44px; height: 44px; background: rgba(92, 225, 230, 0.15); color: var(--accent-teal-t); flex-shrink: 0; border: none; cursor: pointer;">
+            <button id="btn-open-cfg-entreno" class="icon-chip tappable" title="Configuración" style="width: 44px; height: 44px; background: color-mix(in srgb, var(--fondo-cian) 15%, transparent); color: var(--accent-teal-t); flex-shrink: 0; border: none; cursor: pointer;">
               <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
           </div>

@@ -4,6 +4,7 @@ import { escapeHtml } from '../utils/escape.js';
 import { iniciarFoco, focoEnCurso, MIN_FOCO } from './foco.js';
 import { formatFechaHora } from '../utils/fecha.js';
 import { formatNumero } from '../utils/numero.js';
+import { colorTexto } from '../utils/tema.js';
 
 const STATE_CHIPS = [
   { value: 'todo', label: 'Por Hacer' },
@@ -270,7 +271,7 @@ export function setupTaskForm(onSaveCallback) {
     container.appendChild(div);
   });
 
-  dueInput.addEventListener('change', () => { dueInput.style.color = dueDateColor(dueInput.value); });
+  dueInput.addEventListener('change', () => { dueInput.style.color = colorTexto(dueDateColor(dueInput.value)); });
 
   // Foco: la pantalla se abre encima del detalle, que queda abierto debajo
   // (al terminar la pausa se vuelve a él). Si se abrió desde otro lado,
@@ -400,7 +401,7 @@ export function openTaskForm(task = null) {
     document.getElementById('task-desc').value = task.description || '';
     priorityHidden.value = task.priority || 'medium';
     dueInput.value = task.dueDate || '';
-    dueInput.style.color = dueDateColor(task.dueDate);
+    dueInput.style.color = colorTexto(dueDateColor(task.dueDate));
     document.getElementById('task-project').value = task.project || '';
     statusPending.value = task.status || 'todo';
     document.getElementById('task-dificultad').value = ['facil', 'media', 'dificil'].includes(task.dificultad) ? task.dificultad : '';

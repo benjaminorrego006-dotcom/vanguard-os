@@ -16,6 +16,7 @@ import * as Anotaciones from './anotaciones.js';
 import { svgEscudo, avisarPrimeraVidaSiCorresponde } from '../components/racha-reactor.js';
 import { pedirSemana, rangoHtml } from '../components/lab-semana.js';
 import { abrirHojaDia } from '../components/dia-hoja.js';
+import { colorTexto } from '../utils/tema.js';
 
 // Llamado por el router (app.js) antes de desmontar Inicio. El laboratorio
 // puede tener una instancia de Chart.js viva (el donut de "Distribución del
@@ -217,7 +218,7 @@ function renderHeroicRow({ id, color, label, value }) {
   return `
     <div id="${id}" class="card tappable" style="display: flex; align-items: center; gap: 14px; padding: 15px 16px; margin-bottom: 10px; border-left: 2px solid ${color}; cursor: pointer;">
       <div style="flex: 1; min-width: 0;">
-        <div class="num" style="font-size: 10px; font-weight: 700; color: ${color}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px;">${label}</div>
+        <div class="num" style="font-size: 10px; font-weight: 700; color: ${colorTexto(color)}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px;">${label}</div>
         <div class="num" style="font-size: 19px; font-weight: 800; color: var(--text-primary); line-height: 1.15;">${value}</div>
       </div>
       <svg width="16" height="16" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -236,7 +237,7 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincro
 
   const tarjeta = ({ tipo, color, eyebrow, titulo, detalle, accion, vida = null, semana = null, despuesAria = 'Ocultar hasta mañana' }) => `
     <div id="ctx-card" data-tipo="${tipo}"${vida ? ` data-vida="${vida}"` : ''}${semana ? ` data-semana="${semana}"` : ''} class="card card-hero" style="padding: 14px 16px; margin-bottom: 14px;">
-      <div class="num" style="font-size: 10px; font-weight: 700; color: ${color}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">${eyebrow}</div>
+      <div class="num" style="font-size: 10px; font-weight: 700; color: ${colorTexto(color)}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">${eyebrow}</div>
       <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${titulo}</div>
       <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4;">${detalle}</div>
       <div style="display: flex; gap: 8px; margin-top: 12px;">
@@ -458,7 +459,7 @@ export async function render() {
 
   const installBannerHtml = debeMostrarBannerInstalar() ? `
     <div id="install-banner" class="card" style="padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
-      <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(92, 225, 230, 0.15); color: var(--cy-t); flex-shrink: 0;">
+      <div class="icon-chip" style="width: 36px; height: 36px; background: color-mix(in srgb, var(--fondo-cian) 15%, transparent); color: var(--cy-t); flex-shrink: 0;">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
       </div>
       <div style="flex: 1; min-width: 0;">

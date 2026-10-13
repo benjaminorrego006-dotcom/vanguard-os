@@ -20,7 +20,7 @@ import { recolectarDiagnostico, filasDiagnostico, textoDiagnostico } from '../co
 import { guardiaVista } from '../core/vista-activa.js';
 import { isErrorTrackingConfigured, isErrorReportingEnabled, setErrorReportingEnabled } from '../core/error-tracking.js';
 import { formatNumero } from '../utils/numero.js';
-import { temaActual, aplicarTema } from '../utils/tema.js';
+import { temaActual, aplicarTema, colorTexto } from '../utils/tema.js';
 
 const NIVEL_LABELS = { 'menos-1': 'Menos de 1 año', '1-3': '1 a 3 años', 'mas-3': 'Más de 3 años' };
 
@@ -79,7 +79,7 @@ export async function render() {
       persistMsg = 'Este navegador no soporta almacenamiento persistente. Exporta respaldos seguido para no perder tu progreso.';
     }
     return `
-      <p style="color: ${backupColor}; font-size: 13px; margin: 0 0 8px 0; font-weight: 600;">${backupMsg}</p>
+      <p style="color: ${colorTexto(backupColor)}; font-size: 13px; margin: 0 0 8px 0; font-weight: 600;">${backupMsg}</p>
       <p style="color: var(--text-secondary); font-size: 12px; margin: 0 0 16px 0;">${persistMsg}</p>
     `;
   })();

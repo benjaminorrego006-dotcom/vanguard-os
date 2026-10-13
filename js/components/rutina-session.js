@@ -14,6 +14,7 @@ import { escaleraCalentamiento, EQUIPOS_CON_CALENTAMIENTO } from '../utils/calen
 import { seriesDeTrabajo, esCalentamiento as esSerieCalentamiento } from '../utils/tipo-serie.js';
 import { MuscleMap, sumarFatigaPorGrupo, expandirIntensidadPorMusculo, FATIGA_REFERENCIA } from './mk3-muscle-map.js';
 import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
+import { colorTexto } from '../utils/tema.js';
 
 const trophySvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path></svg>`;
 const trendUpSvg = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`;
@@ -183,7 +184,7 @@ function renderSerieRowHtml(s, sIdx, anterior = null) {
   return `
     <div class="serie-row">
       <select class="serie-tipo" hidden aria-hidden="true">${opcionTipo('normal', 'N')}${opcionTipo('calentamiento', 'C')}${opcionTipo('fallo', 'F')}${opcionTipo('dropset', 'D')}</select>
-      <button type="button" class="serie-tipo-chip tappable" data-tipo="${tipo}" title="${TIPO_LABELS[tipo]}" aria-label="Serie ${n}, ${TIPO_LABELS[tipo]}. Cambiar tipo" style="background: ${tc.bg}; border: 1px solid ${tc.border}; color: ${tc.color};">${n}</button>
+      <button type="button" class="serie-tipo-chip tappable" data-tipo="${tipo}" title="${TIPO_LABELS[tipo]}" aria-label="Serie ${n}, ${TIPO_LABELS[tipo]}. Cambiar tipo" style="background: ${tc.bg}; border: 1px solid ${tc.border}; color: ${colorTexto(tc.color)};">${n}</button>
       <span class="serie-anterior num" title="La última vez">${textoAnterior(anterior)}</span>
       <div class="serie-kg"><input type="number" step="0.5" min="0" inputmode="decimal" class="serie-peso" value="${escapeHtml(String(s.peso ?? ''))}" aria-label="Kilos de la serie ${n}"><span class="serie-corporal" aria-hidden="true">Corporal</span></div>
       <input type="text" inputmode="numeric" class="serie-reps" value="${escapeHtml(String(s.reps ?? ''))}" aria-label="Repeticiones o segundos de la serie ${n}">
@@ -1727,7 +1728,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         popover.className = 'tipo-serie-popover';
         popover.style.cssText = 'position:absolute; top:calc(100% + 4px); left:0; z-index:50; background:var(--surface-2); border:1px solid var(--surface-border); padding:4px; display:flex; flex-direction:column; gap:2px; min-width:140px;';
         popover.innerHTML = Object.keys(TIPO_LABELS).map(t =>
-          `<button type="button" class="tappable" data-tipo="${t}" style="text-align:left; padding:8px 10px; background:transparent; border:none; color:${TIPO_COLORS[t].color}; font-size:13px; font-weight:600; cursor:pointer;">${TIPO_LABELS[t]}</button>`
+          `<button type="button" class="tappable" data-tipo="${t}" style="text-align:left; padding:8px 10px; background:transparent; border:none; color:${colorTexto(TIPO_COLORS[t].color)}; font-size:13px; font-weight:600; cursor:pointer;">${TIPO_LABELS[t]}</button>`
         ).join('');
         row.appendChild(popover);
 
@@ -1740,7 +1741,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
             const tc = TIPO_COLORS[tipo];
             tipoChip.style.background = tc.bg;
             tipoChip.style.borderColor = tc.border;
-            tipoChip.style.color = tc.color;
+            tipoChip.style.color = colorTexto(tc.color);
             tipoChip.setAttribute('data-tipo', tipo);
             tipoChip.title = TIPO_LABELS[tipo];
             popover.remove();

@@ -24,3 +24,11 @@ export function aplicarTema(tema) {
   try { localStorage.setItem(CLAVE, t); } catch (e) { /* sin almacenamiento: dura hasta recargar */ }
   return t;
 }
+
+// Un color de acento armado en JS ('var(--cy)', 'var(--state-high)'…) que
+// se va a usar como color de TEXTO pasa a su token de texto (--cy-t…), que
+// en el tema Gris mantiene el color. Cualquier otro valor queda igual.
+const CON_TEXTO = /var\(--(cy|am2|am|vi|rd|accent-(?:primary|purple|teal|orange|blue|ritual|plan|notas)|state-(?:high|medium|low|success|info))\)/g;
+export function colorTexto(color) {
+  return typeof color === 'string' ? color.replace(CON_TEXTO, 'var(--$1-t)') : color;
+}

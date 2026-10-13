@@ -52,8 +52,8 @@ Referencia visual: la maqueta "vanguard-gris-texto-color-v2.png" que Benjamin ap
 
 | Fase | Estado | Caché |
 |---|---|---|
-| G1 · Tokens y selector | hecho | v319 |
-| G2 · Vistas | pendiente | — |
+| G1 · Tokens y selector | hecho (`ed0fdc6`) | v319 |
+| G2 · Vistas | hecho | v320 |
 | G3 · Gráficos, mapas y contraste | pendiente | — |
 | Cierre | pendiente | — |
 
@@ -68,3 +68,18 @@ mantiene el color en los dos temas. Así, cualquier uso que se escape de la
 revisión (por ejemplo un color armado en JS y usado en un `background`)
 queda gris y no de color. Los usos como color de texto se pasaron a `-t`
 (162: `color: var(--X)`, `color: ${…}` y `.style.color = …`).
+
+### Nota de implementación (G2)
+
+- Íconos SVG: `color: oklch(from currentColor l 0 h)` en el tema Gris. Cada
+  ícono toma el gris de la misma luminosidad que el color que hereda, sin
+  tocar cada plantilla. No es un filtro sobre la página: es un color.
+- Colores armados en JS que se usan como texto (`color: ${color}`):
+  `colorTexto()` de `js/utils/tema.js` los pasa a su token `-t`.
+- Botón principal, FAB, botones de cabecera y botones rellenos con un acento:
+  #D0D0D4 con texto oscuro. Una acción peligrosa (fondo `--state-high`):
+  fondo gris y texto rojo.
+- Títulos y números destacados: reglas sin especificidad (`:where`), para
+  no pisar el verde y el rojo del dinero ni las etiquetas de acento.
+- Los emojis (🔥, 🌅, ✅) no se tocan: son texto y no se pueden pasar a gris
+  sin un filtro.

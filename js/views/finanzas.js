@@ -17,6 +17,7 @@ import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { escapeHtml } from '../utils/escape.js';
 import { mesKeyDe, formatFechaCorta, formatMes, fechaLocalDe, claveDiaDe, conMayuscula } from '../utils/fecha.js';
+import { colorTexto } from '../utils/tema.js';
 
 const editSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const transferSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
@@ -588,7 +589,7 @@ const renderAgeOfMoneyHTML = (b) => {
   return `
     <div class="card" id="card-ageofmoney" style="padding: 16px; margin-bottom: 24px; background: linear-gradient(145deg, var(--surface-1), var(--surface-2)); display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--surface-border);">
       <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 48px; height: 48px; background: rgba(255, 182, 39, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-purple-t);">
+        <div style="width: 48px; height: 48px; background: color-mix(in srgb, var(--fondo-ambar) 15%, transparent); display: flex; align-items: center; justify-content: center; color: var(--accent-purple-t);">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
         </div>
         <div>
@@ -713,7 +714,7 @@ const renderEnvelopesHTML = async (b) => {
     return `
       <div class="card fin-account-card env-row tappable" data-id="${env.id}" role="group" aria-label="${escapeHtml(aria)}">
         <div class="flex-between">
-          <p class="fin-eyebrow" style="color: ${catColor};">${CAT_LABELS[env.category] || env.category}</p>
+          <p class="fin-eyebrow" style="color: ${colorTexto(catColor)};">${CAT_LABELS[env.category] || env.category}</p>
           <div style="display: flex; gap: 10px;">
             <button class="transfer-env" data-id="${env.id}" aria-label="Transferir desde ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Transferir">${transferSvg}</button>
             <button class="edit-env" data-id="${env.id}" aria-label="Editar sobre ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Editar">${editSvg}</button>
@@ -784,10 +785,10 @@ const alertBadgeHtml = (usoCatPct, compact = false) => {
   const color = isOver ? 'var(--state-high)' : 'var(--state-medium)';
   const mensaje = isOver ? 'Superaste el presupuesto de esta categoría' : 'Ya usaste el 80% o más del presupuesto de esta categoría';
   if (compact) {
-    return `<span role="img" aria-label="${mensaje}" title="${mensaje}" style="display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:${bg}; color:${color}; font-size:10px; font-weight:800; line-height:1; flex-shrink:0;">!</span>`;
+    return `<span role="img" aria-label="${mensaje}" title="${mensaje}" style="display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:${bg}; color:${colorTexto(color)}; font-size:10px; font-weight:800; line-height:1; flex-shrink:0;">!</span>`;
   }
   const label = isOver ? 'Excedido' : '80%+';
-  return `<span title="${mensaje}" style="display:inline-flex; align-items:center; gap:4px; background:${bg}; color:${color}; font-size:10px; font-weight:700; padding:2px 8px;">${label}</span>`;
+  return `<span title="${mensaje}" style="display:inline-flex; align-items:center; gap:4px; background:${bg}; color:${colorTexto(color)}; font-size:10px; font-weight:700; padding:2px 8px;">${label}</span>`;
 };
 
 // Palabras que no aportan como pista de categoría en el gasto rápido.
@@ -880,14 +881,14 @@ export const txHtml = (tx, envelopes) => {
 
   return `
     <div class="fin-row tappable edit-tx" data-id="${tx.id}" style="cursor: pointer;">
-      <div style="width: 32px; height: 32px; flex-shrink: 0; background: ${catColor}20; display: flex; align-items: center; justify-content: center; color: ${catColor};">
+      <div style="width: 32px; height: 32px; flex-shrink: 0; background: ${catColor}20; display: flex; align-items: center; justify-content: center; color: ${colorTexto(catColor)};">
         ${iconSvg}
       </div>
       <div class="fin-who">
         <div class="fin-name">${escapeHtml(conMayuscula(displayLabel))}</div>
         <div class="fin-meta">${subText}</div>
       </div>
-      <div class="fin-amt" style="color: ${amountColor};">${amountPrefix}${formatCurrency(tx.amount)}</div>
+      <div class="fin-amt" style="color: ${colorTexto(amountColor)};">${amountPrefix}${formatCurrency(tx.amount)}</div>
       <button class="delete-tx tappable" data-id="${tx.id}" aria-label="Eliminar movimiento ${escapeHtml(displayLabel)}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; padding: 4px; flex-shrink: 0;">
          ${delSvg}
       </button>
@@ -992,7 +993,7 @@ const renderMonthTrend = (b) => {
   const arrow = isUp
     ? `<svg width="12" height="12" fill="none" stroke="${color}" stroke-width="3" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`
     : `<svg width="12" height="12" fill="none" stroke="${color}" stroke-width="3" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
-  return `<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: ${color}; margin-top: 10px;">${arrow}${texto}</div>`;
+  return `<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: ${colorTexto(color)}; margin-top: 10px;">${arrow}${texto}</div>`;
 };
 
 // Saldo disponible acumulado día a día (1 hasta hoy) del mes actual, a
@@ -1251,7 +1252,7 @@ export async function render() {
     }
     .input-group input:focus, .input-group select:focus {
       border-color: var(--accent-primary);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--fondo-indigo) 18%, transparent);
     }
     .tab-btn { flex: 1; padding: 12px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; }
     .cat-item { cursor: pointer; padding: 4px; transition: background 0.2s; }
@@ -1321,7 +1322,7 @@ export async function render() {
             <span style="font-size: 11px; font-weight: 700;">Gasto</span>
           </button>
           <button id="btn-fab-ahorro" class="tappable" style="flex: 1; padding: 14px 8px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
-            <div class="icon-chip" style="width: 36px; height: 36px; background: rgba(255, 182, 39, 0.15); color: var(--accent-purple-t);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg></div>
+            <div class="icon-chip" style="width: 36px; height: 36px; background: color-mix(in srgb, var(--fondo-ambar) 15%, transparent); color: var(--accent-purple-t);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg></div>
             <span style="font-size: 11px; font-weight: 700;">Ahorro</span>
           </button>
         </div>

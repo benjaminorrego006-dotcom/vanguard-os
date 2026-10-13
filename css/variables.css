@@ -171,6 +171,7 @@
    --accent-primary, también redefine --accent-primary-t. --- */
 :root {
   --cy-t: #4FA6B3; --am-t: #D98A3D; --vi-t: #737AB4; --rd-t: #C56056;
+  --am2-t: #97622F; /* "Necesidades" en Finanzas */
   --accent-primary-t: #C9A24A;
   --accent-purple-t: #C9A24A;
   --accent-teal-t: #06B6D4;
@@ -192,6 +193,14 @@
   --fondo-exito: #22C55E;
   --fondo-aviso: #F59E0B;
   --fondo-info: #3B82F6;
+  /* Tintes sueltos que estaban escritos a mano (cian claro de los botones
+     de ícono, ámbar de los íconos de ahorro, índigo de la etiqueta de
+     categoría) y la estrella de favoritos del Laboratorio. */
+  --fondo-cian: #5CE1E6;
+  --fondo-ambar: #FFB627;
+  --fondo-indigo: #6366F1;
+  --estrella: #FBBF24;
+  --estrella-t: #FBBF24;
 }
 
 /* Grises del tema: cada familia de acento conserva una luminosidad propia
@@ -238,6 +247,10 @@ html[data-tema="gris"] {
   --fondo-exito: #A8A8AE;
   --fondo-aviso: #9C9CA2;
   --fondo-info: #7A7A80;
+  --fondo-cian: #B4B4BA;
+  --fondo-ambar: #9C9CA2;
+  --fondo-indigo: #88888F;
+  --estrella: #D0D0D4;
 
   --disco-25: #4A4A4F; --disco-20: #5E5E64; --disco-15: #CFCFD3; --disco-10: #747479;
   --disco-5: #EEEEEE; --disco-2-5: #212121; --disco-1-25: #757575; --disco-otro: #555555;

@@ -9,6 +9,7 @@ import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { renderCabeceraRacha } from '../components/racha-reactor.js';
 import { guardiaVista } from '../core/vista-activa.js';
 import { abrirHojaDia } from '../components/dia-hoja.js';
+import { colorTexto } from '../utils/tema.js';
 
 // Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
 // un repintado que termina después de cambiar de vista no escribe encima.
@@ -258,7 +259,7 @@ function renderFranjaSemanal(habito, hoyIso) {
         aria-pressed="${marcado}"
         style="position: relative; flex: 1; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; background: transparent; border: none; cursor: ${inactivo ? 'default' : 'pointer'}; padding: 0; opacity: ${inactivo && !descanso ? '0.4' : '1'}; -webkit-touch-callout: none; user-select: none;">
         ${nota ? '<span class="dia-punto" aria-hidden="true"></span>' : ''}
-        <span aria-hidden="true" style="font-size: 11px; font-weight: ${labelWeight}; color: ${labelColor}; letter-spacing: 0.4px;">${DOW_SHORT[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span>
+        <span aria-hidden="true" style="font-size: 11px; font-weight: ${labelWeight}; color: ${colorTexto(labelColor)}; letter-spacing: 0.4px;">${DOW_SHORT[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span>
         <span aria-hidden="true" class="day-toggle-circle${descanso && !marcado ? ' dia-rayado' : ''}" data-check-size="8" style="width: 50%; aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : 'var(--surface-border)'}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; transition: background 0.15s ease, border-color 0.15s ease; font-size: 8px; font-weight: 800; color: #fff;">
           ${tieneMeta && valor ? escapeHtml(String(valor)) : (marcado ? '<svg width="8" height="8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '')}
         </span>

@@ -1,3 +1,4 @@
+import { colorTexto } from './tema.js';
 export function SkeletonCard(height = '100px') {
   return `
     <div style="
@@ -140,7 +141,7 @@ export function ToastAccion(mensaje, { accion, alAccion, duracion = 6000, color 
     transform: translateY(12px);
     transition: opacity 0.2s ease, transform 0.2s ease;
   `;
-  toast.innerHTML = `<span class="toast-accion-texto"></span>${accion ? `<button type="button" class="toast-accion-btn" style="background: transparent; border: none; color: ${color}; font: inherit; font-weight: 700; min-height: 44px; padding: 0 10px; cursor: pointer;"></button>` : ''}`;
+  toast.innerHTML = `<span class="toast-accion-texto"></span>${accion ? `<button type="button" class="toast-accion-btn" style="background: transparent; border: none; color: ${colorTexto(color)}; font: inherit; font-weight: 700; min-height: 44px; padding: 0 10px; cursor: pointer;"></button>` : ''}`;
   toast.querySelector('.toast-accion-texto').textContent = mensaje;
   const btn = toast.querySelector('.toast-accion-btn');
   if (btn) btn.textContent = accion;
