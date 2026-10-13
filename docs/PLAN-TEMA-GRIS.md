@@ -54,8 +54,8 @@ Referencia visual: la maqueta "vanguard-gris-texto-color-v2.png" que Benjamin ap
 |---|---|---|
 | G1 · Tokens y selector | hecho (`ed0fdc6`) | v319 |
 | G2 · Vistas | hecho (`66307e2`) | v320 |
-| G3 · Gráficos, mapas y contraste | hecho | v321 |
-| Cierre | pendiente | — |
+| G3 · Gráficos, mapas y contraste | hecho (`8211b86`) | v321 |
+| Cierre | hecho | sin cambio |
 
 ### Nota de implementación (G1)
 

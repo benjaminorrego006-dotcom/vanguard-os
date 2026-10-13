@@ -36,7 +36,7 @@ el resumen.
 
 ## Hecho
 
-Estado al 12 oct 2026 (`CACHE_NAME` v318). El detalle de cada tanda (commits,
+Estado al 12 oct 2026 (`CACHE_NAME` v321). El detalle de cada tanda (commits,
 caché y QA) está en `docs/CHANGELOG.md`.
 
 | | Estado |
@@ -74,6 +74,7 @@ caché y QA) está en `docs/CHANGELOG.md`.
 | Catálogo: N8 Windshield Wipers (Limpiaparabrisas), Core avanzado con barra, viene de L-Sit y pide Dead Hang; N7 Puente de glúteo a una pierna revisado contra la propuesta y completado | hecho (`a648d15`, v309) |
 | Cierre de octubre (`docs/PLAN-CIERRE-OCT.md`): mapa de Finanzas en ámbar; modales, hojas y diálogos rectos en todas las vistas (también ConfirmDialog y Laboratorio); saludo de Hoy en una línea a 375, con "Día" junto a la fecha y área de toque de 44 px; Diagnóstico de Recordatorios en Configuración (solo lectura, con "Copiar diagnóstico"); MCP "playwright" solo en scope project | hecho (`a63acd2` → `147011a`, v311–v314) |
 | Pasada mínima de pulido: modales de metas sin tapar la navegación, modales de Finanzas con la regla común (sin copia propia ni radios inline) y toasts rectos y sin sombra | hecho (`13833d7` → toasts sin sombra, v315–v318) |
+| Tema "Gris" (`docs/PLAN-TEMA-GRIS.md`): interfaz en grises y color solo en el texto, predeterminado; "Color" (el de siempre) se elige en Configuración › Apariencia, por dispositivo (localStorage, aplicado antes del primer pintado). Cada acento tiene un token de fondo/borde (`--cy`, `--state-high`…, gris en el tema) y uno de texto (`--cy-t`…, mantiene el color); `colorTexto()` para los colores armados en JS. Íconos, botones, barra y riel, gráficos, mapas y mapa muscular en grises; Hoy en blanco con etiquetas de color; títulos y números con el acento del módulo; contraste 4,5:1 en Gris | hecho (`ed0fdc6` → `8211b86`, v319–v321) |
 
 ---
 

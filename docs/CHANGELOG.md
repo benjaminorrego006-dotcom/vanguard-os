@@ -1,5 +1,27 @@
 # Vanguard OS — Changelog
 
+## 12 oct 2026 — Tema "Gris": interfaz en grises, color solo en el texto
+
+Base: `241bcce` (v318). Plan en `docs/PLAN-TEMA-GRIS.md`. Un commit por
+fase con su caché; cada fase probada a 375×812 y una pasada final a
+1280×800 en los dos temas (scripts propios de Playwright, de a una prueba,
+`supabase.co` bloqueado, reloj simulado en Santiago, respaldo demo).
+
+| Fase | Caché | Qué cambia |
+|---|---|---|
+| G1 — Tokens y selector | v319 | Cada acento (`--cy`, `--am`, `--vi`, `--rd`, `--accent-*`, `--state-*`) queda como token de fondo/borde/relleno y pasa a gris en `html[data-tema="gris"]`; el texto usa un token nuevo `--X-t` que mantiene el color (162 usos convertidos; los scopes MK III repiten el par). Tintes `rgba` escritos a mano pasan a `color-mix` sobre `--fondo-*`. Script de arranque en `index.html` (data-tema antes del primer CSS, sin parpadeo), `js/utils/tema.js` y Configuración › Apariencia (Gris / Color, Gris por defecto, localStorage con try/catch). |
+| G2 — Vistas | v320 | Íconos SVG al gris de su misma luminosidad (`oklch(from currentColor l 0 h)`); botón principal, FAB, botones de cabecera y rellenos con acento en #D0D0D4 con texto oscuro; acción peligrosa con fondo gris y texto rojo; pestaña activa con ícono gris claro y texto con acento; Hoy y Configuración en blanco con las etiquetas de color; títulos y números destacados con el acento del módulo (reglas `:where`, sin pisar el dinero ni las etiquetas). `colorTexto()` para los colores armados en JS que van a texto. |
+| G3 — Gráficos, mapas y contraste | v321 | Gráficos, mapas de actividad, anillos y barras en grises (Chart.js ya lee los tokens). Mapa muscular de #66666B a #F5F5F7 por intensidad. Filo del ítem activo del riel en gris. Contraste en Gris: violeta, rojo, ámbar de "Necesidades", rojo y azul globales, `--t3` y `--text-disabled` aclarados; el "+" del toggle de hábito sin marcar deja de ser negro sobre gris. |
+
+### QA
+
+- `g1-tema`: Gris sin elección guardada, cambio a Color sin recargar, persistencia al recargar en los dos sentidos, `data-tema` ya puesto cuando llega la primera hoja de estilos (sin parpadeo), `theme-color` a juego y almacenamiento bloqueado (Gris; Color se aplica hasta recargar). A 375 y 1280.
+- Tema Color contra v318: capturas de 19 vistas por tramos (375 y 1280) y de 12 hojas/diálogos más la sesión (375), píxel a píxel. Iguales, salvo Configuración (sección Apariencia nueva) y el donut de Hoy, que también cambia entre dos capturas del mismo código (animación).
+- `g2-auditar` y `g2-modales`: auditoría del DOM en Gris (fondo, borde, contorno, degradado, relleno y trazo de SVG con color). 0 en 19 vistas, 12 hojas/diálogos y la sesión HUD, a 375 y 1280.
+- `g3-graficos`: 9 gráficos de Chart.js sin píxeles de color y con varios niveles de gris; `g3-musculos`: mapa muscular sin color.
+- `g3-contraste`: todo texto de color medido contra su fondo real (capas compuestas) en 17 vistas y 5 hojas: ≥ 4,5:1 en Gris. En Color siguen los bajos contrastes de antes (violeta y rojo sobre los fondos azulados, "Necesidades"), que este plan no toca.
+- Consola limpia en todas las pruebas. ESLint `no-undef` limpio. Memoria: mínimo 1.171 MB.
+
 ## 12 oct 2026 — Recordatorios funcionando en el teléfono
 
 Solo docs, sin cambio de caché. Benjamin pegó el Diagnóstico desde su
