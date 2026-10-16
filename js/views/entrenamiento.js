@@ -53,6 +53,12 @@ function ocultarTarjetaPerfilHoy() {
 
 const TIEMPO_ENTRENANDO_PILL ={ 'menos-1': 'Nivel: recién empezando', '1-3': 'Nivel: intermedio', 'mas-3': 'Nivel: experimentado' };
 
+// Atajo "Entrenar" de Hoy: al montarse, la vista retoma la sesión en curso
+// o, si no hay, empieza "Hoy toca" con los mismos botones de la principal;
+// si no hay ninguno de los dos se queda en Entreno.
+let entrenarPedido = false;
+export function pedirEntrenarDesdeHoy() { entrenarPedido = true; }
+
 let categoriaActiva = null;
 let viewState = 'main'; // 'main', 'rutinas', 'form', 'session', 'progreso', 'historial', 'cuerpo'
 let rutinaActualId = null;
@@ -881,5 +887,12 @@ mountListeners = () => {
         goToMain();
       }
     });
+  }
+
+  if (entrenarPedido) {
+    entrenarPedido = false;
+    if (viewState === 'main') {
+      (document.getElementById('btn-sesion-en-curso-retomar') || document.getElementById('btn-hoy-toca-empezar'))?.click();
+    }
   }
 };

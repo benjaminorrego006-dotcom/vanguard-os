@@ -884,7 +884,11 @@ export function mountListeners() {
   const rowAnotaciones = document.getElementById('row-anotaciones');
 
   if (qaGasto) qaGasto.addEventListener('click', () => { pedirGastoFinanzas(); go('finanzas'); });
-  if (qaEntreno) qaEntreno.addEventListener('click', () => go('entrenamiento'));
+  if (qaEntreno) qaEntreno.addEventListener('click', async () => {
+    const { pedirEntrenarDesdeHoy } = await window.appRouter.importar('js/views/entrenamiento.js');
+    pedirEntrenarDesdeHoy();
+    go('entrenamiento');
+  });
   if (rowEntreno) rowEntreno.addEventListener('click', () => go('entrenamiento'));
   if (rowFinanzas) rowFinanzas.addEventListener('click', () => go('finanzas'));
   if (rowTareas) rowTareas.addEventListener('click', () => go('tareas'));
