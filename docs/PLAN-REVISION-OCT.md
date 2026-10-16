@@ -62,7 +62,8 @@ Antes de empezar esta etapa, pregúntale a Benjamin si confirma las tres decisio
 
 ### 3.1 Barra inferior y espacio final
 - Según la decisión. Cada vista deja al final el alto de la barra + safe-area, para que lo último nunca quede tapado.
-- Verificación: scroll hasta abajo en cada vista a 375; el último elemento queda completo. La sesión de Entreno sigue ocultando la barra.
+- Los avisos (toasts) no tapan una hoja abierta: hoy "Ganaste una vida extra" aparece encima de la hoja Día y tapa el campo de la nota (agregado por Benjamin, 16 oct).
+- Verificación: scroll hasta abajo en cada vista a 375; el último elemento queda completo. La sesión de Entreno sigue ocultando la barra. Con la hoja Día abierta, un aviso no tapa la hoja.
 
 ### 3.2 Hoy más corto
 - Según la decisión. La fila "Laboratorio" muestra una cifra de la semana y lleva a la vista.
@@ -82,7 +83,8 @@ Antes de empezar esta etapa, pregúntale a Benjamin si confirma las tres decisio
 
 ### 4.2 Sobres más limpios
 - En Cuentas cada sobre muestra 4 íconos de acción (transferir, editar, archivar, gráfico) más un ⋯. Dejar visible solo la acción más usada (transferir) y llevar el resto al menú ⋯.
-- Verificación: cada acción sigue funcionando desde el menú; Atrás cierra el menú.
+- "Nuevo pago" (Recurrentes) pasa de panel dentro de la página a hoja .modal-overlay: Atrás la cierra y la barra no tapa el formulario (agregado por Benjamin, 16 oct, tras la Etapa 1).
+- Verificación: cada acción sigue funcionando desde el menú; Atrás cierra el menú. Crear y editar un pago fijo desde la hoja; Atrás la cierra sin salir de Finanzas.
 
 ### 4.3 Configuración ordenada
 - Mide ~3150 px y Respaldos queda casi al fondo. Subir Respaldos justo debajo de Cuenta; el resto mantiene su orden.
@@ -118,7 +120,7 @@ Antes de empezar esta etapa, pregúntale a Benjamin si confirma las tres decisio
 | Fase | Commit | Caché |
 |---|---|---|
 | 1.1 Cortes y flechas de los números | `d3fe1c7` | v322 |
-| 1.2 Hojas encima de la barra | `85878a7` + corrección a 1280 (en el commit siguiente) | v323, v325 |
+| 1.2 Hojas encima de la barra | `85878a7`, `e8b5735` | v323, v325 |
 | 1.3 Respaldo: Exportar primero | `57753f3` | v324 |
 | 2.1 Hoy › Gasto | | |
 | 2.2 Hoy › Entrenar | | |
@@ -127,7 +129,7 @@ Antes de empezar esta etapa, pregúntale a Benjamin si confirma las tres decisio
 | 3.2 Hoy más corto | | |
 | 3.3 Entreno: Hoy toca primero | | |
 | 4.1 Resumen de Finanzas compacto | | |
-| 4.2 Sobres más limpios | | |
+| 4.2 Sobres más limpios y "Nuevo pago" en hoja | | |
 | 4.3 Configuración ordenada | | |
 | 5.1 Colores e íconos del tema Gris | | |
 | 5.2 Textos y unidades | | |
