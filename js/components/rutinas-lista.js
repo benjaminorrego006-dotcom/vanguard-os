@@ -82,7 +82,7 @@ export async function renderRutinasLista(categoria) {
         + Nueva rutina
       </button>
       <button id="btn-generar-rutina" class="tappable" style="width: 100%; padding: 14px; background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); font-size: 15px; font-weight: 700; cursor: pointer;">
-        Generar Rutina
+        Generar rutina
       </button>
     </div>
   `;
@@ -136,27 +136,27 @@ export async function renderRutinasLista(categoria) {
     `;
   }
 
-  html += balanceHtml;
 
   let muscleMapHtml = '';
   if (categoria === 'gym' || categoria === 'calistenia') {
     const mapPrefix = categoria === 'gym' ? 'gym' : 'calistenia';
+    // Plegable debajo de las rutinas (docs/PLAN-REVISION-OCT.md, 2.3): ocupaba
+    // la primera pantalla. Abierto de entrada solo si todavía no hay rutinas.
     muscleMapHtml = `
-      <div class="card" style="padding: 18px; margin-bottom: 24px; display: flex; flex-direction: column; align-items: center;">
-        <div class="flex-between" style="width: 100%; margin-bottom: 12px;">
-          <h3 style="font-size: 14px; font-weight: 600; margin: 0; color: var(--text-primary);">Mapa muscular · fatiga actual</h3>
-          <div class="mk3-muscle-map-controles" id="${mapPrefix}-muscle-map-controles">
+      <details class="card rutinas-mapa" ${rutinas.length === 0 ? 'open' : ''} style="padding: 18px; margin-bottom: 24px;">
+        <summary class="tappable" style="cursor: pointer; font-size: 14px; font-weight: 700; color: var(--text-primary); padding: 4px 0;">Mapa muscular · fatiga actual</summary>
+        <div style="display: flex; flex-direction: column; align-items: center; margin-top: 12px;">
+          <div class="mk3-muscle-map-controles" id="${mapPrefix}-muscle-map-controles" style="align-self: flex-end; margin-bottom: 12px;">
             <button type="button" data-vista="frente" aria-pressed="true">Frente</button>
             <button type="button" data-vista="espalda" aria-pressed="false">Espalda</button>
           </div>
+          <div id="${mapPrefix}-muscle-map"></div>
+          <div class="mk3-muscle-map-leyenda" id="${mapPrefix}-muscle-map-leyenda"></div>
+          <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary); align-self: flex-start;">${infoSvg}Qué tan fatigado está cada grupo ahora mismo. Se recupera solo en 48h sin entrenarlo.</div>
         </div>
-        <div id="${mapPrefix}-muscle-map"></div>
-        <div class="mk3-muscle-map-leyenda" id="${mapPrefix}-muscle-map-leyenda"></div>
-        <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary); align-self: flex-start;">${infoSvg}Qué tan fatigado está cada grupo ahora mismo. Se recupera solo en 48h sin entrenarlo.</div>
-      </div>
+      </details>
     `;
   }
-  html += muscleMapHtml;
 
   let deloadHtml = '';
   if (categoria === 'gym' || categoria === 'calistenia') {
@@ -221,8 +221,8 @@ export async function renderRutinasLista(categoria) {
 
   html += heatmapHtml;
 
-  // Mis Rutinas
-  html += `<h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Mis Rutinas</h3>`;
+  // Mis rutinas: primero (2.3), con el balance y el mapa más abajo.
+  html += `<h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Mis rutinas</h3>`;
 
   if (rutinas.length === 0) {
     html += EmptyState("Sin rutinas personalizadas", "Crea la primera o usa una plantilla sugerida");
@@ -255,7 +255,7 @@ export async function renderRutinasLista(categoria) {
 
   // Plantillas sugeridas: colapsado por default (<details> nativo, sin JS
   // propio) — es contenido de descubrimiento, no la razón principal de
-  // estar en esta pantalla (esa es "Mis Rutinas", arriba).
+  // estar en esta pantalla (esa es "Mis rutinas", arriba).
   if (plantillas.length > 0) {
     html += `
       <details style="margin-bottom: 24px;">
@@ -275,6 +275,8 @@ export async function renderRutinasLista(categoria) {
     });
     html += `</div></details>`;
   }
+
+  html += balanceHtml + muscleMapHtml;
 
   // Progreso detallado (árbol, estándares, tendencia) ya no vive dentro de
   // cada categoría — se consolidó en su propia pantalla para no repetir la
