@@ -30,6 +30,10 @@ let activeFinTab = 'resumen';
 // Otra vista (Hoy, aviso de gastos anuales) pide abrir Finanzas en una
 // pestaña puntual: se usa en el próximo render.
 export function pedirPestanaFinanzas(tab) { activeFinTab = tab; }
+// Atajo "Gasto" de Hoy: la próxima vez que se monte Finanzas abre la hoja de
+// gasto (la misma GastoForm, sin otra copia del formulario).
+let gastoPedido = false;
+export function pedirGastoFinanzas() { gastoPedido = true; }
 let dailyBalanceChartInstance = null;
 let monthCompareChartInstance = null;
 let currentMonth = mesKeyDe(new Date());
@@ -490,6 +494,10 @@ export async function init() {
     if (btnFabIngreso) btnFabIngreso.addEventListener('click', () => { document.getElementById('ingreso-modal').openForm(); });
     if (btnFabGasto) btnFabGasto.addEventListener('click', () => { document.getElementById('gasto-modal').openForm(); });
     if (btnFabAhorro) btnFabAhorro.addEventListener('click', () => { document.getElementById('ahorro-modal').openForm(); });
+    if (gastoPedido) {
+      gastoPedido = false;
+      document.getElementById('gasto-modal')?.openForm();
+    }
 
     const quickGastoForm = document.getElementById('quick-gasto-form');
     const quickGastoInput = document.getElementById('quick-gasto-input');

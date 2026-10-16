@@ -1,7 +1,7 @@
 import { db } from '../core/db.js';
 import { formatCurrency } from '../utils/currency.js';
 import { Toast } from '../utils/states.js';
-import { parseQuickGasto, pedirPestanaFinanzas } from './finanzas.js';
+import { parseQuickGasto, pedirGastoFinanzas, pedirPestanaFinanzas } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
 import { diaKeyDe, diasEntre, formatFechaCorta, fechaLocalDe, sumarDias } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
@@ -883,7 +883,7 @@ export function mountListeners() {
   const rowHabitos = document.getElementById('row-habitos');
   const rowAnotaciones = document.getElementById('row-anotaciones');
 
-  if (qaGasto) qaGasto.addEventListener('click', () => go('finanzas'));
+  if (qaGasto) qaGasto.addEventListener('click', () => { pedirGastoFinanzas(); go('finanzas'); });
   if (qaEntreno) qaEntreno.addEventListener('click', () => go('entrenamiento'));
   if (rowEntreno) rowEntreno.addEventListener('click', () => go('entrenamiento'));
   if (rowFinanzas) rowFinanzas.addEventListener('click', () => go('finanzas'));
