@@ -3,8 +3,7 @@
 // del día. Se abre desde Hoy, los mapas de actividad (Tareas, Finanzas) y la
 // franja del detalle de un hábito, así que vive en <body> (se crea la
 // primera vez) en vez de dentro de una vista. Es un .modal-overlay + open:
-// Atrás la cierra vía history.js, y no tapa la barra inferior ni el riel
-// (#dia-modal en layout.css). Cambiar de vista la cierra.
+// Atrás la cierra vía history.js. Cambiar de vista la cierra.
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';

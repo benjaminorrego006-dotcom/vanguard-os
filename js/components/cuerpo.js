@@ -4,7 +4,7 @@
 // - Historial (sub-vista de Entreno): medidas por fecha, la más reciente
 //   arriba, con Editar y Eliminar.
 // - Hoja de registro / edición (#medida-modal, .modal-overlay + open: Atrás
-//   la cierra vía history.js), sin tapar la barra inferior ni el riel.
+//   la cierra vía history.js).
 // - Gráficos (F3), en el historial: peso con media móvil de 7 días y
 //   selector 30/90/365 días, y un mini-gráfico por perímetro con al menos 2
 //   días registrados. Chart.js se carga recién al pintarlos (ensureChartJs).

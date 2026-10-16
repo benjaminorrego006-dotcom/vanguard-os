@@ -2,8 +2,8 @@
 // Finanzas › Recurrentes › "Gastos anuales" (docs/PLAN-PENDIENTES-OCT.md, B2):
 // una fila por gasto (nombre, vencimiento, barra saldo del sobre / monto en
 // ámbar y "Apartar este mes") y la hoja para crear, editar y eliminar
-// (#anual-modal, .modal-overlay + open: Atrás la cierra vía history.js; no
-// tapa la barra inferior ni el riel). Cada gasto tiene su sobre; el
+// (#anual-modal, .modal-overlay + open: Atrás la cierra vía history.js).
+// Cada gasto tiene su sobre; el
 // arrastre de saldos hace de alcancía (ver db.crearGastoAnual).
 import { db, calcularApartarGastoAnual } from '../core/db.js';
 import { formatCurrency } from '../utils/currency.js';

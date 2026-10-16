@@ -64,8 +64,8 @@ cambiar cualquiera de los dos.
 - Monoespaciada solo para números y rótulos; los párrafos van en sans-serif.
 - Acentos: cian = Entreno, ámbar = Finanzas, violeta = Tareas. Rojo solo para
   alertas reales (un saldo negativo, un cobro que no alcanza).
-- Modales: `.modal-overlay` + clase `open`, sin tapar la barra inferior ni el
-  riel.
+- Modales: `.modal-overlay` + clase `open`; el overlay cubre la pantalla
+  completa, barra inferior y riel incluidos (decisión del 16 oct 2026).
 - Render por `innerHTML`: reasignar los listeners después de cada render.
 - Textos en español de Chile con **tuteo** (nunca voseo: "Elige", no
   "Elegí"; "Déjalo", no "Dejalo"). Plurales correctos con 1.

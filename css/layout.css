@@ -31,23 +31,10 @@ body {
   width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
   background: transparent; border: none; color: var(--text-secondary); cursor: pointer;
 }
-/* Modales de onboarding de Entreno (perfil y nivel), el detalle de una
-   sesión del historial, el buscador de ejercicios y la pregunta de duración
-   de una sesión retomada: dejan libre la
-   navegación — barra inferior en móvil, riel en tablet/PC — para que se
-   pueda tocar otra pestaña con el modal abierto (navegar lo cierra, ver
-   forgetOpenModals en history.js). El overlay normal cubre toda la pantalla
-   con z-index 3000, por encima de la navegación (1000). */
-#profile-modal .modal-content, #nivel-onboarding-modal .modal-content, #sesion-detalle-modal .modal-content, #buscador-ejercicios-modal .modal-content, #sesion-duracion-modal .modal-content, #goal-modal .modal-content, #goal-contribute-modal .modal-content { max-height: 100% !important; }
-@media (max-width: 767px) {
-  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal, #buscador-ejercicios-modal, #sesion-duracion-modal, #goal-modal, #goal-contribute-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); }
-}
-@media (min-width: 768px) {
-  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal, #buscador-ejercicios-modal, #sesion-duracion-modal, #goal-modal, #goal-contribute-modal { left: 72px; }
-}
-@media (min-width: 1024px) {
-  #profile-modal, #nivel-onboarding-modal, #sesion-detalle-modal, #buscador-ejercicios-modal, #sesion-duracion-modal, #goal-modal, #goal-contribute-modal { left: 220px; }
-}
+/* Todas las hojas (.modal-overlay) cubren la pantalla completa, barra
+   inferior y riel incluidos (docs/PLAN-REVISION-OCT.md, 1.2): z-index 3000,
+   por encima de la navegación (1000). Antes algunas dejaban la navegación
+   libre y lo de alrededor de la barra se veía nítido bajo la hoja. */
 /* Detalle de una sesión: Eliminar/Editar quedan fijos al pie aunque la
    sesión sea larga. El sticky se mide dentro del relleno inferior de
    .modal-content, así que la barra baja y cubre ese relleno (sin él, las
@@ -379,19 +366,11 @@ body {
 /* --- Sesión activa de Entreno ("Cabina HUD", docs/REDISENO-SESION-HUD.md) ---
    Pantalla completa en móvil: mientras hay una sesión de GYM/Calistenia
    abierta, entrenamiento.js pone .entreno-sesion-activa en <html> y la
-   barra inferior se oculta (el riel de tablet/PC se queda). Los modales
-   de la sesión, que normalmente dejan sitio a esa barra, bajan al borde. */
+   barra inferior se oculta (el riel de tablet/PC se queda). */
 @media (max-width: 767px) {
   html.entreno-sesion-activa #app-nav { display: none; }
-  html.entreno-sesion-activa #buscador-ejercicios-modal,
-  html.entreno-sesion-activa #sesion-duracion-modal,
-  html.entreno-sesion-activa #sesion-salir-modal { bottom: 0; }
   html.entreno-sesion-activa #toast-container { bottom: calc(env(safe-area-inset-bottom) + 24px) !important; }
 }
-#sesion-salir-modal .modal-content { max-height: 100% !important; }
-@media (min-width: 768px) { #sesion-salir-modal { left: 72px; } }
-@media (min-width: 1024px) { #sesion-salir-modal { left: 220px; } }
-@media (max-width: 767px) { #sesion-salir-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); } }
 
 /* Barra superior de la sesión: ✕ · rutina y categoría · Finalizar. Queda
    fija arriba mientras se hace scroll. */
@@ -854,14 +833,8 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
    discos por lado en una línea chica (sin popover). */
 .serie-discos { margin: -2px 0 6px 38px; font-size: 11px; color: var(--text-secondary); }
 /* Fase 7 · descanso por ejercicio: hoja con el valor en mono, −/+ 15 s y
-   "Usar el general" (misma ubicación que la hoja "¿Salir?" de la sesión:
-   sin tapar la barra inferior ni el riel), y chip "⏱ 2:30" en la cabecera. */
+   "Usar el general", y chip "⏱ 2:30" en la cabecera. */
 #descanso-ej-modal { z-index: 6000; }
-#descanso-ej-modal .modal-content { max-height: 100% !important; }
-html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
-@media (max-width: 767px) { #descanso-ej-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); } html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; } }
-@media (min-width: 768px) { #descanso-ej-modal { left: 72px; } }
-@media (min-width: 1024px) { #descanso-ej-modal { left: 220px; } }
 .descanso-ej-hoja { padding: 22px; }
 .descanso-ej-hoja h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary); }
 .descanso-ej-nombre { margin: 2px 0 16px; font-size: 13px; color: var(--text-secondary); }
@@ -888,14 +861,9 @@ html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
 .lab-puntos-barra > span { display: block; height: 100%; background: var(--vi); }
 .lab-puntos-val { color: var(--text-primary); font-weight: 700; white-space: nowrap; }
 
-/* Foco (docs/PLAN-DIFICULTAD-FOCO.md, F3): pantalla completa del área de
-   contenido, sin tapar la barra inferior ni el riel (mismo lugar que la hoja
-   "¿Salir?" de la sesión). Violeta de Tareas; el anillo va en --vi y en la
+/* Foco (docs/PLAN-DIFICULTAD-FOCO.md, F3): pantalla completa. Violeta de Tareas; el anillo va en --vi y en la
    pausa baja a --t3. Se monta en <body>, fuera de los .mk3-*. */
 #foco-modal { z-index: 6000; background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; align-items: stretch; padding: 0; }
-@media (max-width: 767px) { #foco-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); } }
-@media (min-width: 768px) { #foco-modal { left: 72px; } }
-@media (min-width: 1024px) { #foco-modal { left: 220px; } }
 #foco-modal.foco-overlay--sobre-modal { left: 0; bottom: 0; }
 .foco-pantalla { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: var(--space-4) var(--space-3); overflow-y: auto; box-sizing: border-box; text-align: center; }
 .foco-etq { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: var(--vi-t); }
@@ -962,11 +930,6 @@ html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
 .cuerpo-valor-etq { font-size: 12px; color: var(--text-secondary); }
 .cuerpo-fila-nota { margin: 6px 0 0; font-size: 13px; color: var(--text-secondary); line-height: 1.4; overflow-wrap: anywhere; }
 .cuerpo-fila-acciones { display: flex; gap: 8px; margin-top: 8px; }
-/* Hoja: sin tapar la barra inferior ni el riel (como #sesion-salir-modal). */
-#medida-modal .modal-content { max-height: 100% !important; }
-@media (max-width: 767px) { #medida-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); } }
-@media (min-width: 768px) { #medida-modal { left: 72px; } }
-@media (min-width: 1024px) { #medida-modal { left: 220px; } }
 .cuerpo-hoja h3 { margin: 0 0 14px; font-size: 18px; font-weight: 800; color: var(--text-primary); }
 .cuerpo-campo { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .cuerpo-campo input, .cuerpo-campo textarea { width: 100%; box-sizing: border-box; min-height: 44px; padding: 10px 12px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: 0; color: var(--text-primary); font: inherit; font-size: 16px; }
@@ -1009,10 +972,6 @@ html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
 .foto-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .foto-mini:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
 #foto-modal, #foto-comparar-modal { z-index: 3500; }
-#foto-modal .modal-content, #foto-comparar-modal .modal-content { max-height: 100% !important; }
-@media (max-width: 767px) { #foto-modal, #foto-comparar-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); } }
-@media (min-width: 768px) { #foto-modal, #foto-comparar-modal { left: 72px; } }
-@media (min-width: 1024px) { #foto-modal, #foto-comparar-modal { left: 220px; } }
 #foto-comparar-modal .modal-content { max-width: 900px; }
 .foto-hoja h3 { margin: 0 0 12px; font-size: 16px; font-weight: 800; color: var(--text-primary); }
 .foto-grande { display: flex; align-items: center; justify-content: center; background: var(--bg-base); border: 1px solid var(--line); min-height: 120px; }
@@ -1058,10 +1017,6 @@ html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
 /* Días (docs/PLAN-PENDIENTES-OCT.md, A3): hoja "Día", descanso planificado
    (rayado neutro) y punto de nota en mapas de actividad, franjas de Hábitos
    y la tira de 7 días de la racha. Sin radio salvo el punto (círculo). */
-#dia-modal .modal-content { max-height: 100% !important; }
-@media (max-width: 767px) { #dia-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); } }
-@media (min-width: 768px) { #dia-modal { left: 72px; } }
-@media (min-width: 1024px) { #dia-modal { left: 220px; } }
 #dia-modal .modal-content { border-radius: 0; }
 .dia-etq { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--vi-t); margin-bottom: 4px; }
 .dia-hoja h3 { margin: 0 0 16px; font-size: 18px; font-weight: 800; color: var(--text-primary); }
@@ -1122,10 +1077,7 @@ html.entreno-sesion-activa #descanso-ej-modal { bottom: 0; }
 .anual-btn--primario { flex: 1; background: var(--am); border-color: var(--am); color: var(--bg); }
 .anual-btn:disabled { opacity: 0.5; cursor: default; }
 .anual-btn:focus-visible, .anual-eliminar:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
-#anual-modal .modal-content { max-height: 100% !important; border-radius: 0; }
-@media (max-width: 767px) { #anual-modal { bottom: calc(env(safe-area-inset-bottom) + 16px + 68px + 12px); } }
-@media (min-width: 768px) { #anual-modal { left: 72px; } }
-@media (min-width: 1024px) { #anual-modal { left: 220px; } }
+#anual-modal .modal-content { border-radius: 0; }
 .anual-etq { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--am-t); margin-bottom: 4px; }
 .anual-hoja h3 { margin: 0 0 14px; font-size: 18px; font-weight: 800; color: var(--text-primary); }
 .anual-campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }

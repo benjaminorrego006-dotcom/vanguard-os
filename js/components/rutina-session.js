@@ -70,8 +70,7 @@ const TIPO_COLORS = {
 // la clave, ej. "Peso Muerto" por "Peso Muerto Convencional", y la sesión
 // quedaba sin id).
 // Es un .modal-overlay con id (#buscador-ejercicios-modal): history.js le
-// da su entrada de historial, así Atrás y Escape cierran solo el buscador,
-// y layout.css lo deja sin tapar la barra inferior ni el riel.
+// da su entrada de historial, así Atrás y Escape cierran solo el buscador.
 export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = false } = {}) {
   return new Promise((resolve) => {
     document.getElementById('buscador-ejercicios-modal')?.remove();

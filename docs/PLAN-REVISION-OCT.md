@@ -117,8 +117,8 @@ Antes de empezar esta etapa, pregúntale a Benjamin si confirma las tres decisio
 ## Estado
 | Fase | Commit | Caché |
 |---|---|---|
-| 1.1 Cortes y flechas de los números | (en el commit siguiente) | v322 |
-| 1.2 Hojas encima de la barra | | |
+| 1.1 Cortes y flechas de los números | `d3fe1c7` | v322 |
+| 1.2 Hojas encima de la barra | (en el commit siguiente) | v323 |
 | 1.3 Respaldo: Exportar primero | | |
 | 2.1 Hoy › Gasto | | |
 | 2.2 Hoy › Entrenar | | |
