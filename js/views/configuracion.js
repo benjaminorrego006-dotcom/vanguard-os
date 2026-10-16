@@ -151,10 +151,12 @@ export async function render() {
 
       ${seccion('Respaldos', null, `
         ${backupStatusHtml}
-        ${btnSecundario('btn-cfg-export', 'Exportar respaldo')}
+        <!-- Exportar es la acción principal (la de todos los días); restaurar
+             reemplaza los datos y va como secundaria. -->
+        <button id="btn-cfg-export" type="button" class="btn-primary tappable" style="background: var(--accent-primary); color: #000;">Exportar respaldo</button>
         <div style="position: relative; margin-top: 12px;">
           <input type="file" id="cfg-file-import" accept=".json" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;">
-          <button type="button" class="btn-primary tappable" style="background: var(--accent-primary); color: #000; pointer-events: none;">Restaurar respaldo</button>
+          <button type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); pointer-events: none;">Restaurar respaldo</button>
         </div>
         <!-- Fotos de progreso (Fase 6): solo en este dispositivo y fuera del
              respaldo de arriba; van en un archivo aparte. -->
