@@ -144,6 +144,18 @@ export function barValueLabelsPlugin(color) {
 // `bar.x` es su extremo derecho y `bar.y` el centro vertical, así que el
 // label se ancla a la derecha de la barra en vez de arriba. `formatter`
 // opcional para series que no son números crudos (ej. moneda).
+const fuenteEtiquetaBarraH = () => '600 11px ' + (chartFontFamily() || 'sans-serif');
+
+// Ancho (px) que necesita a la derecha la etiqueta más larga de
+// horizontalBarValueLabelsPlugin, para usarlo como layout.padding.right:
+// con un margen fijo, un monto largo ("$295,3 K") se cortaba a 375 px.
+export function anchoEtiquetasBarraH(textos) {
+  const ctx = document.createElement('canvas').getContext('2d');
+  if (!ctx) return 60;
+  ctx.font = fuenteEtiquetaBarraH();
+  return Math.ceil(Math.max(0, ...textos.map(t => ctx.measureText(String(t)).width))) + 12;
+}
+
 export function horizontalBarValueLabelsPlugin(color, formatter = String) {
   return {
     id: 'horizontalBarValueLabels',
@@ -152,7 +164,7 @@ export function horizontalBarValueLabelsPlugin(color, formatter = String) {
       const meta = chart.getDatasetMeta(0);
       const data = chart.data.datasets[0].data;
       ctx.save();
-      ctx.font = '600 11px ' + (chartFontFamily() || 'sans-serif');
+      ctx.font = fuenteEtiquetaBarraH();
       ctx.fillStyle = color;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';

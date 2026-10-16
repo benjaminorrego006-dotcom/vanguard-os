@@ -113,6 +113,37 @@
   color: var(--text-primary);
 }
 
+/* Riel de pestañas que no caben (Finanzas a 375 px): sin barra de scroll y
+   con el borde desvanecido por donde quedan pestañas ocultas. Las clases
+   fade-izq / fade-der las pone finanzas.js según el scroll. */
+.riel-pestanas { scrollbar-width: none; }
+.riel-pestanas::-webkit-scrollbar { display: none; }
+.riel-pestanas.fade-der {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+          mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+.riel-pestanas.fade-izq {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent);
+          mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent);
+}
+.riel-pestanas.fade-izq.fade-der {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+          mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+}
+
+/* Sin las flechas del navegador en los campos numéricos (KG de la sesión,
+   cantidad de un hábito…): ocupaban ancho y no se usan en el teléfono. El
+   valor se lee igual que antes. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+       appearance: textfield;
+}
+
 
 
 /* Badges */

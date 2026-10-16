@@ -406,17 +406,19 @@ export async function render() {
           </div>
         </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-          <div class="card" style="flex: 1.3; padding: 14px 16px;">
+        <!-- Volumen a todo el ancho y Sesiones + IMC debajo: en una sola fila
+             no cabían (la columna mide como máximo 480 px) y el IMC se cortaba. -->
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+          <div class="card" style="flex: 1 1 100%; min-width: 0; padding: 14px 16px;">
             <div style="font-size: 10px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Volumen semanal</div>
             ${volumenSparklineHtml}
           </div>
-          <div class="card" style="flex: 1; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center;">
+          <div class="card" style="flex: 1; min-width: 0; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center;">
             <div style="font-size: 10px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Sesiones</div>
             <span class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${sesionesEstaSemana}</span>
             <div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 2px;">esta semana</div>
           </div>
-          <div class="card" style="flex: 1; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center;">
+          <div class="card" style="flex: 1; min-width: 0; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center;">
             <div style="font-size: 10px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">IMC</div>
             ${imcHtml}
           </div>

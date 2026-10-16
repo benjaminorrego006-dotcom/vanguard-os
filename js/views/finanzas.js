@@ -11,7 +11,7 @@ import { renderEnvelopeForm, initEnvelopeForm } from '../components/EnvelopeForm
 import { renderTransferForm, initTransferForm } from '../components/TransferForm.js';
 import { renderRecurringForm, initRecurringForm } from '../components/RecurringForm.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
-import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, horizontalBarValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
+import { ensureChartJs, appPalette, anchoEtiquetasBarraH, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, horizontalBarValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
 import { renderDonutChart, destroyAllDonuts } from '../components/donut-chart.js';
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
@@ -422,6 +422,12 @@ export async function init() {
   
   mountListeners = () => {
 
+    const rielPestanas = document.getElementById('fin-tabs');
+    if (rielPestanas) {
+      rielPestanas.addEventListener('scroll', () => marcarBordesRiel(rielPestanas), { passive: true });
+      ajustarRielPestanas();
+    }
+
     document.querySelectorAll('.fin-tab').forEach(tab => {
       tab.addEventListener('click', (e) => {
         const target = e.currentTarget.getAttribute('data-tab');
@@ -438,7 +444,8 @@ export async function init() {
         
         document.querySelectorAll('.fin-tab-content').forEach(c => c.style.display = 'none');
         document.getElementById('tab-content-' + target).style.display = 'block';
-        
+        ajustarRielPestanas();
+
         if (target === 'movimientos') {
           renderHistoryList('All');
         }
@@ -1099,7 +1106,7 @@ const renderResumenCharts = async (b) => {
     monthCompareChartInstance = new Chart(barCanvas, {
       type: 'bar',
       data: {
-        labels: [b.trendHastaDia ? `Mes anterior (1–${b.trendHastaDia})` : 'Mes anterior', 'Este mes'],
+        labels: [b.trendHastaDia ? `Anterior (1–${b.trendHastaDia})` : 'Mes anterior', 'Este mes'],
         datasets: [{
           data: [prevMes, esteMes],
           backgroundColor: [palette.surfaceBorder, esteMes > prevMes ? palette.high : palette.low],
@@ -1111,7 +1118,7 @@ const renderResumenCharts = async (b) => {
         ...opts,
         devicePixelRatio: hdPixelRatio(),
         indexAxis: 'y',
-        layout: { padding: { right: 40 } },
+        layout: { padding: { right: anchoEtiquetasBarraH([prevMes, esteMes].map(formatCompactCurrency)) } },
         scales: {
           x: { display: false },
           y: { display: true, grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 12, weight: '600', family: chartFontFamily() } } }
@@ -1120,6 +1127,29 @@ const renderResumenCharts = async (b) => {
       plugins: [horizontalBarValueLabelsPlugin(cssVar('--text-primary'), formatCompactCurrency)]
     });
   }
+};
+
+// Pestañas de Finanzas: a 375 px no caben las 5 y el riel se desliza. Se
+// desvanece el borde por donde quedan pestañas ocultas (clases fade-izq /
+// fade-der) y la pestaña activa se lleva siempre a la vista.
+const marcarBordesRiel = (riel) => {
+  const max = riel.scrollWidth - riel.clientWidth;
+  riel.classList.toggle('fade-izq', riel.scrollLeft > 1);
+  riel.classList.toggle('fade-der', riel.scrollLeft < max - 1);
+};
+
+const ajustarRielPestanas = () => {
+  const riel = document.getElementById('fin-tabs');
+  if (!riel) return;
+  const activa = riel.querySelector('.fin-tab.active');
+  if (activa) {
+    // Con scrollLeft del riel y no scrollIntoView, que también movería la página.
+    const izq = activa.getBoundingClientRect().left - riel.getBoundingClientRect().left + riel.scrollLeft;
+    const der = izq + activa.offsetWidth;
+    if (izq < riel.scrollLeft + 24) riel.scrollLeft = Math.max(0, izq - 24);
+    else if (der > riel.scrollLeft + riel.clientWidth - 24) riel.scrollLeft = der - riel.clientWidth + 24;
+  }
+  marcarBordesRiel(riel);
 };
 
 // Los 3 "budget cards" macro de la regla 50/30/20 (Necesidades/Deseos/
@@ -1284,7 +1314,7 @@ export async function render() {
       </div>
 
       <!-- TABS BAR -->
-      <div class="segmented-control" style="margin-bottom: 20px; overflow-x: auto; flex-wrap: nowrap;">
+      <div id="fin-tabs" class="segmented-control riel-pestanas" style="margin-bottom: 20px; overflow-x: auto; flex-wrap: nowrap;">
         ${['resumen', 'movimientos', 'presupuesto', 'recurrentes', 'cuentas'].map(t => {
           const labels = { resumen: 'Resumen', movimientos: 'Movimientos', presupuesto: 'Presupuesto', recurrentes: 'Recurrentes', cuentas: 'Cuentas' };
           const isActive = activeFinTab === t;
