@@ -257,8 +257,9 @@ body {
     background-color: var(--bg-base);
   }
 
-  /* El div inyectado por las vistas toma un ancho razonable */
-  #view-root > div {
+  /* El div inyectado por las vistas toma un ancho razonable (no las hojas
+     que la vista monta como hijas directas: cubren toda la pantalla). */
+  #view-root > div:not(.modal-overlay) {
     max-width: 800px !important;
     width: 100% !important;
     padding: var(--space-5) !important;
@@ -291,7 +292,7 @@ body {
     white-space: normal;
   }
 
-  #view-root > div { max-width: 1200px !important; }
+  #view-root > div:not(.modal-overlay) { max-width: 1200px !important; }
 
   .hoy-root { grid-template-columns: repeat(12, minmax(0, 1fr)); }
   .hoy-root > #hoy-agenda { grid-column: 1 / span 7; }

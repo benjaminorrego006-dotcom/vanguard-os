@@ -118,8 +118,8 @@ Antes de empezar esta etapa, pregúntale a Benjamin si confirma las tres decisio
 | Fase | Commit | Caché |
 |---|---|---|
 | 1.1 Cortes y flechas de los números | `d3fe1c7` | v322 |
-| 1.2 Hojas encima de la barra | `85878a7` | v323 |
-| 1.3 Respaldo: Exportar primero | (en el commit siguiente) | v324 |
+| 1.2 Hojas encima de la barra | `85878a7` + corrección a 1280 (en el commit siguiente) | v323, v325 |
+| 1.3 Respaldo: Exportar primero | `57753f3` | v324 |
 | 2.1 Hoy › Gasto | | |
 | 2.2 Hoy › Entrenar | | |
 | 2.3 GYM y Calistenia: rutinas antes del mapa | | |
