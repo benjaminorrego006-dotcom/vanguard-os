@@ -124,7 +124,7 @@ Antes de empezar esta etapa, pregúntale a Benjamin si confirma las tres decisio
 | 1.3 Respaldo: Exportar primero | `57753f3` | v324 |
 | 2.1 Hoy › Gasto | `0e572f0` | v326 |
 | 2.2 Hoy › Entrenar | `5e32348` | v327 |
-| 2.3 GYM y Calistenia: rutinas antes del mapa | (ver informe de la Etapa 2) | v328 |
+| 2.3 GYM y Calistenia: rutinas antes del mapa | `25d8911` | v328 |
 | 3.1 Barra inferior y espacio final | | |
 | 3.2 Hoy más corto | | |
 | 3.3 Entreno: Hoy toca primero | | |
