@@ -107,11 +107,15 @@ Antes de empezar esta etapa, pregúntale a Benjamin si confirma las tres decisio
 - Lista de movimientos: gastos en rojo, ingresos en verde y transferencias neutras, como texto (hoy van en blanco mientras "Gastos del mes" va en rojo). En tema Color, como está hoy.
 - Hábitos: el botón para marcar es un círculo vacío sin ícono (solo "Leer" tiene +). Ícono de check (o + si tiene meta) en todos.
 - "Ver todo" del Laboratorio con el color de texto que le corresponde (hoy usa cian, el de Entreno).
+- Tema Gris: el rótulo "FINANZAS" de las filas de Hoy sale ámbar (agregado por Benjamin, 18 oct).
+- Al cambiar de vista con la barra o el riel, la vista nueva abre arriba: hoy hereda el scroll de la anterior (bajar al final de Hoy y tocar Entreno lo abre por la mitad; #view-root nunca vuelve a scrollTop 0). Atrás puede conservar la posición si ya lo hace (agregado por Benjamin, 18 oct).
 - Verificación: capturas a 375 en Gris y Color de Movimientos, Hábitos y Hoy.
 
 ### 5.2 Textos y unidades
 - "Volumen semanal 11.344" → con "kg". "Tendencia de gastos" con meses abreviados ("may", "jun"…) usando fecha.js en vez de "05 06 07".
 - Barrido de títulos con mayúscula en cada palabra (como "Generar Rutina") hacia oración normal.
+- Plural "1 de 1 día activo" en Laboratorio › Semana. Cifras del gráfico "Volumen semanal" que se montan y la última cortada a 375 (agregado por Benjamin, 18 oct).
+- Hoja de Gasto con el sobre ya en negativo: en vez de "Excederías tu sobre en $X", "El sobre quedaría en −$X" (agregado por Benjamin, 18 oct).
 - Verificación: grep del barrido en el informe; capturas de Entreno y Finanzas.
 
 ### 5.3 Datos demo coherentes
