@@ -112,7 +112,12 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
     const env = b.envelopes.find(e => e.id === selectedEnvelopeId);
     if (env) {
       const rem = env.balance - num;
-      if (rem < 0) {
+      // Sin monto todavía no hay nada que exceder: si el sobre ya está bajo
+      // cero, se dice eso; "Excederías…" solo con un monto mayor a 0.
+      if (num <= 0 && env.balance < 0) {
+        context.style.color = 'var(--state-high-t)';
+        context.innerText = `${env.name} ya está en negativo (${formatCurrency(Math.abs(env.balance))} bajo cero)`;
+      } else if (rem < 0) {
         context.style.color = 'var(--state-high-t)';
         context.innerText = `Excederías tu sobre de ${env.name} en ${formatCurrency(Math.abs(rem))}`;
       } else {
