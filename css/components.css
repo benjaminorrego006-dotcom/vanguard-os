@@ -1071,6 +1071,12 @@ html[data-tema="gris"] :is(.btn-primary, #confirm-ok)[style*="state-high"] {
   border: 1px solid var(--surface-border) !important;
 }
 
+/* Movimientos (Revisión oct 5.1): en Gris los gastos van en rojo como texto,
+   igual que "Gastos del mes" (antes en blanco); los ingresos ya van en verde
+   y transferencias, asignaciones y ahorros quedan neutros. En Color, igual
+   que siempre. */
+html[data-tema="gris"] .fin-amt--gasto { color: var(--state-high-t) !important; }
+
 /* "+" del toggle de hábito sin marcar: era negro sobre gris (1,5:1). */
 html[data-tema="gris"] .day-toggle-circle { color: var(--text-secondary) !important; }
 

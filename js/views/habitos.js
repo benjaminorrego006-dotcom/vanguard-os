@@ -11,6 +11,11 @@ import { guardiaVista } from '../core/vista-activa.js';
 import { abrirHojaDia } from '../components/dia-hoja.js';
 import { colorTexto } from '../utils/tema.js';
 
+// Botón de marcar de la lista sin marcar (Revisión oct 5.1): check tenue en
+// vez de un círculo vacío; al marcar pasa a check negro sobre violeta. Los
+// hábitos con meta muestran "+" o su valor.
+const CHECK_SIN_MARCAR = '<svg width="16" height="16" fill="none" stroke="var(--text-secondary)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
 // Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
 // un repintado que termina después de cambiar de vista no escribe encima.
 let vistaVigente = () => true;
@@ -559,7 +564,7 @@ async function renderLista() {
             ? `<div aria-hidden="true" style="flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-disabled); text-align: center; line-height: 1.1;">No<br>aplica</div>`
             : `<button class="${claseToggle} tappable" data-id="${habito.id}" data-fecha="${hoyIso}" aria-label="${marcadoHoy ? 'Editar' : 'Marcar'} ${escapeHtml(habito.nombre)} hoy" aria-pressed="${marcadoHoy}" style="flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;">
                 <span aria-hidden="true" class="day-toggle-circle" data-check-size="16" data-borde-marca="1" style="width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${marcadoHoy ? 'transparent' : 'var(--surface-border)'}; background: ${marcadoHoy ? 'var(--accent-purple)' : 'var(--surface-2)'}; font-size: 12px; font-weight: 800; color: #000;">
-                  ${tieneMeta ? (valorHoy ? escapeHtml(String(valorHoy)) : '+') : (marcadoHoy ? '<svg width="16" height="16" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '')}
+                  ${tieneMeta ? (valorHoy ? escapeHtml(String(valorHoy)) : '+') : (marcadoHoy ? '<svg width="16" height="16" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : CHECK_SIN_MARCAR)}
                 </span>
               </button>`
           }
@@ -710,7 +715,7 @@ export function mountListeners() {
     const checkColor = esListaFlavor ? '#000' : '#fff';
     circle.innerHTML = marcado
       ? `<svg width="${size}" height="${size}" fill="none" stroke="${checkColor}" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`
-      : '';
+      : (esListaFlavor ? CHECK_SIN_MARCAR : '');
   };
 
   // Días: mantener presionado (500 ms) o clic derecho un día de la franja del

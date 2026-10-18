@@ -961,7 +961,7 @@ export const txHtml = (tx, envelopes) => {
         <div class="fin-name">${escapeHtml(conMayuscula(displayLabel))}</div>
         <div class="fin-meta">${subText}</div>
       </div>
-      <div class="fin-amt" style="color: ${colorTexto(amountColor)};">${amountPrefix}${formatCurrency(tx.amount)}</div>
+      <div class="fin-amt${tx.type === 'Gasto' && tx.category !== 'Savings' ? ' fin-amt--gasto' : ''}" style="color: ${colorTexto(amountColor)};">${amountPrefix}${formatCurrency(tx.amount)}</div>
       <button class="delete-tx tappable" data-id="${tx.id}" aria-label="Eliminar movimiento ${escapeHtml(displayLabel)}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; padding: 4px; flex-shrink: 0;">
          ${delSvg}
       </button>

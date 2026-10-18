@@ -566,6 +566,10 @@ class Router {
         && recargarSiHayActualizacion(hashDestino, yaEnDestino)) return;
     if (!esCallbackDeAuth && !yaEnDestino) location.hash = hashDestino;
 
+    // Otra vista (no un repintado de la misma): abre arriba, no con el
+    // scroll de la anterior (#view-root es el mismo contenedor para todas;
+    // Revisión oct 5.1). El repintado de la misma vista conserva su posición.
+    const cambiaVista = this.currentView !== viewId;
     this.currentView = viewId;
     // Id de esta navegación: si mientras se carga la vista llega otra
     // (ej. Hoy → Entreno → Finanzas en menos de lo que tarda en importar),
@@ -640,6 +644,7 @@ class Router {
       const html = await module.render();
       if (!vigente()) return;
       this.root.innerHTML = html;
+      if (cambiaVista) this.root.scrollTop = 0;
       if (typeof module.mountListeners === 'function') module.mountListeners();
       void this.root.offsetWidth;
       this.root.style.animation = 'fadeSlideIn var(--transition-view)';
