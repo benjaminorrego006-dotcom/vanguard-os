@@ -10,7 +10,7 @@
 // relativas a hoy (diaKeyDe / sumarDias); las sesiones llevan hora local
 // ('YYYY-MM-DDT19:00:00', sin zona) para que su ts caiga ese día.
 import { db } from './db.js';
-import { diaKeyDe, sumarDias } from '../utils/fecha.js';
+import { diaKeyDe, sumarDias, fechaLocalDe } from '../utils/fecha.js';
 import { EQUIPO_OPCIONES } from './trainingConfig.js';
 import { generarPlan } from './generador-rutinas.js';
 
@@ -198,4 +198,26 @@ export async function cargarDatosDemo() {
     ['Entreno', 'Objetivo del trimestre', 'Press militar con 75 kg por 5 repeticiones.']
   ];
   for (const [cat, titulo, texto] of notas) await db.crearNota(catId(cat), titulo, texto);
+
+  // ---------- Hábitos: creados al inicio de lo sembrado ----------
+  // crearHabito los crea hoy, pero sus marcas empiezan semanas atrás, y lo
+  // que mira createdAt (Laboratorio › Semana, % de hábitos) decía "Sin
+  // hábitos" en semanas con marcas. Cada uno pasa a creado el día de su
+  // primera marca (a mediodía local), y su evento habito_creado al mismo
+  // instante: el replay saca createdAt de ese ts, así el log y el store
+  // dicen lo mismo. Es un ida y vuelta completo por las funciones del
+  // respaldo (exportar todo y restaurar todo): restaurar solo 'habitos'
+  // vaciaría los stores de STORES_VACIAR_SI_FALTAN.
+  const datos = await db.exportarDatosRespaldo();
+  const creadoDe = new Map();
+  datos.habitos = datos.habitos.map(h => {
+    const primera = Object.keys(h.marcas || {}).sort()[0];
+    if (!primera) return h;
+    const creado = fechaLocalDe(primera);
+    creado.setHours(12, 0, 0, 0);
+    creadoDe.set(h.id, creado.getTime());
+    return { ...h, createdAt: creado.toISOString() };
+  });
+  datos.events = datos.events.map(e => (e.tipo === 'habito_creado' && creadoDe.has(e.entidadId) ? { ...e, ts: creadoDe.get(e.entidadId) } : e));
+  await db.restaurarDatosRespaldo(datos);
 }
