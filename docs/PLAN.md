@@ -102,7 +102,13 @@ Habitify, Way of Life):
 
 Las ideas 1 (estado "omitido" = descanso planificado), 2 (notas en el
 heatmap) y 3 (gastos anuales prorrateados) quedaron hechas en octubre (ver
-Hecho). No quedan ideas abiertas.
+Hecho).
+
+- **Editar un pago fijo** (Finanzas › Recurrentes). Hoy solo se crea y se
+  elimina. Necesita un evento nuevo `recurrente_editado` con su replay en
+  `js/core/sync.js` (`applyRemoteEvent`), su destino en `MIRROR_STORES` y
+  que el respaldo lo lleve. Quedó fuera de la revisión de octubre (decisión
+  de Benjamin, 18 oct 2026).
 
 ### Decisiones de diseño tomadas — no revisar
 
