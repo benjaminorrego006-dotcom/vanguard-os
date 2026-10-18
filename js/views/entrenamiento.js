@@ -94,16 +94,17 @@ async function onSyncActualizadoEntreno() {
 
 const NIVEL_SUGERIDO_LABEL = { intermedio: 'Intermedio', avanzado: 'Avanzado' };
 
-// Tarjetas "listo para avanzar" (PROMPT-NIVEL-FILTRADO.md, paso 4/e): se
-// calculan después de insertar el DOM, no durante render(), porque dependen
-// de una lectura de IndexedDB (historial) que no tiene sentido bloquear el
-// primer pintado del dashboard. Nunca suben el nivel solas — solo arman la
-// sugerencia con evidencia concreta; subir o descartar es una acción
-// explícita del usuario. Una tarjeta por rama con sugerencia (máx. 3
-// visibles, el resto detrás de "Ver N más"); chaflán MK III (.card-hero),
-// sin radios ni sombras.
-const SUGERENCIAS_VISIBLES = 3;
-let sugerenciasExpandido = false;
+// "Listo para avanzar" (PROMPT-NIVEL-FILTRADO.md, paso 4/e): se calculan
+// después de insertar el DOM, no durante render(), porque dependen de una
+// lectura de IndexedDB (historial) que no tiene sentido bloquear el primer
+// pintado. Nunca suben el nivel solas — solo arman la sugerencia con
+// evidencia concreta; subir o descartar es una acción explícita del usuario.
+// Una sola tarjeta debajo de "Hoy toca" (docs/PLAN-REVISION-OCT.md, 3.3),
+// plegada por defecto y abierta si hay una sola sugerencia; adentro, una
+// fila por rama con sus botones. Lo que el usuario abra o cierre se respeta
+// en los repintados tras "Subir de nivel" / "Ahora no" (null = por defecto;
+// vuelve a null al salir de la vista, ver cleanup).
+let sugerenciasAbierta = null;
 
 async function renderSugerenciaNivelBanner() {
   const contenedor = document.getElementById('sugerencia-nivel-banner');
@@ -112,23 +113,30 @@ async function renderSugerenciaNivelBanner() {
   const sugerencias = await detectarSugerencias();
   if (sugerencias.length === 0) { contenedor.innerHTML = ''; return; }
 
-  const visibles = sugerenciasExpandido ? sugerencias : sugerencias.slice(0, SUGERENCIAS_VISIBLES);
-  const tarjeta = (s) => `
-    <div class="card card-hero sugerencia-nivel" data-rama="${s.rama}" style="padding: 14px 16px; margin-bottom: 12px; border-left: 3px solid var(--accent-teal);">
-      <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-teal-t); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Listo para avanzar · ${NIVEL_SUGERIDO_LABEL[s.nivelSugerido]}</div>
-      <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1.3;">${escapeHtml(s.ramaLabel)}: ${escapeHtml(s.ejercicioActual.nombre)} → ${escapeHtml(s.ejercicioSiguiente.nombre)}</div>
+  const n = sugerencias.length;
+  const abierta = sugerenciasAbierta ?? n === 1;
+  const fila = (s, i) => `
+    <div class="sugerencia-nivel" data-rama="${s.rama}" style="padding: 14px 16px;${i > 0 ? ' border-top: 1px solid var(--surface-border);' : ''}">
+      <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-teal-t); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">${escapeHtml(s.ramaLabel)} · ${NIVEL_SUGERIDO_LABEL[s.nivelSugerido]}</div>
+      <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1.3;">${escapeHtml(s.ejercicioActual.nombre)} → ${escapeHtml(s.ejercicioSiguiente.nombre)}</div>
       <div title="${escapeHtml(s.evidencia)}" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(s.evidencia)}</div>
       <div style="display: flex; gap: 10px; margin-top: 12px;">
         <button class="btn-sugerencia-subir btn-primary tappable" data-rama="${s.rama}" data-nivel="${s.nivelSugerido}" style="background: var(--accent-teal); color: #000; width: auto; padding: 9px 16px; font-size: 12.5px;">Subir de nivel</button>
         <button class="btn-sugerencia-ahora-no tappable" data-rama="${s.rama}" data-nivel="${s.nivelSugerido}" style="background: transparent; color: var(--text-secondary); border: 1px solid var(--surface-border); padding: 9px 16px; font-weight: 600; font-size: 12.5px; cursor: pointer;">Ahora no</button>
       </div>
     </div>`;
-  const verMas = sugerencias.length > SUGERENCIAS_VISIBLES
-    ? `<button id="btn-sugerencias-ver-mas" class="tappable" style="background: transparent; border: none; color: var(--accent-teal-t); font-size: 12.5px; font-weight: 700; padding: 4px 0 16px; cursor: pointer;">${sugerenciasExpandido ? 'Ver menos' : `Ver ${sugerencias.length - SUGERENCIAS_VISIBLES} más`}</button>`
-    : '';
-  contenedor.innerHTML = visibles.map(tarjeta).join('') + verMas;
+  contenedor.innerHTML = `
+    <details id="sugerencias-nivel" class="card"${abierta ? ' open' : ''} style="padding: 0; margin-bottom: 20px; border-left: 3px solid var(--accent-teal);">
+      <summary class="tappable" style="cursor: pointer; padding: 14px 16px; font-size: 14px; font-weight: 700; color: var(--text-primary);">${n} ${n === 1 ? 'ejercicio listo' : 'ejercicios listos'} para avanzar</summary>
+      <div style="border-top: 1px solid var(--surface-border);">${sugerencias.map(fila).join('')}</div>
+    </details>`;
 
   // Tras cada innerHTML, los listeners se reasignan.
+  // Un <details open> recién creado también dispara 'toggle': ese no cuenta.
+  document.getElementById('sugerencias-nivel').addEventListener('toggle', (e) => {
+    if (sugerenciasAbierta === null && e.target.open === abierta) return;
+    sugerenciasAbierta = e.target.open;
+  });
   const porRama = (rama) => sugerencias.find(x => x.rama === rama);
   contenedor.querySelectorAll('.btn-sugerencia-subir').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -149,8 +157,6 @@ async function renderSugerenciaNivelBanner() {
       renderSugerenciaNivelBanner();
     });
   });
-  const btnVerMas = document.getElementById('btn-sugerencias-ver-mas');
-  if (btnVerMas) btnVerMas.addEventListener('click', () => { sugerenciasExpandido = !sugerenciasExpandido; renderSugerenciaNivelBanner(); });
 }
 
 export let mountListeners;
@@ -162,6 +168,7 @@ export let mountListeners;
 // los limpiaba), el setInterval del cronómetro de sesión o del timer HIIT,
 // que si no, sigue corriendo en segundo plano indefinidamente.
 export function cleanup() {
+  sugerenciasAbierta = null;
   cleanupProgreso();
   cleanupEjercicioCharts();
   cleanupCuerpoGraficos();
@@ -373,8 +380,6 @@ export async function render() {
 
         ${tarjetaPerfilHtml}
 
-        <div id="sugerencia-nivel-banner"></div>
-
         <!-- Búsqueda: por ahora decorativa (filtra al escribir queda para
              una segunda pasada — ver conversación de reestructuración). -->
         <div style="position: relative; margin-bottom: 20px;">
@@ -385,6 +390,9 @@ export async function render() {
         ${renderSesionEnCurso()}
 
         ${hoyTocaHtml}
+
+        <!-- "Listo para avanzar": una tarjeta plegable, debajo de Hoy toca. -->
+        <div id="sugerencia-nivel-banner"></div>
 
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
           <div class="card tappable btn-explorar" data-cat="gym" style="flex: 1; padding: 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; text-align: center;">
