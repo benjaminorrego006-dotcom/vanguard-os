@@ -6,7 +6,6 @@ import { escapeHtml } from '../utils/escape.js';
 import { diaKeyDe, diasEntre, formatFechaCorta, fechaLocalDe, sumarDias } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import { getEstadoSincronizacion } from '../core/sync.js';
-import * as LabFinanzas from '../components/lab-finanzas.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { calcularAtrasadas } from '../utils/atrasadas.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
@@ -18,15 +17,6 @@ import { pedirSemana, rangoHtml } from '../components/lab-semana.js';
 import { abrirHojaDia } from '../components/dia-hoja.js';
 import { colorTexto } from '../utils/tema.js';
 
-// Llamado por el router (app.js) antes de desmontar Inicio. El laboratorio
-// puede tener una instancia de Chart.js viva (el donut de "Distribución del
-// mes") que si no, queda con su canvas fuera del DOM pero corriendo — mismo
-// motivo que ya documentaba analisis.js.
-export function cleanup() {
-  if (labObserver) { labObserver.disconnect(); labObserver = null; }
-  LabFinanzas.cleanup();
-}
-
 // Si la fila "N atrasadas" está desplegada; vive acá (no en el DOM) para
 // sobrevivir a los repintados de la agenda.
 let atrasadasAbierta = false;
@@ -34,7 +24,6 @@ let atrasadasAbierta = false;
 async function repintar() {
   const root = document.getElementById('view-root');
   const scroll = root.scrollTop;
-  cleanup();
   root.innerHTML = await render();
   mountListeners();
   root.scrollTop = scroll;
@@ -114,11 +103,6 @@ function renderAgenda({ tareasHoy, planHoy, habitosPend, atrasadas, hoyIso }) {
         : '<div style="font-size: 13px; color: var(--text-disabled); padding: 6px 0 8px;">Nada pendiente hoy</div>'}
     </div>`;
 }
-
-// Observer que dispara la carga diferida del Laboratorio (ver
-// mountListeners): así Chart.js no se descarga hasta que el usuario llega
-// con el scroll a esa sección.
-let labObserver = null;
 
 // El evento beforeinstallprompt lo captura index.html apenas carga la
 // página (antes de que este módulo exista) y lo guarda en
@@ -397,6 +381,14 @@ export async function render() {
     db.getDia(hoyIso),
     anualesTrasPresupuesto
   ]);
+  // Fila Laboratorio: días activos de la semana en curso (lunes a hoy), con
+  // la misma actividad de la racha que cuenta Laboratorio › Semana. last7
+  // siempre alcanza al lunes.
+  const lunesHoy = sumarDias(hoyIso, -((new Date().getDay() + 6) % 7));
+  const semanaLab = {
+    activos: rachaGlobal.last7.filter(d => d.date >= lunesHoy && d.count > 0).length,
+    dias: diasEntre(lunesHoy, hoyIso) + 1
+  };
   // Semana (Planificador): los de hoy van a la agenda; los de días
   // anteriores sin hacer, a las atrasadas junto con las de Tareas.
   const planHoy = plan.filter(t => t.fecha === hoyIso);
@@ -575,26 +567,13 @@ export async function render() {
             ? 'Sin notas todavía'
             : `${notas.length} ${notas.length === 1 ? 'nota' : 'notas'} en ${categoriasNota.length} ${categoriasNota.length === 1 ? 'categoría' : 'categorías'}`
         })}
+        ${renderHeroicRow({
+          id: 'row-laboratorio',
+          color: 'var(--t2)',
+          label: 'Laboratorio',
+          value: `${semanaLab.activos} de ${semanaLab.dias} ${semanaLab.dias === 1 ? 'día activo' : 'días activos'}`
+        })}
       </div>
-
-
-      <!-- Laboratorio: en Inicio solo el gráfico más destacado (distribución
-           de gasto del mes — Entreno ya tiene su propio espacio arriba, en
-           el reactor/CTA), no el selector de módulo+pestaña completo de
-           antes. La versión completa de los 4 módulos vive en Más >
-           Laboratorio (views/laboratorio.js). El contenido (datos +
-           Chart.js) se llena en mountListeners() — ver refreshLab() ahí. -->
-      <div style="margin-bottom: 20px;">
-        <div class="flex-between" style="margin: 0 0 4px 0;">
-          <h2 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-primary);">Laboratorio</h2>
-          <a href="#laboratorio" style="font-size: 12.5px; font-weight: 700; color: var(--cy-t); text-decoration: none;">Ver todo →</a>
-        </div>
-        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 14px 0;">Tu distribución de gasto del mes.</p>
-        <div id="lab-section-content">
-          <div class="card" style="padding: 40px 20px; text-align: center; color: var(--text-disabled); font-size: 12px;">Cargando…</div>
-        </div>
-      </div>
-
 
       <!-- Última nota -->
       ${ultimaNota ? `
@@ -649,44 +628,6 @@ export function mountListeners() {
     if (window.appRouter) window.appRouter.navigate(view);
   };
   const refresh = () => { if (window.appRouter) window.appRouter.navigate('dashboard'); };
-
-  // Antes se difería con un IntersectionObserver hasta que el contenedor
-  // entraba al viewport (tenía sentido cuando acá vivía el selector
-  // completo de módulo+pestaña). Con el recorte a un solo gráfico, ya
-  // renderiza directo: es liviano, y queda a un scroll mínimo del reactor
-  // — total, casi cualquier usuario lo ve enseguida. Directo también evita
-  // depender de que el observer efectivamente dispare (no reprodujimos un
-  // caso donde no lo hacía, pero tampoco hay forma de descartarlo del
-  // todo sin el dispositivo real, y acá ya no hay costo que justifique el
-  // riesgo). Si falla, muestra un estado de error en vez de quedarse
-  // pegado en "Cargando…" para siempre.
-  const refreshLab = async () => {
-    const labContent = document.getElementById('lab-section-content');
-    if (!labContent) return;
-    try {
-      labContent.innerHTML = await LabFinanzas.renderTab('desglose');
-      LabFinanzas.initTabListeners('desglose', refreshLab);
-    } catch (err) {
-      console.error('Error al cargar el Laboratorio de Inicio:', err);
-      labContent.innerHTML = `<div class="card" style="padding: 24px 20px; text-align: center; color: var(--text-secondary); font-size: 12.5px;">No se pudo cargar el gráfico. Prueba de nuevo desde Más &gt; Laboratorio.</div>`;
-    }
-  };
-  // Carga diferida: recién cuando la sección entra en pantalla. Con el
-  // Laboratorio bajo la tarjeta contextual, los accesos y los resúmenes,
-  // cargarlo de entrada bajaba Chart.js sin que nadie lo viera. Sin
-  // IntersectionObserver (navegadores muy viejos) se carga directo.
-  const labContainer = document.getElementById('lab-section-content');
-  if (labContainer && 'IntersectionObserver' in window) {
-    labObserver = new IntersectionObserver((entries) => {
-      if (!entries.some(e => e.isIntersecting)) return;
-      labObserver.disconnect();
-      labObserver = null;
-      refreshLab();
-    });
-    labObserver.observe(labContainer);
-  } else {
-    refreshLab();
-  }
 
   // Tarjeta contextual: el botón principal depende del tipo; "Después" la
   // oculta hasta mañana y el re-render deja pasar a la siguiente.
@@ -894,6 +835,14 @@ export function mountListeners() {
   if (rowTareas) rowTareas.addEventListener('click', () => go('tareas'));
   if (rowHabitos) rowHabitos.addEventListener('click', () => go('habitos'));
   if (rowAnotaciones) rowAnotaciones.addEventListener('click', () => go('anotaciones'));
+  // Laboratorio › Semana en la semana en curso (la de la cifra), no en la
+  // pasada que abre por defecto.
+  const rowLaboratorio = document.getElementById('row-laboratorio');
+  if (rowLaboratorio) rowLaboratorio.addEventListener('click', () => {
+    const hoy = diaKeyDe(new Date());
+    pedirSemana(sumarDias(hoy, -((new Date().getDay() + 6) % 7)));
+    go('laboratorio');
+  });
 
   // Captura rápida: si el texto trae un monto, se registra como gasto
   // (mismo parser que "Agregar gasto rápido" de Finanzas); si no, se crea
