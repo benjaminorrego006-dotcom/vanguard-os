@@ -1114,7 +1114,10 @@ const renderResumenCharts = async (b) => {
     monthCompareChartInstance = new Chart(barCanvas, {
       type: 'bar',
       data: {
-        labels: [b.trendHastaDia ? `Anterior (1–${b.trendHastaDia})` : 'Mes anterior', 'Este mes'],
+        // En dos líneas: Chart.js limita el eje a la mitad del ancho y, con
+        // la monoespaciada más ancha de Android, "Anterior (1–16)" se cortaba
+        // por la izquierda a 375 px.
+        labels: [b.trendHastaDia ? ['Anterior', `(1–${b.trendHastaDia})`] : ['Mes', 'anterior'], 'Este mes'],
         datasets: [{
           data: [prevMes, esteMes],
           backgroundColor: [palette.surfaceBorder, esteMes > prevMes ? palette.high : palette.low],
