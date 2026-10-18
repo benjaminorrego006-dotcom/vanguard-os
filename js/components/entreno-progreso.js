@@ -140,7 +140,7 @@ async function renderContent() {
 export async function renderProgreso() {
   return `
     <div>
-      <h2 style="font-size: 21px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Tu Progreso</h2>
+      <h2 style="font-size: 21px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Tu progreso</h2>
       <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 20px 0; line-height: 1.5;">Estándares, árbol de progresión, tendencia y metas — todo en un solo lugar.</p>
       ${renderTabSelector()}
       <div id="progreso-tab-content">${await renderContent()}</div>

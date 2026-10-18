@@ -11,7 +11,7 @@ export function renderAhorroForm() {
           <button class="btn-close-modal" style="width: 40px; height: 40px; flex-shrink: 0; background: var(--surface-2); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
             <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           </button>
-          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Aportar a Meta</h2>
+          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Aportar a meta</h2>
         </div>
         
         <input type="hidden" id="ahorro-tx-id">
@@ -33,7 +33,7 @@ export function renderAhorroForm() {
 
         ${renderNumericKeypad()}
 
-        <button id="btn-submit-ahorro" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--accent-purple); color: #000; opacity: 0.5; pointer-events: none;">Guardar Ahorro</button>
+        <button id="btn-submit-ahorro" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--accent-purple); color: #000; opacity: 0.5; pointer-events: none;">Guardar ahorro</button>
       </div>
     </div>
   `;

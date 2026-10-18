@@ -155,7 +155,7 @@ export function setupNivelOnboardingForm(onFinalizado) {
     try {
       await db.saveNivelEntrenamiento({ tiempoEntrenando: respuestas.tiempoEntrenando });
       // Lee la config existente para no pisar duracionSesionMin si el
-      // usuario ya la había ajustado desde "Generar Rutina".
+      // usuario ya la había ajustado desde "Generar rutina".
       const configPrevia = await db.getGeneradorConfig();
       await db.saveGeneradorConfig({
         equipoDisponible,

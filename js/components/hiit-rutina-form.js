@@ -17,7 +17,7 @@ let formState = {
 export function renderHiitRutinaForm() {
   return `
     <div class="card" style="padding: 22px;">
-      <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 20px 0; color: var(--text-primary); letter-spacing: -0.3px;">Crear Rutina HIIT</h2>
+      <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 20px 0; color: var(--text-primary); letter-spacing: -0.3px;">Crear rutina HIIT</h2>
 
       <div class="input-group">
         <label for="hiit-rf-nombre">Nombre de la rutina</label>
@@ -46,7 +46,7 @@ export function renderHiitRutinaForm() {
       </div>
 
       <button id="btn-guardar-hiit-rutina" class="btn-primary tappable" style="background: var(--accent-teal);">
-        Guardar Rutina
+        Guardar rutina
       </button>
     </div>
   `;
@@ -102,17 +102,17 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
           </div>
         </div>
         <div>
-          <label for="hiit-rf-s-rounds" style="font-size: 11px; color: var(--text-secondary);">Rondas Totales</label>
+          <label for="hiit-rf-s-rounds" style="font-size: 11px; color: var(--text-secondary);">Rondas totales</label>
           <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-rounds" value="${formState.totalRounds}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
         </div>
       `;
     } else if (formState.mode === 'tabata') {
-      settingsEl.innerHTML = `<div style="text-align: center; color: var(--text-secondary); font-size: 14px;">Preset Fijo:<br>20s Trabajo / 10s Descanso<br>8 Rondas (4 mins)</div>`;
+      settingsEl.innerHTML = `<div style="text-align: center; color: var(--text-secondary); font-size: 14px;">Preset fijo:<br>20s Trabajo / 10s Descanso<br>8 Rondas (4 mins)</div>`;
     } else if (formState.mode === 'emom') {
       settingsEl.innerHTML = `
         <div style="display: flex; gap: 8px;">
           <div style="flex: 1;">
-            <label for="hiit-rf-s-emom-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
+            <label for="hiit-rf-s-emom-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo total (min)</label>
             <input type="number" inputmode="numeric" id="hiit-rf-s-emom-mins" value="${formState.emomTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
           </div>
           <div style="flex: 1;">
@@ -124,7 +124,7 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
     } else if (formState.mode === 'amrap') {
       settingsEl.innerHTML = `
         <div>
-          <label for="hiit-rf-s-amrap-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
+          <label for="hiit-rf-s-amrap-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo total (min)</label>
           <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-amrap-mins" value="${formState.amrapTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
         </div>
       `;

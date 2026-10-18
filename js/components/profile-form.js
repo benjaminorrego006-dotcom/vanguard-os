@@ -37,7 +37,7 @@ export function renderProfileForm() {
   return `
     <div id="profile-modal" class="modal-overlay">
       <div class="modal-content" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
-        <h2 id="profile-modal-title" style="margin-top: 0; font-size: 20px; font-weight: 700;">Tu Perfil</h2>
+        <h2 id="profile-modal-title" style="margin-top: 0; font-size: 20px; font-weight: 700;">Tu perfil</h2>
         <p style="color: var(--text-secondary); font-size: 13px; margin: -8px 0 20px 0;">Estos datos se usan para calcular tu IMC y tu gasto calórico estimado.</p>
 
         <div class="input-group">
@@ -149,7 +149,7 @@ export async function openProfileForm() {
   if (profile) {
     btnCancel.textContent = 'Cancelar';
     btnCancel.dataset.modo = '';
-    titleEl.innerText = 'Tu Perfil';
+    titleEl.innerText = 'Tu perfil';
     document.getElementById('profile-nombre').value = profile.nombre || '';
     document.getElementById('profile-peso').value = profile.pesoKg || '';
     document.getElementById('profile-estatura').value = profile.estaturaCm || '';

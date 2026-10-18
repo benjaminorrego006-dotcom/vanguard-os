@@ -16,7 +16,7 @@ import { renderDonutChart, destroyAllDonuts } from '../components/donut-chart.js
 import { renderGoalCard } from '../components/goal-card.js';
 import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
 import { escapeHtml } from '../utils/escape.js';
-import { mesKeyDe, formatFechaCorta, formatMes, fechaLocalDe, claveDiaDe, conMayuscula } from '../utils/fecha.js';
+import { mesKeyDe, formatFechaCorta, formatMes, formatMesCorto, fechaLocalDe, claveDiaDe, conMayuscula } from '../utils/fecha.js';
 import { colorTexto } from '../utils/tema.js';
 
 const editSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
@@ -659,7 +659,7 @@ const renderAgeOfMoneyHTML = (b) => {
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
         </div>
         <div>
-          <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Edad del Dinero</div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Edad del dinero</div>
           <div style="font-size: 20px; font-weight: 800; color: var(--text-primary);"><span class="num">${b.ageOfMoney}</span> <span style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">días</span></div>
         </div>
       </div>
@@ -1316,7 +1316,7 @@ export async function render() {
             <div style="width: 100%; height: 100px; background: var(--surface-2); position: relative; overflow: hidden;">
               <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: ${h}%; background: ${isCurrent ? 'var(--text-primary)' : 'var(--text-secondary)'}; transition: height 0.5s ease;"></div>
             </div>
-            <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600;">${d.month.split('-')[1]}</div>
+            <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600;">${formatMesCorto(fechaLocalDe(d.month + '-01'))}</div>
           </div>`;
         }).join('')}
       </div>

@@ -31,7 +31,7 @@ export function renderGoalForm() {
     <div id="goal-modal" class="modal-overlay">
       <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-          <h2 id="modal-goal-title" style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Nueva Meta</h2>
+          <h2 id="modal-goal-title" style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Nueva meta</h2>
           <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">&times;</button>
         </div>
         <form id="goal-form">
@@ -75,7 +75,7 @@ export function renderGoalForm() {
             <label>Ícono</label>
             <div id="goal-icon-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;"></div>
           </div>
-          <button type="submit" class="btn-primary" style="background: var(--accent-purple);">Guardar Meta</button>
+          <button type="submit" class="btn-primary" style="background: var(--accent-purple);">Guardar meta</button>
         </form>
       </div>
     </div>
@@ -271,7 +271,7 @@ export function initGoalForm(refreshCallback) {
       document.getElementById('goal-deadline').value = goal.deadline || '';
       if (tipoSelect) tipoSelect.value = goal.tipo || 'personalizado';
       document.getElementById('goal-unidad').value = goal.unidad || '';
-      document.getElementById('modal-goal-title').textContent = 'Editar Meta';
+      document.getElementById('modal-goal-title').textContent = 'Editar meta';
       // Monto inicial guardado (en metas antiguas, el de su creación): si no se
       // toca, se conserva al guardar.
       const inicialInput = document.getElementById('goal-initial');
@@ -290,7 +290,7 @@ export function initGoalForm(refreshCallback) {
       document.getElementById('goal-icon').value = defaults.icon || (dominio === 'entreno' ? 'dumbbell' : 'shield');
       if (tipoSelect) tipoSelect.value = defaults.tipo || 'sesiones';
       document.getElementById('goal-unidad').value = defaults.unidad || '';
-      document.getElementById('modal-goal-title').textContent = 'Nueva Meta';
+      document.getElementById('modal-goal-title').textContent = 'Nueva meta';
     }
     const color = accentFor(dominio);
     const submitBtn = document.querySelector('#goal-form button[type="submit"]');

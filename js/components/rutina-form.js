@@ -24,7 +24,7 @@ const generarIdGrupo = () =>
 export function renderRutinaForm(categoria) {
   return `
     <div class="card" style="padding: 22px;">
-      <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 20px 0; color: var(--text-primary); letter-spacing: -0.3px;">Crear Rutina</h2>
+      <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 20px 0; color: var(--text-primary); letter-spacing: -0.3px;">Crear rutina</h2>
 
       <div class="input-group" style="margin-bottom: 20px;">
         <label for="rutina-nombre">Nombre de la rutina</label>
@@ -39,7 +39,7 @@ export function renderRutinaForm(categoria) {
       </div>
 
       <div style="background: color-mix(in srgb, var(--accent-teal) 10%, transparent); border-left: 3px solid var(--accent-teal); padding: 10px 12px; font-size: 11.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
-        Empieza a escribir y elige de la lista para que tus series cuenten en <b style="color: var(--accent-teal-t);">Estándares de Fuerza</b> y en el <b style="color: var(--accent-teal-t);">Árbol de Progresión</b>. Puedes seguir escribiendo cualquier nombre si prefieres.
+        Empieza a escribir y elige de la lista para que tus series cuenten en <b style="color: var(--accent-teal-t);">Estándares de fuerza</b> y en el <b style="color: var(--accent-teal-t);">Árbol de Progresión</b>. Puedes seguir escribiendo cualquier nombre si prefieres.
       </div>
 
       <button id="btn-add-ejercicio" type="button" class="tappable" style="width: 100%; padding: 13px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 24px;">
@@ -47,7 +47,7 @@ export function renderRutinaForm(categoria) {
       </button>
 
       <button id="btn-guardar-rutina" class="btn-primary tappable" style="background: var(--accent-teal);">
-        Guardar Rutina
+        Guardar rutina
       </button>
     </div>
   `;
@@ -69,7 +69,7 @@ export function initRutinaFormListeners(categoria, onSuccess, signal) {
           <option value="normal">Normal</option>
           <option value="calentamiento">Calentamiento</option>
           <option value="fallo">Fallo</option>
-          <option value="dropset">Drop Set</option>
+          <option value="dropset">Drop set</option>
         </select>
         <input type="text" inputmode="numeric" class="serie-reps" placeholder="Reps" style="width: 60px; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">
         <input type="number" inputmode="decimal" enterkeyhint="done" class="serie-peso" placeholder="Peso" style="width: 70px; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 9px 8px; color: var(--text-primary); font-size: 16px; box-sizing: border-box;">

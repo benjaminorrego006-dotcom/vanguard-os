@@ -99,14 +99,14 @@ export function onSubrouteChange() {
 let activeTaskState = 'todo';
 
 const STATE_LABELS = {
-  'todo': 'Por Hacer',
-  'in-progress': 'En Curso',
+  'todo': 'Por hacer',
+  'in-progress': 'En curso',
   'done': 'Hecho'
 };
 
 const EMPTY_MSG = {
   'todo': { title: 'Sin tareas pendientes', subtitle: 'Agrega la primera con el botón + de arriba.' },
-  'in-progress': { title: 'Sin tareas en curso', subtitle: 'Avanza una desde "Por Hacer" para verla acá.' },
+  'in-progress': { title: 'Sin tareas en curso', subtitle: 'Avanza una desde "Por hacer" para verla acá.' },
   'done': { title: 'Sin tareas completadas', subtitle: 'Termina una tarea para verla acá.' }
 };
 
@@ -141,7 +141,7 @@ function ordenUrgencia(a, b) {
   return (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1);
 }
 
-// Flecha de avance rápido: Por Hacer -> En Curso -> Hecho, sin pasar por el
+// Flecha de avance rápido: Por hacer -> En curso -> Hecho, sin pasar por el
 // detalle. Hecho ya es el final, no tiene siguiente estado.
 function renderAdvanceButton(task) {
   if (task.status === 'done') return '';
@@ -377,7 +377,7 @@ export function mountListeners() {
     });
   });
 
-  // Captura rápida: crea la tarea directo en "Por Hacer", prioridad media.
+  // Captura rápida: crea la tarea directo en "Por hacer", prioridad media.
   const quickInput = document.getElementById('task-quick-add');
   const quickAdd = async () => {
     const title = quickInput.value.trim();

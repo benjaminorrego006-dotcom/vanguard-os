@@ -17,7 +17,7 @@ export function renderGastoForm() {
           <button class="btn-close-modal" style="width: 40px; height: 40px; flex-shrink: 0; background: var(--surface-2); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
             <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           </button>
-          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--state-high-t);">Registrar Gasto</h2>
+          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--state-high-t);">Registrar gasto</h2>
         </div>
 
         <input type="hidden" id="gasto-tx-id">
@@ -45,7 +45,7 @@ export function renderGastoForm() {
 
         ${renderNumericKeypad()}
 
-        <button id="btn-submit-gasto" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--state-high); color: #000; opacity: 0.5; pointer-events: none;">Guardar Gasto</button>
+        <button id="btn-submit-gasto" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--state-high); color: #000; opacity: 0.5; pointer-events: none;">Guardar gasto</button>
       </div>
     </div>
   `;
@@ -119,7 +119,11 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
         context.innerText = `${env.name} ya está en negativo (${formatCurrency(Math.abs(env.balance))} bajo cero)`;
       } else if (rem < 0) {
         context.style.color = 'var(--state-high-t)';
-        context.innerText = `Excederías tu sobre de ${env.name} en ${formatCurrency(Math.abs(rem))}`;
+        // Si ya estaba bajo cero, "Excederías en $X" sumaba la deuda previa
+        // al monto: se dice dónde quedaría (Revisión oct 5.2).
+        context.innerText = env.balance < 0
+          ? `El sobre quedaría en ${formatCurrency(rem)}`
+          : `Excederías tu sobre de ${env.name} en ${formatCurrency(Math.abs(rem))}`;
       } else {
         context.style.color = 'var(--text-secondary)';
         context.innerText = `Quedan ${formatCurrency(rem)} en este sobre`;

@@ -112,7 +112,7 @@ export async function renderEstandaresFuerza() {
 
   return `
     <div>
-      <h2 style="font-size: 21px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Estándares de Fuerza</h2>
+      <h2 style="font-size: 21px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Estándares de fuerza</h2>
       <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 20px 0; line-height: 1.5;">Dónde estás y qué falta en cada levantamiento principal, según tu 1RM estimado relativo a tu peso corporal.</p>
       ${nombresExactosHtml}
       ${bannerPesoHtml}

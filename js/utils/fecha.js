@@ -44,6 +44,12 @@ export const formatMes = (d) => {
   return f.toLocaleDateString('es-CL', { month: 'long' });
 };
 
+// "sept", "may": mes abreviado (sin el punto que agregan algunos motores).
+export const formatMesCorto = (d) => {
+  const f = d instanceof Date ? d : new Date(d);
+  return f.toLocaleDateString('es-CL', { month: 'short' }).replace('.', '');
+};
+
 // Mayúscula solo en la primera letra ("Septiembre de 2026"). text-transform:
 // capitalize pone mayúscula a cada palabra ("Septiembre De 2026").
 export const conMayuscula = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);

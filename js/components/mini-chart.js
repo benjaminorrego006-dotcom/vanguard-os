@@ -21,7 +21,10 @@ export function renderMiniChart(data, opts = {}) {
     width = 300,
     // Cómo escribir cada valor: números es-CL por defecto; un monto pasa
     // formatCurrency (utils/currency.js).
-    formato = formatNumero
+    formato = formatNumero,
+    // Cifra sobre cada punto: por defecto la misma de arriba; más corta
+    // (ej. sin decimales) para que no se monten en una tarjeta angosta.
+    formatoEtiqueta = formato
   } = opts;
 
   const valores = (data || []).filter(v => typeof v === 'number' && !isNaN(v));
@@ -64,7 +67,10 @@ export function renderMiniChart(data, opts = {}) {
     // Número (valor) encima del punto, si es mayor a 0
     if (v > 0) {
       const textY = cy < 15 ? cy + 12 : cy - 6; 
-      dataPointsHtml += `<text x="${cx}" y="${textY}" fill="var(--text-secondary)" font-size="9" font-weight="500" text-anchor="middle">${formato(v)}</text>`;
+      // La primera y la última se alinean hacia adentro: centradas sobre el
+      // punto se salían de la tarjeta (la última quedaba cortada a 375).
+      const ancla = i === 0 ? 'start' : i === valores.length - 1 ? 'end' : 'middle';
+      dataPointsHtml += `<text x="${cx}" y="${textY}" fill="var(--text-secondary)" font-size="9" font-weight="500" text-anchor="${ancla}">${formatoEtiqueta(v)}</text>`;
     }
     // Círculo en cada punto (más grande el último)
     if (v > 0 || i === valores.length - 1) {

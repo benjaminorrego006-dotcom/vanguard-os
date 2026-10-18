@@ -293,7 +293,7 @@ export async function calcularNivelPorRama(historialPorNombre) {
           frontierNombre = null;
           notaDominado = null;
           bloqueo = null;
-          fuente = `Estándares de Fuerza (${nivelInfo.label})`;
+          fuente = `Estándares de fuerza (${nivelInfo.label})`;
         }
       }
     }

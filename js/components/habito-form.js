@@ -37,7 +37,7 @@ export function renderHabitoForm() {
   return `
     <div id="habito-modal" class="modal-overlay sheet-overlay">
       <div class="sheet-content" style="max-width: 440px;">
-        <h2 id="habito-modal-title" style="margin-top: 0; font-size: 20px; font-weight: 700;">Nuevo Hábito</h2>
+        <h2 id="habito-modal-title" style="margin-top: 0; font-size: 20px; font-weight: 700;">Nuevo hábito</h2>
         <input type="hidden" id="habito-id">
 
         <form id="habito-form" onsubmit="return false;">
@@ -217,11 +217,11 @@ export function openHabitoForm(habito = null) {
   pintarDiasChips();
 
   if (habito) {
-    titleEl.innerText = 'Editar Hábito';
+    titleEl.innerText = 'Editar hábito';
     idInput.value = habito.id;
     nombreInput.value = habito.nombre || '';
   } else {
-    titleEl.innerText = 'Nuevo Hábito';
+    titleEl.innerText = 'Nuevo hábito';
     idInput.value = '';
     nombreInput.value = '';
   }

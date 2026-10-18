@@ -341,11 +341,15 @@ export async function render() {
   const sesionesEstaSemana = (resumenSemanal.gym || 0) + (resumenSemanal.calistenia || 0) + (resumenSemanal.hiit || 0);
 
   const { volumenPorSemana } = await db.getTendenciaSemanal(null, 6);
+  // Volumen en kg (peso × reps). Las cifras de cada semana van sin
+  // decimales para que no se monten; el ancho del viewBox es el de la
+  // tarjeta a 375 (el SVG se estira y con 200 deformaba el texto).
   const volumenSparklineHtml = renderMiniChart(volumenPorSemana, {
     color: 'var(--accent-teal)',
-    unidad: '',
+    unidad: ' kg',
     height: 70,
-    width: 200
+    width: 300,
+    formatoEtiqueta: (v) => formatNumero(Math.round(v))
   });
 
   let imcHtml = `<div style="font-size: 11px; color: var(--text-disabled);">Completa tu perfil para ver tu IMC.</div>`;

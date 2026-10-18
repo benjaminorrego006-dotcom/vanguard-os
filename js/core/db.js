@@ -1984,7 +1984,7 @@ export const db = {
     const newRutina = {
       id: generateId(),
       createdAt: new Date().toISOString(),
-      nombre: data.nombre || 'Rutina Sin Nombre',
+      nombre: data.nombre || 'Rutina sin nombre',
       categoria: data.categoria || 'gym', // gym, calistenia, hiit
       ejercicios: data.ejercicios || [], // [{nombre, series: [...]}]
       hiitSettings: data.hiitSettings || null // NUEVO

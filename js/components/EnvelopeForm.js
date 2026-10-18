@@ -30,7 +30,7 @@ export function renderEnvelopeForm() {
         <input type="hidden" id="envelope-id">
 
         <div class="input-group">
-          <label for="envelope-name">Nombre del Sobre</label>
+          <label for="envelope-name">Nombre del sobre</label>
           <input type="text" id="envelope-name" placeholder="Ej. Supermercado, Netflix..." required>
         </div>
 
@@ -43,7 +43,7 @@ export function renderEnvelopeForm() {
         </div>
 
         <div class="input-group">
-          <label for="envelope-amount">Monto Asignado (opcional)</label>
+          <label for="envelope-amount">Monto asignado (opcional)</label>
           <input type="text" inputmode="numeric" id="envelope-amount" placeholder="0">
         </div>
 
@@ -59,7 +59,7 @@ export function renderEnvelopeForm() {
           </select>
         </div>
 
-        <button type="submit" class="btn-primary" style="background: var(--text-primary); color: var(--bg-base);">Guardar Sobre</button>
+        <button type="submit" class="btn-primary" style="background: var(--text-primary); color: var(--bg-base);">Guardar sobre</button>
       </form>
     </div>
   `;
@@ -124,14 +124,14 @@ export function initEnvelopeForm(db, refreshCallback) {
       document.getElementById('envelope-category').value = env.category;
       amountInput.value = digitsToMiles(env.assignedAmount || 0);
       document.getElementById('envelope-icon').value = env.icon;
-      document.getElementById('modal-envelope-title').innerText = 'Editar Sobre';
+      document.getElementById('modal-envelope-title').innerText = 'Editar sobre';
     } else {
       document.getElementById('envelope-id').value = '';
       document.getElementById('envelope-name').value = '';
       document.getElementById('envelope-category').value = 'Needs';
       document.getElementById('envelope-amount').value = '';
       document.getElementById('envelope-icon').value = 'home';
-      document.getElementById('modal-envelope-title').innerText = 'Nuevo Sobre';
+      document.getElementById('modal-envelope-title').innerText = 'Nuevo sobre';
     }
     
     modal.style.display = 'block';

@@ -42,12 +42,12 @@ export function renderHiitTimer(rutina) {
       <div id="hiit-setup-view" style="display: flex; flex-direction: column; flex: 1;">
         <div id="hiit-streak-container" style="display: flex; gap: 12px; margin-bottom: 24px; background: var(--surface-2); padding: 14px; border: 1px solid var(--surface-border);">
           <div style="flex: 1; text-align: center;">
-            <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Racha Actual</div>
+            <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Racha actual</div>
             <div id="hiit-racha-actual" class="num" style="font-size: 20px; font-weight: 800; color: var(--text-primary);">0${fireSvg}</div>
           </div>
           <div style="width: 1px; background: var(--surface-border);"></div>
           <div style="flex: 1; text-align: center;">
-            <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Mejor Histórica</div>
+            <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Mejor histórica</div>
             <div id="hiit-racha-mejor" class="num" style="font-size: 20px; font-weight: 800; color: var(--text-primary);">0${trophySvg}</div>
           </div>
         </div>
@@ -69,7 +69,7 @@ export function renderHiitTimer(rutina) {
 
         <div style="margin-top: auto;">
           <button id="btn-hiit-start" class="btn-primary tappable" style="background: var(--accent-teal);">
-            Iniciar Timer
+            Iniciar timer
           </button>
         </div>
       </div>
@@ -89,7 +89,7 @@ export function renderHiitTimer(rutina) {
 
         <div style="display: flex; gap: 16px; width: 100%; margin-top: auto;">
           <button id="btn-hiit-stop" class="tappable" style="flex: 1; padding: 15px; background: color-mix(in srgb, var(--fondo-alerta) 10%, transparent); color: var(--state-high-t); font-size: 15px; font-weight: 700; border: none; cursor: pointer;">
-            Terminar Sesión
+            Terminar sesión
           </button>
         </div>
       </div>
@@ -101,7 +101,7 @@ export function renderHiitTimer(rutina) {
         <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-primary); letter-spacing: -0.3px;">¡Sesión Completada!</h2>
         <div id="hiit-summary-stats" style="color: var(--text-secondary); font-size: 16px; margin-bottom: 32px; line-height: 1.5;"></div>
         <button id="btn-hiit-close" class="btn-primary tappable" style="background: var(--accent-teal);">
-          Cerrar y Volver
+          Cerrar y volver
         </button>
       </div>
 
@@ -187,17 +187,17 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
           </div>
         </div>
         <div>
-          <label for="hiit-s-rounds" style="font-size: 11px; color: var(--text-secondary);">Rondas Totales</label>
+          <label for="hiit-s-rounds" style="font-size: 11px; color: var(--text-secondary);">Rondas totales</label>
           <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-s-rounds" value="${currentState.totalRounds || 8}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
         </div>
       `;
     } else if (currentState.mode === 'tabata') {
-      c.innerHTML = `<div style="text-align: center; color: var(--text-secondary); font-size: 14px;">Preset Fijo:<br>20s Trabajo / 10s Descanso<br>8 Rondas (4 mins)</div>`;
+      c.innerHTML = `<div style="text-align: center; color: var(--text-secondary); font-size: 14px;">Preset fijo:<br>20s Trabajo / 10s Descanso<br>8 Rondas (4 mins)</div>`;
     } else if (currentState.mode === 'emom') {
       c.innerHTML = `
         <div style="display: flex; gap: 8px;">
           <div style="flex: 1;">
-            <label for="hiit-s-emom-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
+            <label for="hiit-s-emom-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo total (min)</label>
             <input type="number" inputmode="numeric" id="hiit-s-emom-mins" value="${currentState.emomTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
           </div>
           <div style="flex: 1;">
@@ -209,7 +209,7 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
     } else if (currentState.mode === 'amrap') {
       c.innerHTML = `
         <div>
-          <label for="hiit-s-amrap-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo Total (min)</label>
+          <label for="hiit-s-amrap-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo total (min)</label>
           <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-s-amrap-mins" value="${currentState.amrapTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center; box-sizing: border-box;">
         </div>
       `;
@@ -363,7 +363,7 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
     
     document.getElementById('hiit-summary-stats').innerHTML = `
       <div>Duración: <strong style="color:var(--text-primary);">${duracionMin} min</strong></div>
-      <div>Energía Estimada: <strong class="num" style="color:var(--text-primary);">~${estKcal} kcal</strong></div>
+      <div>Energía estimada: <strong class="num" style="color:var(--text-primary);">~${estKcal} kcal</strong></div>
       ${currentState.mode === 'amrap' ? `<div>Rondas completadas: <strong class="num" style="color:var(--text-primary);">${currentState.amrapCount}</strong></div>` : ''}
     `;
   };

@@ -7,8 +7,8 @@ import { formatNumero } from '../utils/numero.js';
 import { colorTexto } from '../utils/tema.js';
 
 const STATE_CHIPS = [
-  { value: 'todo', label: 'Por Hacer' },
-  { value: 'in-progress', label: 'En Curso' },
+  { value: 'todo', label: 'Por hacer' },
+  { value: 'in-progress', label: 'En curso' },
   { value: 'done', label: 'Hecho' }
 ];
 
@@ -159,7 +159,7 @@ export function renderTaskForm() {
   return `
     <div id="task-modal" class="modal-overlay">
       <div class="modal-content" style="max-width: 520px; max-height: 90vh; overflow-y: auto;">
-        <h2 id="task-modal-title" style="margin-top: 0; margin-bottom: 18px; font-size: 20px; font-weight: 800; color: var(--text-primary);">Nueva Tarea</h2>
+        <h2 id="task-modal-title" style="margin-top: 0; margin-bottom: 18px; font-size: 20px; font-weight: 800; color: var(--text-primary);">Nueva tarea</h2>
         <input type="hidden" id="task-id">
         <input type="hidden" id="task-status-pending" value="todo">
 
@@ -395,7 +395,7 @@ export function openTaskForm(task = null) {
   focosLinea.innerHTML = '';
 
   if (task) {
-    titleEl.innerText = 'Detalle de Tarea';
+    titleEl.innerText = 'Detalle de tarea';
     document.getElementById('task-id').value = task.id;
     document.getElementById('task-title').value = task.title || '';
     document.getElementById('task-desc').value = task.description || '';
@@ -426,7 +426,7 @@ export function openTaskForm(task = null) {
     btnDelete.style.display = 'block';
     refreshBitacoraSection(task.id);
   } else {
-    titleEl.innerText = 'Nueva Tarea';
+    titleEl.innerText = 'Nueva tarea';
     document.getElementById('task-id').value = '';
     document.getElementById('task-title').value = '';
     document.getElementById('task-desc').value = '';
