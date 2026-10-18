@@ -3,16 +3,20 @@ import { formatCurrency } from '../utils/currency.js';
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
 import { escapeHtml } from '../utils/escape.js';
 
-// REDISEÑO-FINANZAS: panel inline dentro de la tab Recurrentes (no modal a
-// pantalla completa) — mismo criterio que EnvelopeForm.js. `recurring-modal`
+// Hoja .modal-overlay (docs/PLAN-REVISION-OCT.md, 4.2), como Gasto y
+// Transferir: antes era un panel dentro de la pestaña Recurrentes, Atrás
+// salía de Finanzas y la barra tapaba el formulario. `recurring-modal`
 // conserva su id: finanzas.js sigue llamando a
-// `document.getElementById('recurring-modal').openForm()` para abrirlo.
+// `document.getElementById('recurring-modal').openForm()` para abrirla.
 export function renderRecurringForm() {
   return `
-    <div id="recurring-modal" class="card" style="display: none; padding: 20px; margin-bottom: 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <p class="fin-eyebrow" id="modal-recurring-title" style="margin: 0;">Suscripción fija</p>
-        <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; line-height: 1;">&times;</button>
+    <div id="recurring-modal" class="modal-overlay sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-recurring-title">
+      <div class="sheet-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom));">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+        <button class="btn-close-modal" aria-label="Cerrar" style="width: 40px; height: 40px; flex-shrink: 0; background: var(--surface-2); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+          <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <h2 id="modal-recurring-title" style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Nuevo pago fijo</h2>
       </div>
 
       <form id="recurring-form">
@@ -39,8 +43,9 @@ export function renderRecurringForm() {
 
         ${renderNumericKeypad()}
 
-        <button id="btn-submit-recurring" type="submit" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--text-primary); color: var(--bg-base); opacity: 0.5; pointer-events: none;">Guardar Gasto Fijo</button>
+        <button id="btn-submit-recurring" type="submit" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--text-primary); color: var(--bg-base); opacity: 0.5; pointer-events: none;">Guardar pago fijo</button>
       </form>
+      </div>
     </div>
   `;
 }
@@ -111,6 +116,7 @@ export function initRecurringForm(db, getBudgetFn, refreshCallback) {
         if (!modal.isConnected) return; // vista cambiada mientras se guardaba
         btnSubmit.innerHTML = originalText;
         modal.style.display = 'none';
+        modal.classList.remove('open');
 
       }, 500);
     }
@@ -118,6 +124,7 @@ export function initRecurringForm(db, getBudgetFn, refreshCallback) {
 
   modal.querySelector('.btn-close-modal').addEventListener('click', () => {
     modal.style.display = 'none';
+    modal.classList.remove('open');
   });
 
   modal.openForm = () => {
@@ -130,7 +137,7 @@ export function initRecurringForm(db, getBudgetFn, refreshCallback) {
     if (b.envelopes.length > 0) selectEnv.value = b.envelopes[0].id;
     
     updateUI();
-    modal.style.display = 'block';
-    modal.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('open'), 10);
   };
 }

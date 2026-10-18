@@ -965,6 +965,29 @@ button.semana-bloque { cursor: pointer; }
 .sobre-spark div { width: 3px; background: var(--accent-primary); opacity: 0.7; }
 .sobre-spark div.excedido { background: var(--state-high); }
 
+/* Acciones del sobre (4.2): Transferir a la vista y el resto en el menú ⋯.
+   Botones de 40px para el toque, con margen negativo para no agrandar la
+   fila del rótulo. */
+.sobre-acciones { display: flex; align-items: center; gap: 2px; margin: -10px -10px -10px 0; }
+.sobre-acciones > button, .sobre-menu-btn {
+  width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--text-secondary); cursor: pointer;
+}
+.sobre-menu-btn[aria-expanded="true"] { color: var(--text-primary); background: var(--surface-2); }
+.sobre-menu-wrap { position: relative; }
+.sobre-menu {
+  position: absolute; right: 0; top: 100%; z-index: 30; min-width: 160px;
+  display: flex; flex-direction: column; background: var(--surface-1); border: 1px solid var(--line);
+}
+.sobre-menu[hidden] { display: none; }
+.sobre-menu button {
+  min-height: 44px; padding: 0 14px; display: flex; align-items: center; gap: 10px; text-align: left;
+  background: transparent; border: none; border-bottom: 1px solid var(--line);
+  color: var(--text-primary); font: inherit; font-size: 14px; cursor: pointer;
+}
+.sobre-menu button:last-child { border-bottom: none; }
+.sobre-menu button svg { color: var(--text-secondary); flex-shrink: 0; }
+
 /* Sobres archivados (R3): sección colapsada al final de la lista de sobres. */
 .sobres-archivados { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
 .sobres-archivados summary { cursor: pointer; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.11em; color: var(--text-secondary); padding: 6px 0; }

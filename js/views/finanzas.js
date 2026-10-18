@@ -104,7 +104,47 @@ export function cleanup() {
   if (dailyBalanceChartInstance) { dailyBalanceChartInstance.destroy(); dailyBalanceChartInstance = null; }
   if (monthCompareChartInstance) { monthCompareChartInstance.destroy(); monthCompareChartInstance = null; }
   if (currentRefresh) { window.removeEventListener('budget-updated', currentRefresh); currentRefresh = null; }
+  cerrarMenuSobre();
 }
+
+// Menú ⋯ de cada sobre (docs/PLAN-REVISION-OCT.md, 4.2): Editar y Archivar
+// salen de la tarjeta; Transferir queda visible. Abierto, deja una entrada
+// de historial para que Atrás lo cierre (como las hojas, ver history.js).
+// cerrarMenuSobre() devuelve una promesa que se cumple cuando esa entrada
+// ya se consumió: una acción que abre una hoja debe esperarla, si no el
+// history.back() pendiente cerraría la hoja recién abierta.
+let menuSobre = null; // { menu, btn } mientras hay uno abierto
+const ocultarMenuSobre = () => {
+  if (!menuSobre) return;
+  menuSobre.menu.hidden = true;
+  menuSobre.btn.setAttribute('aria-expanded', 'false');
+  menuSobre = null;
+  window.removeEventListener('popstate', ocultarMenuSobre);
+};
+const cerrarMenuSobre = () => new Promise(res => {
+  if (!menuSobre) return res();
+  ocultarMenuSobre();
+  if (history.state && history.state.menuSobre) {
+    window.addEventListener('popstate', () => res(), { once: true });
+    history.back();
+  } else res();
+});
+const abrirMenuSobre = (btn) => {
+  const menu = btn.parentElement.querySelector('.sobre-menu');
+  menu.hidden = false;
+  btn.setAttribute('aria-expanded', 'true');
+  menuSobre = { menu, btn };
+  history.pushState({ menuSobre: true }, '');
+  window.addEventListener('popstate', ocultarMenuSobre);
+  menu.querySelector('button')?.focus();
+};
+// Una sola vez por sesión (el módulo es singleton): toque fuera y Escape.
+document.addEventListener('click', (e) => {
+  if (menuSobre && !e.target.closest('.sobre-menu-wrap')) cerrarMenuSobre();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && menuSobre) { e.stopPropagation(); const { btn } = menuSobre; cerrarMenuSobre().then(() => btn.focus()); }
+}, { capture: true });
 
 export async function init() {
   b = await db.getBudget(currentMonth);
@@ -246,9 +286,18 @@ export async function init() {
         if (env) document.getElementById('envelope-modal').openForm(env);
       });
     });
+    document.querySelectorAll('.sobre-menu-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const yaAbierto = menuSobre && menuSobre.btn === btn;
+        await cerrarMenuSobre();
+        if (!yaAbierto) abrirMenuSobre(btn);
+      });
+    });
     document.querySelectorAll('.edit-env').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.getAttribute('data-id');
+        await cerrarMenuSobre();
         const env = b.envelopes.find(x => x.id === id);
         if (env) document.getElementById('envelope-modal').openForm(env);
       });
@@ -258,6 +307,7 @@ export async function init() {
     document.querySelectorAll('.archive-env').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.getAttribute('data-id');
+        await cerrarMenuSobre();
         const env = b.envelopes.find(x => x.id === id);
         const nombre = env ? env.name : 'el sobre';
         const recurrentes = (await db.getRecurring()).filter(r => r.envelopeId === id);
@@ -289,8 +339,9 @@ export async function init() {
       });
     });
     document.querySelectorAll('.transfer-env').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.getAttribute('data-id');
+        await cerrarMenuSobre();
         document.getElementById('transfer-modal').openForm(id);
       });
     });
@@ -730,10 +781,17 @@ const renderEnvelopesHTML = async (b) => {
       <div class="card fin-account-card env-row tappable" data-id="${env.id}" role="group" aria-label="${escapeHtml(aria)}">
         <div class="flex-between">
           <p class="fin-eyebrow" style="color: ${colorTexto(catColor)};">${CAT_LABELS[env.category] || env.category}</p>
-          <div style="display: flex; gap: 10px;">
-            <button class="transfer-env" data-id="${env.id}" aria-label="Transferir desde ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Transferir">${transferSvg}</button>
-            <button class="edit-env" data-id="${env.id}" aria-label="Editar sobre ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer;" title="Editar">${editSvg}</button>
-            <button class="archive-env" data-id="${env.id}" aria-label="Archivar sobre ${escapeHtml(env.name)}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer;" title="Archivar">${archiveSvg}</button>
+          <div class="sobre-acciones">
+            <button class="transfer-env" data-id="${env.id}" aria-label="Transferir desde ${escapeHtml(env.name)}" title="Transferir">${transferSvg}</button>
+            <div class="sobre-menu-wrap">
+              <button class="sobre-menu-btn" aria-label="Más acciones de ${escapeHtml(env.name)}" aria-haspopup="menu" aria-expanded="false" title="Más acciones">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
+              </button>
+              <div class="sobre-menu" role="menu" hidden>
+                <button type="button" role="menuitem" class="edit-env" data-id="${env.id}">${editSvg}Editar</button>
+                <button type="button" role="menuitem" class="archive-env" data-id="${env.id}">${archiveSvg}Archivar</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="flex-between" style="margin-top: 2px; align-items: flex-end;">
@@ -1489,7 +1547,6 @@ export async function render() {
       <div id="tab-content-recurrentes" class="fin-tab-content" style="display: ${activeFinTab === 'recurrentes' ? 'block' : 'none'};">
         <p class="fin-eyebrow" style="margin-bottom: 4px;">Descuento automático</p>
         <p style="color: var(--text-secondary); font-size: 12.5px; max-width: 520px; margin: 0 0 18px 0;">Configura un pago fijo una vez y se descuenta solo de su sobre cada mes — arriendos, suscripciones, cuentas de servicios.</p>
-        ${renderRecurringForm()}
         <div id="recurring-container">
           ${renderRecurringHTML(b)}
         </div>
@@ -1519,6 +1576,7 @@ export async function render() {
       ${renderGastoForm()}
       ${renderAhorroForm()}
       ${renderTransferForm()}
+      ${renderRecurringForm()}
       ${renderAnualForm()}
     `;
   }
