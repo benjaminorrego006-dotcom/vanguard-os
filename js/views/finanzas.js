@@ -1336,19 +1336,24 @@ export async function render() {
       <!-- TAB 1: RESUMEN -->
       <div id="tab-content-resumen" class="fin-tab-content" style="display: ${activeFinTab === 'resumen' ? 'block' : 'none'};">
         <p class="fin-eyebrow" style="margin-bottom: 4px;">Resumen del mes</p>
-        <div class="fin-grid3" style="margin-bottom: 24px;">
-          <div class="card fin-stat card-hero" id="card-disponible" style="min-width: 0;">
+        <!-- Una sola tarjeta (docs/PLAN-REVISION-OCT.md, 4.1): Balance grande
+             con la comparación del mes pasado y, debajo, Gastos e Ingresos
+             en una fila. Cada uno lleva a Movimientos filtrado. -->
+        <div class="card fin-stat card-hero" id="card-disponible" style="min-width: 0; padding: 0; margin-bottom: 24px;">
+          <div style="padding: 20px 20px 16px;">
             <p class="fin-eyebrow">Balance</p>
-            <div id="disponible-mes-value" class="fin-stat-value" style="color: ${isHealthy ? 'var(--state-success-t)' : 'var(--state-high-t)'}; overflow-wrap: anywhere;">${fullStr}</div>
+            <div id="disponible-mes-value" class="fin-stat-value" style="font-size: 32px; color: ${isHealthy ? 'var(--state-success-t)' : 'var(--state-high-t)'}; overflow-wrap: anywhere;">${fullStr}</div>
             <div id="month-trend-container">${renderMonthTrend(b)}</div>
           </div>
-          <div class="card fin-stat tappable" id="card-gastos" style="min-width: 0;">
-            <p class="fin-eyebrow">Gastos del mes</p>
-            <div id="stat-expense" class="fin-stat-value" style="color: var(--state-high-t); overflow-wrap: anywhere;">${formatDisponible(b.expenses)}</div>
-          </div>
-          <div class="card fin-stat tappable" id="card-ingresos" style="min-width: 0;">
-            <p class="fin-eyebrow">Ingresos del mes</p>
-            <div id="stat-income" class="fin-stat-value" style="color: var(--state-success-t); overflow-wrap: anywhere;">${formatDisponible(b.income)}</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line);">
+            <button type="button" class="tappable" id="card-gastos" style="min-width: 0; padding: 14px 20px; background: transparent; border: none; text-align: left; cursor: pointer; font: inherit;">
+              <p class="fin-eyebrow">Gastos</p>
+              <div id="stat-expense" class="fin-stat-value" style="font-size: 18px; color: var(--state-high-t); overflow-wrap: anywhere;">${formatDisponible(b.expenses)}</div>
+            </button>
+            <button type="button" class="tappable" id="card-ingresos" style="min-width: 0; padding: 14px 20px; background: transparent; border: none; border-left: 1px solid var(--line); text-align: left; cursor: pointer; font: inherit;">
+              <p class="fin-eyebrow">Ingresos</p>
+              <div id="stat-income" class="fin-stat-value" style="font-size: 18px; color: var(--state-success-t); overflow-wrap: anywhere;">${formatDisponible(b.income)}</div>
+            </button>
           </div>
         </div>
 
