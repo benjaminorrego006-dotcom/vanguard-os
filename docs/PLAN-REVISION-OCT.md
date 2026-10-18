@@ -73,6 +73,13 @@ Antes de empezar esta etapa, pregúntale a Benjamin si confirma las tres decisio
 - Según la decisión. "Subir de nivel" y "Ahora no" funcionan igual dentro de la tarjeta.
 - Verificación: con 0, 1 y 3 sugerencias; "Hoy toca · Empezar" visible en la primera pantalla a 375.
 
+### Agregados a la Etapa 3 (Benjamin, 18 oct)
+- Antes de 3.1: el stash "arreglo color-mix insignias y movimientos" (sufijo de alfa en hex sobre un var() daba CSS inválido; pasa a color-mix 13 %), sin su cambio de sw.js. Sin más casos del patrón en el código.
+- Mapa muscular: el botón Frente/Espalda pulsado quedaba sin fondo (estaba fuera del bloque que define su acento).
+- Hoja de Gasto: con monto vacío o $0, "Transporte ya está en negativo ($15.000 bajo cero)"; "Excederías tu sobre…" solo con un monto mayor a 0.
+- Pendiente de 1.1: en "Gasto vs. mes anterior" a 375 el rótulo "Anterior (1–16)" se cortaba por la izquierda. Revisado con captura del canvas.
+- Decisiones: sí a las tres; la fila Laboratorio muestra los días activos de la semana.
+
 ---
 
 ## Etapa 4 · Finanzas y Configuración
@@ -119,15 +126,16 @@ Antes de empezar esta etapa, pregúntale a Benjamin si confirma las tres decisio
 ## Estado
 | Fase | Commit | Caché |
 |---|---|---|
-| 1.1 Cortes y flechas de los números | `d3fe1c7` | v322 |
+| 1.1 Cortes y flechas de los números | `d3fe1c7`, `6f1de82` | v322, v332 |
 | 1.2 Hojas encima de la barra | `85878a7`, `e8b5735` | v323, v325 |
 | 1.3 Respaldo: Exportar primero | `57753f3` | v324 |
 | 2.1 Hoy › Gasto | `0e572f0` | v326 |
 | 2.2 Hoy › Entrenar | `5e32348` | v327 |
 | 2.3 GYM y Calistenia: rutinas antes del mapa | `25d8911` | v328 |
-| 3.1 Barra inferior y espacio final | | |
-| 3.2 Hoy más corto | | |
-| 3.3 Entreno: Hoy toca primero | | |
+| Etapa 3, agregados: color-mix, mapa muscular, aviso de Gasto | `abfb87a`, `ff4d0d5`, `3ea90f8` | v329, v330, v331 |
+| 3.1 Barra inferior y espacio final | `1fa3c99` | v333 |
+| 3.2 Hoy más corto | `e891546` | v334 |
+| 3.3 Entreno: Hoy toca primero | `fc085ce` | v335 |
 | 4.1 Resumen de Finanzas compacto | | |
 | 4.2 Sobres más limpios y "Nuevo pago" en hoja | | |
 | 4.3 Configuración ordenada | | |
