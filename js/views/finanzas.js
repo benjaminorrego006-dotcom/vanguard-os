@@ -896,7 +896,7 @@ export const txHtml = (tx, envelopes) => {
 
   return `
     <div class="fin-row tappable edit-tx" data-id="${tx.id}" style="cursor: pointer;">
-      <div style="width: 32px; height: 32px; flex-shrink: 0; background: ${catColor}20; display: flex; align-items: center; justify-content: center; color: ${colorTexto(catColor)};">
+      <div style="width: 32px; height: 32px; flex-shrink: 0; background: color-mix(in srgb, ${catColor} 13%, transparent); display: flex; align-items: center; justify-content: center; color: ${colorTexto(catColor)};">
         ${iconSvg}
       </div>
       <div class="fin-who">

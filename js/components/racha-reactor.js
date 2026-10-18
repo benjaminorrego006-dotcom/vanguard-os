@@ -132,7 +132,9 @@ function renderReactor({ cyPct, amPct, viPct, rachaGlobal }) {
 // propio con el color de su módulo.
 function renderBadgeHex(b) {
   const meta = BADGE_META[b.id];
-  const bg = b.unlocked ? `${meta.color}22` : 'var(--surface-2)';
+  // meta.color es un var(--x): un sufijo de alfa en hex ("22") daba CSS
+  // inválido y el fondo no se veía. color-mix con el mismo ~13 %.
+  const bg = b.unlocked ? `color-mix(in srgb, ${meta.color} 13%, transparent)` : 'var(--surface-2)';
   const fg = b.unlocked ? meta.color : 'var(--text-disabled)';
   const icon = b.unlocked
     ? `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">${meta.icon}</svg>`
