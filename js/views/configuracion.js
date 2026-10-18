@@ -85,7 +85,7 @@ export async function render() {
   })();
 
   return `
-    <div style="padding: 20px 20px 110px 20px; font-family: var(--font-body);">
+    <div style="padding: 20px 20px 0 20px; font-family: var(--font-body);">
       <div style="margin-bottom: 20px;">
         <h1 style="font-size: 30px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.5px;">Configuración</h1>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Perfil, seguridad, respaldos y preferencias.</div>

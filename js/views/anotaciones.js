@@ -69,7 +69,7 @@ async function renderCategorias() {
   };
 
   return `
-    <div style="padding: 20px 20px 110px 20px; font-family: var(--font-body);">
+    <div style="padding: 20px 20px 0 20px; font-family: var(--font-body);">
       ${cabecera('Anotaciones', `${cats.length} categoría${cats.length === 1 ? '' : 's'} · ${todas.length} nota${todas.length === 1 ? '' : 's'}`)}
       ${cats.length ? cats.map(fila).join('') : EmptyState('Sin categorías', 'Crea la primera para empezar a anotar.')}
       <div class="card" style="margin-top: 16px; padding: 16px;">
@@ -104,7 +104,7 @@ async function renderNotas() {
     </div>`;
 
   return `
-    <div style="padding: 20px 20px 110px 20px; font-family: var(--font-body);">
+    <div style="padding: 20px 20px 0 20px; font-family: var(--font-body);">
       <button id="cat-volver" class="btn btn-outlined btn-pill tappable" style="margin-bottom: 16px;">← Categorías</button>
       ${cabecera(cat.nombre, `${notas.length} ${notas.length === 1 ? 'nota' : 'notas'}`)}
 

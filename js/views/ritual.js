@@ -63,7 +63,7 @@ export async function render() {
       color: ${ritual.energia === n ? '#000' : 'var(--text-secondary)'};">${n}</button>`).join('');
 
   return `
-    <div style="padding: 20px 20px 110px 20px; font-family: var(--font-body);">
+    <div style="padding: 20px 20px 0 20px; font-family: var(--font-body);">
 
       <div class="flex-between" style="margin-bottom: 20px;">
         <div>

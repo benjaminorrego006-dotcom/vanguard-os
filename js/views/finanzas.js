@@ -1311,7 +1311,7 @@ export async function render() {
 
   return `
     <style>${modalCSS}</style>
-    <div style="max-width: 480px; margin: 0 auto; width: 100%; box-sizing: border-box; padding: 0 20px; font-family: 'Inter', sans-serif; padding-bottom: 120px;">
+    <div style="max-width: 480px; margin: 0 auto; width: 100%; box-sizing: border-box; padding: 0 20px; font-family: 'Inter', sans-serif;">
 
       <!-- Header -->
       <div style="position: sticky; top: 0; z-index: 100; padding: 20px 4px 16px 4px; background: var(--bg-base); margin: 0 -4px 12px -4px;">

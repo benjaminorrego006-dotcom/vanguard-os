@@ -482,7 +482,7 @@ async function renderDetalle(id) {
   const unidadRachaDetalle = esHabitoSemanal(habito) ? 'semana' : 'día';
 
   return `
-    <div style="padding: 20px; font-family: var(--font-body); padding-bottom: 110px;">
+    <div style="padding: 20px; font-family: var(--font-body); padding-bottom: 0;">
       <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
         <button id="btn-volver-habito" aria-label="Volver a Hábitos" style="width: 44px; height: 44px; flex-shrink: 0; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center;">
           <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
@@ -598,13 +598,8 @@ async function renderLista() {
            cargue su propio padding-right/bottom) porque cuál de los dos
            termina siendo el último varía: sin datos de resumen todavía,
            renderResumenHabitos() devuelve '' y la lista queda al final.
-           padding-bottom: 110px dejaba apenas ~60px de aire real bajo la
-           última card (el gráfico de tendencia semanal) antes del FAB
-           flotante — con poco contenido en la vista (ej. un solo hábito
-           marcado) ese margen era suficiente, pero medido en vivo el FAB
-           terminaba encima de la etiqueta del eje X del gráfico. Ya sin FAB (el "+" pasa al encabezado) basta el aire
-           normal sobre el nav; antes eran 180px para dejar un colchón real. -->
-      <div style="padding-right: 20px; padding-bottom: 110px;">
+           El aire final lo da #view-root (la barra inferior va en el flujo). -->
+      <div style="padding-right: 20px;">
         <div>
           ${habitos.length > 0
             ? habitos.map(renderFila).join('')

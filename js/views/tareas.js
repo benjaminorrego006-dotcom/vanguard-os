@@ -290,7 +290,7 @@ async function renderLista() {
   });
 
   return `
-    <div style="padding: 20px 0 110px 20px; font-family: var(--font-body);">
+    <div style="padding: 20px 0 0 20px; font-family: var(--font-body);">
       <!-- Header: lupa (despliega el buscador) y "+" (formulario completo de
            tarea nueva; antes un FAB sticky que flotaba sobre las tarjetas). -->
       <div class="flex-between" style="padding-right: 20px; margin-bottom: 20px;">

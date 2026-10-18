@@ -353,7 +353,7 @@ export async function render() {
   }
 
   return `
-    <div style="max-width: 480px; margin: 0 auto; width: 100%; box-sizing: border-box; padding: 0 20px; font-family: 'Inter', sans-serif; padding-bottom: 120px;">
+    <div style="max-width: 480px; margin: 0 auto; width: 100%; box-sizing: border-box; padding: 0 20px; font-family: 'Inter', sans-serif;">
 
       <!-- MAIN VIEW -->
       <div id="entrenamiento-main-view" style="display: block;">

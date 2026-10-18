@@ -75,21 +75,23 @@ body {
 .menu-item.active { color: var(--accent-primary-t); }
 #view-root {
   flex: 1; overflow-y: auto; overflow-x: hidden;
-  /* 110px cubre navbar(68) + su margen inferior(16) + holgura(26), pero en
-     dispositivos con home indicator (safe-area-inset-bottom grande) el
-     navbar sube más de lo que ese fijo contempla y tapa el final del
-     scroll — de ahí la queja de FIX-LAYOUT-FINANZAS.md. Sumar el inset. */
-  padding-bottom: calc(110px + env(safe-area-inset-bottom));
+  /* La barra inferior va en el flujo, debajo de #view-root (no flota), así
+     que el scroll ya termina sobre ella: basta un aire final, sin sumar su
+     alto ni el safe-area (lo lleva la barra). Las vistas no agregan otro. */
+  padding-bottom: var(--space-4);
 }
-/* Bottom Nav flotante estilo iOS (tab bar de vidrio) */
+/* Barra inferior (móvil): pegada al borde, a todo el ancho, recta, fondo
+   sólido y filo superior de 1px (docs/PLAN-REVISION-OCT.md, 3.1). Va al
+   final de .app-layout con order: el contenido nunca pasa por detrás. El
+   safe-area inferior queda dentro de la barra, bajo los íconos. En
+   tablet/PC es el riel (ver el media query de abajo). */
 #app-nav {
-  position: fixed; bottom: calc(env(safe-area-inset-bottom) + 16px); left: 16px; right: 16px; height: 68px;
-  border-radius: 26px;
+  position: relative; order: 2; flex-shrink: 0;
+  height: calc(64px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--bg-base);
+  border-top: 1px solid var(--surface-border);
   display: flex; justify-content: space-around; align-items: center; z-index: 1000;
-  /* MK III: sin sombra — el efecto vidrio de más abajo (móvil, <768px) ya
-     trae su propio border de 1px (var(--glass-border)) para separarse del
-     contenido detrás; en escritorio pasa a sidebar estático con su propio
-     border-right, tampoco necesita sombra. */
 }
 .nav-brand { display: none; }
 .nav-item {
@@ -128,11 +130,9 @@ body {
   /* Transformar la Bottom Nav en un Sidebar */
   #app-nav {
     position: relative;
-    /* Anula el posicionamiento flotante de la barra móvil (left/right/bottom
-       de 16px y radio de 26px): el riel va pegado al borde izquierdo. */
-    left: 0; right: auto; bottom: auto;
+    /* El riel va primero (a la izquierda), no al final como la barra móvil. */
+    order: 0;
     margin: 0;
-    border-radius: 0;
     /* Chaflán en dos esquinas opuestas, igual que .chaflan / las tarjetas
        MK III (ver components.css). Sin sombras. */
     clip-path: polygon(
@@ -299,15 +299,13 @@ body {
   .hoy-root > #hoy-resumenes { grid-column: 8 / span 5; }
 }
 
-/* Efecto cristal para la barra inferior en móviles */
-@media (max-width: 767px) {
-  #app-nav {
-    box-sizing: border-box;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-  }
+/* Avisos (toasts) con una hoja abierta: suben arriba de la pantalla, donde
+   la hoja deja libre el fondo oscurecido, en vez de tapar sus campos (p. ej.
+   "Ganaste una vida extra" sobre la nota de la hoja Día). Con !important
+   para ganarle al bottom inline y al de la sesión de Entreno. */
+body:has(.modal-overlay.open) #toast-container {
+  top: calc(env(safe-area-inset-top) + 12px);
+  bottom: auto !important;
 }
 
 /* Base Utility Classes */

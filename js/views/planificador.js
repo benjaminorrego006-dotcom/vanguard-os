@@ -354,7 +354,7 @@ export async function render() {
   const rango = `${formatFechaCorta(fechaLocalDe(isos[0]))} – ${formatFechaCorta(fechaLocalDe(isos[6]))}`;
 
   return `
-    <div style="padding: 20px 20px 110px 20px; font-family: var(--font-body);">
+    <div style="padding: 20px 20px 0 20px; font-family: var(--font-body);">
 
       <header class="plan-cab">
         <div class="plan-cab-titulo">
