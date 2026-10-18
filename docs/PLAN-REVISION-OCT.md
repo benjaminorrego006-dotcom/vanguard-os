@@ -143,6 +143,6 @@ Antes de empezar esta etapa, pregúntale a Benjamin si confirma las tres decisio
 | 4.1 Resumen de Finanzas compacto | `6ad43e4` | v336 |
 | 4.2 Sobres más limpios y "Nuevo pago" en hoja | `b50dc06` | v337 |
 | 4.3 Configuración ordenada | `5cff93d` | v338 |
-| 5.1 Colores e íconos del tema Gris | | |
-| 5.2 Textos y unidades | | |
-| 5.3 Datos demo coherentes | | |
+| 5.1 Colores e íconos del tema Gris | `8a41220` | v339 |
+| 5.2 Textos y unidades | `99141b8` | v340 |
+| 5.3 Datos demo coherentes | `f6d082e` | v341 |

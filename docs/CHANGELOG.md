@@ -1,5 +1,55 @@
 # Vanguard OS — Changelog
 
+## 16–18 oct 2026 — Revisión de octubre (interfaz)
+
+Base: `82066a7` (v321). Plan en `docs/PLAN-REVISION-OCT.md`, por etapas,
+un commit por fase con su caché. Sin cambios de datos, eventos ni stores.
+Cada fase probada por la UI a 375×812 en Gris y Color y cada etapa a
+1280×800 (scripts propios de Playwright, de a una prueba, `supabase.co`
+bloqueado, reloj simulado en Santiago, respaldo demo).
+
+| Fase | Commit | Caché | Qué cambia |
+|---|---|---|---|
+| 1.1 Cortes y flechas | `d3fe1c7`, `6f1de82` | v322, v332 | Montos de "Gasto vs. mes anterior" enteros (y su rótulo "Anterior (1–N)" en dos líneas: con la monoespaciada de Android se cortaba); Volumen/Sesiones/IMC a 375; pestañas de Finanzas con desvanecido y la activa a la vista; inputs numéricos sin flechas. |
+| 1.2 Hojas encima de la barra | `85878a7`, `e8b5735` | v323, v325 | Todas las `.modal-overlay` cubren la pantalla completa, barra y riel incluidos. |
+| 1.3 Respaldo | `57753f3` | v324 | "Exportar respaldo" es el botón principal. |
+| 2.1–2.3 Atajos | `0e572f0`, `5e32348`, `25d8911` | v326–v328 | Hoy › Gasto abre la hoja; Hoy › Entrenar retoma o empieza "Hoy toca"; GYM y Calistenia con las rutinas antes del mapa. |
+| Agregados Etapa 3 | `abfb87a`, `ff4d0d5`, `3ea90f8` | v329–v331 | Fondo de insignias y de íconos de movimientos con `color-mix` (el alfa en hex sobre un `var()` era CSS inválido); Frente/Espalda del mapa muscular con su acento; hoja de Gasto con monto vacío avisa "X ya está en negativo". |
+| 3.1 Barra inferior | `1fa3c99` | v333 | Barra en el flujo, pegada al borde, recta, sólida, borde superior de 1 px; las vistas sin relleno de 110–120 px; avisos arriba con una hoja abierta. |
+| 3.2 Hoy más corto | `e891546` | v334 | Sin la dona del Laboratorio: fila "Laboratorio" con los días activos de la semana, que abre Laboratorio › Semana en esa semana. |
+| 3.3 Entreno | `fc085ce` | v335 | "Listo para avanzar" en una tarjeta plegable debajo de "Hoy toca". |
+| 4.1 Resumen de Finanzas | `6ad43e4` | v336 | Balance, Gastos e Ingresos en una tarjeta. |
+| 4.2 Sobres y "Nuevo pago" | `b50dc06` | v337 | Transferir a la vista y Editar/Archivar en un menú ⋯ (Atrás lo cierra); "Nuevo pago fijo" como hoja. |
+| 4.3 Configuración | `5cff93d` | v338 | Respaldos debajo de Cuenta; "Descanso entre series"; `.btn-secundario` (recto, con borde, misma caja que el principal). |
+| 5.1 Colores e íconos | `8a41220` | v339 | Gastos en rojo en Movimientos (Gris); check en el botón de marcar de Hábitos; cambiar de vista abre arriba. |
+| 5.2 Textos y unidades | `99141b8` | v340 | "Volumen semanal" en kg y cifras que no se montan; meses abreviados en "Tendencia de gastos" (`formatMesCorto`); "1 de 1 día activo"; "El sobre quedaría en -$X"; barrido de mayúsculas a oración normal. |
+| 5.3 Datos demo | `f6d082e` | v341 | Hábitos demo creados el día de su primera marca (store y evento `habito_creado`): Laboratorio › Semana deja de decir "Sin hábitos". |
+
+Altos a 375 (demo, 27 sept): Hoy 2212 → 1509 px (con la dona cargada);
+Finanzas › Resumen 2722 → 2511 px (el bloque Balance/Gastos/Ingresos, 405 →
+210); Configuración 2953 → 2960 px (no buscaba acortarse: los secundarios
+ganan la altura del principal).
+
+Decisiones y notas:
+- En Gris, "FINANZAS" en ámbar en Hoy es lo que pide `docs/PLAN-TEMA-GRIS.md`
+  (etiquetas y títulos con el acento de su módulo como texto); no se cambió.
+- El "Ver todo" del Laboratorio desapareció con 3.2.
+- Editar un pago fijo quedó fuera (necesita un evento nuevo): en
+  `docs/PLAN.md` › Ideas sin fase asignada.
+
+### QA final
+
+- Todas las vistas a 375, 360 y 1280, en Gris y Color: último elemento
+  completo sobre la barra, sin scroll horizontal, la sesión de Entreno
+  oculta la barra, el aviso no tapa la hoja Día.
+- Regresión a 375 (Color) y 1280 (Gris): sesión HUD (serie, descanso,
+  borrador retomado, resumen y guardar), Semana, Foco (Atrás pregunta antes
+  de cancelar), Diagnóstico de Recordatorios y respaldo (exportar y
+  restaurar el mismo archivo).
+- Consola limpia y ESLint `no-undef` limpio en todas las pruebas. La
+  memoria libre bajó de 600 MB en las Etapas 3 y 4 (navegadores del
+  usuario abiertos); se probó de a una prueba.
+
 ## 12 oct 2026 — Tema "Gris": interfaz en grises, color solo en el texto
 
 Base: `241bcce` (v318). Plan en `docs/PLAN-TEMA-GRIS.md`. Un commit por
