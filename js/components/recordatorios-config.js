@@ -21,7 +21,7 @@ const TEXTO_ESTADO = {
   'activado': 'Avisos activados en este dispositivo.'
 };
 
-const boton = (id, texto, primario = false) => `<button id="${id}" type="button" class="btn-primary tappable" style="${primario ? 'background: var(--accent-primary); color: #000;' : 'background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border);'} margin-top: 12px;">${texto}</button>`;
+const boton = (id, texto, primario = false) => `<button id="${id}" type="button" class="${primario ? 'btn-primary' : 'btn-secundario'} tappable" style="${primario ? 'background: var(--accent-primary); color: #000; ' : ''}margin-top: 12px;">${texto}</button>`;
 
 // Una fila por tipo: interruptor, nombre, cuándo llega y (si corresponde) la hora.
 function filaTipo(tipo, nombre, cuando, prefs, conHora = true) {

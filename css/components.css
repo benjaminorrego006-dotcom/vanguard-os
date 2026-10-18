@@ -87,6 +87,19 @@
 .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+/* Botón secundario (docs/PLAN-REVISION-OCT.md, 4.3): mismas medidas que
+   .btn-primary, recto (sin chaflán) y con borde. .peligro para las acciones
+   destructivas (Cerrar sesión, Desactivar PIN, Borrar todos los datos). */
+.btn-secundario {
+  /* Misma caja que .btn-primary (que no fija font-family): 15px de relleno
+     + 1px de borde = sus 16px sin borde. */
+  width: 100%; padding: 15px; margin-top: 10px; font-size: 16px; font-weight: 700;
+  background: var(--surface-2); color: var(--text-primary);
+  border: 1px solid var(--surface-border); border-radius: 0; cursor: pointer;
+}
+.btn-secundario.peligro { background: transparent; color: var(--state-high-t); border-color: var(--state-high); }
+.btn-secundario:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* Segmented control tipo iOS (pestañas de Finanzas, filtros de historial) */
 .segmented-control {
   display: flex; gap: 4px;

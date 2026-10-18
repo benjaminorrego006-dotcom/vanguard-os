@@ -45,8 +45,8 @@ export function renderAuthSection(session, ultimaSyncTs = null) {
       </div>
       <p id="auth-ultima-sync" style="font-size: 12px; color: var(--text-secondary); margin: -8px 0 14px;">${ultimaSyncTs ? `Sincronizado ${formatHaceCuanto(ultimaSyncTs)}` : 'Todavía sin sincronizar en este dispositivo'}</p>
       <div style="display: flex; gap: 10px;">
-        <button id="btn-auth-sync" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-weight: 600; cursor: pointer;">Sincronizar ahora</button>
-        <button id="btn-auth-logout" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: transparent; color: var(--state-high-t); border: 1px solid var(--state-high); font-weight: 600; cursor: pointer;">Cerrar sesión</button>
+        <button id="btn-auth-sync" type="button" class="btn-secundario tappable" style="flex: 1; min-width: 0;">Sincronizar ahora</button>
+        <button id="btn-auth-logout" type="button" class="btn-secundario peligro tappable" style="flex: 1; min-width: 0;">Cerrar sesión</button>
       </div>
       ${PRIVACIDAD_LINK}
     `;
@@ -62,8 +62,8 @@ export function renderAuthSection(session, ultimaSyncTs = null) {
       <input type="password" id="auth-password" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
     </div>
     <div style="display: flex; gap: 10px;">
-      <button id="btn-auth-signup" type="button" class="tappable" style="flex: 1; padding: 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); font-weight: 600; cursor: pointer;">Crear cuenta</button>
-      <button id="btn-auth-login" type="button" class="btn-primary tappable" style="flex: 1; background: var(--accent-primary); color: #000;">Iniciar sesión</button>
+      <button id="btn-auth-signup" type="button" class="btn-secundario tappable" style="flex: 1; min-width: 0;">Crear cuenta</button>
+      <button id="btn-auth-login" type="button" class="btn-primary tappable" style="flex: 1; min-width: 0; background: var(--accent-primary); color: #000;">Iniciar sesión</button>
     </div>
     ${PRIVACIDAD_LINK}
   `;

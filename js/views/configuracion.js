@@ -33,7 +33,8 @@ function seccion(titulo, subtitulo, contenidoHtml) {
     </div>`;
 }
 
-const btnSecundario = (id, texto) => `<button id="${id}" type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border);">${escapeHtml(texto)}</button>`;
+// Secundario: recto y con borde, mismas medidas que el principal (4.3).
+const btnSecundario = (id, texto) => `<button id="${id}" type="button" class="btn-secundario tappable">${escapeHtml(texto)}</button>`;
 
 export async function render() {
   const [profile, nivel, restTimerSecs, rule, diasDesdeBackup, estadoAlmacenamiento, authSession, estadoSync, resumenFotos, estadoAvisos] = await Promise.all([
@@ -95,6 +96,30 @@ export async function render() {
         <div id="cfg-auth-container">${renderAuthSection(authSession, estadoSync.ultimaSyncTs)}</div>
       `)}
 
+      ${seccion('Respaldos', null, `
+        ${backupStatusHtml}
+        <!-- Exportar es la acción principal (la de todos los días); restaurar
+             reemplaza los datos y va como secundaria. -->
+        <button id="btn-cfg-export" type="button" class="btn-primary tappable" style="background: var(--accent-primary); color: #000;">Exportar respaldo</button>
+        <div style="position: relative; margin-top: 12px;">
+          <input type="file" id="cfg-file-import" accept=".json" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;">
+          <button type="button" class="btn-secundario tappable" style="pointer-events: none;">Restaurar respaldo</button>
+        </div>
+        <!-- Fotos de progreso (Fase 6): solo en este dispositivo y fuera del
+             respaldo de arriba; van en un archivo aparte. -->
+        <div class="cfg-fotos" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--surface-border);">
+          <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Fotos de progreso</div>
+          <p id="cfg-fotos-resumen" style="margin: 4px 0 12px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.4;">${resumenFotos.cantidad
+            ? `El respaldo no incluye tus fotos. <span class="num">${resumenFotos.cantidad}</span> ${resumenFotos.cantidad === 1 ? 'foto' : 'fotos'} · ${textoTamano(estimarBytes(resumenFotos))}.`
+            : 'No hay fotos en este dispositivo.'}</p>
+          <button id="btn-cfg-fotos-export" type="button" class="btn-secundario tappable" ${resumenFotos.cantidad ? '' : 'disabled aria-disabled="true"'}>Exportar fotos</button>
+          <div style="position: relative; margin-top: 12px;">
+            <input type="file" id="cfg-fotos-import" accept=".json,application/json" aria-label="Importar fotos" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;">
+            <button type="button" class="btn-secundario tappable" style="pointer-events: none;">Importar fotos</button>
+          </div>
+        </div>
+      `)}
+
       ${seccion('Apariencia', 'Gris deja la interfaz en grises y el color solo en el texto. Color es el tema de siempre. Se guarda en este dispositivo.', `
         <div class="segmented-control" role="radiogroup" aria-label="Tema">
           ${[['gris', 'Gris'], ['color', 'Color']].map(([t, etiqueta]) => `<button type="button" class="cfg-tema-btn tappable${temaActual() === t ? ' active' : ''}" role="radio" aria-checked="${temaActual() === t}" data-tema="${t}" style="min-height: 44px;">${etiqueta}</button>`).join('')}
@@ -109,7 +134,7 @@ export async function render() {
           <ul id="cfg-diag-lista" class="cfg-diag-lista"><li class="cfg-diag-cargando">Revisando…</li></ul>
           <div class="cfg-diag-acciones">
             <button id="btn-diag-copiar" type="button" class="btn-primary tappable" style="background: var(--accent-primary); color: #000;" disabled>Copiar diagnóstico</button>
-            <button id="btn-diag-actualizar" type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border);">Volver a revisar</button>
+            <button id="btn-diag-actualizar" type="button" class="btn-secundario tappable">Volver a revisar</button>
           </div>
         </details>
       `)}
@@ -119,7 +144,7 @@ export async function render() {
       ${seccion('Entrenamiento', escapeHtml(nivelResumen), `
         ${btnSecundario('btn-cfg-nivel', 'Editar nivel declarado')}
         <div class="input-group" style="margin-top: 16px; margin-bottom: 0;">
-          <label for="cfg-rest-timer">Timer de descanso entre series (segundos)</label>
+          <label for="cfg-rest-timer">Descanso entre series (segundos)</label>
           <div style="display: flex; gap: 10px;">
             <input type="number" inputmode="numeric" id="cfg-rest-timer" value="${restTimerSecs}" min="15" style="flex: 1; min-width: 0;">
             <button id="btn-cfg-rest-timer" type="button" class="btn-primary tappable" style="background: var(--accent-primary); color: #000; flex-shrink: 0; width: auto; padding: 0 18px;">Guardar</button>
@@ -149,30 +174,6 @@ export async function render() {
         <div id="cfg-pin-container">${renderPinSecuritySection()}</div>
       `)}
 
-      ${seccion('Respaldos', null, `
-        ${backupStatusHtml}
-        <!-- Exportar es la acción principal (la de todos los días); restaurar
-             reemplaza los datos y va como secundaria. -->
-        <button id="btn-cfg-export" type="button" class="btn-primary tappable" style="background: var(--accent-primary); color: #000;">Exportar respaldo</button>
-        <div style="position: relative; margin-top: 12px;">
-          <input type="file" id="cfg-file-import" accept=".json" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;">
-          <button type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); pointer-events: none;">Restaurar respaldo</button>
-        </div>
-        <!-- Fotos de progreso (Fase 6): solo en este dispositivo y fuera del
-             respaldo de arriba; van en un archivo aparte. -->
-        <div class="cfg-fotos" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--surface-border);">
-          <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Fotos de progreso</div>
-          <p id="cfg-fotos-resumen" style="margin: 4px 0 12px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.4;">${resumenFotos.cantidad
-            ? `El respaldo no incluye tus fotos. <span class="num">${resumenFotos.cantidad}</span> ${resumenFotos.cantidad === 1 ? 'foto' : 'fotos'} · ${textoTamano(estimarBytes(resumenFotos))}.`
-            : 'No hay fotos en este dispositivo.'}</p>
-          <button id="btn-cfg-fotos-export" type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border);" ${resumenFotos.cantidad ? '' : 'disabled aria-disabled="true"'}>Exportar fotos</button>
-          <div style="position: relative; margin-top: 12px;">
-            <input type="file" id="cfg-fotos-import" accept=".json,application/json" aria-label="Importar fotos" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;">
-            <button type="button" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--surface-border); pointer-events: none;">Importar fotos</button>
-          </div>
-        </div>
-      `)}
-
       ${isErrorTrackingConfigured() ? seccion('Reportes de errores', 'Si la app falla, envía un aviso técnico automático (el mensaje del error y el tipo de dispositivo y navegador) para poder arreglarlo. A propósito no incluye el contenido de tus datos ni tu email. <a href="privacidad.html" style="color: var(--accent-primary-t);">Más info</a>', `
         <label for="cfg-error-reporting" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; color: var(--text-primary);">
           <input type="checkbox" id="cfg-error-reporting" ${isErrorReportingEnabled() ? 'checked' : ''} style="width: 20px; height: 20px; flex-shrink: 0;">
@@ -182,11 +183,11 @@ export async function render() {
 
       ${seccion('Datos de prueba', 'Carga unos 60 días de datos de ejemplo en los 4 módulos para ver la app funcionando. Borra todo lo que haya en este dispositivo.', authSession?.user
         // Con sesión de Supabase, los datos de ejemplo se subirían a la sync.
-        ? `<button id="btn-cfg-demo" type="button" class="btn-primary" disabled style="background: var(--surface-2); color: var(--text-disabled); border: 1px solid var(--surface-border); cursor: not-allowed;">Cierra sesión para usar datos de prueba</button>`
+        ? `<button id="btn-cfg-demo" type="button" class="btn-secundario" disabled>Cierra sesión para usar datos de prueba</button>`
         : btnSecundario('btn-cfg-demo', 'Cargar datos de demostración'))}
 
       ${seccion('Datos', 'Elimina todo lo guardado en este dispositivo. Esta acción no se puede deshacer — exporta un respaldo antes si no estás seguro.', `
-        <button id="btn-cfg-wipe" type="button" class="tappable" style="width: 100%; padding: 12px; background: transparent; border: 1px solid var(--state-high); color: var(--state-high-t); font-weight: 700; cursor: pointer;">Borrar todos los datos</button>
+        <button id="btn-cfg-wipe" type="button" class="btn-secundario peligro tappable">Borrar todos los datos</button>
       `)}
 
       ${seccion('Acerca de', null, `
@@ -273,7 +274,7 @@ export function mountListeners() {
   document.getElementById('btn-cfg-rest-timer')?.addEventListener('click', async () => {
     const val = parseInt(document.getElementById('cfg-rest-timer').value, 10);
     await db.setRestTimerSecs(val);
-    Toast('Timer de descanso actualizado', 'success');
+    Toast('Descanso entre series actualizado', 'success');
   });
 
   document.getElementById('btn-cfg-rule-save')?.addEventListener('click', async () => {
