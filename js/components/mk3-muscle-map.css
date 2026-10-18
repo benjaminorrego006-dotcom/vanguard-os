@@ -16,6 +16,15 @@
  * -----------------------------------------------------------------
  */
 
+/* Los controles y la leyenda van fuera del contenedor del mapa (son
+   hermanos, no hijos): sin esto el botón pulsado y la leyenda quedaban
+   sin su color de acento. */
+.mk3-muscle-map-controles,
+.mk3-muscle-map-leyenda {
+  --mm-accent: var(--accent-muscular);
+  --mm-stroke: var(--surface-border);
+}
+
 .mk3-muscle-map {
   --mm-accent: var(--accent-muscular); /* ambar intenso, exclusivo de este mapa — no --accent-teal (acento general de Entreno) ni --accent-orange (alerta/warning) */
   /* Tono de musculo "en reposo": visible a proposito (no casi-negro),
