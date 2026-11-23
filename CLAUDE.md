@@ -6,6 +6,15 @@ sesión; el estado del trabajo está en `docs/PLAN.md` y el historial en
 `docs/CHANGELOG.md`. Si algo de acá contradice el código, avisar antes de
 cambiar cualquiera de los dos.
 
+## Flujo de trabajo
+
+- **Push después de cada commit** (rediseño): en cuanto se crea un commit,
+  `git push origin rediseno-orbita` (el primer push de la rama:
+  `git push -u origin rediseno-orbita`), para que los cambios queden en
+  GitHub y se puedan abrir desde otro PC.
+- Una fase no está terminada hasta confirmar que el push salió bien. Si
+  falla, detenerse y mostrar el error.
+
 ## Forma de trabajo
 
 - **Una tarea por commit.** Cada commit con su push a `origin` apenas se crea;
