@@ -1,6 +1,8 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-Estado: **Fase 3 lista** (esqueleto) · siguiente: Fase 4 (componentes base)
+> **Estado actual (23-11-2026):** la **Fase 3 (esqueleto) está terminada** (commit `96dde63`, con push). Lo siguiente:
+> 1. Corregir, en un commit aparte, el bug que ya existía en Finanzas › Movimientos: al volver a Finanzas con esa pestaña activa, la lista sale vacía, porque `renderHistoryList()` solo corre al tocar la pestaña (`js/views/finanzas.js`).
+> 2. La Fase 4 (componentes base).
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
 
