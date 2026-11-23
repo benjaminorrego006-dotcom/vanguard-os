@@ -35,15 +35,19 @@ const VIEWPORTS = [
   { nombre: '768', width: 768, height: 1024 },
   { nombre: '1440', width: 1440, height: 900 }
 ];
-const VISTAS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas'];
+const VISTAS = ['dashboard', 'tareas', 'tareas/notas', 'habitos', 'entrenamiento', 'finanzas'];
 
 // --- Selectores de la interfaz actual (actualizar en cada fase) ---
 const SEL = {
   vistaTitulo: '#view-root h1',
   saltarOnboarding: 'button:has-text("Saltar")',
   nav: (vista) => `a.nav-item[data-view="${vista}"]`,
-  menuBtn: '#btn-menu',
-  menuOverlay: '#menu-overlay',
+  menuBtn: '#btn-perfil',          // Perfil (Fase 3; antes el menú ☰)
+  menuOverlay: '#perfil-overlay',
+  perfilItem: (vista) => `#perfil-overlay .o-perfil-item[data-menu-view="${vista}"]`,
+  orbe: '#app-nav .nav-orbe',
+  dockItems: '#app-nav .nav-item',
+  notasHost: '#notas-host',
   demoBtn: '#btn-cfg-demo',
   confirmOk: '#confirm-ok',
   toast: '#toast-container',
@@ -108,7 +112,7 @@ function afirmar(cond, msj) { if (!cond) throw new Error(msj); }
 // --- Ayudas de navegación ---
 async function irA(page, vista) {
   await page.evaluate((v) => { location.hash = v; }, vista);
-  await page.waitForFunction((v) => window.appRouter && window.appRouter.currentView === v, vista);
+  await page.waitForFunction((v) => window.appRouter && window.appRouter.currentView === v.split('/')[0], vista);
   await page.waitForSelector(SEL.vistaTitulo, { state: 'visible' });
   await page.waitForTimeout(400);
 }
@@ -243,11 +247,63 @@ async function main() {
     afirmar((await page.evaluate(() => location.hash)) === '#dashboard', 'atrás cambió de vista');
   });
 
-  await prueba('Atrás · cierra el menú', async () => {
+  await prueba('Atrás · cierra la hoja de Perfil', async () => {
     await page.locator(SEL.menuBtn).click();
     await page.waitForFunction((s) => document.querySelector(s)?.classList.contains('open'), SEL.menuOverlay);
     await page.goBack();
     await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.menuOverlay);
+    afirmar((await page.evaluate(() => location.hash)) === '#dashboard', 'atrás cambió de vista');
+  });
+
+  await prueba('Perfil · abre Configuración y atrás vuelve a Hoy', async () => {
+    await page.locator(SEL.menuBtn).click();
+    await page.waitForFunction((s) => document.querySelector(s)?.classList.contains('open'), SEL.menuOverlay);
+    await page.locator(SEL.perfilItem('configuracion')).click();
+    await page.waitForFunction(() => window.appRouter.currentView === 'configuracion');
+    afirmar(!(await page.evaluate((s) => document.querySelector(s).classList.contains('open'), SEL.menuOverlay)), 'la hoja quedó abierta');
+    await page.goBack();
+    await page.waitForFunction(() => window.appRouter.currentView === 'dashboard');
+  });
+
+  await prueba('Dock · 5 posiciones, Hoy al centro', async () => {
+    const vistas = await page.$$eval(SEL.dockItems, (els) => els.map((e) => e.dataset.view));
+    afirmar(vistas.join(',') === 'habitos,tareas,dashboard,entrenamiento,finanzas', `orden: ${vistas}`);
+    const dentro = await page.$$eval(SEL.dockItems, (els) => els.every((e) => {
+      const r = e.getBoundingClientRect(); return r.width >= 44 && r.height >= 44;
+    }));
+    afirmar(dentro, 'algún ítem del dock mide menos de 44 px');
+  });
+
+  await prueba('Orbe · estando en Hoy enfoca la captura rápida', async () => {
+    await page.locator(SEL.orbe).click();
+    await page.waitForFunction((s) => document.activeElement?.matches(s), SEL.capturaInput);
+    afirmar((await page.evaluate(() => location.hash)) === '#dashboard', 'el orbe cambió de vista');
+  });
+
+  await prueba('Redirecciones · #anotaciones, #mas y #planificador', async () => {
+    await page.evaluate(() => { location.hash = 'anotaciones'; });
+    await page.waitForFunction(() => location.hash === '#tareas/notas' && !!document.querySelector('#notas-host'));
+    await irA(page, 'dashboard');
+    await page.evaluate(() => { location.hash = 'planificador'; });
+    await page.waitForFunction(() => location.hash === '#tareas/semana' && !!document.querySelector('#plan-host'));
+    await irA(page, 'dashboard');
+    await page.evaluate(() => { location.hash = 'mas'; });
+    await page.waitForFunction((s) => location.hash === '#dashboard' && document.querySelector(s)?.classList.contains('open'), SEL.menuOverlay);
+    await page.goBack();
+    await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.menuOverlay);
+    await irA(page, 'dashboard');
+  });
+
+  await prueba('Plan › Notas · crear y borrar una categoría', async () => {
+    await irA(page, 'tareas/notas');
+    await page.locator('#cat-nueva').fill('Prueba QA');
+    await page.locator('#cat-nueva').press('Enter');
+    await page.waitForSelector('.cat-abrir:has-text("Prueba QA")');
+    afirmar(!!(await page.$('.tareas-subtabs')), 'las pestañas de Plan desaparecieron al repintar Notas');
+    await page.locator('.cat-abrir:has-text("Prueba QA") .cat-delete').click();
+    await page.locator(SEL.confirmOk).click();
+    await page.waitForSelector('.cat-abrir:has-text("Prueba QA")', { state: 'detached' });
+    await irA(page, 'dashboard');
   });
 
   await prueba('Atrás · vuelve de un módulo a Hoy', async () => {
@@ -264,7 +320,7 @@ async function main() {
       for (const v of VISTAS) {
         await irA(page, v);
         await page.waitForTimeout(500);
-        await capturar(page, `${v}-${vp.nombre}.png`);
+        await capturar(page, `${v.replace('/', '-')}-${vp.nombre}.png`);
       }
       await irA(page, 'dashboard');
     });

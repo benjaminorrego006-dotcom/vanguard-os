@@ -402,7 +402,7 @@ html[data-tema="gris"] .mk3-anotaciones { --accent-notas: #8E8E94; }
   --o-focus: 0 0 0 3px color-mix(in srgb, var(--o-text) 70%, transparent);
 
   /* --- Capas (mismos valores que usa hoy la app) --- */
-  --o-z-dock: 100; --o-z-sheet: 3000; --o-z-toast: 4000; --o-z-confirm: 5000;
+  --o-z-dock: 1000; --o-z-sheet: 3000; --o-z-toast: 4000; --o-z-confirm: 5000;
 
   /* --- Movimiento --- */
   --o-dur-1: 120ms; /* fundidos, presionado */

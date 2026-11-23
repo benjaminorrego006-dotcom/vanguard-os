@@ -6,6 +6,7 @@ import { escapeHtml } from '../utils/escape.js';
 import { formatFechaCorta, formatMes } from '../utils/fecha.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import * as Planificador from './planificador.js';
+import * as Anotaciones from './anotaciones.js';
 import { renderPriorityBars } from '../utils/prioridad.js';
 import { marcaDificultad } from '../utils/dificultad.js';
 import { guardiaVista } from '../core/vista-activa.js';
@@ -45,16 +46,20 @@ export function cleanup() {
   window.removeEventListener('budget-updated', onSyncActualizado);
   syncEnganchado = false;
   Planificador.cleanup();
+  Anotaciones.cleanup();
 }
 
-// Sub-pestañas "Lista · Semana". La sub-vista activa sale del hash
-// (#tareas / #tareas/semana), así que recargar o compartir el link cae en
-// la misma. "Semana" monta el Planificador tal cual (ver views/
-// planificador.js) dentro de #plan-host.
+// Sub-pestañas de Plan: "Tareas · Semana · Notas". La sub-vista activa sale
+// del hash (#tareas / #tareas/semana / #tareas/notas), así que recargar o
+// compartir el link cae en la misma. "Semana" monta el Planificador tal cual
+// (views/planificador.js) dentro de #plan-host y "Notas" monta Anotaciones
+// (views/anotaciones.js) dentro de #notas-host.
 let subActual = 'lista';
+const SUBRUTAS = { lista: '#tareas', semana: '#tareas/semana', notas: '#tareas/notas' };
 
 function subDeHash() {
-  return (location.hash || '').replace(/^#/, '').split('/')[1] === 'semana' ? 'semana' : 'lista';
+  const sub = (location.hash || '').replace(/^#/, '').split('/')[1];
+  return sub === 'semana' || sub === 'notas' ? sub : 'lista';
 }
 
 function renderSubTabs() {
@@ -64,7 +69,7 @@ function renderSubTabs() {
   };
   return `
     <div class="tareas-subtabs" style="padding: 16px 20px 0 20px;">
-      <div class="segmented-control">${tab('lista', 'Lista')}${tab('semana', 'Semana')}</div>
+      <div class="segmented-control">${tab('lista', 'Tareas')}${tab('semana', 'Semana')}${tab('notas', 'Notas')}</div>
     </div>`;
 }
 
@@ -82,7 +87,7 @@ async function repintar() {
 
 async function cambiarSub(sub) {
   if (sub === subActual) return;
-  history.replaceState(history.state, '', sub === 'semana' ? '#tareas/semana' : '#tareas');
+  history.replaceState(history.state, '', SUBRUTAS[sub] || SUBRUTAS.lista);
   await repintar();
 }
 
@@ -253,9 +258,14 @@ function renderBoardContent(cols) {
 
 export async function render() {
   subActual = subDeHash();
+  // Notas lleva el ámbito .mk3-anotaciones en su contenedor: sus variables
+  // le ganan a las de .mk3-tareas de #view-root (el router ya no lo pone,
+  // porque Anotaciones dejó de ser una vista propia).
   const inner = subActual === 'semana'
     ? `<div id="plan-host">${await Planificador.render()}</div>`
-    : await renderLista();
+    : subActual === 'notas'
+      ? `<div id="notas-host" class="mk3-anotaciones">${await Anotaciones.render()}</div>`
+      : await renderLista();
   return `<div class="tareas-host">${renderSubTabs()}${inner}</div>`;
 }
 
@@ -346,6 +356,10 @@ export function mountListeners() {
 
   if (subActual === 'semana') {
     Planificador.mountListeners();
+    return;
+  }
+  if (subActual === 'notas') {
+    Anotaciones.mountListeners();
     return;
   }
 

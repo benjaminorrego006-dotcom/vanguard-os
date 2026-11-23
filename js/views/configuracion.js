@@ -120,9 +120,9 @@ export async function render() {
         </div>
       `)}
 
-      ${seccion('Apariencia', 'Gris deja la interfaz en grises y el color solo en el texto. Color es el tema de siempre. Se guarda en este dispositivo.', `
+      ${seccion('Apariencia', 'Órbita usa el color de cada módulo y luces de fondo. Sobrio deja el fondo neutro y el color solo en anillos y estados. Se guarda en este dispositivo.', `
         <div class="segmented-control" role="radiogroup" aria-label="Tema">
-          ${[['gris', 'Gris'], ['color', 'Color']].map(([t, etiqueta]) => `<button type="button" class="cfg-tema-btn tappable${temaActual() === t ? ' active' : ''}" role="radio" aria-checked="${temaActual() === t}" data-tema="${t}" style="min-height: 44px;">${etiqueta}</button>`).join('')}
+          ${[['color', 'Órbita'], ['gris', 'Sobrio']].map(([t, etiqueta]) => `<button type="button" class="cfg-tema-btn tappable${temaActual() === t ? ' active' : ''}" role="radio" aria-checked="${temaActual() === t}" data-tema="${t}" style="min-height: 44px;">${etiqueta}</button>`).join('')}
         </div>
       `)}
 

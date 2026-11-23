@@ -8,6 +8,12 @@ import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 // para sobrevivir a los refresh, igual que el offset del planificador.
 let categoriaAbierta = null;
 
+// Dónde repintar: dentro de Plan (views/tareas.js, #notas-host) o, si
+// alguna vez se monta sola, en #view-root. Mismo patrón que planificador.js.
+function contenedor() {
+  return document.getElementById('notas-host') || document.getElementById('view-root');
+}
+
 // 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
 // cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
 // cambio hecho en otro dispositivo queda guardado en IndexedDB pero esta
@@ -24,7 +30,7 @@ async function onSyncActualizado() {
   const texto = document.getElementById('nota-texto');
   const hayBorrador = [titulo, texto].some(el => el && (document.activeElement === el || el.value.trim()));
   if (hayBorrador) return;
-  const root = document.getElementById('view-root');
+  const root = contenedor();
   root.innerHTML = await render();
   mountListeners();
 }
@@ -131,7 +137,7 @@ export function mountListeners() {
   }
 
   const refresh = async () => {
-    const root = document.getElementById('view-root');
+    const root = contenedor();
     root.innerHTML = await render();
     mountListeners();
   };

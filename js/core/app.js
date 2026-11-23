@@ -12,7 +12,10 @@ import { marcarNavegacion } from './vista-activa.js';
 import { refrescarSuscripcion } from './push.js';
 import { initRecordatorios } from './recordatorios.js';
 
-const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'anotaciones', 'laboratorio', 'configuracion'];
+// Anotaciones ya no es una vista propia: vive en Plan (#tareas/notas). Su
+// hash viejo redirige (resolveViewFromHash) y navigate('anotaciones') es un
+// alias de esa subruta.
+const VALID_VIEWS = ['dashboard', 'tareas', 'habitos', 'entrenamiento', 'finanzas', 'ritual', 'planificador', 'laboratorio', 'configuracion'];
 
 // El servidor local a veces omite el header Content-Type cuando recibe
 // varias peticiones en paralelo (medido: 0/52 fallos pidiendo los archivos
@@ -311,7 +314,8 @@ class Router {
     initModalHistory();
     initSheetDragToDismiss();
     initModalAccessibility();
-    this.initMenu();
+    this.initPerfil();
+    this.initOrbe();
     // Foco de tareas: registra uno que venció con la app cerrada y sigue el
     // que esté en curso (components/foco.js).
     initFoco().catch(err => console.error('Error iniciando el foco', err));
@@ -408,24 +412,25 @@ class Router {
   }
 
   syncMenuActivo(viewId) {
-    document.querySelectorAll('.menu-item').forEach(a => {
+    document.querySelectorAll('.o-perfil-item').forEach(a => {
       a.classList.toggle('active', a.getAttribute('data-menu-view') === viewId);
     });
   }
 
-  // Panel ☰: .modal-overlay + clase open. history.js lo engancha solo al
-  // botón atrás (pushState al abrir, popstate lo cierra antes de que
-  // cambie nada más). El display inline es porque history.js cierra con
-  // display:none y ese inline pisaría al .open del CSS al reabrir.
-  abrirMenu() {
-    const overlay = document.getElementById('menu-overlay');
+  // Hoja de Perfil (Órbita, reemplaza al panel ☰): .modal-overlay + clase
+  // open. history.js la engancha al botón atrás (pushState al abrir,
+  // popstate la cierra antes de que cambie nada más). El display inline es
+  // porque history.js cierra con display:none y ese inline pisaría al .open
+  // del CSS al reabrir.
+  abrirPerfil() {
+    const overlay = document.getElementById('perfil-overlay');
     if (!overlay || overlay.classList.contains('open')) return;
     overlay.style.display = 'flex';
     overlay.classList.add('open');
     this.actualizarMenuRitual();
   }
 
-  // "Hecho" junto a Ritual: se calcula al abrir el panel con la misma
+  // "Hecho" junto a Ritual: se calcula al abrir la hoja con la misma
   // lectura que usa la tarjeta contextual (db.getProgresoRitual), sin
   // guardar ningún flag aparte.
   async actualizarMenuRitual() {
@@ -437,53 +442,71 @@ class Router {
     } catch (e) { marca.hidden = true; }
   }
 
-  cerrarMenu() {
-    const overlay = document.getElementById('menu-overlay');
+  cerrarPerfil() {
+    const overlay = document.getElementById('perfil-overlay');
     if (!overlay || !overlay.classList.contains('open')) return;
     overlay.classList.remove('open');
     overlay.style.display = 'none';
   }
 
-  initMenu() {
-    const overlay = document.getElementById('menu-overlay');
-    const btn = document.getElementById('btn-menu');
+  initPerfil() {
+    const overlay = document.getElementById('perfil-overlay');
+    const btn = document.getElementById('btn-perfil');
     if (!overlay || !btn) return;
-    btn.addEventListener('click', () => this.abrirMenu());
+    btn.addEventListener('click', () => this.abrirPerfil());
     overlay.addEventListener('click', (e) => {
-      const item = e.target.closest('.menu-item');
+      const item = e.target.closest('.o-perfil-item');
       if (!item) {
-        if (e.target === overlay) this.cerrarMenu();
+        if (e.target === overlay) this.cerrarPerfil();
         return;
       }
-      // Cerrar primero y navegar después: cerrar el panel hace history.back()
+      // Cerrar primero y navegar después: cerrar la hoja hace history.back()
       // (ver history.js) y, si el cambio de hash del link ocurre antes de
       // que ese retroceso termine, el retroceso se lo lleva puesto y la
       // vista no cambia. Esperamos al popstate del cierre para navegar.
       e.preventDefault();
       const destino = item.getAttribute('href').replace(/^#/, '');
       const ir = () => { location.hash = destino; };
-      if (history.state && history.state.modalId === 'menu-overlay') {
+      if (history.state && history.state.modalId === 'perfil-overlay') {
         window.addEventListener('popstate', ir, { once: true });
-        this.cerrarMenu();
+        this.cerrarPerfil();
       } else {
-        this.cerrarMenu();
+        this.cerrarPerfil();
         ir();
       }
     });
   }
 
-  // Hash → vista. Soporta subrutas (#tareas/semana → vista 'tareas') y las
-  // redirecciones de las rutas que ya no existen como pantallas propias.
-  // Las reescribe con replaceState (sin entrada de historial nueva ni
-  // hashchange) para que "atrás" no vuelva a la ruta vieja.
+  // Orbe (Hoy, al centro del dock): desde otra pantalla lleva a Hoy (el
+  // href normal); estando ya en Hoy lleva a la captura rápida. En la Fase 5
+  // abrirá la hoja de captura; mientras, enfoca el campo actual de Hoy.
+  initOrbe() {
+    const orbe = document.querySelector('#app-nav .nav-orbe');
+    if (!orbe) return;
+    orbe.addEventListener('click', (e) => {
+      if (this.currentView !== 'dashboard') return;
+      e.preventDefault();
+      const input = document.getElementById('quick-capture-input');
+      if (!input) return;
+      input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      input.focus({ preventScroll: true });
+    });
+  }
+
+  // Hash → vista. Soporta subrutas (#tareas/semana, #tareas/notas → vista
+  // 'tareas') y las redirecciones de las rutas que ya no existen como
+  // pantallas propias. Las reescribe con replaceState (sin entrada de
+  // historial nueva ni hashchange) para que "atrás" no vuelva a la ruta
+  // vieja. Los hashes viejos siguen funcionando: notificaciones y enlaces
+  // guardados (docs/rediseno-total.md, § 2).
   resolveViewFromHash() {
     let raw = (location.hash || '').replace(/^#/, '');
     const base = raw.split('/')[0];
-    const REDIRECTS = { mas: 'dashboard', ritual: 'dashboard', planificador: 'tareas/semana' };
+    const REDIRECTS = { mas: 'dashboard', ritual: 'dashboard', planificador: 'tareas/semana', anotaciones: 'tareas/notas' };
     if (REDIRECTS[base]) {
       const destino = REDIRECTS[base];
       history.replaceState(history.state, '', '#' + destino);
-      if (base === 'mas') this.abrirMenu();
+      if (base === 'mas') this.abrirPerfil();
       raw = destino;
     }
     if (raw === 'dashboard/ritual') return 'ritual';
@@ -556,11 +579,15 @@ class Router {
     // app, aunque Supabase ya la haya marcado confirmada de su lado.
     const esCallbackDeAuth = /access_token=|refresh_token=|token_hash=|type=(signup|recovery|invite|magiclink|email_change)/.test(location.hash.slice(1));
     // Ritual cuelga de Hoy (#dashboard/ritual); #ritual a secas es solo una
-    // ruta vieja que redirige (ver resolveViewFromHash). Tareas admite
-    // subrutas (#tareas/semana). El resto compara el hash completo.
+    // ruta vieja que redirige (ver resolveViewFromHash). Tareas (Plan)
+    // admite subrutas (#tareas/semana, #tareas/notas): ir a 'tareas' a secas
+    // respeta la subruta en que ya estaba; 'anotaciones' es un alias de
+    // #tareas/notas (Plan › Notas). El resto compara el hash completo.
     const hashActual = location.hash.slice(1);
-    const hashDestino = viewId === 'ritual' ? 'dashboard/ritual' : viewId;
-    const yaEnDestino = viewId === 'tareas' ? hashActual.split('/')[0] === 'tareas' : hashActual === hashDestino;
+    const SUBRUTA = { ritual: 'dashboard/ritual', anotaciones: 'tareas/notas' };
+    const hashDestino = SUBRUTA[viewId] || viewId;
+    if (viewId === 'anotaciones') viewId = 'tareas';
+    const yaEnDestino = hashDestino === 'tareas' ? hashActual.split('/')[0] === 'tareas' : hashActual === hashDestino;
     // Antes de importar nada de la vista nueva (ver recargarSiHayActualizacion).
     if (!esCallbackDeAuth && this.currentView && viewId !== this.currentView
         && recargarSiHayActualizacion(hashDestino, yaEnDestino)) return;
@@ -579,9 +606,9 @@ class Router {
     const navId = this.navSeq = marcarNavegacion(viewId);
     const vigente = () => navId === this.navSeq;
 
-    // Ritual cuelga de Hoy; Planificador de Tareas. Anotaciones,
-    // Laboratorio y Configuración viven en el menú ☰ del encabezado y no
-    // marcan ninguna pestaña de la barra inferior.
+    // Ritual cuelga de Hoy; Planificador y Notas, de Plan (Tareas).
+    // Laboratorio y Configuración viven en la hoja de Perfil y no marcan
+    // ninguna posición del dock.
     const PADRE_NAV = { ritual: 'dashboard', planificador: 'tareas' };
     const viewIdParaNav = PADRE_NAV[viewId] || viewId;
     this.syncMenuActivo(viewId);
@@ -613,7 +640,6 @@ class Router {
     this.root.classList.toggle('mk3-dashboard', viewId === 'dashboard' || viewId === 'configuracion');
     this.root.classList.toggle('mk3-ritual', viewId === 'ritual');
     this.root.classList.toggle('mk3-planificador', viewId === 'planificador');
-    this.root.classList.toggle('mk3-anotaciones', viewId === 'anotaciones');
 
     try {
       this.root.style.animation = 'none';
@@ -647,7 +673,9 @@ class Router {
       if (cambiaVista) this.root.scrollTop = 0;
       if (typeof module.mountListeners === 'function') module.mountListeners();
       void this.root.offsetWidth;
-      this.root.style.animation = 'fadeSlideIn var(--transition-view)';
+      // Transición Órbita (tokens de movimiento; con movimiento reducido
+      // queda en un fundido corto sin desplazamiento).
+      this.root.style.animation = 'o-entrar var(--o-dur-3) var(--o-ease-out)';
     } catch (err) {
       // El detalle técnico sigue yendo a consola siempre — lo de abajo es
       // la versión para el usuario: qué pasó en simple, cómo seguir, y el

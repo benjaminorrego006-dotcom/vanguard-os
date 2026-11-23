@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-Estado: **Fase 2 lista** (sistema de diseño) · siguiente: Fase 3 (esqueleto)
+Estado: **Fase 3 lista** (esqueleto) · siguiente: Fase 4 (componentes base)
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
 
@@ -276,6 +276,26 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Línea base (MK III): 17/17 OK y 0 errores de consola.**
 - **Bug previo encontrado (fuera del alcance, sin corregir):** si sales de Finanzas con Movimientos abierto y vuelves, la pestaña aparece activa pero la lista queda vacía hasta tocarla otra vez (`renderHistoryList()` solo corre al hacer clic en la pestaña).
 
+
+**Fase 3 · esqueleto (23-11-2026)**
+- **Dock flotante (celular):** cinco posiciones en este orden: Hábitos, Plan, Hoy (orbe al centro), Entreno y Finanzas. Lleva vidrio, cada ítem mide al menos 44 px y el activo toma el acento de su módulo (`.o-mod-*`).
+  - Tocar el orbe desde otra pantalla lleva a Hoy.
+  - Estando ya en Hoy, el orbe enfoca la captura rápida actual. Es un puente: en la Fase 5 abre la hoja de captura.
+- **Riel:**
+  - En tablet (≥ 768 px), riel de íconos con etiqueta y Hoy primero.
+  - En PC (≥ 1280 px), riel de 220 px con la etiqueta al lado del ícono.
+- **Hoja de Perfil (`#perfil-overlay`):** reemplaza al menú ☰. Se abre con el botón de la cabecera y contiene Laboratorio, Ritual matutino (con su "Hecho") y Configuración. `#mas` la abre.
+- **Plan › Notas:** Anotaciones pasa a ser la sub-vista `#tareas/notas`, montada en `#notas-host` con su ámbito MK III.
+  - Las pestañas de Plan quedan: Tareas, Semana y Notas.
+  - `#anotaciones` redirige ahí, y los accesos de Hoy siguen funcionando, porque `navigate('anotaciones')` es un alias de esa subruta.
+- **Fondo Órbita:** el fondo usa `--o-bg` con las luces `--o-ambient`.
+- **Transición entre pantallas:** usa los tokens de movimiento.
+- **Avisos (toasts):** se muestran por encima del dock.
+- **`--o-z-dock`:** sube a 1000, igual que la barra anterior, para no quedar bajo elementos de las vistas MK III.
+- **Tema:** Órbita a color pasa a ser el predeterminado. En Configuración › Apariencia las opciones quedan como "Órbita" y "Sobrio". Quien ya había elegido Gris lo conserva.
+- **Verificación:** se agregaron pruebas para Perfil (atrás y navegación), el dock, el orbe, las redirecciones y Plan › Notas (crear y borrar una categoría sin perder las pestañas). Las capturas ahora incluyen Plan › Notas.
+- **ESLint:** `no-undef` limpio.
+- **Resultado: 22/22 OK y 0 errores de consola** (`node tools/verificar/verificar.mjs fase-3`).
 ## 9. Riesgos y cómo se controlan
 
 | Riesgo | Mitigación |

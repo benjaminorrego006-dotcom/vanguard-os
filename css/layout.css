@@ -8,9 +8,14 @@ html, body {
   max-width: 100%;
 }
 
+/* ===== Esqueleto Órbita (Fase 3, docs/rediseno-total.md) =====
+   Fondo, cabecera, dock/riel y hoja de Perfil ya son Órbita (tokens --o-*).
+   Las vistas siguen en MK III hasta su fase: conviven sobre este fondo. */
 body {
   margin: 0;
-  background-color: var(--bg-base);
+  background-color: var(--o-bg);
+  background-image: var(--o-ambient);
+  background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-body);
   overflow: hidden;
@@ -23,13 +28,63 @@ body {
 .app-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 #app-header {
   flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
-  padding: calc(env(safe-area-inset-top) + 6px) 12px 6px 20px; min-height: 48px;
-  background: var(--bg-base); border-bottom: 1px solid var(--surface-border);
+  padding: calc(env(safe-area-inset-top) + var(--o-sp-2)) var(--o-gutter) var(--o-sp-1);
+  background: transparent;
 }
-.header-brand { font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: 1px; color: var(--text-primary); }
-#btn-menu {
-  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-  background: transparent; border: none; color: var(--text-secondary); cursor: pointer;
+.header-brand {
+  font-family: var(--o-font); font-size: var(--o-fs-xs); font-weight: var(--o-fw-black);
+  letter-spacing: var(--o-ls-label); color: var(--o-text-2);
+}
+#btn-perfil {
+  width: var(--o-touch); height: var(--o-touch); display: grid; place-items: center;
+  border-radius: var(--o-r-pill); background: var(--o-surface-1); border: 1px solid var(--o-line);
+  color: var(--o-text); cursor: pointer;
+}
+#btn-perfil:focus-visible { outline: none; box-shadow: var(--o-focus); }
+
+/* --- Hoja de Perfil (reemplaza al panel ☰). Los selectores con id le ganan
+   a la regla MK III que deja recto todo lo que va dentro de un modal
+   (components.css); los radios de Órbita se mantienen. --- */
+#perfil-overlay { background: var(--o-scrim); }
+#perfil-overlay .o-hoja {
+  background: var(--o-sheet); background-image: none;
+  border: 1px solid var(--o-line-strong); border-bottom: none;
+  border-radius: var(--o-r-xl) var(--o-r-xl) 0 0 !important;
+  box-shadow: var(--o-shadow-sheet);
+  font-family: var(--o-font); color: var(--o-text);
+  padding: var(--o-sp-3) var(--o-gutter) calc(var(--o-sp-6) + env(safe-area-inset-bottom));
+  max-width: 480px;
+  transition: transform var(--o-dur-3) var(--o-ease-out), opacity var(--o-dur-2) var(--o-ease-out);
+}
+#perfil-overlay .o-hoja::before { background: var(--o-line-strong); border-radius: var(--o-r-pill) !important; }
+.o-hoja-titulo {
+  font-family: var(--o-font); font-size: var(--o-fs-xl); font-weight: var(--o-fw-bold);
+  letter-spacing: var(--o-ls-title); line-height: var(--o-lh-tight); margin: 0 0 var(--o-sp-4);
+}
+.o-perfil-lista { display: grid; gap: var(--o-sp-2); }
+#perfil-overlay .o-perfil-item {
+  display: flex; align-items: center; gap: var(--o-sp-3);
+  min-height: calc(var(--o-touch) + var(--o-sp-4)); padding: var(--o-sp-2) var(--o-sp-3);
+  border-radius: var(--o-r-md) !important; background: var(--o-surface-1); border: 1px solid var(--o-line);
+  color: var(--o-text); text-decoration: none;
+}
+#perfil-overlay .o-perfil-item.active { background: var(--o-surface-2); border-color: var(--o-line-strong); }
+#perfil-overlay .o-perfil-item:focus-visible { outline: none; box-shadow: var(--o-focus); }
+#perfil-overlay .o-perfil-ico {
+  width: var(--o-touch); height: var(--o-touch); flex-shrink: 0; display: grid; place-items: center;
+  border-radius: var(--o-r-sm) !important; background: var(--o-surface-2); color: var(--o-text-2);
+}
+.o-perfil-texto { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.o-perfil-texto b { font-size: var(--o-fs-base); font-weight: var(--o-fw-semibold); }
+.o-perfil-texto small { font-size: var(--o-fs-sm); color: var(--o-text-2); line-height: var(--o-lh-snug); }
+.o-perfil-hecho {
+  font-family: var(--o-font-num); font-size: var(--o-fs-2xs); letter-spacing: var(--o-ls-label);
+  text-transform: uppercase; color: var(--o-ok-t);
+}
+.o-perfil-hecho[hidden] { display: none; }
+@media (min-width: 640px) {
+  #perfil-overlay .o-hoja { border-radius: var(--o-r-xl) !important; border-bottom: 1px solid var(--o-line-strong); padding: var(--o-sp-6); }
+  #perfil-overlay .o-hoja::before { display: none; }
 }
 /* Todas las hojas (.modal-overlay) cubren la pantalla completa, barra
    inferior y riel incluidos (docs/PLAN-REVISION-OCT.md, 1.2): z-index 3000,
@@ -54,188 +109,101 @@ body {
 #sesion-detalle-modal .ed-campo[aria-invalid="true"] { border-color: var(--rd); }
 #sesion-edicion-error:not(:empty) { margin-bottom: 8px; }
 
-/* Panel lateral: el overlay lo pega a la derecha; los ids ganan sobre los
-   ajustes de .modal-content (hoja inferior en móvil, tarjeta en ≥640px). */
-#menu-overlay { align-items: stretch; justify-content: flex-end; padding: 0; }
-#menu-overlay .menu-panel {
-  width: min(280px, 82vw); max-width: none; height: 100%; max-height: none; border-radius: 0;
-  border: none; border-left: 1px solid var(--surface-border);
-  padding: calc(env(safe-area-inset-top) + 20px) 8px calc(20px + env(safe-area-inset-bottom));
-  display: flex; flex-direction: column; overflow-y: auto;
-}
-#menu-overlay .menu-panel::before { display: none; }
-.menu-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--text-disabled); padding: 0 14px 12px; }
-.menu-item-hecho { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--state-success-t); }
-.menu-item-hecho[hidden] { display: none; }
-.menu-item {
-  display: flex; align-items: center; justify-content: space-between; padding: 16px 14px; font-size: 16px; font-weight: 700;
-  color: var(--text-primary); text-decoration: none; border-bottom: 1px solid var(--surface-border);
-}
-.menu-item:last-child { border-bottom: none; }
-.menu-item.active { color: var(--accent-primary-t); }
 #view-root {
   flex: 1; overflow-y: auto; overflow-x: hidden;
-  /* La barra inferior va en el flujo, debajo de #view-root (no flota), así
-     que el scroll ya termina sobre ella: basta un aire final, sin sumar su
-     alto ni el safe-area (lo lleva la barra). Las vistas no agregan otro. */
-  padding-bottom: var(--space-4);
+  /* El dock flota sobre el contenido (celular): el scroll termina con aire
+     suficiente para que lo último no quede detrás del dock. */
+  padding-bottom: calc(var(--o-dock-h) + var(--o-sp-8) + env(safe-area-inset-bottom));
 }
-/* Barra inferior (móvil): pegada al borde, a todo el ancho, recta, fondo
-   sólido y filo superior de 1px (docs/PLAN-REVISION-OCT.md, 3.1). Va al
-   final de .app-layout con order: el contenido nunca pasa por detrás. El
-   safe-area inferior queda dentro de la barra, bajo los íconos. En
-   tablet/PC es el riel (ver el media query de abajo). */
+/* --- Dock (celular): píldora flotante de vidrio con 5 posiciones y Hoy al
+   centro como orbe. Solo íconos; la etiqueta queda para lectores de
+   pantalla. En tablet/PC pasa a riel lateral (media queries de abajo). --- */
 #app-nav {
-  position: relative; order: 2; flex-shrink: 0;
-  height: calc(64px + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
-  background: var(--bg-base);
-  border-top: 1px solid var(--surface-border);
-  display: flex; justify-content: space-around; align-items: center; z-index: 1000;
+  position: fixed; z-index: var(--o-z-dock);
+  left: var(--o-gutter); right: var(--o-gutter);
+  bottom: calc(env(safe-area-inset-bottom) + var(--o-sp-4));
+  max-width: 440px; margin-inline: auto;
+  height: var(--o-dock-h); padding: 0 var(--o-sp-2);
+  display: flex; justify-content: space-around; align-items: center;
+  background: var(--o-dock-bg);
+  border: 1px solid var(--o-line-strong); border-radius: var(--o-r-pill);
+  backdrop-filter: blur(var(--o-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--o-blur)) saturate(140%);
+  box-shadow: var(--o-shadow-dock);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  #app-nav { background: var(--o-sheet); }
 }
 .nav-brand { display: none; }
 .nav-item {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  color: var(--text-disabled); text-decoration: none; height: 100%; flex: 1 1 0;
-  gap: 4px;
+  flex: 0 0 auto; position: relative;
+  width: var(--o-dock-item); height: var(--o-dock-item);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--o-sp-1);
+  border-radius: var(--o-r-pill);
+  color: var(--o-text-3); text-decoration: none;
+  font-family: var(--o-font);
   -webkit-tap-highlight-color: transparent;
+  transition: color var(--o-dur-2) var(--o-ease-out), background-color var(--o-dur-2) var(--o-ease-out);
 }
-.nav-item .icon, .nav-item .label { transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), color 180ms ease; }
-.nav-item.active { color: var(--accent-primary-t); }
-/* Vanguard MK III: el acento de cada módulo (Entreno cian, Finanzas
-   ámbar, Tareas/Hábitos violeta) solo aparece cuando el ítem está
-   activo. Van acá (no dentro de un scope .mk3-X) porque el scope vive en
-   #view-root — hermano de #app-nav, no ancestro — así que el nav no
-   puede depender de --accent-primary redefinido ahí; usa los tokens
-   crudos (--cy/--am/--vi) directo, que no dependen de ningún scope.
-   Ganan por especificidad (selector de atributo + clase) sobre el
-   --accent-primary genérico de arriba. Inicio no tiene acento propio
-   (esa pantalla muestra todos los módulos a la vez), así que se queda
-   con el resaltado neutro de .nav-item.active. */
-.nav-item[data-view="entrenamiento"].active { color: var(--cy-t); }
-.nav-item[data-view="finanzas"].active { color: var(--am-t); }
-.nav-item[data-view="tareas"].active { color: var(--vi-t); }
-.nav-item[data-view="habitos"].active { color: var(--vi-t); }
-.nav-item.active .icon { transform: translateY(-2px) scale(1.08); }
-.nav-item .icon { font-size: 24px; }
+.nav-item .icon { display: grid; place-items: center; }
 .nav-item .icon svg { display: block; }
-.nav-item .label { font-size: 10px; font-weight: 600; letter-spacing: 0.2px; }
+/* Etiqueta solo para lectores de pantalla en el dock. */
+.nav-item .label {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+/* Activo: el acento del módulo (clases .o-mod-* del propio ítem). */
+.nav-item.active { color: var(--o-mod-t); background-color: var(--o-mod-soft); }
+.nav-item:focus-visible { outline: none; box-shadow: var(--o-focus); }
+/* Orbe de Hoy: anillo con los 4 colores alrededor del ícono. */
+.nav-orbe { width: auto; height: auto; }
+.nav-orbe .icon { padding: 3px; border-radius: var(--o-r-pill); background: var(--o-grad-orbe); }
+.nav-orbe .icon svg {
+  box-sizing: content-box; padding: var(--o-sp-3);
+  border-radius: var(--o-r-pill); background: var(--o-sheet); color: var(--o-text);
+}
+.nav-orbe.active { background-color: transparent; }
+.nav-orbe.active .icon { box-shadow: 0 0 0 var(--o-sp-1) var(--o-surface-1); }
 
-/* Layout Responsivo Profesional */
+/* --- Tablet (≥ 768 px): el dock pasa a riel lateral de íconos con
+   etiqueta debajo; Hoy (orbe) sube al primer lugar. --- */
 @media (min-width: 768px) {
-  .app-layout {
-    flex-direction: row; /* La barra de navegación pasa a la izquierda */
-  }
+  .app-layout { flex-direction: row; }
 
-  /* Transformar la Bottom Nav en un Sidebar */
   #app-nav {
-    position: relative;
-    /* El riel va primero (a la izquierda), no al final como la barra móvil. */
-    order: 0;
-    margin: 0;
-    /* Chaflán en dos esquinas opuestas, igual que .chaflan / las tarjetas
-       MK III (ver components.css). Sin sombras. */
-    clip-path: polygon(
-      var(--chaflan) 0, 100% 0,
-      100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%,
-      0 100%, 0 var(--chaflan)
-    );
-    width: 72px; /* riel solo de íconos; en >=1024px pasa a 220px con texto */
-    height: 100vh;
-    height: 100dvh;
-    border-top: none;
-    border-right: 1px solid var(--line);
-    flex-direction: column;
-    justify-content: flex-start;
-    padding: var(--space-4) var(--space-2) !important;
-    background-color: var(--surface-1);
-    align-items: center;
+    position: relative; order: 0; inset: auto; margin: 0; max-width: none;
+    width: var(--o-rail-w); height: 100vh; height: 100dvh;
+    flex-direction: column; justify-content: flex-start; align-items: stretch; gap: var(--o-sp-2);
+    padding: calc(env(safe-area-inset-top) + var(--o-sp-5)) var(--o-sp-2) var(--o-sp-5);
+    border: none; border-right: 1px solid var(--o-line); border-radius: 0;
+    box-shadow: none;
   }
 
   .header-brand { display: none; }
   #app-header { justify-content: flex-end; }
 
   .nav-brand {
-    display: block;
-    font-family: var(--font-display);
-    font-size: 20px;
-    /* 700, no 800: es el único peso que existe en el .woff2 autoalojado de
-       Space Grotesk (ver @font-face en variables.css) — pedir 800 hacía
-       que el navegador sintetizara una negrita falsa en vez de usar el
-       archivo real. */
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: var(--text-primary);
-    margin-bottom: var(--space-5);
-    /* En el riel angosto solo se ve la inicial: font-size 0 esconde el
-       texto y ::first-letter lo devuelve para la V. */
+    display: block; order: -2; text-align: center;
+    font-family: var(--o-font); font-weight: var(--o-fw-black); letter-spacing: var(--o-ls-label);
+    color: var(--o-text-2); margin-bottom: var(--o-sp-4);
+    /* En el riel angosto solo se ve la inicial. */
     font-size: 0;
-    padding-left: 0;
-    text-align: center;
-    width: 100%;
   }
-  .nav-brand::first-letter { font-size: 20px; }
+  .nav-brand::first-letter { font-size: var(--o-fs-lg); }
 
   .nav-item {
-    flex: none;
-    flex-direction: row;
-    width: 100%;
-    height: 48px;
-    justify-content: center;
-    padding: 0;
-    border-radius: 0; /* MK III: sin radios en el riel */
-    margin-bottom: var(--space-2);
-    transition: background 0.2s;
+    width: 100%; height: auto; min-height: calc(var(--o-touch) + var(--o-sp-5));
+    border-radius: var(--o-r-md); padding: var(--o-sp-2) 0;
   }
-
-  .nav-item:hover, .nav-item:active {
-    background-color: var(--surface-2);
-  }
-
-  /* Ítem activo: fondo tenue + filo de 2px a la izquierda, ambos con el
-     acento del módulo (currentColor = el color del ítem activo, ver más
-     abajo). Hoy no tiene módulo propio y usa el dorado de marca. */
-  .nav-item.active {
-    background-color: color-mix(in srgb, var(--accent-primary) 12%, transparent);
-    background-image: linear-gradient(currentColor, currentColor);
-    background-size: 2px 100%;
-    background-position: left center;
-    background-repeat: no-repeat;
-  }
-
-  /* El color por módulo ya se define arriba (fuera del media query, para
-     que mobile también lo tenga) — acá solo se agrega el fondo tenue a
-     juego, que es puramente decoración de escritorio. Tripletas numéricas
-     recalculadas a mano del retinte de --cy/--am/--vi (no derivan de
-     var() con color-mix porque este archivo no lo usaba antes tampoco). */
-  .nav-item[data-view="entrenamiento"].active { background-color: color-mix(in srgb, var(--cy) 12%, transparent); }
-  .nav-item[data-view="finanzas"].active { background-color: color-mix(in srgb, var(--am) 12%, transparent); }
-  .nav-item[data-view="tareas"].active { background-color: color-mix(in srgb, var(--vi) 12%, transparent); }
-  /* Hábitos comparte el violeta de Tareas (MK III); el color del texto e
-     ícono ya viene de la regla base. */
-  .nav-item[data-view="habitos"].active { background-color: color-mix(in srgb, var(--vi) 12%, transparent); }
-
-  .nav-item .icon {
-    margin-bottom: 0;
-    margin-right: 0;
-  }
-
-  /* Texto solo para lectores de pantalla mientras el riel es angosto. */
+  .nav-item:hover { background-color: var(--o-surface-1); }
+  .nav-item.active { background-color: var(--o-mod-soft); }
   .nav-item .label {
-    font-size: 14px;
-    font-weight: 600;
-    position: absolute;
-    width: 1px; height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
+    position: static; width: auto; height: auto; overflow: visible; clip: auto;
+    font-size: var(--o-fs-2xs); font-weight: var(--o-fw-semibold);
   }
-
-  /* Foco de teclado visible en el riel (outline, sin sombras). */
-  .nav-item:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: -2px;
-  }
+  .nav-orbe { order: -1; margin-bottom: var(--o-sp-3); }
+  .nav-orbe .icon svg { padding: var(--o-sp-2); }
+  .nav-orbe.active, .nav-orbe:hover { background-color: transparent; }
 
   /* Hoy en 2 columnas: agenda a la izquierda, resúmenes a la derecha; el
      resto de los bloques ocupa el ancho completo. */
@@ -249,12 +217,13 @@ body {
   .hoy-root > #hoy-agenda { grid-column: 1; }
   .hoy-root > #hoy-resumenes { grid-column: 2; }
 
-  /* Centrar y limitar el ancho del contenido principal */
+  /* Centrar y limitar el ancho del contenido principal. Sin dock abajo,
+     basta el aire normal al final. */
   #view-root {
-    padding-bottom: 0 !important;
+    padding-bottom: var(--o-sp-6) !important;
     display: flex;
     justify-content: center;
-    background-color: var(--bg-base);
+    background-color: transparent;
   }
 
   /* El div inyectado por las vistas toma un ancho razonable (no las hojas
@@ -266,32 +235,22 @@ body {
   }
 }
 
-/* PC (>=1024px): riel de 220px con texto, contenido centrado de hasta
-   1200px y Hoy en grilla de 12 columnas (agenda 7 / resúmenes 5). */
-@media (min-width: 1024px) {
-  #app-nav {
-    width: 220px;
-    padding: var(--space-4) var(--space-3) !important;
-    align-items: flex-start;
-  }
-  .nav-brand {
-    font-size: 20px;
-    padding-left: var(--space-2);
-    text-align: left;
-  }
+/* PC (≥ 1280 px): riel con etiquetas al lado del ícono. */
+@media (min-width: 1280px) {
+  #app-nav { width: var(--o-rail-w-lg); padding-inline: var(--o-sp-4); }
+  .nav-brand { text-align: left; padding-left: var(--o-sp-3); font-size: var(--o-fs-sm); }
+  .nav-brand::first-letter { font-size: inherit; }
   .nav-item {
-    justify-content: flex-start;
-    padding: 0 var(--space-3);
+    flex-direction: row; justify-content: flex-start; gap: var(--o-sp-3);
+    min-height: calc(var(--o-touch) + var(--o-sp-2)); padding: 0 var(--o-sp-3);
   }
-  .nav-item .icon { margin-right: var(--space-3); }
-  .nav-item .label {
-    position: static;
-    width: auto; height: auto;
-    overflow: visible;
-    clip: auto;
-    white-space: normal;
-  }
+  .nav-item .label { font-size: var(--o-fs-sm); }
+  .nav-orbe { padding-left: var(--o-sp-2); }
+}
 
+/* Vistas en PC (≥ 1024 px, sin cambios hasta su fase): contenido centrado
+   de hasta 1200 px y Hoy en grilla de 12 columnas (agenda 7 / resúmenes 5). */
+@media (min-width: 1024px) {
   #view-root > div:not(.modal-overlay) { max-width: 1200px !important; }
 
   .hoy-root { grid-template-columns: repeat(12, minmax(0, 1fr)); }
@@ -343,14 +302,16 @@ body:has(.modal-overlay.open) #toast-container {
   opacity: 0.85 !important;
 }
 
-/* Global Transitions */
+/* Transición entre pantallas (Órbita): fundido con un desplazamiento corto.
+   Con prefers-reduced-motion, --o-move vale 0 y la duración baja a un
+   fundido breve (variables.css). El router la relanza en cada navigate(). */
 #view-root {
-  animation: fadeSlideIn var(--transition-view);
+  animation: o-entrar var(--o-dur-3) var(--o-ease-out);
 }
 
-@keyframes fadeSlideIn {
-  0% { opacity: 0; transform: translateY(8px); }
-  100% { opacity: 1; transform: translateY(0); }
+@keyframes o-entrar {
+  from { opacity: 0; transform: translateY(var(--o-move)); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-overlay.open .modal-content { 
