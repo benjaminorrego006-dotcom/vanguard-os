@@ -35,3 +35,6 @@ PROMPT-*.md
 # CLI de Supabase: estado local (nunca al repo)
 supabase/.temp/
 supabase/.branches/
+
+# Verificación con Playwright: capturas e informes locales
+tools/verificar/salida/

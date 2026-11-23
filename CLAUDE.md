@@ -23,6 +23,11 @@ cambiar cualquiera de los dos.
   antes de corregirlo.
 - **ESLint `no-undef` limpio antes de cerrar** (ignorando `js/vendor/`):
   `npx eslint@8 --no-eslintrc --env browser,es2022 --parser-options=sourceType:module --rule "no-undef:error" --ignore-pattern "js/vendor/" js/`
+- **Verificación automática al cierre de cada fase:** `node tools/verificar/verificar.mjs <etiqueta>`
+  (Playwright 1.65.0 + Chromium; Node portable en `%LOCALAPPDATA%\Programs\node`,
+  agregarlo al PATH de la sesión). Cubre capturas en 390/768/1440, consola,
+  las 5 acciones, crear/editar/borrar, botón atrás y offline. Si una fase
+  cambia la interfaz, se actualiza el bloque `SEL` del script.
 - **Verificar por la UI real** (Playwright 375×812 y 1280×800, zona
   `America/Santiago`, reloj simulado, contexto limpio) y con la consola
   limpia. Llamar a la función por debajo no cuenta como verificado.

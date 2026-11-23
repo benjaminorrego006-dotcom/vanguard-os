@@ -260,6 +260,22 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Por defecto Órbita a color (decisión 7.5):** la app sigue arrancando en Gris hasta la Fase 3. Cambiar el predeterminado ahora pintaría MK III a color, que no es lo que se aprobó. En la Fase 3 el predeterminado de `utils/tema.js` y del script del `<head>` pasa a «color». A quien ya eligió Gris a mano se le respeta.
 - **Verificación:** Chrome headless controlado por DevTools Protocol, con Supabase bloqueado, zona `America/Santiago`, perfil limpio y capturas en 390, 768 y 1440 px. Este equipo no tiene Node, así que no hubo Playwright ni ESLint. El único JS tocado es la lista de `sw.js`.
 
+**Herramientas y línea base (23-11-2026, antes de la Fase 3)**
+- Node v26.13.1 LTS portable en `%LOCALAPPDATA%\Programs\node`, con el SHA-256 verificado. `winget --scope user` no tiene un instalador de Node LTS solo para el usuario.
+- ESLint `no-undef` limpio en todo `js/` (sin `js/vendor/`).
+- `tools/verificar/verificar.mjs` (Playwright 1.65.0 + Chromium), fuera de la app: no está en `PRECACHE_URLS` y `_config.yml` excluye `tools/`.
+  - Contexto: limpio, zona `America/Santiago`, reloj simulado (lunes 23-11-2026, 16:00) y Supabase bloqueado.
+  - Datos: los de demostración de Configuración.
+  - Pruebas:
+    - las 5 acciones;
+    - crear, editar y borrar una tarea;
+    - el botón atrás (modal, menú, módulo → Hoy);
+    - capturas en 390, 768 y 1440 px de las 5 vistas;
+    - offline;
+    - consola sin errores.
+- **Línea base (MK III): 17/17 OK y 0 errores de consola.**
+- **Bug previo encontrado (fuera del alcance, sin corregir):** si sales de Finanzas con Movimientos abierto y vuelves, la pestaña aparece activa pero la lista queda vacía hasta tocarla otra vez (`renderHistoryList()` solo corre al hacer clic en la pestaña).
+
 ## 9. Riesgos y cómo se controlan
 
 | Riesgo | Mitigación |

@@ -1,0 +1,12 @@
+{
+  "name": "vanguard-verificar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Verificación de Vanguard OS con Playwright (fuera de la app: no entra al precache ni a GitHub Pages).",
+  "scripts": {
+    "verificar": "node verificar.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.65.0"
+  }
+}
