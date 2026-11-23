@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-Estado: **Fase 1 — verificado contra el código, pendiente de aprobación**
+Estado: **Fase 1 aprobada** · siguiente: Fase 2
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
 
@@ -183,7 +183,7 @@ diálogo de confirmación global · toasts (con acción de deshacer)
 | Anotaciones · nota nueva | Acción rápida «Nota» | 1 + «+» → igual |
 | **Laboratorio** | Perfil › Laboratorio; toque en la órbita → Semana | 2 (☰), o 1 desde la fila → 1 (órbita) / 2 (Perfil) |
 | **Configuración** (12 secciones) | Perfil › Configuración | 2 → 2 |
-| Configuración · Apariencia (tema Gris / Color) | **Pendiente de decidir** (ver § 7b) | — |
+| Configuración · Apariencia (tema Gris / Color) | Perfil › Configuración › Apariencia: Órbita a color (por defecto) o modo sobrio (§ 7.5) | — |
 | Onboarding inicial + nivel de entreno | Mismo flujo, rediseñado | — |
 | Lock screen (PIN) | Igual: fuera de `.modal-overlay` | — |
 | Modales | Hojas inferiores con `.modal-overlay` + `id` + `open` | — |
@@ -214,17 +214,16 @@ Ninguna funcionalidad se elimina. El panel ☰ desaparece como contenedor: su co
 - **Profundidad:** luces de color difusas en el fondo, vidrio con desenfoque y sombras de color solo en el botón principal de cada pantalla.
 - **Animación:** resortes cortos (180–320 ms) al cerrar un anillo, al pasar de misión y al abrir hojas. Con `prefers-reduced-motion`, todo pasa a fundidos de 0 ms o 120 ms, sin desplazamientos.
 
-## 7. Decisiones que necesito que apruebes
+## 7. Decisiones aprobadas (23-11-2026)
 
-1. **«Puntaje del día»** (el 64 del centro): es un dato nuevo. Propongo calcularlo en memoria (promedio del avance de los 4 anillos: hábitos marcados hoy, tareas de hoy hechas, entreno de hoy y presupuesto del mes), sin guardarlo nunca. ¿Lo apruebas, o prefieres que el centro muestre otra cosa?
-2. **«+40 XP»** en las misiones: hoy no existe un XP global. Propongo **quitar el XP** y mostrar «cierra el anillo». Un sistema de XP global sería una funcionalidad nueva, derivada del log, para después del rediseño.
-3. **Insignia «Nv 14» en Hoy.** **Corregido:** no existe un nivel numérico de Entreno (los niveles son por rama y con nombre). Propongo reemplazarla por la que ya existe: **🛡 vidas extra**, junto al 🔥 de la racha global. Otras opciones: el nivel con nombre de tu rama principal («Intermedio»), o nada. ¿Cuál prefieres?
-4. **Anillo de Finanzas:** propongo que muestre el **disponible del mes** (`budget.remaining`, el mismo dato de la fila actual de Hoy, sin el arrastre de los sobres, según la regla 4 de `CLAUDE.md`), no lo gastado. Así, «lleno» significa «vas bien».
-
-### 7b. Decisiones que se piden en su fase (no bloquean la Fase 2)
-- **Tema Gris / Color** (Configuración › Apariencia): Órbita es un solo aspecto. Antes de la Fase 2 te pregunto si se elimina el selector, o si «Gris» pasa a ser una variante sobria de Órbita. No se quita sin tu aprobación.
-- **`CLAUDE.md` › Interfaz (MK III)** prohíbe `border-radius` y sombras, fija los acentos cian / ámbar / violeta y pide chaflanes. Órbita contradice esas reglas. En la Fase 2 propongo reescribir esa sección con las reglas de Órbita, siempre con tu aprobación.
-- **Prueba en Playwright:** `CLAUDE.md` pide 375×812 y 1280×800; el brief pide 390, 768 y 1440. Propongo capturar en los cinco anchos.
+1. **Puntaje del día** (el número del centro de la órbita): es el promedio del avance de los 4 anillos (hábitos marcados hoy, tareas de hoy hechas, entreno de hoy y disponible del mes). Se calcula en memoria a partir del log y **nunca se guarda**. ✅
+2. **XP:** se quita el «+40 XP» de las misiones y se muestra «cierra el anillo». Un XP global queda para después del rediseño, como funcionalidad nueva derivada del log. ✅
+3. **Cabecera de Hoy:** se reemplaza «Nv 14» por **🛡 vidas extra**, junto al 🔥 de la racha global. El nivel con nombre de cada rama se queda dentro de Entreno. ✅
+4. **Anillo de Finanzas:** muestra el **disponible del mes** (`budget.remaining`, sin el arrastre de los sobres, según la regla 4 de `CLAUDE.md`). Lleno significa «vas bien». ✅
+5. **Tema Gris / Color:** no se elimina. «Gris» pasa a ser el **modo sobrio** de Órbita: fondo neutro, sin luces de color y con los acentos de módulo solo en anillos y estados. **Por defecto se usa Órbita a color.** El selector sigue en Configuración › Apariencia. ✅
+6. **`CLAUDE.md`:** la sección de interfaz (MK III) se reescribe para Órbita. Se mantienen intactas todas las reglas de datos, sincronización, fechas, montos, service worker y accesibilidad. ✅
+7. **Rosa de Hábitos vs. rojo de alerta:** toda alerta lleva **ícono y texto**, nunca solo color. El rojo de alerta tiene que distinguirse claramente del coral y el rosa de Hábitos, tanto en tono como en contraste. Se verifica en los tokens de la Fase 2. ✅
+8. **Prueba en Playwright:** se captura en 375, 390, 768, 1280 y 1440 px (las medidas de `CLAUDE.md` y las del brief).
 
 ## 8. Fases restantes (una por commit, con su push)
 
@@ -258,7 +257,7 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 | **Nuevo · Clases de ámbito `.mk3-*` en `navigate()`** | Conviven con las nuevas hasta la fase final. Las clases de Órbita se aplican en el mismo punto, y se borran las viejas en la limpieza. |
 | **Nuevo · Rosa de Hábitos vs. rojo de alerta** | `CLAUDE.md`: el rojo es solo para alertas reales. El rosa `#FF4D8D` se parece al rojo. En la Fase 2 se fija un rojo de alerta distinguible, y se prueba con gastos en rojo y alertas de caja. |
 | **Nuevo · Reglas de `CLAUDE.md` (MK III)** | Contradicen a Órbita (radios, sombras, colores). Se reescriben en la Fase 2 con tu aprobación, antes de escribir CSS nuevo. |
-| **Nuevo · Tema Gris / Color** | Hoy `utils/tema.js` aplica `data-tema` y hay tokens para cada tema. Hay que decidir (§ 7b) antes de la Fase 2. Sin decisión, el selector no se toca. |
+| **Nuevo · Tema Gris / Color** | Hoy `utils/tema.js` aplica `data-tema` y hay tokens para cada tema. Decidido (§ 7.5): «Gris» pasa a ser el modo sobrio de Órbita; por defecto, Órbita a color. |
 | **Nuevo · Sincronización de vistas** | Varias vistas repintan con `budget-updated` (sync) y usan `guardiaVista()`. Con más pantallas montadas a la vez (PC con tres columnas), cada panel necesita su propia guardia. |
 | **Sesión de entreno activa** al cambiar de pantalla | Ya existe la «sesión en curso» (Retomar / Descartar) con borrador (`utils/sesion-borrador.js`). Solo cambia su presentación (mini-reproductor). |
 | **Captura rápida** cambia de lugar | Solo se mueve el componente. `parseQuickGasto` sigue en `finanzas.js` y Hoy lo importa desde ahí. Prueba de regresión con frases reales («4500 almuerzo», «15000 en auto» con dos sobres, «Comprar 2 entradas» → tarea). |
