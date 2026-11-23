@@ -40,6 +40,16 @@
   font-display: swap;
   src: url('../assets/fonts/ibm-plex-mono-700-latin.woff2') format('woff2');
 }
+/* Órbita (rediseño, Fase 2): Sora para títulos y texto, Geist Mono para
+   cifras, horas y montos. Locales y solo latin, igual que las de arriba.
+   El navegador baja cada archivo recién cuando una regla lo usa. */
+@font-face { font-family: 'Sora'; font-style: normal; font-weight: 400; font-display: swap; src: url('../assets/fonts/sora-400-latin.woff2') format('woff2'); }
+@font-face { font-family: 'Sora'; font-style: normal; font-weight: 600; font-display: swap; src: url('../assets/fonts/sora-600-latin.woff2') format('woff2'); }
+@font-face { font-family: 'Sora'; font-style: normal; font-weight: 700; font-display: swap; src: url('../assets/fonts/sora-700-latin.woff2') format('woff2'); }
+@font-face { font-family: 'Sora'; font-style: normal; font-weight: 800; font-display: swap; src: url('../assets/fonts/sora-800-latin.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('../assets/fonts/geist-mono-400-latin.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('../assets/fonts/geist-mono-500-latin.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 600; font-display: swap; src: url('../assets/fonts/geist-mono-600-latin.woff2') format('woff2'); }
 
 :root {
   /* --- Paleta 2026 (hyper-saturated accents sobre dark minimalista) ---
@@ -267,3 +277,187 @@ html[data-tema="gris"] {
 html[data-tema="gris"] .mk3-ritual { --accent-ritual: #9A9AA0; --rtp: rgba(160, 160, 166, 0.14); }
 html[data-tema="gris"] .mk3-planificador { --accent-plan: #A8A8AE; }
 html[data-tema="gris"] .mk3-anotaciones { --accent-notas: #8E8E94; }
+
+/* =====================================================================
+   ÓRBITA — sistema de diseño del rediseño (docs/rediseno-total.md, Fase 2)
+   ---------------------------------------------------------------------
+   Todos los tokens llevan el prefijo --o- para convivir con los de MK III
+   (--bg, --line, --cy…) mientras las vistas se migran de a una (fases 3 a
+   10). La limpieza final borra los de MK III.
+
+   Contraste (WCAG AA, calculado al definirlos; ver § 6 del plan):
+   - Texto 1/2/3 ≥ 4.5:1 sobre --o-bg, --o-surface-1/2/3 y --o-sheet.
+   - --o-<módulo>-t (texto de acento) ≥ 4.5:1 sobre las mismas superficies.
+   - Sobre un degradado de módulo el texto va SIEMPRE en --o-ink (oscuro):
+     el blanco no llega a 4.5:1 en ninguna parada.
+   - Alerta: --o-alert (relleno, ícono, borde) está a ΔE ≥ 33 del rosa y
+     del coral de Hábitos; --o-alert-t (texto) ≥ 4.5:1. Toda alerta lleva
+     ícono y texto, nunca solo color.
+
+   Cortes de pantalla (las media queries no aceptan variables, así que
+   viven aquí como referencia): celular < 768 px · tablet ≥ 768 px ·
+   PC ≥ 1280 px.
+   ===================================================================== */
+:root {
+  /* --- Fondo y superficies --- */
+  --o-bg: #0C0A1C;
+  --o-sheet: #16122E;                       /* hojas, diálogos y centro del orbe (sólido) */
+  --o-surface-1: rgba(255, 255, 255, 0.06); /* ≈ #1B192A sobre --o-bg */
+  --o-surface-2: rgba(255, 255, 255, 0.10); /* ≈ #242233 */
+  --o-surface-3: rgba(255, 255, 255, 0.14); /* ≈ #2E2C3C: presionado / seleccionado */
+  --o-line: rgba(255, 255, 255, 0.10);
+  --o-line-strong: rgba(255, 255, 255, 0.16);
+  --o-dock-bg: rgba(30, 26, 58, 0.72);
+  --o-scrim: rgba(6, 5, 16, 0.64);          /* fondo del .modal-overlay */
+
+  /* --- Texto --- */
+  --o-text: #F4F2FF;   /* 17.6:1 sobre --o-bg */
+  --o-text-2: #A9A3C9; /*  8.2:1 */
+  --o-text-3: #9A94BC; /*  6.8:1 (4.8:1 sobre --o-surface-3) */
+  --o-faint: #6E6890;  /* SOLO decorativo (pistas de anillos, separadores): 3.8:1, no sirve para texto */
+  --o-ink: #0C0A1C;    /* texto sobre degradados y rellenos de módulo */
+
+  /* --- Módulos: color plano (íconos, anillos) + segunda parada del
+     degradado + versión de texto. --- */
+  --o-hab: #FF4D8D;  --o-hab-2: #FF8A5C;  --o-hab-t: #FF6B9E;
+  --o-plan: #7C5CFF; --o-plan-2: #B79BFF; --o-plan-t: #A58FFF;
+  --o-plan-btn: #8F72FF; /* 1.ª parada del botón de Plan: con #7C5CFF la tinta quedaba en 4.49:1 */
+  --o-ent: #19E3D2;  --o-ent-2: #2FA8FF;  --o-ent-t: #19E3D2;
+  --o-fin: #FFC23D;  --o-fin-2: #FF8A1F;  --o-fin-t: #FFC23D;
+  --o-notas: #A9B4C9; --o-notas-2: #7F8BA3; --o-notas-t: #A9B4C9;
+
+  /* --- Estados (siempre con ícono y texto) --- */
+  --o-alert: #FF3B3B;   --o-alert-t: #FF6060;  /* rojo solo para alertas reales */
+  --o-warn: #FFB020;    --o-warn-t: #FFB020;
+  --o-ok: #3DDC84;      --o-ok-t: #3DDC84;     /* ΔE 38 del turquesa de Entreno */
+  --o-info: #5B9BF8;    --o-info-t: #7AAFFA;
+  --o-alert-soft: color-mix(in srgb, var(--o-alert) 14%, transparent);
+  --o-warn-soft: color-mix(in srgb, var(--o-warn) 14%, transparent);
+  --o-ok-soft: color-mix(in srgb, var(--o-ok) 14%, transparent);
+  --o-info-soft: color-mix(in srgb, var(--o-info) 14%, transparent);
+
+  /* --- Degradados --- */
+  --o-grad-hab: linear-gradient(135deg, var(--o-hab), var(--o-hab-2));
+  --o-grad-plan: linear-gradient(135deg, var(--o-plan), var(--o-plan-2));
+  --o-grad-plan-btn: linear-gradient(135deg, var(--o-plan-btn), var(--o-plan-2));
+  --o-grad-ent: linear-gradient(135deg, var(--o-ent), var(--o-ent-2));
+  --o-grad-fin: linear-gradient(135deg, var(--o-fin), var(--o-fin-2));
+  --o-grad-notas: linear-gradient(135deg, var(--o-notas), var(--o-notas-2));
+  --o-grad-orbe: conic-gradient(from 200deg, var(--o-hab), var(--o-plan), var(--o-ent), var(--o-fin), var(--o-hab));
+  --o-grad-titulo: linear-gradient(180deg, #FFFFFF, #CFC8FF); /* cifra grande del centro de la órbita */
+  /* Luces de fondo: gradientes radiales sin filter (más baratos que un blur). */
+  --o-ambient:
+    radial-gradient(60% 40% at 0% 25%, rgba(124, 92, 255, 0.30), transparent 70%),
+    radial-gradient(50% 35% at 100% 8%, rgba(255, 77, 141, 0.20), transparent 70%),
+    radial-gradient(55% 35% at 100% 85%, rgba(25, 227, 210, 0.10), transparent 70%);
+
+  /* --- Tipografía --- */
+  --o-font: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --o-font-num: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Escala en rem: respeta el tamaño de letra del sistema (px a 16 px base). */
+  --o-fs-2xs: 0.625rem;     /* 10 · rótulos mono en mayúsculas */
+  --o-fs-xs: 0.6875rem;     /* 11 */
+  --o-fs-sm: 0.8125rem;     /* 13 */
+  --o-fs-base: 0.9375rem;   /* 15 · texto de lista */
+  --o-fs-md: 1.0625rem;     /* 17 */
+  --o-fs-lg: 1.25rem;       /* 20 · título de tarjeta */
+  --o-fs-xl: 1.5rem;        /* 24 · título de pantalla */
+  --o-fs-2xl: 1.875rem;     /* 30 */
+  --o-fs-display: 3.375rem; /* 54 · puntaje del día */
+  --o-fw-regular: 400; --o-fw-semibold: 600; --o-fw-bold: 700; --o-fw-black: 800;
+  --o-lh-tight: 1.1; --o-lh-snug: 1.3; --o-lh-body: 1.5;
+  --o-ls-title: -0.02em; --o-ls-display: -0.05em; --o-ls-label: 0.14em;
+
+  /* --- Espaciado (base 4) --- */
+  --o-sp-1: 4px; --o-sp-2: 8px; --o-sp-3: 12px; --o-sp-4: 16px; --o-sp-5: 20px;
+  --o-sp-6: 24px; --o-sp-7: 32px; --o-sp-8: 40px; --o-sp-9: 48px; --o-sp-10: 64px;
+  --o-gutter: 18px;         /* margen lateral en celular; tablet y PC usan --o-sp-6 / --o-sp-7 */
+  --o-content-max: 1200px;  /* ancho máximo del contenido en PC */
+
+  /* --- Tamaños de interfaz --- */
+  --o-touch: 44px;          /* objetivo táctil mínimo */
+  --o-btn-h: 46px;
+  --o-quick: 60px;          /* acción rápida de Hoy */
+  --o-dock-h: 68px;
+  --o-dock-item: 48px;
+  --o-orbe: 56px;
+  --o-rail-w: 88px;         /* riel lateral en tablet */
+  --o-rail-w-lg: 220px;     /* riel con etiquetas en PC */
+  --o-ring-w: 14px;         /* grosor de los anillos de la órbita */
+  --o-icon: 22px;
+
+  /* --- Radios --- */
+  --o-r-xs: 8px; --o-r-sm: 12px; --o-r-md: 18px; --o-r-lg: 22px; --o-r-xl: 26px; --o-r-pill: 999px;
+
+  /* --- Elevación: vidrio + sombra. La sombra de color va solo en el
+     botón principal de cada pantalla (--o-glow-*). --- */
+  --o-blur: 20px;
+  --o-blur-soft: 12px;
+  --o-shadow-dock: 0 20px 40px rgba(0, 0, 0, 0.45);
+  --o-shadow-sheet: 0 -12px 40px rgba(0, 0, 0, 0.5);
+  --o-glow-hab: 0 8px 24px color-mix(in srgb, var(--o-hab) 45%, transparent);
+  --o-glow-plan: 0 8px 24px color-mix(in srgb, var(--o-plan) 45%, transparent);
+  --o-glow-ent: 0 8px 24px color-mix(in srgb, var(--o-ent) 40%, transparent);
+  --o-glow-fin: 0 8px 24px color-mix(in srgb, var(--o-fin) 40%, transparent);
+  --o-focus: 0 0 0 3px color-mix(in srgb, var(--o-text) 70%, transparent);
+
+  /* --- Capas (mismos valores que usa hoy la app) --- */
+  --o-z-dock: 100; --o-z-sheet: 3000; --o-z-toast: 4000; --o-z-confirm: 5000;
+
+  /* --- Movimiento --- */
+  --o-dur-1: 120ms; /* fundidos, presionado */
+  --o-dur-2: 180ms; /* cambio de pestaña */
+  --o-dur-3: 240ms; /* abrir hoja, pasar de misión */
+  --o-dur-4: 320ms; /* cerrar un anillo */
+  --o-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --o-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --o-move: 12px;   /* desplazamiento de entrada de una pantalla o tarjeta */
+}
+
+/* Movimiento reducido: sin resortes ni desplazamientos; solo fundidos cortos. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --o-dur-1: 0ms; --o-dur-2: 120ms; --o-dur-3: 120ms; --o-dur-4: 120ms;
+    --o-ease-spring: var(--o-ease-out);
+    --o-move: 0px;
+  }
+}
+
+/* --- Modo sobrio (html[data-tema="gris"], decisión 7.5): fondo neutro,
+   sin luces ni sombras de color. Los acentos de módulo quedan solo en
+   anillos y estados (--o-<módulo> no cambia); lo que en Órbita a color se
+   tiñe del módulo usa --o-mod-soft / --o-mod-wash / --o-mod-glow (clases
+   de abajo), que aquí pasan a neutros. --- */
+html[data-tema="gris"] {
+  --o-bg: #0B0B0D;
+  --o-sheet: #161618;
+  --o-dock-bg: rgba(28, 28, 31, 0.80);
+  --o-scrim: rgba(0, 0, 0, 0.64);
+  --o-text: #F4F4F6;   /* 17.9:1 */
+  --o-text-2: #A8A8B0; /*  8.3:1 */
+  --o-text-3: #A0A0A8; /*  5.3:1 sobre --o-surface-3 */
+  --o-faint: #6A6A72;
+  --o-ink: #0B0B0D;
+  --o-grad-titulo: linear-gradient(180deg, #FFFFFF, #FFFFFF);
+  --o-ambient: none;
+  --o-glow-hab: none; --o-glow-plan: none; --o-glow-ent: none; --o-glow-fin: none;
+}
+
+/* --- Clases por módulo: fijan el acento del contenedor. Los componentes
+   usan siempre --o-mod* y nunca el color de un módulo por nombre, así una
+   misma tarjeta sirve en Hábitos y en Finanzas. --- */
+.o-mod-habitos  { --o-mod: var(--o-hab);   --o-mod-2: var(--o-hab-2);   --o-mod-t: var(--o-hab-t);   --o-mod-grad: var(--o-grad-hab);      --o-mod-glow: var(--o-glow-hab); }
+.o-mod-plan     { --o-mod: var(--o-plan);  --o-mod-2: var(--o-plan-2);  --o-mod-t: var(--o-plan-t);  --o-mod-grad: var(--o-grad-plan-btn); --o-mod-glow: var(--o-glow-plan); }
+.o-mod-entreno  { --o-mod: var(--o-ent);   --o-mod-2: var(--o-ent-2);   --o-mod-t: var(--o-ent-t);   --o-mod-grad: var(--o-grad-ent);      --o-mod-glow: var(--o-glow-ent); }
+.o-mod-finanzas { --o-mod: var(--o-fin);   --o-mod-2: var(--o-fin-2);   --o-mod-t: var(--o-fin-t);   --o-mod-grad: var(--o-grad-fin);      --o-mod-glow: var(--o-glow-fin); }
+.o-mod-notas    { --o-mod: var(--o-notas); --o-mod-2: var(--o-notas-2); --o-mod-t: var(--o-notas-t); --o-mod-grad: var(--o-grad-notas);    --o-mod-glow: none; }
+.o-mod-hoy      { --o-mod: var(--o-plan);  --o-mod-2: var(--o-hab);     --o-mod-t: var(--o-text);    --o-mod-grad: var(--o-grad-orbe);     --o-mod-glow: none; }
+:is(.o-mod-habitos, .o-mod-plan, .o-mod-entreno, .o-mod-finanzas, .o-mod-notas, .o-mod-hoy) {
+  --o-mod-soft: color-mix(in srgb, var(--o-mod) 16%, transparent); /* chips, íconos de acción rápida */
+  --o-mod-wash: linear-gradient(135deg, color-mix(in srgb, var(--o-mod) 30%, transparent), color-mix(in srgb, var(--o-mod-2) 18%, transparent)); /* tarjeta destacada (misión) */
+}
+html[data-tema="gris"] :is(.o-mod-habitos, .o-mod-plan, .o-mod-entreno, .o-mod-finanzas, .o-mod-notas, .o-mod-hoy) {
+  --o-mod-soft: var(--o-surface-2);
+  --o-mod-wash: var(--o-surface-1);
+  --o-mod-glow: none;
+}

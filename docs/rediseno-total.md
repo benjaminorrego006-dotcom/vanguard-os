@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-Estado: **Fase 1 aprobada** · siguiente: Fase 2
+Estado: **Fase 2 lista** (sistema de diseño) · siguiente: Fase 3 (esqueleto)
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
 
@@ -242,6 +242,23 @@ Ninguna funcionalidad se elimina. El panel ☰ desaparece como contenedor: su co
 | Final | Limpieza: vistas, CSS y componentes viejos (MK III, ámbitos `.mk3-*`, `#menu-overlay`); revisión de consistencia; `docs/CHANGELOG.md` | — |
 
 En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_URLS`, ESLint `no-undef` queda limpio, se prueba con Playwright (Supabase bloqueado, zona `America/Santiago`) y se revisan la consola, las 5 acciones, crear/editar/borrar, el botón atrás, el modo offline y la sincronización. Después: commit, `git push origin rediseno-orbita` y confirmación del push.
+
+### Registro de fases
+
+**Fase 2 — Sistema de diseño (23-11-2026)**
+- Tokens `--o-*` en `css/variables.css`: superficies, texto, módulos (plano, segunda parada y texto `-t`), estados, degradados, luces de fondo, tipografía (escala en rem), espaciado, tamaños de interfaz, radios, elevación, capas y movimiento (con su versión para `prefers-reduced-motion`).
+- Modo sobrio en `html[data-tema="gris"]` y clases por módulo `.o-mod-habitos`, `.o-mod-plan`, `.o-mod-entreno`, `.o-mod-finanzas`, `.o-mod-notas` y `.o-mod-hoy`.
+- Sora (400/600/700/800) y Geist Mono (400/500/600) en `assets/fonts/`, en `PRECACHE_URLS`. `CACHE_NAME` sube a `v342`.
+- `CLAUDE.md`: la sección «Interfaz (MK III)» pasa a ser «Interfaz (Órbita)».
+- Muestra de tokens fuera de la app: `docs/rediseno/tokens-orbita.html` (`?modo=sobrio` para el modo sobrio).
+- **Ajustes al contraste** respecto de la maqueta:
+  - El texto 3 pasa de `#6E6890` (3.8:1) a `#9A94BC` (6.8:1); `#6E6890` queda como `--o-faint`, solo decorativo.
+  - Textos de acento: Hábitos `#FF6B9E` y Plan `#A58FFF`.
+  - El texto sobre degradados va en tinta oscura (el blanco del «Hecho» de la maqueta daba 3.1:1).
+  - El botón de Plan parte en `#8F72FF`.
+  - Rojo de alerta `#FF3B3B`: ΔE 42.8 del rosa y 33.9 del coral; su texto, `#FF6060`, da ≥ 4.6:1.
+- **Por defecto Órbita a color (decisión 7.5):** la app sigue arrancando en Gris hasta la Fase 3. Cambiar el predeterminado ahora pintaría MK III a color, que no es lo que se aprobó. En la Fase 3 el predeterminado de `utils/tema.js` y del script del `<head>` pasa a «color». A quien ya eligió Gris a mano se le respeta.
+- **Verificación:** Chrome headless controlado por DevTools Protocol, con Supabase bloqueado, zona `America/Santiago`, perfil limpio y capturas en 390, 768 y 1440 px. Este equipo no tiene Node, así que no hubo Playwright ni ESLint. El único JS tocado es la lista de `sw.js`.
 
 ## 9. Riesgos y cómo se controlan
 

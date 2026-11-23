@@ -65,16 +65,44 @@ cambiar cualquiera de los dos.
   JS/CSS/HTML de la app sube `CACHE_NAME`**; sin eso el navegador sigue
   sirviendo el caché viejo.
 
-## Interfaz (MK III)
+## Interfaz (Órbita)
 
-- Colores y medidas solo con los tokens de `css/variables.css`.
-- Chaflanes con `clip-path`, **sin `border-radius` ni sombras** (también en
-  Chart.js: `borderRadius: 0`).
-- Monoespaciada solo para números y rótulos; los párrafos van en sans-serif.
-- Acentos: cian = Entreno, ámbar = Finanzas, violeta = Tareas. Rojo solo para
-  alertas reales (un saldo negativo, un cobro que no alcanza).
-- Modales: `.modal-overlay` + clase `open`; el overlay cubre la pantalla
-  completa, barra inferior y riel incluidos (decisión del 16 oct 2026).
+Sistema de diseño del rediseño (`docs/rediseno-total.md`). Las vistas que
+todavía no se migran siguen con MK III (tokens sin prefijo y ámbitos
+`.mk3-*`) hasta la limpieza final. **Código nuevo o migrado usa solo Órbita.**
+
+- **Tokens:** todo color, tamaño, espaciado, radio, sombra, capa y duración
+  sale de los tokens `--o-*` de `css/variables.css`. Cero valores sueltos.
+- **Módulos:** el contenedor lleva `.o-mod-habitos`, `.o-mod-plan`,
+  `.o-mod-entreno`, `.o-mod-finanzas`, `.o-mod-notas` u `.o-mod-hoy`, y los
+  componentes usan `--o-mod`, `--o-mod-t`, `--o-mod-grad`, `--o-mod-soft`,
+  `--o-mod-wash` y `--o-mod-glow`, nunca un color de módulo por nombre.
+  Hábitos = rosa → coral; Plan (Tareas, Semana, Notas) = violeta;
+  Entreno = turquesa → azul; Finanzas = ámbar → naranjo; Notas = neutro.
+- **Contraste AA:** el texto de acento usa la variante `-t`. Sobre un
+  degradado o relleno de módulo, el texto va en `--o-ink` (nunca blanco).
+  `--o-faint` es solo decorativo.
+- **Alertas:** el rojo (`--o-alert`, texto `--o-alert-t`) es solo para
+  alertas reales (un saldo negativo, un cobro que no alcanza). Toda alerta
+  lleva **ícono y texto**, nunca solo color.
+- **Formas y profundidad:** radios `--o-r-*` (píldora en el dock y los
+  botones principales). Vidrio con `backdrop-filter` solo en el dock y las
+  hojas. Sombra de color (`--o-glow-*`) solo en el botón principal de cada
+  pantalla. Las luces de fondo (`--o-ambient`) son gradientes sin `filter`.
+- **Tipografía:** Sora (`--o-font`) para títulos y texto; Geist Mono
+  (`--o-font-num`) solo para cifras, horas, montos y rótulos. Fuentes
+  locales en `assets/fonts/`, nunca desde un CDN.
+- **Movimiento:** duraciones `--o-dur-*` y curvas `--o-ease-*`. Con
+  `prefers-reduced-motion` los tokens ya pasan a fundidos cortos sin
+  desplazamiento; no animar con valores propios.
+- **Modo sobrio:** `html[data-tema="gris"]` (Configuración › Apariencia):
+  fondo neutro, sin luces ni sombras de color, acentos de módulo solo en
+  anillos y estados. Todo componente nuevo se revisa en los dos modos.
+- **Táctil:** objetivo mínimo de `--o-touch` (44 px).
+- Modales y hojas: `.modal-overlay` **con `id`** + clase `open` (sin `id`,
+  `history.js` no maneja el botón atrás); el overlay cubre la pantalla
+  completa, dock y riel incluidos (decisión del 16 oct 2026).
+- Chart.js sigue cargando diferido, solo cuando se necesita.
 - Render por `innerHTML`: reasignar los listeners después de cada render.
 - Textos en español de Chile con **tuteo** (nunca voseo: "Elige", no
   "Elegí"; "Déjalo", no "Dejalo"). Plurales correctos con 1.
