@@ -10,6 +10,7 @@
 // lleva crearListaDetalle(); quien lo usa vuelve a pintar en alCambiar().
 import { escapeHtml } from '../utils/escape.js';
 import { oIcono } from './orbita.js';
+import { esperarSalidaDeModal } from '../core/history.js';
 
 export const ANCHO_LISTA_DETALLE = '(min-width: 1024px)';
 export const esAncho = () => window.matchMedia(ANCHO_LISTA_DETALLE).matches;
@@ -40,9 +41,20 @@ export function crearListaDetalle({ clave, alCambiar }) {
   let mq = null;
   const tieneEntrada = () => !!(history.state && history.state[clave]);
   const empujar = () => history.pushState({ ...(history.state || {}), [clave]: true }, '');
+  // Soltar la entrada del detalle una sola vez: history.back() es asíncrono
+  // y, hasta que llega su popstate, history.state sigue siendo la entrada.
+  // Sin esto, dos cierres seguidos (un repintado que descarta y el botón
+  // que cierra) retrocedían dos veces y salían de la vista.
+  let soltando = false;
+  const soltarEntrada = () => {
+    if (soltando || !tieneEntrada()) return;
+    soltando = true;
+    history.back();
+  };
 
   // Atrás del sistema en celular: cierra el detalle.
   const alVolver = () => {
+    soltando = false;
     if (id !== null && !tieneEntrada()) { id = null; alCambiar(); }
   };
   // Cruce del corte (girar la tablet, cambiar el ancho de la ventana): con el
@@ -70,18 +82,30 @@ export function crearListaDetalle({ clave, alCambiar }) {
     },
     // En PC solo repinta; si quedó una entrada (abierto en celular), se suelta
     // para no dejar un «atrás» fantasma.
-    cerrar() {
+    // Si un diálogo recién cerrado (p. ej. la confirmación de Eliminar)
+    // todavía está soltando su propia entrada, se espera a que termine.
+    async cerrar() {
       id = null;
-      if (tieneEntrada()) history.back();
+      const modal = history.state && history.state.modalId;
+      if (modal && !document.getElementById(modal)?.classList.contains('open')) await esperarSalidaDeModal(modal);
+      soltarEntrada();
       return alCambiar();
     },
-    // El elemento abierto ya no existe (borrado en otro dispositivo, etc.).
+    // Cerrar sin repintar ni tocar el historial (cambio de pestaña, o el
+    // elemento abierto en PC ya no existe).
     olvidar() { id = null; },
+    // La sub-pantalla abierta ya no tiene elemento (se borró): además suelta
+    // su entrada de historial, para no dejar un «atrás» que no hace nada.
+    descartar() {
+      id = null;
+      soltarEntrada();
+    },
     // Al salir de la vista.
     soltar() {
       window.removeEventListener('popstate', alVolver);
       if (mq) { mq.removeEventListener('change', alCruzar); mq = null; }
-      if (id !== null && tieneEntrada()) history.back();
+      if (id !== null) soltarEntrada();
+      soltando = false;
       id = null;
     }
   };

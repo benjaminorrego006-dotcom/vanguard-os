@@ -8,13 +8,7 @@
    hoy.css. Aquí solo lo propio de Hábitos, con tokens --o-*.
    ===================================================================== */
 
-/* --- Cabecera del módulo (título + botón principal) y pestañas --- */
-.o-mod-cab { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-3); margin-bottom: var(--o-sp-4); }
-.o-mod-titulo {
-  margin: 0; font-size: var(--o-fs-2xl); font-weight: var(--o-fw-black);
-  letter-spacing: var(--o-ls-title); line-height: var(--o-lh-tight);
-}
-.o-mod-sub { margin: var(--o-sp-1) 0 0; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+/* --- Pestañas (la cabecera del módulo está en orbita.css) --- */
 .o-habitos > .o-tabs { margin-bottom: var(--o-sp-5); }
 .o-hab-panel { display: grid; gap: var(--o-sp-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
 .o-hab-col { display: grid; gap: var(--o-sp-4); min-width: 0; }

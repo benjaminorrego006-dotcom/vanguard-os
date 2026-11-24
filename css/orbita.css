@@ -410,6 +410,17 @@ html[data-tema="gris"] .o-mision { background-image: none; }
 @keyframes o-toast-entrar { from { opacity: 0; transform: translateY(var(--o-move)) scale(var(--o-press)); } }
 
 /* ---------------------------------------------------------------------
+   Cabecera de un módulo: título, línea de resumen y botón principal
+   (Hábitos, Plan…).
+   --------------------------------------------------------------------- */
+.o-mod-cab { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-3); margin-bottom: var(--o-sp-4); }
+.o-mod-titulo {
+  margin: 0; font-size: var(--o-fs-2xl); font-weight: var(--o-fw-black);
+  letter-spacing: var(--o-ls-title); line-height: var(--o-lh-tight);
+}
+.o-mod-sub { margin: var(--o-sp-1) 0 0; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+
+/* ---------------------------------------------------------------------
    Lista + detalle (js/components/lista-detalle.js). Bajo 1024 px se ve
    una de las dos columnas (el detalle es sub-pantalla); desde 1024 px,
    las dos juntas, con el detalle fijo al bajar.

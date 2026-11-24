@@ -1,5 +1,6 @@
 import { db } from '../core/db.js';
-import { Toast, ConfirmDialog, EmptyState, hayModalAbierto } from '../utils/states.js';
+import { Toast, ConfirmDialog, hayModalAbierto } from '../utils/states.js';
+import { oIcono, oVacio } from '../components/orbita.js';
 import { formatFechaLarga } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
@@ -40,17 +41,11 @@ function fechaCorta(isoStr) {
   catch (e) { return ''; }
 }
 
-const cabecera = (titulo, sub) => `
-  <div class="flex-between" style="margin-bottom: 20px;">
-    <div>
-      <h1 style="font-size: 30px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.5px;">${escapeHtml(titulo)}</h1>
-      <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(sub)}</div>
-    </div>
-    <div class="icon-chip" style="width: 40px; height: 40px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path><path d="M14 4v6h6"></path></svg>
-    </div>
-  </div>`;
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+const ICO_VOLVER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>';
+const ICO_NOTA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path><path d="M14 4v6h6"></path></svg>';
 
+// Plan › Notas (Órbita, Fase 7): acento neutro (.o-mod-notas, en #notas-host).
 async function renderCategorias() {
   const cats = await db.getCategoriasNota();
   const todas = await db.getNotas();
@@ -59,31 +54,31 @@ async function renderCategorias() {
 
   const fila = (c) => {
     const n = conteo[c.id] || 0;
+    const nombre = escapeHtml(c.nombre);
     return `
-      <div class="card list-row cat-abrir tappable" data-id="${c.id}"
-        style="padding: 14px 16px 14px 20px; position: relative; overflow: hidden; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; gap: 12px;">
-        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent-notas);"></div>
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">${escapeHtml(c.nombre)}</div>
-          <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;"><span class="num">${n}</span> ${n === 1 ? 'nota' : 'notas'}</div>
-        </div>
-        <button class="cat-delete tappable" data-id="${c.id}"
-          style="background: transparent; border: none; color: var(--text-disabled); cursor: pointer; flex-shrink: 0; padding: 4px;">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      <li class="o-fila o-nota-cat">
+        <button type="button" class="o-nota-abrir cat-abrir" data-id="${escapeHtml(c.id)}" aria-label="${nombre}, ${plural(n, 'nota', 'notas')}. Abrir">
+          <span class="o-fila-ico">${ICO_NOTA}</span>
+          <span class="o-fila-texto"><b>${nombre}</b><small><span class="o-num">${n}</span> ${n === 1 ? 'nota' : 'notas'}</small></span>
         </button>
-      </div>`;
+        <button type="button" class="o-btn o-btn--fantasma o-btn--icono cat-delete" data-id="${escapeHtml(c.id)}" aria-label="Eliminar la categoría ${nombre}">${oIcono('cerrar')}</button>
+      </li>`;
   };
 
   return `
-    <div style="padding: 20px 20px 0 20px; font-family: var(--font-body);">
-      ${cabecera('Anotaciones', `${cats.length} categoría${cats.length === 1 ? '' : 's'} · ${todas.length} nota${todas.length === 1 ? '' : 's'}`)}
-      ${cats.length ? cats.map(fila).join('') : EmptyState('Sin categorías', 'Crea la primera para empezar a anotar.')}
-      <div class="card" style="margin-top: 16px; padding: 16px;">
-        <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Nueva categoría</label>
-        <form id="cat-nueva-form" onsubmit="return false;">
-          <input id="cat-nueva" type="text" placeholder="Viajes, Compras, Escritos…" enterkeyhint="go"
-            style="width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px 14px; font-size: 15px; font-family: inherit; box-sizing: border-box; outline: none;">
+    <div class="o-notas">
+      <div class="o-notas-cab">
+        <h2 class="o-notas-titulo">Notas</h2>
+        <p class="o-mod-sub">${plural(cats.length, 'categoría', 'categorías')} · ${plural(todas.length, 'nota', 'notas')}</p>
+      </div>
+      <div class="o-notas-cuerpo">
+        <form id="cat-nueva-form" class="o-card o-campo" onsubmit="return false;">
+          <label for="cat-nueva">Nueva categoría</label>
+          <input id="cat-nueva" class="o-input" type="text" placeholder="Viajes, compras, escritos…" enterkeyhint="go" autocomplete="off" maxlength="60">
         </form>
+        ${cats.length
+          ? `<ul class="o-lista" aria-label="Categorías">${cats.map(fila).join('')}</ul>`
+          : `<div class="o-card">${oVacio({ icono: 'vacio', titulo: 'Sin categorías', texto: 'Crea la primera para empezar a anotar.' })}</div>`}
       </div>
     </div>`;
 }
@@ -94,35 +89,46 @@ async function renderNotas() {
   if (!cat) { categoriaAbierta = null; return renderCategorias(); }
 
   const notas = await db.getNotas(cat.id);
-
-  const fila = (n) => `
-    <div class="card" style="padding: 14px 16px 14px 20px; position: relative; overflow: hidden; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start;">
-      <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent-notas);"></div>
-      <div style="flex: 1; min-width: 0;">
-        <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">${escapeHtml(n.titulo || 'Sin título')}</div>
-        <div style="font-size: 11px; color: var(--text-disabled); margin-top: 2px;">${fechaCorta(n.createdAt)}</div>
-        ${n.texto ? `<p style="margin: 8px 0 0 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary); white-space: pre-wrap;">${escapeHtml(n.texto)}</p>` : ''}
-      </div>
-      <button class="nota-delete tappable" data-id="${n.id}"
-        style="background: transparent; border: none; color: var(--text-disabled); cursor: pointer; flex-shrink: 0; padding: 2px;">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-    </div>`;
+  const fila = (n) => {
+    const titulo = escapeHtml(n.titulo || 'Sin título');
+    return `
+      <li class="o-card o-nota">
+        <div class="o-nota-cab">
+          <div class="o-nota-tit">
+            <h3>${titulo}</h3>
+            <span class="o-num">${escapeHtml(fechaCorta(n.createdAt))}</span>
+          </div>
+          <button type="button" class="o-btn o-btn--fantasma o-btn--icono nota-delete" data-id="${escapeHtml(n.id)}" aria-label="Eliminar la nota ${titulo}">${oIcono('cerrar')}</button>
+        </div>
+        ${n.texto ? `<p class="o-nota-texto">${escapeHtml(n.texto)}</p>` : ''}
+      </li>`;
+  };
 
   return `
-    <div style="padding: 20px 20px 0 20px; font-family: var(--font-body);">
-      <button id="cat-volver" class="btn btn-outlined btn-pill tappable" style="margin-bottom: 16px;">← Categorías</button>
-      ${cabecera(cat.nombre, `${notas.length} ${notas.length === 1 ? 'nota' : 'notas'}`)}
-
-      <div class="card" style="padding: 16px; margin-bottom: 20px;">
-        <input id="nota-titulo" type="text" placeholder="Título"
-          style="width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px 14px; font-size: 15px; font-family: inherit; box-sizing: border-box; outline: none;">
-        <textarea id="nota-texto" rows="4" placeholder="Escribe aquí…"
-          style="width: 100%; margin-top: 10px; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px 14px; font-size: 15px; font-family: inherit; box-sizing: border-box; outline: none; resize: vertical;"></textarea>
-        <button id="nota-guardar" class="btn-primary" style="background: var(--accent-notas);">Guardar nota</button>
+    <div class="o-notas">
+      <div class="o-notas-cab o-notas-cab--cat">
+        <button type="button" id="cat-volver" class="o-btn o-btn--secundario o-btn--icono" aria-label="Volver a las categorías">${ICO_VOLVER}</button>
+        <div>
+          <h2 class="o-notas-titulo">${escapeHtml(cat.nombre)}</h2>
+          <p class="o-mod-sub">${plural(notas.length, 'nota', 'notas')}</p>
+        </div>
       </div>
-
-      ${notas.length ? notas.map(fila).join('') : EmptyState('Sin notas todavía', 'Escribe la primera arriba.')}
+      <div class="o-notas-cuerpo">
+        <form id="nota-form" class="o-card o-nota-form" onsubmit="return false;">
+          <div class="o-campo">
+            <label for="nota-titulo">Título</label>
+            <input id="nota-titulo" class="o-input" type="text" placeholder="Opcional" autocomplete="off" maxlength="120">
+          </div>
+          <div class="o-campo">
+            <label for="nota-texto">Nota</label>
+            <textarea id="nota-texto" class="o-input" rows="4" placeholder="Escribe aquí…"></textarea>
+          </div>
+          <button type="submit" id="nota-guardar" class="o-btn o-btn--secundario o-btn--bloque">Guardar nota</button>
+        </form>
+        ${notas.length
+          ? `<ul class="o-lista o-notas-lista" aria-label="Notas de ${escapeHtml(cat.nombre)}">${notas.map(fila).join('')}</ul>`
+          : `<div class="o-card">${oVacio({ icono: 'vacio', titulo: 'Sin notas todavía', texto: 'Escribe la primera aquí arriba.' })}</div>`}
+      </div>
     </div>`;
 }
 
@@ -144,11 +150,8 @@ export function mountListeners() {
 
   // --- pantalla de categorías ---
   document.querySelectorAll('.cat-abrir').forEach(el => {
-    el.addEventListener('click', (e) => {
-      // El botón de borrar vive dentro de la fila clickeable: si el click
-      // salió de ahí, ya lo maneja su propio listener.
-      if (e.target.closest('.cat-delete')) return;
-      categoriaAbierta = e.currentTarget.getAttribute('data-id');
+    el.addEventListener('click', () => {
+      categoriaAbierta = el.getAttribute('data-id');
       refresh();
     });
   });
@@ -179,10 +182,11 @@ export function mountListeners() {
     refresh();
   });
 
-  document.getElementById('nota-guardar')?.addEventListener('click', async () => {
+  document.getElementById('nota-guardar')?.addEventListener('click', async (e) => {
+    e.preventDefault();
     const titulo = document.getElementById('nota-titulo').value;
     const texto = document.getElementById('nota-texto').value;
-    if (!titulo.trim() && !texto.trim()) return;
+    if (!titulo.trim() && !texto.trim()) { document.getElementById('nota-texto').focus(); Toast('Escribe algo antes de guardar', 'warning'); return; }
     await db.crearNota(categoriaAbierta, titulo, texto);
     Toast('Nota guardada', 'success');
     refresh();

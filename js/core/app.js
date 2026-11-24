@@ -629,9 +629,8 @@ class Router {
     // propio contenedor con su propio scope, sin pisarse entre ellos.
     this.root.classList.toggle('mk3-entreno', viewId === 'entrenamiento');
     this.root.classList.toggle('mk3-finanzas', viewId === 'finanzas');
-    // Hábitos ya es Órbita (Fase 6): su vista lleva .o-mod-habitos y no
-    // usa ámbito MK III.
-    this.root.classList.toggle('mk3-tareas', viewId === 'tareas');
+    // Hábitos y Plan ya son Órbita (Fases 6 y 7): sus vistas llevan
+    // .o-mod-habitos / .o-mod-plan y no usan ámbito MK III.
     // Configuración es una pantalla utilitaria sin identidad de módulo
     // propia: usa la paleta neutra de MK III. Hoy ya es Órbita (Fase 5) y
     // no lleva ámbito MK III.

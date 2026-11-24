@@ -613,132 +613,6 @@ html.entreno-sesion-activa #view-root > div { padding-bottom: 0 !important; }
 .sesion-descanso-ayuda[hidden] { display: none; }
 .sesion-hud-meta.sesion-hud-meta--sin-lugar, .sesion-hud-var.sesion-hud-meta--sin-lugar { display: none; }
 
-/* --- Semana · Tablero de día (docs/REDISENO-SEMANA.md) ------------------
-   Encabezado con rango y hechas/total, flechas ‹ › y franja de 7 días con
-   acento violeta (Tareas). */
-.plan-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.plan-cab-titulo { min-width: 0; }
-.plan-cab-titulo h1 { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-primary); }
-.plan-rango { margin-top: 2px; padding: 0; background: none; border: none; font: inherit; font-size: 13px; color: var(--text-secondary); text-align: left; }
-.plan-rango .num { color: var(--text-primary); font-weight: 700; }
-.plan-rango--volver { min-height: 44px; cursor: pointer; }
-.plan-rango-volver { color: var(--vi-t); font-weight: 700; }
-.plan-cab-nav { display: flex; gap: 6px; flex-shrink: 0; }
-.plan-flecha { width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--line); color: var(--text-primary); font: inherit; font-size: 22px; line-height: 1; cursor: pointer; }
-.plan-flecha:focus-visible, .plan-rango--volver:focus-visible, .plan-dia:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
-.plan-franja { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-bottom: 16px; }
-.plan-dia {
-  position: relative; min-height: 64px; padding: 8px 2px 8px; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: var(--surface-1); border: 1px solid var(--line); color: var(--text-secondary); font: inherit; cursor: pointer;
-}
-.plan-dia-letra { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; }
-.plan-dia--hoy .plan-dia-letra { color: var(--vi-t); }
-.plan-dia-num { font-size: 16px; font-weight: 700; color: var(--text-primary); }
-.plan-dia-barra { display: block; width: 70%; height: 3px; margin-top: auto; background: var(--vid); }
-.plan-dia-barra > span { display: block; height: 100%; background: var(--vi); }
-.plan-dia-alerta { position: absolute; top: 5px; right: 5px; width: 5px; height: 5px; background: var(--rd); }
-.plan-dia--sel { background: var(--vis); border-color: var(--vi); }
-/* Detalle del día elegido: título + hechas/total y sus ítems (planificador
-   y tareas de Lista con fecha). Check de 16 px, violeta al marcar, dentro de
-   un botón de 44 px. */
-.plan-detalle { margin-bottom: 16px; }
-.plan-detalle-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-.plan-detalle-cab h2 { margin: 0; font-size: 20px; font-weight: 800; color: var(--text-primary); }
-.plan-detalle-cont { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
-.plan-items { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-.plan-item { display: flex; align-items: center; gap: 4px; min-height: 48px; border-bottom: 1px solid var(--line); }
-.plan-check { width: 44px; height: 44px; flex-shrink: 0; margin-left: -12px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; }
-.plan-check-caja { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--surface-border); color: var(--bg); }
-.plan-item--hecha .plan-check-caja { background: var(--vi); border-color: var(--vi); }
-.plan-item-texto { flex: 1; min-width: 0; padding: 10px 0; font-size: 14px; line-height: 1.4; color: var(--text-primary); overflow-wrap: anywhere; }
-button.plan-item-texto { background: none; border: none; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
-.plan-item--hecha .plan-item-texto { color: var(--text-disabled); text-decoration: line-through; }
-.plan-item-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.plan-venc { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; color: var(--rd-t); }
-.plan-delete { width: 44px; height: 44px; flex-shrink: 0; margin-right: -12px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--text-disabled); cursor: pointer; }
-.plan-check:focus-visible, .plan-item-abrir:focus-visible, .plan-delete:focus-visible { outline: 2px solid var(--t1); outline-offset: -2px; }
-.plan-vacio { margin: 8px 0 4px; padding: 14px 0; font-size: 14px; color: var(--text-secondary); border-top: 1px solid var(--line); }
-/* Form único al final: input + chip con el día elegido + botón. */
-.plan-nueva-form { display: flex; align-items: stretch; gap: 6px; margin-top: 6px; }
-.plan-nueva { flex: 1; min-width: 0; height: 44px; padding: 0 12px; box-sizing: border-box; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); font: inherit; font-size: 14px; outline: none; }
-.plan-nueva:focus { border-color: var(--vi); }
-.plan-nueva-chip { display: flex; align-items: center; padding: 0 10px; background: var(--vis); border: 1px solid var(--vib); color: var(--vi-t); font-size: 12px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
-.plan-nueva-btn { width: 44px; height: 44px; flex-shrink: 0; padding: 0; background: var(--vi); border: none; color: var(--bg); font: inherit; font-size: 22px; font-weight: 700; line-height: 1; cursor: pointer; }
-.plan-nueva-btn:focus-visible, .plan-tira-texto:focus-visible, .plan-tira-pasar:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
-/* Tira "N pendientes de días pasados" (semana actual, si hay). */
-.plan-tira { margin: -4px 0 16px; border: 1px solid var(--rdb); }
-.plan-tira-fila { display: flex; align-items: center; gap: 8px; }
-.plan-tira-texto { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 6px; background: transparent; border: none; color: var(--rd-t); font: inherit; font-size: 13px; font-weight: 700; text-align: left; cursor: pointer; }
-.plan-tira-texto .num { color: var(--rd-t); }
-.plan-tira-pasar { flex-shrink: 0; min-height: 36px; margin-right: 4px; padding: 0 12px; background: transparent; border: 1px solid var(--line); color: var(--text-primary); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-.plan-tira-lista { list-style: none; margin: 0; padding: 0 12px 6px; }
-.plan-tira-lista li { display: flex; flex-direction: column; gap: 1px; padding: 7px 0; border-top: 1px solid var(--line); }
-.plan-tira-item { font-size: 13px; color: var(--text-primary); overflow-wrap: anywhere; }
-.plan-tira-meta { font-size: 11px; color: var(--text-secondary); }
-/* Mover entre días: menú ⋯ con "Mover a" y los 7 días (alternativa
-   accesible) y el modo "mover" al mantener presionado un ítem (la franja se
-   resalta y un aviso explica qué hacer). */
-.plan-item { flex-wrap: wrap; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-.plan-menu-btn { width: 44px; height: 44px; flex-shrink: 0; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; }
-.plan-menu-btn[aria-expanded="true"] { color: var(--vi-t); }
-.plan-item[data-origen="tarea"] .plan-menu-btn { margin-right: -12px; }
-.plan-mover-menu { flex-basis: 100%; display: flex; align-items: center; gap: 8px; padding: 0 0 10px 32px; }
-.plan-mover-menu[hidden] { display: none; }
-.plan-mover-etq { font-size: 11px; font-weight: 700; color: var(--text-secondary); white-space: nowrap; }
-.plan-mover-dias { display: flex; flex-wrap: wrap; gap: 4px; }
-.plan-mover-dia { min-width: 44px; min-height: 36px; padding: 0 6px; background: var(--surface-1); border: 1px solid var(--line); color: var(--text-primary); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
-.plan-mover-dia:disabled { opacity: 0.35; cursor: default; }
-.plan-menu-btn:focus-visible, .plan-mover-dia:focus-visible { outline: 2px solid var(--t1); outline-offset: -2px; }
-.plan-item--moviendo { background: var(--vis); outline: 1px solid var(--vi); outline-offset: -1px; }
-.plan-franja--mover .plan-dia { border-color: var(--vi); border-style: dashed; }
-.plan-mover-aviso { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -8px 0 14px; padding: 6px 6px 6px 12px; background: var(--vis); border: 1px solid var(--vib); font-size: 13px; color: var(--text-primary); }
-.plan-mover-aviso button { min-height: 36px; padding: 0 12px; background: transparent; border: 1px solid var(--line); color: var(--text-primary); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-
-/* --- Lista y Hábitos (Semana F6) ----------------------------------------
-   Lista: el buscador es un ícono del encabezado que despliega el input.
-   Hábitos: "Mejor racha perfecta" como línea bajo el anillo y la sección
-   "Análisis" plegada al final. */
-.lista-buscar-btn { width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary); cursor: pointer; }
-.lista-buscar-btn[aria-expanded="true"] { color: var(--vi-t); border-color: var(--vi); }
-.lista-buscar-btn:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
-.lista-buscar { position: relative; margin: -8px 20px 20px 0; }
-.lista-buscar[hidden] { display: none; }
-.lista-buscar-ico { position: absolute; left: 14px; top: 13px; color: var(--text-secondary); pointer-events: none; }
-.lista-buscar input { width: 100%; box-sizing: border-box; padding: 12px 16px 12px 42px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); font: inherit; font-size: 16px; outline: none; }
-.lista-buscar input:focus { border-color: var(--vi); }
-/* "+" de Lista y Hábitos en el encabezado (reemplaza al FAB sticky, que
-   flotaba sobre las tarjetas). */
-.cab-acciones { display: flex; gap: 8px; flex-shrink: 0; }
-.cab-accion { width: 44px; height: 44px; flex-shrink: 0; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--vi); border: none; color: var(--bg); cursor: pointer; }
-.cab-accion:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
-/* Semana ≥ 900 px: 7 columnas alineadas con la franja, cada una con los
-   ítems de su día y scroll propio; la del día elegido va resaltada. Las
-   filas se apilan (texto arriba, acciones abajo) porque la columna es
-   angosta. */
-.plan-columnas { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: -8px 0 16px; }
-.plan-col { min-width: 0; max-height: calc(100vh - 380px); min-height: 160px; overflow-y: auto; scrollbar-width: thin; padding: 4px 3px; background: var(--surface-1); border: 1px solid var(--line); cursor: pointer; }
-.plan-col--sel { border-color: var(--vi); background: var(--vis); }
-.plan-col .plan-items { border-top: none; }
-/* Fila en columnas: dos líneas fijas (check + texto de hasta 2 líneas;
-   prioridad y acciones alineadas con el texto, acciones a la derecha), igual
-   en todos los anchos de columna. Sangría de 20 px (check de 26 px): con ✕ y
-   ⋯ de 32 px entra también en la columna más angosta. Misma altura mínima y
-   padding para Lista y planificador. */
-.plan-col .plan-item--col { --plan-col-sangria: 20px; display: block; min-height: 64px; padding: 4px 0; cursor: default; }
-.plan-fila-l1 { display: flex; align-items: flex-start; gap: 0; min-width: 0; }
-.plan-col .plan-check { width: 26px; height: 32px; margin-left: -6px; }
-.plan-col .plan-item-texto { display: block; flex: 1; min-width: 0; padding: 7px 0 0; font-size: 13px; line-height: 1.35; text-align: left; }
-.plan-col .plan-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.plan-fila-l2 { display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 32px; padding-left: var(--plan-col-sangria); white-space: nowrap; overflow: hidden; }
-/* Tarea de Lista pendiente en un día pasado: borde del check en --rd. */
-.plan-col .plan-item--vencida .plan-check-caja { border-color: var(--rd); }
-.plan-fila-acciones { display: flex; align-items: center; gap: 0; margin-left: auto; flex-shrink: 0; }
-.plan-col .plan-menu-btn, .plan-col .plan-delete { width: 32px; height: 32px; margin: 0; }
-/* Anula el margen negativo de la fila del detalle (.plan-item[data-origen] …). */
-.plan-col .plan-item--col .plan-menu-btn, .plan-col .plan-item--col .plan-delete { margin: 0; }
-.plan-col .plan-mover-menu { flex-direction: column; align-items: flex-start; padding: 2px 0 6px var(--plan-col-sangria); }
-.plan-col .plan-vacio { border-top: none; margin: 0; padding: 10px 2px; font-size: 12px; }
-
 /* Fase 7 · calentamiento: bajo cada fila de calentamiento en barra, los
    discos por lado en una línea chica (sin popover). */
 .serie-discos { margin: -2px 0 6px 38px; font-size: 11px; color: var(--text-secondary); }
@@ -771,38 +645,12 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .lab-puntos-barra > span { display: block; height: 100%; background: var(--vi); }
 .lab-puntos-val { color: var(--text-primary); font-weight: 700; white-space: nowrap; }
 
-/* Foco (docs/PLAN-DIFICULTAD-FOCO.md, F3): pantalla completa. Violeta de Tareas; el anillo va en --vi y en la
-   pausa baja a --t3. Se monta en <body>, fuera de los .mk3-*. */
-#foco-modal { z-index: 6000; background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; align-items: stretch; padding: 0; }
-#foco-modal.foco-overlay--sobre-modal { left: 0; bottom: 0; }
-.foco-pantalla { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: var(--space-4) var(--space-3); overflow-y: auto; box-sizing: border-box; text-align: center; }
-.foco-etq { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: var(--vi-t); }
-.foco-overlay--pausa .foco-etq { color: var(--t3); }
-.foco-titulo { margin: 0; max-width: 520px; font-size: 20px; font-weight: 800; line-height: 1.25; color: var(--text-primary); overflow-wrap: anywhere; }
-.foco-anillo { position: relative; width: min(260px, 70vw); aspect-ratio: 1; margin: 6px 0; }
-.foco-anillo svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.foco-anillo-fondo { fill: none; stroke: var(--vid); stroke-width: 6; }
-.foco-anillo-arco { fill: none; stroke: var(--vi); stroke-width: 6; stroke-dashoffset: 0; transition: stroke-dashoffset 0.9s linear; }
-.foco-overlay--pausa .foco-anillo-arco { stroke: var(--t3); }
-.foco-cuenta { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(44px, 15vw, 64px); font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-.foco-estado { min-height: 20px; font-size: 14px; color: var(--text-secondary); }
-.foco-acciones { display: flex; gap: 10px; width: 100%; max-width: 360px; }
-.foco-btn { flex: 1; min-height: 48px; padding: 0 12px; background: transparent; border: 1px solid var(--vib); color: var(--text-primary); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
-.foco-btn--primario { background: var(--vi); border-color: var(--vi); color: var(--bg); }
-.foco-btn:focus-visible { outline: none; filter: drop-shadow(0 0 1.5px var(--vi)) drop-shadow(0 0 4px var(--vi)); }
-
 /* Línea de Hoy mientras hay un foco en curso: abre la pantalla. */
 .hoy-foco { width: 100%; display: flex; align-items: center; gap: 8px; min-height: 44px; margin: 0 0 14px; padding: 8px 12px; background: var(--vis); border: 1px solid var(--vib); color: var(--text-primary); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
 .hoy-foco-etq { flex-shrink: 0; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--vi-t); }
 .hoy-foco-texto { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .hoy-foco-tiempo { flex-shrink: 0; font-weight: 700; color: var(--vi-t); }
 .hoy-foco:focus-visible { outline: none; filter: drop-shadow(0 0 1.5px var(--vi)) drop-shadow(0 0 4px var(--vi)); }
-
-/* Menú ⋯ de Semana: "Foco 25 min" arriba de "Mover a" (tareas de Lista). */
-.plan-mover-menu { flex-wrap: wrap; }
-.plan-menu-foco-fila { flex-basis: 100%; }
-.plan-menu-foco { min-height: 36px; padding: 0 12px; background: transparent; border: 1px solid var(--vi); color: var(--vi-t); font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; cursor: pointer; }
-.plan-menu-foco:focus-visible { outline: 2px solid var(--t1); outline-offset: -2px; }
 
 /* Laboratorio: las tarjetas (.card, incluidas las metas de goal-card.js)
    con el radio de tarjeta de Órbita. Algunas traen un radio inline: el

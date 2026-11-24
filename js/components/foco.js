@@ -191,17 +191,17 @@ export function abrirPantallaFoco({ alVolver } = {}) {
   if (!o) {
     o = document.createElement('div');
     o.id = 'foco-modal';
-    o.className = 'modal-overlay foco-overlay';
+    o.className = 'modal-overlay foco-overlay o-ui o-mod-plan';
     o.setAttribute('role', 'dialog');
     o.setAttribute('aria-modal', 'true');
     o.setAttribute('aria-labelledby', 'foco-titulo');
     o.innerHTML = `
       <div class="foco-pantalla">
-        <div class="foco-etq num" id="foco-fase">FOCO · ${MIN_FOCO} MIN</div>
+        <div class="foco-etq o-num" id="foco-fase">FOCO · ${MIN_FOCO} MIN</div>
         <h2 class="foco-titulo" id="foco-titulo"></h2>
         <div class="foco-anillo">
           <svg viewBox="0 0 200 200" aria-hidden="true"><circle class="foco-anillo-fondo" cx="100" cy="100" r="88"></circle><circle class="foco-anillo-arco" id="foco-arco" cx="100" cy="100" r="88" style="stroke-dasharray: ${ARCO.toFixed(2)};"></circle></svg>
-          <div class="foco-cuenta num" id="foco-cuenta" role="timer" aria-live="off"></div>
+          <div class="foco-cuenta o-num" id="foco-cuenta" role="timer" aria-live="off"></div>
         </div>
         <div class="foco-estado" id="foco-estado" aria-live="polite"></div>
         <div class="foco-acciones" id="foco-acciones"></div>
@@ -247,7 +247,7 @@ function pintar() {
   const acciones = o.querySelector('#foco-acciones');
   if (acciones.dataset.clave === clave) return;
   acciones.dataset.clave = clave;
-  const btn = (id, texto, primario = false) => `<button type="button" id="${id}" class="foco-btn tappable${primario ? ' foco-btn--primario chaflan' : ''}">${texto}</button>`;
+  const btn = (id, texto, primario = false) => `<button type="button" id="${id}" class="o-btn ${primario ? 'o-btn--primario foco-btn--primario' : 'o-btn--secundario'} foco-btn">${texto}</button>`;
   acciones.innerHTML = {
     confirmar: btn('foco-cancelar', 'Terminar') + btn('foco-seguir-confirmar', 'Seguir', true),
     pausa: btn('foco-saltar-pausa', 'Saltar pausa', true) + btn('foco-otro', 'Otro foco'),

@@ -837,15 +837,6 @@ button.semana-bloque { cursor: pointer; }
   font-family: var(--font-display) !important;
 }
 
-/* Flecha de avance rápido (Tareas) — feedback sutil de opacidad, sin
-   sombras (la regla global ya fuerza box-shadow:none en todo mk3-tareas). */
-.btn-advance-task {
-  opacity: 0.8;
-  transition: opacity 0.15s ease, transform 0.1s ease;
-}
-.btn-advance-task:hover { opacity: 1; }
-.btn-advance-task:active { opacity: 0.5; transform: scale(0.88); }
-
 /* ============================================================
    Finanzas — rediseño visual (referencia: vanguard-finanzas-module/).
    Patrones genéricos de layout (eyebrow tags, stats grid, listas de

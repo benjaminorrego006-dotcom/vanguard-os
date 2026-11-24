@@ -1,140 +1,65 @@
+// js/views/tareas.js
+// Plan (Órbita, Fase 7): pestañas Tareas · Semana · Notas. La sub-vista
+// activa sale del hash (#tareas, #tareas/semana, #tareas/notas), así que
+// recargar o compartir el enlace cae en la misma. Semana monta el
+// planificador (views/planificador.js) en #plan-host y Notas monta
+// Anotaciones (views/anotaciones.js) en #notas-host.
+//
+// Tareas usa el layout lista + detalle (components/lista-detalle.js): en
+// celular el detalle de una tarea es sub-pantalla (el atrás vuelve a la
+// lista); desde 1024 px va a la derecha y abrirlo o cerrarlo no toca el
+// historial. La hoja de tarea (components/task-form.js) crea y edita.
 import { db } from '../core/db.js';
-import { renderTaskForm, setupTaskForm, openTaskForm } from '../components/task-form.js';
-import { Toast, ConfirmDialog, EmptyState, hayModalAbierto } from '../utils/states.js';
+import { renderTaskForm, setupTaskForm, openTaskForm, ESTADOS, PRIORIDADES, avisoVencimiento, renderBitacora, resumenFocos, textoBotonFoco } from '../components/task-form.js';
+import { iniciarFoco } from '../components/foco.js';
+import { Toast, ConfirmDialog, hayModalAbierto } from '../utils/states.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
 import { escapeHtml } from '../utils/escape.js';
-import { formatFechaCorta, formatMes } from '../utils/fecha.js';
+import { formatMes } from '../utils/fecha.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
+import { etiquetaDificultad } from '../utils/dificultad.js';
+import { oIcono, oVacio } from '../components/orbita.js';
+import { oListaDetalle, oListaDetalleCab, crearListaDetalle } from '../components/lista-detalle.js';
 import * as Planificador from './planificador.js';
 import * as Anotaciones from './anotaciones.js';
-import { renderPriorityBars } from '../utils/prioridad.js';
-import { marcaDificultad } from '../utils/dificultad.js';
 import { guardiaVista } from '../core/vista-activa.js';
 
 // Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
 // un repintado que termina después de cambiar de vista no escribe encima.
 let vistaVigente = () => true;
 
-// Buscador del encabezado: desplegado o no. Vive en el módulo para que un
-// refresh (marcar, crear) no lo cierre a la mitad de una búsqueda.
-let busquedaAbierta = false;
+const ICO_MAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+const ICO_VOLVER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>';
+const ICO_BUSCAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.2" y2="16.2"></line></svg>';
+const ICO_EMPEZAR = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"></path></svg>';
 
-// 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
-// cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
-// cambio hecho en otro dispositivo queda guardado en IndexedDB pero esta
-// vista no se repinta sola hasta que se sale y se vuelve a entrar. Se
-// engancha una sola vez (no en cada mountListeners(), que acá se vuelve a
-// llamar en cada refresh() local — enganchar sin este guard acumularía un
-// listener nuevo por cada tarea creada/movida, no solo por cada sync).
-let syncEnganchado = false;
-async function onSyncActualizado() {
-  if (subActual !== 'lista') return;
-  // No pisar el formulario de detalle/edición si está abierto, ni el
-  // borrador de la captura rápida si el usuario está a mitad de escribir.
-  if (hayModalAbierto()) return;
-  const quickInput = document.getElementById('task-quick-add');
-  if (quickInput && (document.activeElement === quickInput || quickInput.value.trim())) return;
-  const root = document.getElementById('view-root');
-  const htmlVista = await render();
-  if (!vistaVigente()) return;
-  root.innerHTML = htmlVista;
-  mountListeners();
-}
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 
-// Llamado por el router (app.js) antes de desmontar esta vista.
-export function cleanup() {
-  window.removeEventListener('budget-updated', onSyncActualizado);
-  syncEnganchado = false;
-  Planificador.cleanup();
-  Anotaciones.cleanup();
-}
-
-// Sub-pestañas de Plan: "Tareas · Semana · Notas". La sub-vista activa sale
-// del hash (#tareas / #tareas/semana / #tareas/notas), así que recargar o
-// compartir el link cae en la misma. "Semana" monta el Planificador tal cual
-// (views/planificador.js) dentro de #plan-host y "Notas" monta Anotaciones
-// (views/anotaciones.js) dentro de #notas-host.
+// --- Sub-vistas de Plan -----------------------------------------------------
 let subActual = 'lista';
 const SUBRUTAS = { lista: '#tareas', semana: '#tareas/semana', notas: '#tareas/notas' };
+const PESTANAS = [{ id: 'lista', label: 'Tareas' }, { id: 'semana', label: 'Semana' }, { id: 'notas', label: 'Notas' }];
 
 function subDeHash() {
   const sub = (location.hash || '').replace(/^#/, '').split('/')[1];
   return sub === 'semana' || sub === 'notas' ? sub : 'lista';
 }
 
-function renderSubTabs() {
-  const tab = (id, label) => {
-    const activa = subActual === id;
-    return `<button class="tareas-subtab tappable ${activa ? 'active' : ''}" data-sub="${id}" aria-pressed="${activa}" style="flex: 1; padding: 10px 14px; background: ${activa ? 'var(--surface-1)' : 'transparent'}; color: ${activa ? 'var(--text-primary)' : 'var(--text-secondary)'};">${label}</button>`;
-  };
-  return `
-    <div class="tareas-subtabs" style="padding: 16px 20px 0 20px;">
-      <div class="segmented-control">${tab('lista', 'Tareas')}${tab('semana', 'Semana')}${tab('notas', 'Notas')}</div>
-    </div>`;
-}
-
-// Repinta la vista completa (tabs + sub-vista). cleanup() primero: suelta
-// el listener de sync y el gráfico de la sub-vista saliente, así cambiar de
-// pestaña no acumula listeners.
-async function repintar() {
-  cleanup();
-  const root = document.getElementById('view-root');
-  const htmlVista = await render();
-  if (!vistaVigente()) return;
-  root.innerHTML = htmlVista;
-  mountListeners();
-}
-
-async function cambiarSub(sub) {
-  if (sub === subActual) return;
-  history.replaceState(history.state, '', SUBRUTAS[sub] || SUBRUTAS.lista);
-  await repintar();
-}
-
-// Lo llama el router cuando cambia solo la subruta del hash estando ya en
-// Tareas (ej. tocar la pestaña "Tareas" de la barra estando en Semana, o
-// la redirección de #planificador).
-export function onSubrouteChange() {
-  if (subDeHash() !== subActual) repintar();
-}
-
-// Estado del tablero (qué columna está activa) — vive en el módulo, no en
-// el DOM, igual que `activeFinTab` en finanzas.js: sobrevive a refresh()
-// pero se reinicia si se navega a otra vista y se vuelve.
+// Estado del tablero: la columna activa y la búsqueda viven en el módulo
+// para sobrevivir a los repintados (marcar, crear).
 let activeTaskState = 'todo';
+let busqueda = '';
 
-const STATE_LABELS = {
-  'todo': 'Por hacer',
-  'in-progress': 'En curso',
-  'done': 'Hecho'
-};
+// Detalle de una tarea (layout lista + detalle).
+const ld = crearListaDetalle({ clave: 'tareaDetalle', alCambiar: () => repintar() });
 
 const EMPTY_MSG = {
-  'todo': { title: 'Sin tareas pendientes', subtitle: 'Agrega la primera con el botón + de arriba.' },
-  'in-progress': { title: 'Sin tareas en curso', subtitle: 'Avanza una desde "Por hacer" para verla acá.' },
-  'done': { title: 'Sin tareas completadas', subtitle: 'Termina una tarea para verla acá.' }
+  'todo': { titulo: 'Sin tareas pendientes', texto: 'Agrega una con el botón + o con la línea de arriba.' },
+  'in-progress': { titulo: 'Nada en curso', texto: 'Empieza una desde «Por hacer» para verla aquí.' },
+  'done': { titulo: 'Sin tareas hechas', texto: 'Las que termines aparecen aquí.' }
 };
-
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr + 'T12:00:00'); // avoid timezone shifts
-  return formatFechaCorta(d);
-}
-
-// Vencida/vence-hoy -> rojo (--rd), cualquier otra fecha futura -> texto
-// tenue. Devuelve null si la tarea no tiene fecha límite.
-function dueDateInfo(dueDate) {
-  if (!dueDate) return null;
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const d = new Date(dueDate + 'T00:00:00');
-  const urgente = d <= hoy;
-  let text;
-  if (d.getTime() === hoy.getTime()) text = 'VENCE HOY';
-  else if (d < hoy) text = `VENCIÓ · ${formatDate(dueDate)}`;
-  else text = `VENCE · ${formatDate(dueDate)}`;
-  return { text, urgente };
-}
-
+const ETQ_ESTADO = Object.fromEntries(ESTADOS.map(s => [s.value, s.label]));
+const ETQ_PRIORIDAD = Object.fromEntries(PRIORIDADES.map(p => [p.value, p.label]));
 const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
 
 // Con fecha antes que sin fecha; entre las que tienen fecha, la más
@@ -146,354 +71,430 @@ function ordenUrgencia(a, b) {
   return (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1);
 }
 
-// Flecha de avance rápido: Por hacer -> En curso -> Hecho, sin pasar por el
-// detalle. Hecho ya es el final, no tiene siguiente estado.
-function renderAdvanceButton(task) {
-  if (task.status === 'done') return '';
-  const to = task.status === 'todo' ? 'in-progress' : 'done';
-  return `
-    <button class="btn-advance-task tappable" data-id="${task.id}" data-from="${task.status}" data-to="${to}" title="Avanzar a ${STATE_LABELS[to]}" style="width:32px; height:32px; padding:0; background:transparent; border:none; color:var(--accent-purple-t); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
-    </button>
-  `;
+// --- Fila de una tarea --------------------------------------------------------
+// La fila abre el detalle; a la derecha, el paso siguiente: «Empezar» (Por
+// hacer → En curso) o el check (En curso → Hecho).
+function partesMeta(t) {
+  const partes = [];
+  const venc = avisoVencimiento(t.dueDate, t.status);
+  if (venc) partes.push(venc.alerta ? `<span class="o-tarea-venc">${oIcono('alerta')}${escapeHtml(venc.texto)}</span>` : escapeHtml(venc.texto));
+  if (t.priority === 'high' || t.priority === 'low') partes.push(`Prioridad ${ETQ_PRIORIDAD[t.priority].toLowerCase()}`);
+  if (t.dificultad === 'facil' || t.dificultad === 'dificil') partes.push(etiquetaDificultad(t));
+  if (t.project) partes.push(escapeHtml(t.project));
+  const subs = t.subtasks || [];
+  if (subs.length) partes.push(`<span class="o-num">${subs.filter(s => s.done).length}/${subs.length}</span>`);
+  return partes;
 }
+const textoPlano = (html) => html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 
-function renderUrgentTask(task) {
-  const due = dueDateInfo(task.dueDate);
-  return `
-    <div class="card task-card tappable btn-edit-task" data-id="${task.id}" style="position:relative; padding:14px 14px 14px 18px; margin-bottom:10px; cursor:pointer;">
-      <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vi);"></div>
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
-        <h4 style="margin:0; font-size:15px; font-weight:800; color:var(--text-primary); line-height:1.3;">${escapeHtml(task.title)}</h4>
-        <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
-          ${marcaDificultad(task)}
-          ${renderPriorityBars(task.priority)}
-          ${renderAdvanceButton(task)}
-        </div>
-      </div>
-      ${due ? `<div style="margin-top:8px; font-size:11px; font-weight:700; letter-spacing:0.4px; color:${due.urgente ? 'var(--rd-t)' : 'var(--text-secondary)'};">${due.text}</div>` : ''}
-    </div>
-  `;
-}
-
-function renderColaTask(task) {
-  const due = dueDateInfo(task.dueDate);
-  return `
-    <div class="card task-card tappable btn-edit-task" data-id="${task.id}" style="position:relative; padding:12px 12px 12px 16px; margin-bottom:8px; cursor:pointer;">
-      <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vid);"></div>
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-        <span style="font-size:13px; font-weight:600; color:var(--t5); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(task.title)}</span>
-        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
-          ${due ? `<span style="font-size:10px; font-weight:700; color:var(--t5); flex-shrink:0;">${due.text}</span>` : ''}
-          ${marcaDificultad(task)}
-          ${renderAdvanceButton(task)}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderStatusTask(task) {
-  const isDone = task.status === 'done';
-  const due = dueDateInfo(task.dueDate);
-  return `
-    <div class="card task-card tappable btn-edit-task" data-id="${task.id}" style="position:relative; padding:14px 14px 14px 18px; margin-bottom:10px; cursor:pointer;">
-      <div style="position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vi);"></div>
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
-        <h4 style="margin:0; font-size:15px; font-weight:800; line-height:1.3; color:${isDone ? 'var(--text-disabled)' : 'var(--text-primary)'}; ${isDone ? 'text-decoration:line-through;' : ''}">${escapeHtml(task.title)}</h4>
-        <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
-          ${marcaDificultad(task)}
-          ${renderPriorityBars(task.priority)}
-          ${renderAdvanceButton(task)}
-        </div>
-      </div>
-      ${due ? `<div style="margin-top:8px; font-size:11px; font-weight:700; letter-spacing:0.4px; color:${due.urgente && !isDone ? 'var(--rd-t)' : 'var(--text-secondary)'};">${due.text}</div>` : ''}
-    </div>
-  `;
-}
-
-function renderEmptyBoard(title, subtitle = '') {
-  return EmptyState(title, subtitle);
-}
-
-function renderStateSelector(cols) {
-  return `
-    <div style="display:flex; gap:2px; margin-right:20px; margin-bottom:20px;">
-      ${['todo', 'in-progress', 'done'].map(id => {
-        const isActive = id === activeTaskState;
-        return `
-          <button class="btn-state-tab tappable" data-state="${id}" style="flex:1; padding:14px 8px; background:${isActive ? 'var(--vis)' : 'var(--surface-1)'}; border:1px solid var(--surface-border); border-bottom:2px solid ${isActive ? 'var(--vi)' : 'transparent'}; color:${isActive ? 'var(--text-primary)' : 'var(--text-secondary)'}; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;">
-            <span style="text-transform:uppercase; font-weight:700;">${STATE_LABELS[id]}</span>
-            <span class="num" style="font-size:16px; font-weight:800;">${cols[id].tasks.length}</span>
-          </button>
-        `;
-      }).join('')}
-    </div>
-  `;
-}
-
-function renderBoardContent(cols) {
-  const activeCol = cols[activeTaskState];
-
-  if (activeTaskState === 'todo') {
-    const sorted = [...activeCol.tasks].sort(ordenUrgencia);
-    if (sorted.length === 0) return renderEmptyBoard(EMPTY_MSG.todo.title, EMPTY_MSG.todo.subtitle);
-
-    const urgentes = sorted.slice(0, 2);
-    const cola = sorted.slice(2);
-    return `
-      <div style="margin-bottom:22px;">
-        ${urgentes.map(renderUrgentTask).join('')}
-      </div>
-      <div>
-        <h3 style="text-transform:uppercase; font-size:11px; letter-spacing:2px; color:var(--t5); font-weight:700; margin:0 0 10px 0;">Cola · Por Hacer</h3>
-        ${cola.length > 0 ? cola.map(renderColaTask).join('') : renderEmptyBoard('Sin tareas en cola')}
-      </div>
-    `;
+function renderFila(t) {
+  const titulo = escapeHtml(t.title);
+  const hecha = t.status === 'done';
+  const actual = ld.id === t.id;
+  const meta = partesMeta(t);
+  let paso = '';
+  if (t.status === 'todo') {
+    paso = `<button type="button" class="o-btn o-btn--fantasma o-btn--icono btn-advance-task" data-id="${escapeHtml(t.id)}" data-from="todo" data-to="in-progress" aria-label="Empezar «${titulo}» (pasa a En curso)">${ICO_EMPEZAR}</button>`;
+  } else if (t.status === 'in-progress') {
+    paso = `<button type="button" class="o-check btn-advance-task" data-id="${escapeHtml(t.id)}" data-from="in-progress" data-to="done" aria-pressed="false" aria-label="Marcar «${titulo}» como hecha">${oIcono('check')}</button>`;
   }
+  return `
+    <li class="o-fila o-tarea-fila${hecha ? ' o-fila--hecha' : ''}${actual ? ' o-fila--actual' : ''}" data-id="${escapeHtml(t.id)}" data-buscar="${escapeHtml(`${t.title} ${t.project || ''} ${t.description || ''}`.toLowerCase())}">
+      <button type="button" class="o-tarea-abrir btn-edit-task" data-id="${escapeHtml(t.id)}"${actual ? ' aria-current="true"' : ''} aria-label="${titulo}${meta.length ? `: ${escapeHtml(textoPlano(meta.join(', ')))}` : ''}. Ver detalle">
+        <span class="o-fila-texto"><b>${titulo}</b>${meta.length ? `<small>${meta.join('<span aria-hidden="true"> · </span>')}</small>` : ''}</span>
+      </button>
+      ${paso ? `<span class="o-tarea-paso">${paso}</span>` : ''}
+    </li>`;
+}
 
-  if (activeCol.tasks.length === 0) return renderEmptyBoard(EMPTY_MSG[activeTaskState].title, EMPTY_MSG[activeTaskState].subtitle);
-  return activeCol.tasks.map(renderStatusTask).join('');
+function renderTablero(cols) {
+  const tareas = cols[activeTaskState];
+  if (!tareas.length) {
+    const m = EMPTY_MSG[activeTaskState];
+    return `<div class="o-card">${oVacio({ icono: 'check', titulo: m.titulo, texto: m.texto })}</div>`;
+  }
+  if (activeTaskState !== 'todo') return `<ul class="o-lista o-tarea-lista" aria-label="${ETQ_ESTADO[activeTaskState]}">${tareas.map(renderFila).join('')}</ul>`;
+  // Por hacer: las dos más urgentes arriba y el resto en cola.
+  const orden = [...tareas].sort(ordenUrgencia);
+  const primero = orden.slice(0, 2);
+  const cola = orden.slice(2);
+  return `
+    <section class="o-tarea-grupo" aria-labelledby="tar-primero">
+      <h2 class="o-rotulo" id="tar-primero">Lo primero</h2>
+      <ul class="o-lista o-tarea-lista">${primero.map(renderFila).join('')}</ul>
+    </section>
+    ${cola.length ? `
+    <section class="o-tarea-grupo" aria-labelledby="tar-cola">
+      <h2 class="o-rotulo" id="tar-cola">En cola · <span class="o-num">${cola.length}</span></h2>
+      <ul class="o-lista o-tarea-lista">${cola.map(renderFila).join('')}</ul>
+    </section>` : ''}`;
+}
+
+// --- Detalle de una tarea -----------------------------------------------------
+// El mismo contenido en la sub-pantalla (celular) y en la columna derecha
+// (PC); solo cambia la cabecera. Editar abre la hoja.
+async function cuerpoDetalle(t) {
+  const eventos = await db.getBitacoraEntidad(t.id);
+  const titulo = escapeHtml(t.title);
+  const venc = avisoVencimiento(t.dueDate, t.status);
+  const chips = [];
+  if (t.dueDate) {
+    chips.push(venc && venc.alerta
+      ? `<li class="o-chip o-tarea-chip-alerta">${oIcono('alerta')}${escapeHtml(venc.texto)}</li>`
+      : `<li class="o-chip">${escapeHtml(venc ? venc.texto : 'Con fecha')}</li>`);
+  }
+  chips.push(`<li class="o-chip">Prioridad ${ETQ_PRIORIDAD[t.priority || 'medium'].toLowerCase()}</li>`);
+  if (t.dificultad === 'facil' || t.dificultad === 'dificil') chips.push(`<li class="o-chip">${etiquetaDificultad(t)}</li>`);
+  if (t.project) chips.push(`<li class="o-chip">${escapeHtml(t.project)}</li>`);
+  const subs = t.subtasks || [];
+  const focos = resumenFocos(eventos);
+  return `
+    <div class="o-tarea-det">
+      <div class="o-tarea-opciones" role="group" aria-label="Estado de la tarea">
+        ${ESTADOS.map(s => `<button type="button" class="o-chip o-tarea-det-estado" data-status="${s.value}" aria-pressed="${(t.status || 'todo') === s.value}">${s.label}</button>`).join('')}
+      </div>
+      <ul class="o-chips o-tarea-chips" aria-label="Datos de la tarea">${chips.join('')}</ul>
+      ${t.status !== 'done' || focos ? `
+      <div class="o-card o-card--destacada o-tarea-foco-card">
+        <p class="o-tarea-focos">${focos || 'Sin focos todavía.'}</p>
+        ${t.status !== 'done' ? `<button type="button" id="btn-foco-tarea" class="o-btn o-btn--secundario">${textoBotonFoco(t.id)}</button>` : ''}
+      </div>` : ''}
+      ${t.description ? `
+      <section class="o-tarea-seccion" aria-labelledby="tar-det-notas">
+        <h3 class="o-rotulo" id="tar-det-notas">Notas</h3>
+        <p class="o-tarea-notas">${escapeHtml(t.description)}</p>
+      </section>` : ''}
+      ${subs.length ? `
+      <section class="o-tarea-seccion" aria-labelledby="tar-det-subs">
+        <h3 class="o-rotulo" id="tar-det-subs">Subtareas · <span class="o-num">${subs.filter(s => s.done).length}/${subs.length}</span></h3>
+        <ul class="o-tarea-subs">${subs.map((s, i) => `
+          <li class="o-tarea-sub${s.done ? ' o-tarea-sub--hecha' : ''}">
+            <button type="button" class="o-check o-tarea-det-sub" data-i="${i}" aria-pressed="${!!s.done}" aria-label="${s.done ? 'Desmarcar' : 'Marcar'} la subtarea «${escapeHtml(s.title)}»">${oIcono('check')}</button>
+            <span>${escapeHtml(s.title)}</span>
+          </li>`).join('')}
+        </ul>
+      </section>` : ''}
+      <section class="o-tarea-seccion" aria-labelledby="tar-det-bitacora">
+        <h3 class="o-rotulo" id="tar-det-bitacora">Bitácora</h3>
+        ${renderBitacora(eventos)}
+      </section>
+      <div class="o-tarea-acciones">
+        <button type="button" id="btn-editar-tarea" class="o-btn o-btn--secundario" aria-label="Editar «${titulo}»">Editar</button>
+        <button type="button" id="btn-eliminar-tarea" class="o-btn o-btn--secundario o-tarea-eliminar" aria-label="Eliminar «${titulo}»">Eliminar</button>
+      </div>
+    </div>`;
+}
+
+// Sub-pantalla (celular): ocupa toda la vista, con «Volver».
+async function renderDetalle(t) {
+  return `
+    <div class="o-vista o-plan o-mod-plan tareas-host">
+      <header class="o-plan-det-cab">
+        <button type="button" id="btn-volver-tarea" class="o-btn o-btn--secundario o-btn--icono" aria-label="Volver a Tareas">${ICO_VOLVER}</button>
+        <h1 class="o-mod-titulo">${escapeHtml(t.title)}</h1>
+      </header>
+      ${await cuerpoDetalle(t)}
+      ${renderTaskForm()}
+    </div>`;
+}
+
+// --- Lista (con el detalle a la derecha en PC) --------------------------------
+async function renderLista(tasks) {
+  const cols = { 'todo': [], 'in-progress': [], 'done': [] };
+  tasks.forEach(t => (cols[t.status] || cols.todo).push(t));
+
+  // Mapa de calor: días del mes con al menos una tarea completada.
+  const ahora = new Date();
+  const mes = formatMes(ahora);
+  const { countByDay, detailByDay } = await db.getActividadTareasPorDia(ahora.getFullYear(), ahora.getMonth());
+  const mapa = renderActivityHeatmap({
+    id: 'tareas-heatmap', monthLabel: mes, year: ahora.getFullYear(), month: ahora.getMonth(),
+    countByDay, detailByDay, accentVar: 'var(--o-mod)', emptyLabel: 'Sin tareas completadas'
+  });
+
+  const lista = `
+    <div class="o-plan-col">
+      <div class="o-plan-buscar">
+        ${ICO_BUSCAR}
+        <input type="search" id="task-search" class="o-input" placeholder="Buscar tareas o proyectos" aria-label="Buscar tareas" value="${escapeHtml(busqueda)}" autocomplete="off">
+      </div>
+      <div class="o-tabs o-tarea-estados" role="tablist" aria-label="Tareas por estado">
+        ${ESTADOS.map(s => `<button type="button" role="tab" class="o-tab btn-state-tab" data-state="${s.value}" id="tar-estado-${s.value}" aria-selected="${s.value === activeTaskState}" aria-controls="tar-tablero" tabindex="${s.value === activeTaskState ? 0 : -1}">${s.label}<span class="o-num o-tarea-cuenta">${cols[s.value].length}</span></button>`).join('')}
+      </div>
+      <form id="task-quick-add-form" class="o-plan-agregar" onsubmit="return false;">
+        <input type="text" id="task-quick-add" class="o-input" placeholder="Agregar una tarea rápida…" aria-label="Nueva tarea rápida" enterkeyhint="go" autocomplete="off" maxlength="140">
+        <button type="submit" id="btn-quick-add" class="o-btn o-btn--secundario o-btn--icono" aria-label="Agregar a Por hacer">${ICO_MAS}</button>
+      </form>
+      <div id="tar-tablero" class="o-tarea-tablero" role="tabpanel" aria-labelledby="tar-estado-${activeTaskState}">
+        ${renderTablero(cols)}
+        <p id="tar-sin-resultados" class="o-tarea-nada" hidden>Ninguna tarea coincide con la búsqueda.</p>
+      </div>
+      <section id="tareas-calendar-card" class="o-card o-tarea-mapa" aria-labelledby="tar-mapa-titulo">
+        <h2 class="o-rotulo" id="tar-mapa-titulo">Actividad de ${escapeHtml(mes)}</h2>
+        ${mapa}
+      </section>
+    </div>`;
+
+  let detalle = '';
+  if (ld.abierto) {
+    const t = tasks.find(x => x.id === ld.id);
+    if (t) detalle = `<div class="o-card">${oListaDetalleCab({ titulo: t.title, cerrarId: 'btn-cerrar-tarea', cerrarEtiqueta: `Cerrar el detalle de ${t.title}` })}${await cuerpoDetalle(t)}</div>`;
+    else ld.olvidar();
+  }
+  return oListaDetalle({
+    id: 'tar-ld', lista, detalle, abierto: !!detalle, etiqueta: 'Detalle de la tarea',
+    vacio: `<div class="o-card o-ld-vacio">${oVacio({ icono: 'info', titulo: 'Elige una tarea', texto: 'Su estado, sus subtareas, el foco y la bitácora aparecen aquí.' })}</div>`
+  });
 }
 
 export async function render() {
   subActual = subDeHash();
-  // Notas lleva el ámbito .mk3-anotaciones en su contenedor: sus variables
-  // le ganan a las de .mk3-tareas de #view-root (el router ya no lo pone,
-  // porque Anotaciones dejó de ser una vista propia).
+  const tasks = await db.getTasks();
+  if (subActual === 'lista' && ld.subpantalla) {
+    const t = tasks.find(x => x.id === ld.id);
+    if (t) return renderDetalle(t);
+    ld.descartar(); // borrada (desde la hoja o en otro dispositivo)
+  }
+  const pendientes = tasks.filter(t => t.status !== 'done').length;
   const inner = subActual === 'semana'
     ? `<div id="plan-host">${await Planificador.render()}</div>`
     : subActual === 'notas'
-      ? `<div id="notas-host" class="mk3-anotaciones">${await Anotaciones.render()}</div>`
-      : await renderLista();
-  return `<div class="tareas-host">${renderSubTabs()}${inner}</div>`;
+      ? `<div id="notas-host" class="o-mod-notas">${await Anotaciones.render()}</div>`
+      : await renderLista(tasks);
+  return `
+    <div class="o-vista o-plan o-mod-plan tareas-host">
+      <header class="o-mod-cab">
+        <div>
+          <h1 class="o-mod-titulo">Plan</h1>
+          <p class="o-mod-sub">${pendientes ? `${plural(pendientes, 'tarea pendiente', 'tareas pendientes')}` : 'Sin tareas pendientes'}</p>
+        </div>
+        ${subActual === 'lista' ? `<button type="button" id="btn-new-task" class="o-btn o-btn--primario o-btn--icono" aria-label="Nueva tarea">${ICO_MAS}</button>` : ''}
+      </header>
+      <div class="o-tabs tareas-subtabs" role="tablist" aria-label="Secciones de Plan">
+        ${PESTANAS.map(p => `<button type="button" role="tab" class="o-tab tareas-subtab" data-sub="${p.id}" id="plan-tab-${p.id}" aria-selected="${p.id === subActual}" aria-controls="plan-panel" tabindex="${p.id === subActual ? 0 : -1}">${p.label}</button>`).join('')}
+      </div>
+      <section id="plan-panel" class="o-plan-panel" role="tabpanel" aria-labelledby="plan-tab-${subActual}">
+        ${inner}
+      </section>
+      ${subActual === 'lista' ? renderTaskForm() : ''}
+    </div>`;
 }
 
-async function renderLista() {
-  const tasks = await db.getTasks();
+// --- Repintar y sincronizar ---------------------------------------------------
+async function repintar() {
+  soltarSubvistas();
+  const root = document.getElementById('view-root');
+  const html = await render();
+  if (!vistaVigente()) return;
+  root.innerHTML = html;
+  mountListeners();
+}
 
-  const cols = {
-    'todo': { tasks: [] },
-    'in-progress': { tasks: [] },
-    'done': { tasks: [] }
-  };
-  tasks.forEach(t => {
-    if (cols[t.status]) cols[t.status].tasks.push(t);
-    else cols['todo'].tasks.push(t); // fallback
-  });
+// 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
+// cambio remoto: sin este listener un cambio hecho en otro dispositivo no se
+// ve hasta salir y volver. Se engancha una sola vez (mountListeners se llama
+// en cada repintado).
+let syncEnganchado = false;
+async function onSyncActualizado() {
+  if (subActual !== 'lista') return;
+  // No pisar una hoja abierta ni lo que se está escribiendo.
+  if (hayModalAbierto()) return;
+  const quick = document.getElementById('task-quick-add');
+  if (quick && (document.activeElement === quick || quick.value.trim())) return;
+  await repintar();
+}
+// Al cerrar la pantalla de foco, el detalle abierto pone al día su bitácora
+// y sus focos; con un foco que empieza o termina, el texto del botón.
+function onFocoCerrado(e) {
+  if (subActual === 'lista' && e.detail && e.detail.tareaId === ld.id && !hayModalAbierto()) repintar();
+}
+function onFocoCambio() {
+  const b = document.getElementById('btn-foco-tarea');
+  if (b && ld.id) b.textContent = textoBotonFoco(ld.id);
+}
 
-  // Mapa de calor: días del mes con al menos una tarea completada.
-  const now_ = new Date();
-  const heatYear = now_.getFullYear();
-  const heatMonth = now_.getMonth();
-  const nombreMesActual = formatMes(now_);
-  const { countByDay, detailByDay } = await db.getActividadTareasPorDia(heatYear, heatMonth);
-  const heatmapHtml = renderActivityHeatmap({
-    id: 'tareas-heatmap',
-    monthLabel: nombreMesActual,
-    year: heatYear,
-    month: heatMonth,
-    countByDay,
-    detailByDay,
-    accentVar: 'var(--accent-purple)',
-    emptyLabel: 'Sin tareas completadas'
-  });
+// Suelta lo de las sub-vistas (sin cerrar el detalle): antes de cada
+// repintado, así cambiar de pestaña no acumula listeners.
+function soltarSubvistas() {
+  window.removeEventListener('budget-updated', onSyncActualizado);
+  window.removeEventListener('vg-foco-cerrado', onFocoCerrado);
+  window.removeEventListener('vg-foco-cambio', onFocoCambio);
+  syncEnganchado = false;
+  Planificador.cleanup();
+  Anotaciones.cleanup();
+}
 
-  return `
-    <div style="padding: 20px 0 0 20px; font-family: var(--font-body);">
-      <!-- Header: lupa (despliega el buscador) y "+" (formulario completo de
-           tarea nueva; antes un FAB sticky que flotaba sobre las tarjetas). -->
-      <div class="flex-between" style="padding-right: 20px; margin-bottom: 20px;">
-        <h1 style="font-size: 30px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.5px;">Tareas</h1>
-        <div class="cab-acciones">
-          <button type="button" id="btn-task-search" class="lista-buscar-btn tappable" aria-label="Buscar tareas" aria-expanded="${busquedaAbierta}" aria-controls="task-search-wrap">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          </button>
-          <button type="button" id="btn-new-task" class="cab-accion tappable" aria-label="Nueva tarea"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
-        </div>
-      </div>
+// Llamado por el router (app.js) antes de desmontar esta vista.
+export function cleanup() {
+  soltarSubvistas();
+  ld.soltar();
+}
 
-      <!-- Buscador (plegado detrás del ícono del encabezado) -->
-      <div id="task-search-wrap" class="lista-buscar" ${busquedaAbierta ? '' : 'hidden'}>
-        <svg class="lista-buscar-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="search" id="task-search" placeholder="Buscar tareas, proyectos..." aria-label="Buscar tareas">
-      </div>
+async function cambiarSub(sub) {
+  if (sub === subActual) return;
+  ld.olvidar();
+  busqueda = '';
+  history.replaceState(history.state, '', SUBRUTAS[sub] || SUBRUTAS.lista);
+  await repintar();
+  document.getElementById(`plan-tab-${sub}`)?.focus({ preventScroll: true });
+}
 
-      <!-- Tablero por estado -->
-      ${renderStateSelector(cols)}
-      <div style="margin-right: 20px; padding-bottom: 24px;">
-        ${renderBoardContent(cols)}
-      </div>
-
-      <!-- Captura rápida al final del tablero, en flujo normal (ya no
-           sticky: pegada sobre el contenido tapaba tarjetas al hacer
-           scroll). Lo que sigue (calendario y el relleno inferior de la
-           vista) deja espacio para que nunca quede detrás del nav al llegar
-           al final. -->
-      <form id="task-quick-add-form" class="list-row" onsubmit="return false;" style="margin-right: 20px; margin-bottom: 24px; display: flex; align-items: stretch; border: 1.5px solid var(--vib); overflow: hidden; background: var(--bg-base);">
-        <input type="text" id="task-quick-add" placeholder="Nueva tarea rápida..." enterkeyhint="go" style="flex: 1; background: transparent; border: none; padding: 14px 16px; color: var(--text-primary); font-size: 16px; outline: none;">
-        <button type="submit" id="btn-quick-add" class="tappable" style="background: var(--vib); border: none; color: var(--text-primary); padding: 0 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </button>
-      </form>
-
-      <!-- Mapa de actividad — debajo de la captura rápida. -->
-      <div id="tareas-calendar-card" class="card" style="margin-right: 20px; margin-bottom: 24px; padding: 18px 20px;">
-        <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
-        ${heatmapHtml}
-      </div>
-
-      ${renderTaskForm()}
-    </div>
-  `;
+// Lo llama el router cuando cambia solo la subruta del hash estando ya en
+// Plan (la pestaña de la barra estando en Semana, o #planificador).
+export function onSubrouteChange() {
+  if (subDeHash() !== subActual) { ld.olvidar(); repintar(); }
 }
 
 export function mountListeners() {
   vistaVigente = guardiaVista('tareas');
-  document.querySelectorAll('.tareas-subtab').forEach(btn => {
-    btn.addEventListener('click', () => cambiarSub(btn.getAttribute('data-sub')));
+
+  // Pestañas de Plan (flechas para moverse entre ellas, como un tablist).
+  const tabs = [...document.querySelectorAll('.tareas-subtab')];
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => cambiarSub(tab.getAttribute('data-sub')));
+    tab.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length].click();
+    });
   });
 
-  if (subActual === 'semana') {
-    Planificador.mountListeners();
-    return;
-  }
-  if (subActual === 'notas') {
-    Anotaciones.mountListeners();
-    return;
-  }
+  if (subActual === 'semana') { Planificador.mountListeners(); return; }
+  if (subActual === 'notas') { Anotaciones.mountListeners(); return; }
 
   if (!syncEnganchado) {
     syncEnganchado = true;
     window.addEventListener('budget-updated', onSyncActualizado);
+    window.addEventListener('vg-foco-cerrado', onFocoCerrado);
+    window.addEventListener('vg-foco-cambio', onFocoCambio);
   }
+  ld.enganchar();
 
-  const refresh = async () => {
-    const root = document.getElementById('view-root');
-    const htmlVista = await render();
-    if (!vistaVigente()) return;
-    root.innerHTML = htmlVista;
-    mountListeners();
-  };
+  initActivityHeatmapListeners('tareas-heatmap', 'var(--o-mod)');
+  setupTaskForm(repintar);
 
-  initActivityHeatmapListeners('tareas-heatmap', 'var(--accent-purple)');
+  document.getElementById('btn-new-task')?.addEventListener('click', () => openTaskForm());
 
-  setupTaskForm(refresh);
-
-  const btnNew = document.getElementById('btn-new-task');
-  if (btnNew) btnNew.addEventListener('click', () => openTaskForm());
-
-  // Selector de estado del tablero
-  document.querySelectorAll('.btn-state-tab').forEach(btn => {
+  // Estados del tablero (flechas entre pestañas).
+  const estados = [...document.querySelectorAll('.btn-state-tab')];
+  estados.forEach((btn, i) => {
     btn.addEventListener('click', () => {
-      activeTaskState = btn.getAttribute('data-state');
-      refresh();
+      if (btn.dataset.state === activeTaskState) return;
+      activeTaskState = btn.dataset.state;
+      repintar().then(() => document.getElementById(`tar-estado-${activeTaskState}`)?.focus({ preventScroll: true }));
+    });
+    btn.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      estados[(i + (e.key === 'ArrowRight' ? 1 : estados.length - 1)) % estados.length].click();
     });
   });
 
-  // Captura rápida: crea la tarea directo en "Por hacer", prioridad media.
-  const quickInput = document.getElementById('task-quick-add');
-  const quickAdd = async () => {
-    const title = quickInput.value.trim();
+  // Alta rápida: directo a «Por hacer», prioridad media.
+  const quick = document.getElementById('task-quick-add');
+  bindQuickCaptureForm(document.getElementById('task-quick-add-form'), async () => {
+    const title = quick.value.trim();
     if (!title) return;
     await db.saveTask({ title, description: '', priority: 'medium', dueDate: '', project: '', status: 'todo', subtasks: [] });
     Toast('Tarea agregada', 'success');
     activeTaskState = 'todo';
-    refresh();
-  };
-  bindQuickCaptureForm(document.getElementById('task-quick-add-form'), quickAdd);
+    busqueda = '';
+    await repintar();
+    document.getElementById('task-quick-add')?.focus({ preventScroll: true });
+  });
 
-  // Abrir detalle de tarea (edición completa, con bitácora)
+  // Abrir el detalle: en celular, sub-pantalla arriba de todo.
   document.querySelectorAll('.btn-edit-task').forEach(el => {
-    el.addEventListener('click', async (e) => {
-      const id = e.currentTarget.getAttribute('data-id');
-      const tasks = await db.getTasks();
-      const task = tasks.find(t => t.id === id);
-      if (task) openTaskForm(task);
+    el.addEventListener('click', () => {
+      ld.abrir(el.getAttribute('data-id')).then(() => { if (ld.subpantalla) window.scrollTo(0, 0); });
     });
   });
 
-  // Flecha de avance rápido en la tarjeta: mueve de estado sin abrir el
-  // detalle. db.updateTaskStatus ya registra el evento correspondiente en
-  // el log (tarea_actualizada / tarea_completada), igual que si el cambio
-  // viniera de los chips del detalle — la bitácora queda completa. El
-  // contador de ambas columnas se ajusta a mano para que se vea moverse
-  // en el momento; el tablero recién se vuelve a pintar del todo cuando
-  // termina la transición (la duración real la maneja el CSS de
-  // .btn-advance-task / prefers-reduced-motion, acá solo esperamos el
-  // tiempo que dura para no cortar la animación a la mitad).
-  const bumpStateCount = (status, delta) => {
-    const btn = document.querySelector(`.btn-state-tab[data-state="${status}"]`);
-    const countEl = btn && btn.querySelector('span:last-child');
-    if (countEl) countEl.textContent = String(Number(countEl.textContent) + delta);
-  };
+  // Paso siguiente desde la fila (sin abrir el detalle): db.updateTaskStatus
+  // registra su evento (tarea_actualizada / tarea_completada). Se relee para
+  // confirmar, porque una escritura fallida de IndexedDB no rechaza.
   document.querySelectorAll('.btn-advance-task').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const id = btn.getAttribute('data-id');
-      const from = btn.getAttribute('data-from');
-      const to = btn.getAttribute('data-to');
-      const card = btn.closest('.task-card');
-
-      bumpStateCount(from, -1);
-      bumpStateCount(to, 1);
-      if (card) {
-        card.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
-        card.style.opacity = '0';
-        card.style.transform = 'translateX(12px)';
-        card.style.pointerEvents = 'none';
-      }
-
+      const id = btn.dataset.id;
+      const to = btn.dataset.to;
+      const fila = btn.closest('.o-tarea-fila');
+      fila?.classList.add('o-tarea-fila--saliendo');
+      if (btn.classList.contains('o-check')) btn.setAttribute('aria-pressed', 'true');
       try {
         await db.updateTaskStatus(id, to);
-        // idbSetArray (db.js) atrapa sus propios errores de IndexedDB y
-        // solo los loguea — nunca rechaza la promesa hacia quien la llamó.
-        // Sin esta verificación, una escritura que falló en silencio se
-        // vería igual que una exitosa. Se relee para confirmar que el
-        // estado realmente cambió antes de confiar en él.
-        const tasksActuales = await db.getTasks();
-        const taskActual = tasksActuales.find(t => t.id === id);
-        if (!taskActual || taskActual.status !== to) throw new Error('El estado no se guardó en IndexedDB');
-        setTimeout(refresh, 220);
+        const t = (await db.getTasks()).find(x => x.id === id);
+        if (!t || t.status !== to) throw new Error('El estado no se guardó en IndexedDB');
+        Toast(to === 'done' ? 'Tarea hecha' : 'Tarea en curso', 'success');
+        await repintar();
       } catch (err) {
-        // Reversión: la animación y los contadores ya se movieron
-        // optimistamente arriba — si la escritura falla, no puede quedar
-        // un estado mintiendo en pantalla.
-        console.error('Error al avanzar tarea:', err);
-        bumpStateCount(to, -1);
-        bumpStateCount(from, 1);
-        if (card) {
-          card.style.opacity = '1';
-          card.style.transform = 'none';
-          card.style.pointerEvents = '';
-        }
-        Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
+        console.error('Error al avanzar la tarea:', err);
+        fila?.classList.remove('o-tarea-fila--saliendo');
+        if (btn.classList.contains('o-check')) btn.setAttribute('aria-pressed', 'false');
+        Toast('No se pudo guardar. Inténtalo de nuevo.', 'error');
       }
     });
   });
 
-  // Buscador: el ícono del encabezado lo despliega (foco al input) y lo
-  // pliega (limpia el filtro). Escape también lo pliega y devuelve el foco.
-  const searchInput = document.getElementById('task-search');
-  const searchBtn = document.getElementById('btn-task-search');
-  const searchWrap = document.getElementById('task-search-wrap');
-  const filtrar = (val) => {
-    document.querySelectorAll('.task-card').forEach(card => {
-      card.style.display = card.innerText.toLowerCase().includes(val) ? 'block' : 'none';
+  // Búsqueda: filtra las filas por título, proyecto y notas.
+  const buscar = document.getElementById('task-search');
+  const filtrar = () => {
+    const q = busqueda.trim().toLowerCase();
+    let visibles = 0;
+    document.querySelectorAll('.o-tarea-fila').forEach(f => {
+      const ver = !q || f.dataset.buscar.includes(q);
+      f.hidden = !ver;
+      if (ver) visibles++;
     });
+    document.querySelectorAll('.o-tarea-grupo').forEach(g => { g.hidden = !g.querySelector('.o-tarea-fila:not([hidden])'); });
+    const nada = document.getElementById('tar-sin-resultados');
+    if (nada) nada.hidden = !q || visibles > 0 || !document.querySelector('.o-tarea-fila');
   };
-  const fijarBusqueda = (abierta, foco) => {
-    busquedaAbierta = abierta;
-    searchWrap.hidden = !abierta;
-    searchBtn.setAttribute('aria-expanded', String(abierta));
-    if (abierta) { if (foco) searchInput.focus(); return; }
-    searchInput.value = '';
-    filtrar('');
-    if (foco) searchBtn.focus();
-  };
-  if (searchInput && searchBtn && searchWrap) {
-    searchBtn.addEventListener('click', () => fijarBusqueda(!busquedaAbierta, true));
-    searchInput.addEventListener('input', (e) => filtrar(e.target.value.toLowerCase()));
-    searchInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); fijarBusqueda(false, true); } });
-  }
+  buscar?.addEventListener('input', () => { busqueda = buscar.value; filtrar(); });
+  buscar?.addEventListener('keydown', (e) => { if (e.key === 'Escape' && buscar.value) { e.preventDefault(); buscar.value = ''; busqueda = ''; filtrar(); } });
+  filtrar();
+
+  // --- Detalle ---
+  const volver = () => ld.cerrar();
+  document.getElementById('btn-volver-tarea')?.addEventListener('click', volver);
+  document.getElementById('btn-cerrar-tarea')?.addEventListener('click', volver);
+  const tareaAbierta = async () => (await db.getTasks()).find(x => x.id === ld.id);
+
+  document.querySelectorAll('.o-tarea-det-estado').forEach(b => b.addEventListener('click', async () => {
+    if (b.getAttribute('aria-pressed') === 'true' || !ld.id) return;
+    await db.updateTaskStatus(ld.id, b.dataset.status);
+    Toast(`Pasó a ${ETQ_ESTADO[b.dataset.status]}`, 'success');
+    repintar();
+  }));
+  document.querySelectorAll('.o-tarea-det-sub').forEach(b => b.addEventListener('click', async () => {
+    const t = await tareaAbierta();
+    if (!t) return;
+    const i = Number(b.dataset.i);
+    const subtasks = (t.subtasks || []).map((s, k) => (k === i ? { ...s, done: !s.done } : s));
+    b.setAttribute('aria-pressed', String(!!subtasks[i]?.done));
+    await db.saveTask({ id: t.id, subtasks });
+    repintar();
+  }));
+  document.getElementById('btn-foco-tarea')?.addEventListener('click', async () => {
+    const t = await tareaAbierta();
+    if (t) iniciarFoco(t, { alVolver: (id) => ld.abrir(id) });
+  });
+  document.getElementById('btn-editar-tarea')?.addEventListener('click', async () => {
+    const t = await tareaAbierta();
+    if (t) openTaskForm(t);
+  });
+  document.getElementById('btn-eliminar-tarea')?.addEventListener('click', async () => {
+    const t = await tareaAbierta();
+    if (!t) return;
+    const n = (t.subtasks || []).length;
+    const ok = await ConfirmDialog(
+      `Eliminar tarea ${t.title}`,
+      n > 0 ? `Se perderán sus ${n} ${n === 1 ? 'subtarea' : 'subtareas'}. No se puede deshacer.` : 'No se puede deshacer.',
+      { verb: 'Eliminar' }
+    );
+    if (!ok) return;
+    await db.deleteTask(t.id);
+    Toast('Tarea eliminada', 'success');
+    ld.cerrar();
+  });
 }

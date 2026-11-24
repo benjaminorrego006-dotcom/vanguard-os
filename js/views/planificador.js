@@ -3,12 +3,26 @@ import { Toast, ConfirmDialog, hayModalAbierto } from '../utils/states.js';
 import { diaKeyDe, formatFechaCorta, sumarDias, fechaLocalDe, diasEntre } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
-import { renderPriorityBars } from '../utils/prioridad.js';
 import { marcaDificultad, etiquetaDificultad } from '../utils/dificultad.js';
 import { iniciarFoco, MIN_FOCO } from '../components/foco.js';
 import { calcularAtrasadas } from '../utils/atrasadas.js';
 import { renderTaskForm, setupTaskForm, openTaskForm, abrirDetallePorId } from '../components/task-form.js';
 import { guardiaVista } from '../core/vista-activa.js';
+import { oIcono } from '../components/orbita.js';
+
+// Prioridad en tres barras (Órbita): llenas según el nivel; el nivel va en
+// el aria-label.
+const NIVEL_PRIORIDAD = { low: 1, medium: 2, high: 3 };
+const NOMBRE_PRIORIDAD = { low: 'baja', medium: 'media', high: 'alta' };
+function marcaPrioridad(p) {
+  const n = NIVEL_PRIORIDAD[p] || 2;
+  return `<span class="o-plan-prio" data-nivel="${n}" role="img" aria-label="Prioridad ${NOMBRE_PRIORIDAD[p] || 'media'}"><i></i><i></i><i></i></span>`;
+}
+const ICO_ANTERIOR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"></polyline></svg>';
+const ICO_SIGUIENTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"></polyline></svg>';
+const ICO_OPCIONES = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>';
+const ICO_MAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+const ICO_ABAJO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';
 
 // Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
 // un repintado que termina después de cambiar de vista no escribe encima.
@@ -149,10 +163,10 @@ function renderFranja(semana, hoyIso) {
     const sel = d.iso === diaSeleccionado;
     const pct = d.total ? Math.round((d.hechas / d.total) * 100) : 0;
     return `
-      <button type="button" role="tab" id="plan-dia-${d.iso}" class="plan-dia tappable${sel ? ' plan-dia--sel' : ''}${esHoy ? ' plan-dia--hoy' : ''}"
+      <button type="button" role="tab" id="plan-dia-${d.iso}" class="plan-dia${sel ? ' plan-dia--sel' : ''}${esHoy ? ' plan-dia--hoy' : ''}"
         data-iso="${d.iso}" aria-selected="${sel}" tabindex="${sel ? 0 : -1}" aria-label="${escapeHtml(etiquetaDia(d, i, esHoy))}">
         <span class="plan-dia-letra" aria-hidden="true">${esHoy ? 'HOY' : LETRA[i]}</span>
-        <span class="plan-dia-num num" aria-hidden="true">${fechaLocalDe(d.iso).getDate()}</span>
+        <span class="plan-dia-num o-num" aria-hidden="true">${fechaLocalDe(d.iso).getDate()}</span>
         ${d.total ? `<span class="plan-dia-barra" aria-hidden="true"><span style="width: ${pct}%;"></span></span>` : ''}
         ${d.pendientesPasado > 0 ? '<span class="plan-dia-alerta" aria-hidden="true"></span>' : ''}
       </button>`;
@@ -167,17 +181,15 @@ function partesMenuMover(it, iso, semana) {
   const dias = semana.map((d, i) => {
     const n = fechaLocalDe(d.iso).getDate();
     const actual = d.iso === iso;
-    return `<button type="button" role="menuitem" class="plan-mover-dia tappable" data-iso="${d.iso}" ${actual ? 'aria-disabled="true" disabled' : ''} aria-label="Mover al ${DOW[i].toLowerCase()} ${n}"><span class="num">${DIA_CORTO[i]} ${n}</span></button>`;
+    return `<button type="button" role="menuitem" class="o-chip plan-mover-dia" data-iso="${d.iso}" ${actual ? 'aria-disabled="true" disabled' : ''} aria-label="Mover al ${DOW[i].toLowerCase()} ${n}"><span class="o-num">${DIA_CORTO[i]} ${n}</span></button>`;
   }).join('');
   // Foco: solo tareas de Lista que no estén hechas.
   const foco = it.origen === 'tarea' && !it.hecha
-    ? `<div class="plan-menu-foco-fila"><button type="button" role="menuitem" class="plan-menu-foco tappable">Foco ${MIN_FOCO} min</button></div>`
+    ? `<div class="plan-menu-foco-fila"><button type="button" role="menuitem" class="o-btn o-btn--secundario plan-menu-foco">Foco ${MIN_FOCO} min</button></div>`
     : '';
   return {
     boton: `
-    <button type="button" class="plan-menu-btn tappable" aria-haspopup="menu" aria-expanded="false" aria-label="Opciones de «${texto}»">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
-    </button>`,
+    <button type="button" class="o-btn o-btn--fantasma o-btn--icono plan-menu-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Opciones de «${texto}»">${ICO_OPCIONES}</button>`,
     menu: `
     <div class="plan-mover-menu" role="menu" aria-label="${foco ? 'Opciones de' : 'Mover'} «${texto}»${foco ? '' : ' a'}" hidden>
       ${foco}
@@ -202,16 +214,14 @@ const conDificultad = (it) => (it.dificultad === 'facil' || it.dificultad === 'd
 function filaItem(it, iso, hoyIso, semana) {
   const texto = escapeHtml(it.texto);
   const check = `
-    <button type="button" class="plan-check tappable" aria-pressed="${it.hecha}" aria-label="${it.hecha ? `Desmarcar «${texto}»` : `Marcar «${texto}» como hecha`}">
-      <span class="plan-check-caja" aria-hidden="true">${it.hecha ? '<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="3.4" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}</span>
-    </button>`;
+    <button type="button" class="o-check plan-check" aria-pressed="${it.hecha}" aria-label="${it.hecha ? `Desmarcar «${texto}»` : `Marcar «${texto}» como hecha`}">${oIcono('check')}</button>`;
   if (it.origen === 'tarea') {
-    const venc = !it.hecha && iso <= hoyIso ? (iso === hoyIso ? 'VENCE HOY' : 'VENCIDA') : '';
+    const venc = !it.hecha && iso <= hoyIso ? (iso === hoyIso ? 'Vence hoy' : 'Vencida') : '';
     return `
       <li class="plan-item${it.hecha ? ' plan-item--hecha' : ''}" data-origen="tarea" data-id="${escapeHtml(it.id)}">
         ${check}
-        <button type="button" class="plan-item-texto plan-item-abrir tappable" aria-label="${texto}${conDificultad(it)}. Abrir el detalle">${texto}</button>
-        <span class="plan-item-meta">${venc ? `<span class="plan-venc">${venc}</span>` : ''}${marcaDificultad(it)}${renderPriorityBars(it.priority)}</span>
+        <button type="button" class="plan-item-texto plan-item-abrir" aria-label="${texto}${conDificultad(it)}. Abrir el detalle">${texto}</button>
+        <span class="plan-item-meta">${venc ? `<span class="plan-venc">${oIcono('alerta')}${venc}</span>` : ''}${marcaDificultad(it)}${marcaPrioridad(it.priority)}</span>
         ${menuMover(it, iso, semana)}
       </li>`;
   }
@@ -220,9 +230,7 @@ function filaItem(it, iso, hoyIso, semana) {
       ${check}
       <span class="plan-item-texto">${texto}</span>
       ${menuMover(it, iso, semana)}
-      <button type="button" class="plan-delete tappable" aria-label="Eliminar «${texto}»">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
+      <button type="button" class="o-btn o-btn--fantasma o-btn--icono plan-delete" aria-label="Eliminar «${texto}»">${oIcono('cerrar')}</button>
     </li>`;
 }
 
@@ -245,21 +253,17 @@ function filaColumna(it, iso, hoyIso, semana) {
   const estado = !esTarea || it.hecha ? '' : iso === hoyIso ? 'vence hoy' : vencida ? `vencida el ${DOW[i].toLowerCase()} ${fechaLocalDe(iso).getDate()}` : '';
   const conEstado = estado ? `${texto} (${estado})` : texto;
   const check = `
-      <button type="button" class="plan-check tappable" aria-pressed="${it.hecha}" aria-label="${it.hecha ? `Desmarcar «${texto}»` : `Marcar «${texto}» como hecha${estado ? `, ${estado}` : ''}`}">
-        <span class="plan-check-caja" aria-hidden="true">${it.hecha ? '<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="3.4" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}</span>
-      </button>`;
+      <button type="button" class="o-check plan-check" aria-pressed="${it.hecha}" aria-label="${it.hecha ? `Desmarcar «${texto}»` : `Marcar «${texto}» como hecha${estado ? `, ${estado}` : ''}`}">${oIcono('check')}</button>`;
   const textoHtml = esTarea
-    ? `<button type="button" class="plan-item-texto plan-item-abrir tappable" title="${conEstado}" aria-label="${texto}${estado ? `, ${estado}` : ''}${conDificultad(it)}. Abrir el detalle"><span class="plan-clamp">${texto}</span></button>`
+    ? `<button type="button" class="plan-item-texto plan-item-abrir" title="${conEstado}" aria-label="${texto}${estado ? `, ${estado}` : ''}${conDificultad(it)}. Abrir el detalle"><span class="plan-clamp">${texto}</span></button>`
     : `<span class="plan-item-texto" title="${texto}"><span class="plan-clamp">${texto}</span></span>`;
   const borrar = esTarea ? '' : `
-        <button type="button" class="plan-delete tappable" aria-label="Eliminar «${texto}»">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>`;
+        <button type="button" class="o-btn o-btn--fantasma o-btn--icono plan-delete" aria-label="Eliminar «${texto}»">${oIcono('cerrar')}</button>`;
   return `
     <li class="plan-item plan-item--col${it.hecha ? ' plan-item--hecha' : ''}${vencida ? ' plan-item--vencida' : ''}" data-origen="${it.origen}" data-id="${escapeHtml(it.id)}">
       <div class="plan-fila-l1">${check}${textoHtml}</div>
       <div class="plan-fila-l2">
-        ${esTarea ? renderPriorityBars(it.priority) + marcaDificultad(it, { letra: true }) : ''}
+        ${esTarea ? marcaPrioridad(it.priority) + marcaDificultad(it, { letra: true }) : ''}
         <span class="plan-fila-acciones">${borrar}${boton}</span>
       </div>
       ${menu}
@@ -274,12 +278,12 @@ function renderDetalle(semana, hoyIso) {
   return `
     <section id="plan-detalle" class="plan-detalle" role="tabpanel" aria-labelledby="plan-dia-${d.iso}">
       <div class="plan-detalle-cab">
-        <h2>${DOW[i]} <span class="num">${n}</span></h2>
-        ${d.total ? `<span class="plan-detalle-cont num" aria-label="${d.hechas} de ${d.total} ${plural(d.total, 'hecha', 'hechas')}">${d.hechas}/${d.total}</span>` : ''}
+        <h3>${DOW[i]} <span class="o-num">${n}</span></h3>
+        ${d.total ? `<span class="plan-detalle-cont o-num" aria-label="${d.hechas} de ${d.total} ${plural(d.total, 'hecha', 'hechas')}">${d.hechas}/${d.total}</span>` : ''}
       </div>
       ${d.items.length
         ? `<ul class="plan-items">${d.items.map(it => filaItem(it, d.iso, hoyIso, semana)).join('')}</ul>`
-        : '<p class="plan-vacio">Nada para este día</p>'}
+        : '<p class="plan-vacio">Nada para este día.</p>'}
     </section>`;
 }
 
@@ -293,7 +297,7 @@ function renderColumnas(semana, hoyIso) {
         <section class="plan-col${d.iso === diaSeleccionado ? ' plan-col--sel' : ''}" data-iso="${d.iso}" aria-label="${escapeHtml(etiquetaDia(d, i, d.iso === hoyIso))}">
           ${d.items.length
             ? `<ul class="plan-items">${d.items.map(it => filaColumna(it, d.iso, hoyIso, semana)).join('')}</ul>`
-            : '<p class="plan-vacio">Nada para este día</p>'}
+            : '<p class="plan-vacio">Nada para este día.</p>'}
         </section>`).join('')}
     </div>`;
 }
@@ -310,9 +314,9 @@ function renderNueva(semana) {
   const chip = chipDia(semana);
   return `
     <form class="plan-nueva-form" onsubmit="return false;">
-      <input class="plan-nueva" type="text" placeholder="Agregar…" enterkeyhint="go" aria-label="${chip.label}">
-      <span class="plan-nueva-chip num" aria-hidden="true">${chip.texto}</span>
-      <button type="submit" class="plan-nueva-btn tappable" aria-label="${chip.label}">+</button>
+      <input class="o-input plan-nueva" type="text" autocomplete="off" maxlength="140" placeholder="Agregar…" enterkeyhint="go" aria-label="${chip.label}">
+      <span class="o-chip plan-nueva-chip o-num" aria-hidden="true">${chip.texto}</span>
+      <button type="submit" class="o-btn o-btn--secundario o-btn--icono plan-nueva-btn" aria-label="${chip.label}">${ICO_MAS}</button>
     </form>`;
 }
 
@@ -325,11 +329,11 @@ function renderTira(atrasadas, hoyIso) {
   return `
     <div class="plan-tira">
       <div class="plan-tira-fila">
-        <button type="button" id="plan-tira-toggle" class="plan-tira-texto tappable" aria-expanded="${tiraAbierta}" aria-controls="plan-tira-lista">
-          <span class="num">${n}</span> ${plural(n, 'pendiente', 'pendientes')} de días pasados
-          <svg aria-hidden="true" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transform: rotate(${tiraAbierta ? 180 : 0}deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <button type="button" id="plan-tira-toggle" class="plan-tira-texto" aria-expanded="${tiraAbierta}" aria-controls="plan-tira-lista">
+          ${oIcono('alerta')}<span><span class="o-num">${n}</span> ${plural(n, 'pendiente', 'pendientes')} de días pasados</span>
+          <span class="plan-tira-flecha">${ICO_ABAJO}</span>
         </button>
-        <button type="button" id="plan-tira-pasar" class="plan-tira-pasar tappable">Pasar a hoy</button>
+        <button type="button" id="plan-tira-pasar" class="o-btn o-btn--secundario plan-tira-pasar">Pasar a hoy</button>
       </div>
       <ul id="plan-tira-lista" class="plan-tira-lista" ${tiraAbierta ? '' : 'hidden'}>
         ${atrasadas.map(a => `<li><span class="plan-tira-item">${escapeHtml(a.texto)}</span><span class="plan-tira-meta">${a.tipo === 'plan' ? 'Semana' : 'Lista'} · ${hace(a.fecha)}</span></li>`).join('')}
@@ -354,18 +358,18 @@ export async function render() {
   const rango = `${formatFechaCorta(fechaLocalDe(isos[0]))} – ${formatFechaCorta(fechaLocalDe(isos[6]))}`;
 
   return `
-    <div style="padding: 20px 20px 0 20px; font-family: var(--font-body);">
+    <div class="o-plan-semana">
 
       <header class="plan-cab">
         <div class="plan-cab-titulo">
-          <h1>Semana</h1>
+          <h2>Semana</h2>
           ${offsetSemana === 0
-            ? `<div class="plan-rango">${rango} · <span class="num">${hechasSemana}/${totalSemana}</span></div>`
-            : `<button type="button" id="plan-hoy" class="plan-rango plan-rango--volver tappable" aria-label="${rango}, ${hechasSemana} de ${totalSemana} hechas. Volver a esta semana">${rango} · <span class="num">${hechasSemana}/${totalSemana}</span> <span class="plan-rango-volver">· Volver a hoy</span></button>`}
+            ? `<div class="plan-rango">${rango} · <span class="o-num">${hechasSemana}/${totalSemana}</span></div>`
+            : `<button type="button" id="plan-hoy" class="plan-rango plan-rango--volver" aria-label="${rango}, ${hechasSemana} de ${totalSemana} hechas. Volver a esta semana">${rango} · <span class="o-num">${hechasSemana}/${totalSemana}</span> <span class="plan-rango-volver">· Volver a hoy</span></button>`}
         </div>
         <div class="plan-cab-nav">
-          <button type="button" id="plan-prev" class="plan-flecha tappable" aria-label="Semana anterior">‹</button>
-          <button type="button" id="plan-next" class="plan-flecha tappable" aria-label="Semana siguiente">›</button>
+          <button type="button" id="plan-prev" class="o-btn o-btn--secundario o-btn--icono plan-flecha" aria-label="Semana anterior">${ICO_ANTERIOR}</button>
+          <button type="button" id="plan-next" class="o-btn o-btn--secundario o-btn--icono plan-flecha" aria-label="Semana siguiente">${ICO_SIGUIENTE}</button>
         </div>
       </header>
 
@@ -480,7 +484,7 @@ export function mountListeners() {
     const franja = document.querySelector('.plan-franja');
     franja?.classList.add('plan-franja--mover');
     const texto = li.querySelector('.plan-item-texto').textContent.trim();
-    franja?.insertAdjacentHTML('afterend', `<div id="plan-mover-aviso" class="plan-mover-aviso" role="status"><span>Toca un día para mover «${escapeHtml(texto)}»</span><button type="button" id="plan-mover-cancelar" class="tappable">Cancelar</button></div>`);
+    franja?.insertAdjacentHTML('afterend', `<div id="plan-mover-aviso" class="plan-mover-aviso" role="status"><span>Toca un día para mover «${escapeHtml(texto)}»</span><button type="button" id="plan-mover-cancelar" class="o-btn o-btn--secundario">Cancelar</button></div>`);
     document.getElementById('plan-mover-cancelar')?.addEventListener('click', salirDeMover);
     document.addEventListener('keydown', escMover);
     if (navigator.vibrate) navigator.vibrate(30);
@@ -600,7 +604,6 @@ export function mountListeners() {
     tiraAbierta = !tiraAbierta;
     document.getElementById('plan-tira-lista').hidden = !tiraAbierta;
     toggle.setAttribute('aria-expanded', String(tiraAbierta));
-    toggle.querySelector('svg').style.transform = `rotate(${tiraAbierta ? 180 : 0}deg)`;
   });
   // "Pasar a hoy": planificador → moverTareaPlan (tarea_reprogramada); Lista
   // → saveTask({ id, dueDate }) (tarea_actualizada), igual que "Mover a hoy"

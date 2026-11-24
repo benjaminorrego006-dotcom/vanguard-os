@@ -1,22 +1,35 @@
+// js/components/task-form.js
+// Hoja de tarea (Órbita, Fase 7): crear una tarea nueva o editar una que ya
+// existe. Se monta en Plan › Tareas, Plan › Semana y Hoy. En una tarea que
+// ya existe, los chips de estado se aplican al tocarlos (con su evento en el
+// log), y la hoja muestra el Foco y la bitácora. Al cerrarla de cualquier
+// forma (Cancelar, ✕, atrás, tocar fuera) la vista de atrás se repinta si
+// hubo un cambio de estado.
 import { db } from '../core/db.js';
+import { esperarSalidaDeModal } from '../core/history.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { iniciarFoco, focoEnCurso, MIN_FOCO } from './foco.js';
-import { formatFechaHora } from '../utils/fecha.js';
+import { formatFechaHora, diaKeyDe, fechaLocalDe, formatFechaCorta } from '../utils/fecha.js';
 import { formatNumero } from '../utils/numero.js';
-import { colorTexto } from '../utils/tema.js';
+import { oHoja, oIcono, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
 
-const STATE_CHIPS = [
+const ID = 'task-modal';
+
+export const ESTADOS = [
   { value: 'todo', label: 'Por hacer' },
   { value: 'in-progress', label: 'En curso' },
   { value: 'done', label: 'Hecho' }
 ];
-
-// Dificultad (docs/PLAN-DIFICULTAD-FOCO.md, F1): solo en tareas de Lista.
-// Sin elegir = sin campo (al calcular se lee como 'media'); por eso una
-// tarea sin el campo abre con "Media" sugerida (borde punteado) y no guarda
-// nada si no se toca.
-const DIFICULTAD_CHIPS = [
+export const PRIORIDADES = [
+  { value: 'low', label: 'Baja' },
+  { value: 'medium', label: 'Media' },
+  { value: 'high', label: 'Alta' }
+];
+// Dificultad (docs/PLAN-DIFICULTAD-FOCO.md, F1): sin elegir = sin campo (al
+// calcular se lee como 'media'); una tarea sin el campo abre con «Media»
+// sugerida (borde punteado) y no guarda nada si no se toca.
+const DIFICULTADES = [
   { value: 'facil', label: 'Fácil' },
   { value: 'media', label: 'Media' },
   { value: 'dificil', label: 'Difícil' }
@@ -28,423 +41,332 @@ const EVENT_LABELS = {
   tarea_completada: 'Marcada como hecha',
   tarea_eliminada: 'Tarea eliminada'
 };
-// foco_completado: "Foco · N min" con los minutos del evento.
+// foco_completado: «Foco · N min» con los minutos del evento.
 const minutosDe = (ev) => (Number(ev.payload && ev.payload.minutos) > 0 ? Number(ev.payload.minutos) : MIN_FOCO);
 const etiquetaEvento = (ev) => (ev.tipo === 'foco_completado' ? `Foco · ${minutosDe(ev)} min` : EVENT_LABELS[ev.tipo] || ev.tipo);
 
-// Botón de foco: solo en una tarea existente que no esté hecha. Con un foco
-// en curso (de esta u otra tarea) lo abre en vez de empezar otro.
-function syncFocoBtn() {
-  const btn = document.getElementById('btn-task-foco');
-  if (!btn) return;
-  const id = document.getElementById('task-id').value;
-  const status = document.getElementById('task-status-pending').value;
-  btn.hidden = !id || status === 'done';
-  const actual = focoEnCurso();
-  btn.textContent = !actual ? `Foco ${MIN_FOCO} min` : actual.tareaId === id ? 'Volver al foco' : 'Ver foco en curso';
+// «Vence hoy» / «Venció el 20 nov.» (alerta real: lleva ícono y texto) o
+// «Vence el 30 nov.». null sin fecha o si la tarea está hecha.
+export function avisoVencimiento(dueDate, status) {
+  if (!dueDate || status === 'done') return null;
+  const hoy = diaKeyDe(new Date());
+  const fecha = formatFechaCorta(fechaLocalDe(dueDate));
+  if (dueDate === hoy) return { texto: 'Vence hoy', alerta: true };
+  if (dueDate < hoy) return { texto: `Venció el ${fecha}`, alerta: true };
+  return { texto: `Vence el ${fecha}`, alerta: false };
 }
 
-window.addEventListener('vg-foco-cambio', syncFocoBtn);
-
-function formatBitacoraFecha(ts) {
-  return formatFechaHora(new Date(ts));
-}
-
-// Vencida o vence hoy -> rojo (--rd); cualquier otro caso (sin fecha o
-// fecha futura) usa el color de texto normal, nunca rojo.
-function dueDateColor(dueDate) {
-  if (!dueDate) return 'var(--text-primary)';
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const d = new Date(dueDate + 'T00:00:00');
-  return d <= hoy ? 'var(--rd)' : 'var(--text-primary)';
-}
-
-function renderPriorityPicker() {
-  return `
-    <div id="priority-picker" style="display:flex; align-items:flex-end; gap:6px;">
-      ${[1, 2, 3].map(i => {
-        const h = 8 + i * 5;
-        const p = i === 1 ? 'low' : i === 2 ? 'medium' : 'high';
-        return `<button type="button" class="btn-priority-bar tappable" data-priority="${p}" title="Prioridad ${p}" aria-label="Prioridad ${p}" style="width:16px; height:${h}px; padding:0; background:var(--surface-2); border:1px solid var(--surface-border); cursor:pointer;"></button>`;
-      }).join('')}
-    </div>
-  `;
-}
-
-function syncPriorityBarStyles(priority) {
-  const level = priority === 'high' ? 3 : priority === 'low' ? 1 : 2;
-  document.querySelectorAll('.btn-priority-bar').forEach((btn, idx) => {
-    const filled = (idx + 1) <= level;
-    btn.style.background = filled ? 'var(--vi)' : 'var(--surface-2)';
-    btn.style.borderColor = filled ? 'var(--vi)' : 'var(--surface-border)';
-  });
-}
-
-function syncDificultadChips(dificultad) {
-  document.querySelectorAll('.btn-dificultad-chip').forEach(btn => {
-    const v = btn.getAttribute('data-dificultad');
-    const elegida = v === dificultad;
-    const sugerida = !dificultad && v === 'media';
-    btn.setAttribute('aria-checked', String(elegida));
-    btn.classList.toggle('btn-dificultad-chip--sugerida', sugerida);
-    btn.style.background = elegida ? 'var(--vip)' : 'var(--surface-1)';
-    btn.style.borderColor = elegida || sugerida ? 'var(--vi)' : 'var(--surface-border)';
-    btn.style.borderStyle = sugerida ? 'dashed' : 'solid';
-    btn.style.color = elegida ? 'var(--text-primary)' : 'var(--text-secondary)';
-  });
-}
-
-function syncStateChipStyles(status) {
-  document.querySelectorAll('.btn-state-chip').forEach(btn => {
-    const isActive = btn.getAttribute('data-status') === status;
-    btn.style.background = isActive ? 'var(--vip)' : 'var(--surface-1)';
-    btn.style.borderColor = isActive ? 'var(--vi)' : 'var(--surface-border)';
-    btn.style.color = isActive ? 'var(--text-primary)' : 'var(--text-secondary)';
-  });
-}
-
-// Bitácora: se deriva en vivo del log de eventos central (nunca un campo
-// guardado aparte) — ver db.getBitacoraEntidad. Más reciente arriba, en
-// violeta brillante; el resto, en violeta atenuado (--vib).
-function renderBitacora(eventos) {
-  if (eventos.length === 0) {
-    return `<div style="font-size:12px; color:var(--text-secondary);">Sin actividad registrada</div>`;
-  }
+// Bitácora: se deriva en vivo del log de eventos (nunca un campo guardado
+// aparte), ver db.getBitacoraEntidad. La más reciente arriba.
+export function renderBitacora(eventos) {
+  if (!eventos.length) return '<p class="o-tarea-nada">Sin actividad registrada.</p>';
   const ordenados = [...eventos].sort((a, b) => b.ts - a.ts);
-  return `
-    <div style="position:relative; padding-left:18px;">
-      ${ordenados.map((ev, i) => {
-        const isLatest = i === 0;
-        const isLast = i === ordenados.length - 1;
-        const dotColor = isLatest ? 'var(--vi)' : 'var(--vib)';
-        const label = etiquetaEvento(ev);
-        return `
-          <div style="position:relative; padding-bottom:${isLast ? '0' : '16px'};">
-            ${!isLast ? `<div style="position:absolute; left:-14px; top:12px; bottom:0; width:1px; background:var(--vib);"></div>` : ''}
-            <div style="position:absolute; left:-18px; top:3px; width:8px; height:8px; border-radius:50%; background:${dotColor};"></div>
-            <div style="font-size:13px; font-weight:700; color:${isLatest ? 'var(--text-primary)' : 'var(--text-secondary)'};">${label}</div>
-            <div style="font-size:11px; color:var(--t5); margin-top:2px;">${formatBitacoraFecha(ev.ts)}</div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
+  return `<ol class="o-bitacora">${ordenados.map(ev => `
+    <li class="o-bitacora-item">
+      <b>${escapeHtml(etiquetaEvento(ev))}</b>
+      <span class="o-num">${escapeHtml(formatFechaHora(new Date(ev.ts)))}</span>
+    </li>`).join('')}</ol>`;
 }
 
-// Bitácora y "N focos · X min" (solo si tiene alguno), de una sola lectura
-// del log de la tarea.
-async function refreshBitacoraSection(taskId) {
-  const eventos = await db.getBitacoraEntidad(taskId);
-  // Otro detalle pudo abrirse mientras se leía.
-  if (document.getElementById('task-id')?.value !== taskId) return;
-  const el = document.getElementById('task-bitacora');
-  if (el) el.innerHTML = renderBitacora(eventos);
+// «2 focos · 50 min», o '' si la tarea no tiene focos.
+export function resumenFocos(eventos) {
   const focos = eventos.filter(e => e.tipo === 'foco_completado');
+  if (!focos.length) return '';
   const minutos = focos.reduce((s, e) => s + minutosDe(e), 0);
-  const resumen = document.getElementById('task-focos');
-  if (resumen) {
-    resumen.hidden = focos.length === 0;
-    resumen.innerHTML = focos.length ? `<span class="num">${formatNumero(focos.length)}</span> ${focos.length === 1 ? 'foco' : 'focos'} · <span class="num">${formatNumero(minutos)}</span> min` : '';
-  }
+  return `<span class="o-num">${formatNumero(focos.length)}</span> ${focos.length === 1 ? 'foco' : 'focos'} · <span class="o-num">${formatNumero(minutos)}</span> min`;
 }
 
-// Al cerrarse la pantalla de foco con el detalle de esa tarea abierto
-// debajo, se ponen al día su bitácora y sus focos sin reabrirlo.
-window.addEventListener('vg-foco-cerrado', (e) => {
-  const id = e.detail && e.detail.tareaId;
-  if (id && document.querySelector('#task-modal.open') && document.getElementById('task-id')?.value === id) refreshBitacoraSection(id);
-});
+// Texto del botón de foco: con un foco en curso (de esta u otra tarea) lo
+// abre en vez de empezar otro.
+export function textoBotonFoco(tareaId) {
+  const actual = focoEnCurso();
+  return !actual ? `Foco ${MIN_FOCO} min` : actual.tareaId === tareaId ? 'Volver al foco' : 'Ver foco en curso';
+}
+
+const opcion = (clase, attr, o) => `<button type="button" class="o-chip ${clase}" ${attr}="${o.value}" aria-pressed="false">${o.label}</button>`;
 
 export function renderTaskForm() {
-  return `
-    <div id="task-modal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 520px; max-height: 90vh; overflow-y: auto;">
-        <h2 id="task-modal-title" style="margin-top: 0; margin-bottom: 18px; font-size: 20px; font-weight: 800; color: var(--text-primary);">Nueva tarea</h2>
-        <input type="hidden" id="task-id">
-        <input type="hidden" id="task-status-pending" value="todo">
-
-        <!-- Selector de estado: 3 chips -->
-        <div style="display:flex; gap:6px; margin-bottom:22px;">
-          ${STATE_CHIPS.map(s => `
-            <button type="button" class="btn-state-chip tappable" data-status="${s.value}" style="flex:1; padding:10px 6px; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-secondary); cursor:pointer; text-transform:uppercase; font-weight:700;">${s.label}</button>
-          `).join('')}
-        </div>
-
-        <div id="task-focos" hidden style="margin:-12px 0 18px; font-size:13px; font-weight:600; color:var(--vi-t);"></div>
-        <button type="button" id="btn-task-foco" class="tappable" hidden style="width:100%; min-height:44px; margin:-10px 0 20px; background:transparent; border:1px solid var(--vi); color:var(--vi-t); font:inherit; font-size:13px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; cursor:pointer;">Foco 25 min</button>
-
-        <div class="input-group">
-          <label for="task-title">Título</label>
-          <input type="text" id="task-title" placeholder="Ej. Finalizar estrategia de marketing" required>
-        </div>
-
-        <!-- Metadatos: fecha límite + prioridad -->
-        <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:20px;">
-          <div class="input-group" style="margin-bottom:0; flex:1;">
-            <label for="task-due-date">Fecha límite</label>
-            <input type="date" id="task-due-date">
-          </div>
-          <div style="padding-bottom:14px;">
-            <div style="display:block; color:var(--text-secondary); font-size:13px; font-weight:600; margin-bottom:8px; text-transform:uppercase;">Prioridad</div>
-            ${renderPriorityPicker()}
-            <input type="hidden" id="task-priority" value="medium">
-          </div>
-        </div>
-
-        <!-- Dificultad: 3 chips (misma estética que los de estado). -->
-        <div style="margin-bottom:20px;">
-          <div id="task-dificultad-etq" style="display:block; color:var(--text-secondary); font-size:13px; font-weight:600; margin-bottom:8px; text-transform:uppercase;">Dificultad</div>
-          <div role="radiogroup" aria-labelledby="task-dificultad-etq" style="display:flex; gap:6px;">
-            ${DIFICULTAD_CHIPS.map(d => `
-              <button type="button" role="radio" aria-checked="false" class="btn-dificultad-chip tappable" data-dificultad="${d.value}" style="flex:1; min-height:44px; padding:10px 6px; background:var(--surface-1); border:1px solid var(--surface-border); color:var(--text-secondary); cursor:pointer; text-transform:uppercase; font-weight:700;">${d.label}</button>
-            `).join('')}
-          </div>
-          <input type="hidden" id="task-dificultad" value="">
-        </div>
-
-        <div class="input-group">
-          <label for="task-desc">Notas</label>
-          <textarea id="task-desc" placeholder="Detalles, contexto, links..." rows="3" style="color: var(--text-secondary);"></textarea>
-        </div>
-
-        <div class="input-group">
-          <label for="task-project">Proyecto / Etiqueta</label>
-          <input type="text" id="task-project" placeholder="Ej. Product Launch">
-        </div>
-
-        <div class="input-group">
-          <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Subtareas</div>
-          <div id="subtasks-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
-          <button id="btn-add-subtask" type="button" style="background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 8px; cursor: pointer; width: 100%; font-size: 13px;">+ Agregar subtarea</button>
-        </div>
-
-        <!-- Bitácora: derivada del log de eventos, solo si la tarea existe -->
-        <div id="bitacora-section" style="display:none; margin-top:8px; margin-bottom:8px;">
-          <div style="display:block; color:var(--text-secondary); font-size:13px; font-weight:600; margin-bottom:12px; text-transform:uppercase;">Bitácora</div>
-          <div id="task-bitacora"></div>
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-          <button id="btn-save-task" class="btn-primary" style="background: var(--accent-purple); color: var(--bg-base); flex: 1; margin-top:0;">Guardar</button>
-          <button id="btn-delete-task-modal" type="button" style="display:none; background: transparent; border: 1.5px solid var(--rdb); color: var(--rd-t); padding: 0 18px; font-weight:700; font-size:13px; cursor:pointer;">Eliminar</button>
-        </div>
-        <button id="btn-cancel-task" type="button" style="background: transparent; border: none; color: var(--text-secondary); width: 100%; padding: 12px; margin-top: 8px; cursor: pointer; font-size: 13px;">Cancelar</button>
+  const cuerpo = `
+    <form id="task-form" class="o-tarea-form" onsubmit="return false;" novalidate>
+      <div class="o-campo">
+        <label for="task-title">Título</label>
+        <input type="text" id="task-title" class="o-input" placeholder="Ej.: Terminar el informe" maxlength="140" autocomplete="off" enterkeyhint="done">
       </div>
-    </div>
-  `;
+
+      <div class="o-campo">
+        <span class="o-campo-etiqueta" id="task-estado-etq">Estado</span>
+        <div class="o-tarea-opciones" role="group" aria-labelledby="task-estado-etq">
+          ${ESTADOS.map(s => opcion('btn-state-chip', 'data-status', s)).join('')}
+        </div>
+      </div>
+
+      <div id="task-foco-bloque" class="o-tarea-foco" hidden>
+        <p id="task-focos" class="o-tarea-focos" hidden></p>
+        <button type="button" id="btn-task-foco" class="o-btn o-btn--secundario o-btn--bloque">Foco ${MIN_FOCO} min</button>
+      </div>
+
+      <div class="o-campo">
+        <label for="task-due-date">Fecha límite</label>
+        <input type="date" id="task-due-date" class="o-input">
+        <p id="task-due-aviso" class="o-campo-error" hidden></p>
+      </div>
+
+      <div class="o-campo">
+        <span class="o-campo-etiqueta" id="task-prio-etq">Prioridad</span>
+        <div class="o-tarea-opciones" role="group" aria-labelledby="task-prio-etq">
+          ${PRIORIDADES.map(p => opcion('btn-priority-chip', 'data-priority', p)).join('')}
+        </div>
+      </div>
+
+      <div class="o-campo">
+        <span class="o-campo-etiqueta" id="task-dificultad-etq">Dificultad</span>
+        <div class="o-tarea-opciones" role="group" aria-labelledby="task-dificultad-etq">
+          ${DIFICULTADES.map(d => opcion('btn-dificultad-chip', 'data-dificultad', d)).join('')}
+        </div>
+      </div>
+
+      <div class="o-campo">
+        <label for="task-desc">Notas</label>
+        <textarea id="task-desc" class="o-input" rows="3" placeholder="Detalles, contexto, enlaces…"></textarea>
+      </div>
+
+      <div class="o-campo">
+        <label for="task-project">Proyecto o etiqueta</label>
+        <input type="text" id="task-project" class="o-input" placeholder="Ej.: Lanzamiento" maxlength="60" autocomplete="off">
+      </div>
+
+      <div class="o-campo">
+        <span class="o-campo-etiqueta">Subtareas</span>
+        <ul id="subtasks-container" class="o-tarea-subs"></ul>
+        <button type="button" id="btn-add-subtask" class="o-btn o-btn--fantasma o-btn--bloque">Agregar subtarea</button>
+      </div>
+
+      <section id="bitacora-section" class="o-campo" hidden>
+        <span class="o-campo-etiqueta">Bitácora</span>
+        <div id="task-bitacora"></div>
+      </section>
+
+      <!-- Ocultos al final: abrirHoja enfoca el primer control del cuerpo. -->
+      <input type="hidden" id="task-id">
+      <input type="hidden" id="task-status-pending" value="todo">
+      <input type="hidden" id="task-priority" value="medium">
+      <input type="hidden" id="task-dificultad" value="">
+      <button type="button" id="btn-delete-task-modal" class="o-btn o-btn--secundario o-btn--bloque o-tarea-eliminar" hidden>Eliminar tarea</button>
+    </form>`;
+  return oHoja({
+    id: ID, modulo: 'plan', titulo: 'Nueva tarea', cuerpo,
+    pie: '<button type="button" id="btn-cancel-task" class="o-btn o-btn--secundario" data-hoja-cerrar>Cancelar</button><button type="submit" form="task-form" id="btn-save-task" class="o-btn o-btn--primario">Guardar</button>'
+  });
 }
 
-export function setupTaskForm(onSaveCallback) {
-  const modal = document.getElementById('task-modal');
-  const btnCancel = document.getElementById('btn-cancel-task');
-  const btnSave = document.getElementById('btn-save-task');
-  const btnDelete = document.getElementById('btn-delete-task-modal');
-  const btnAddSub = document.getElementById('btn-add-subtask');
-  const container = document.getElementById('subtasks-container');
-  const dueInput = document.getElementById('task-due-date');
-  const priorityHidden = document.getElementById('task-priority');
-  const statusPending = document.getElementById('task-status-pending');
+// --- Partes de la hoja ------------------------------------------------------
+const $ = (id) => document.getElementById(id);
 
-  const closeModal = () => {
-    modal.classList.remove('open');
-    setTimeout(() => modal.style.display = 'none', 300);
+function filaSubtarea({ title = '', done = false } = {}) {
+  const li = document.createElement('li');
+  li.className = 'o-tarea-sub';
+  li.innerHTML = `
+    <button type="button" class="o-check subtask-check" aria-pressed="${done}" aria-label="Subtarea hecha">${oIcono('check')}</button>
+    <input type="text" class="o-input subtask-title" placeholder="Subtarea…" maxlength="120" autocomplete="off" aria-label="Subtarea">
+    <button type="button" class="o-btn o-btn--fantasma o-btn--icono btn-remove-sub" aria-label="Quitar subtarea">${oIcono('cerrar')}</button>`;
+  li.querySelector('.subtask-title').value = title;
+  li.querySelector('.subtask-check').addEventListener('click', (e) => {
+    const b = e.currentTarget;
+    b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'));
+  });
+  li.querySelector('.btn-remove-sub').addEventListener('click', () => li.remove());
+  return li;
+}
+
+function marcarOpciones(selector, attr, valor, sugerido = null) {
+  document.querySelectorAll(`#${ID} ${selector}`).forEach(b => {
+    const v = b.getAttribute(attr);
+    b.setAttribute('aria-pressed', String(v === valor));
+    b.classList.toggle('o-tarea-sugerida', !valor && v === sugerido);
+  });
+}
+
+function pintarAviso() {
+  const aviso = $('task-due-aviso');
+  if (!aviso) return;
+  const a = avisoVencimiento($('task-due-date').value, $('task-status-pending').value);
+  aviso.hidden = !a || !a.alerta;
+  aviso.innerHTML = a && a.alerta ? `${oIcono('alerta')}<span>${escapeHtml(a.texto)}</span>` : '';
+}
+
+function syncFocoBtn() {
+  const btn = $('btn-task-foco');
+  if (!btn) return;
+  const id = $('task-id').value;
+  $('task-foco-bloque').hidden = !id || $('task-status-pending').value === 'done';
+  btn.textContent = textoBotonFoco(id);
+}
+window.addEventListener('vg-foco-cambio', syncFocoBtn);
+
+// Bitácora y «N focos · X min», de una sola lectura del log de la tarea.
+async function refreshBitacoraSection(taskId) {
+  const eventos = await db.getBitacoraEntidad(taskId);
+  if ($('task-id')?.value !== taskId) return; // se abrió otra mientras se leía
+  const el = $('task-bitacora');
+  if (el) el.innerHTML = renderBitacora(eventos);
+  const resumen = $('task-focos');
+  if (resumen) {
+    const r = resumenFocos(eventos);
+    resumen.hidden = !r;
+    resumen.innerHTML = r;
+  }
+}
+
+// Al cerrarse la pantalla de foco con esta hoja abierta debajo, se ponen al
+// día la bitácora y los focos sin reabrirla.
+window.addEventListener('vg-foco-cerrado', (e) => {
+  const id = e.detail && e.detail.tareaId;
+  if (id && document.querySelector(`#${ID}.open`) && $('task-id')?.value === id) refreshBitacoraSection(id);
+});
+
+// onSave: repinta la vista de atrás. Se llama al guardar, al eliminar y al
+// cerrar la hoja después de cambiar el estado de una tarea existente.
+export function setupTaskForm(onSave) {
+  const overlay = $(ID);
+  if (!overlay) return;
+  montarHoja(ID);
+  let estadoCambiado = false;
+  let guardando = false;
+  const avisar = async () => {
+    await esperarSalidaDeModal(ID);
+    if (onSave) onSave();
   };
 
-  btnCancel.addEventListener('click', () => {
-    closeModal();
-    // Un clic en un chip de estado ya aplicó el cambio en la BD aunque el
-    // resto de la edición se cancele — el tablero de atrás necesita
-    // refrescarse para reflejarlo (ver comentario en el listener de chips).
-    if (onSaveCallback) onSaveCallback();
+  // Cerrar sin guardar (Cancelar, ✕, atrás, fondo): si un chip de estado ya
+  // movió la tarea, la vista de atrás se pone al día.
+  new MutationObserver(() => {
+    if (overlay.classList.contains('open') || guardando) return;
+    if (estadoCambiado) { estadoCambiado = false; avisar(); }
+  }).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+  overlay.addEventListener('vg-hoja-abierta', () => { estadoCambiado = false; guardando = false; });
+
+  $('btn-add-subtask').addEventListener('click', () => {
+    const li = filaSubtarea();
+    $('subtasks-container').appendChild(li);
+    li.querySelector('.subtask-title').focus();
+  });
+  $('task-due-date').addEventListener('change', pintarAviso);
+
+  // Foco: la pantalla se abre encima de la hoja (al terminar la pausa se
+  // vuelve a ella). Desde otro lado, `alVolver` abre esta tarea.
+  $('btn-task-foco').addEventListener('click', () => {
+    const id = $('task-id').value;
+    if (id) iniciarFoco({ id, title: $('task-title').value.trim() }, { alVolver: abrirDetallePorId });
   });
 
-  btnAddSub.addEventListener('click', () => {
-    const div = document.createElement('div');
-    div.style.display = 'flex';
-    div.style.gap = '8px';
-    div.innerHTML = `
-      <input type="checkbox" class="subtask-check" style="width: 20px; height: 20px;">
-      <input type="text" class="subtask-title" placeholder="Subtarea..." style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 16px;">
-      <button class="tappable btn-remove-sub" type="button" aria-label="Eliminar subtarea" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
-    `;
-    div.querySelector('.btn-remove-sub').addEventListener('click', () => div.remove());
-    container.appendChild(div);
-  });
+  document.querySelectorAll(`#${ID} .btn-priority-chip`).forEach(b => b.addEventListener('click', () => {
+    $('task-priority').value = b.getAttribute('data-priority');
+    marcarOpciones('.btn-priority-chip', 'data-priority', $('task-priority').value);
+  }));
+  document.querySelectorAll(`#${ID} .btn-dificultad-chip`).forEach(b => b.addEventListener('click', () => {
+    $('task-dificultad').value = b.getAttribute('data-dificultad');
+    marcarOpciones('.btn-dificultad-chip', 'data-dificultad', $('task-dificultad').value);
+  }));
 
-  dueInput.addEventListener('change', () => { dueInput.style.color = colorTexto(dueDateColor(dueInput.value)); });
+  // Estado: en una tarea existente se aplica al tocarlo y la bitácora se
+  // refresca en vivo; en una nueva queda pendiente hasta guardar.
+  document.querySelectorAll(`#${ID} .btn-state-chip`).forEach(b => b.addEventListener('click', async () => {
+    const status = b.getAttribute('data-status');
+    $('task-status-pending').value = status;
+    marcarOpciones('.btn-state-chip', 'data-status', status);
+    syncFocoBtn();
+    pintarAviso();
+    const taskId = $('task-id').value;
+    if (!taskId) return;
+    await db.updateTaskStatus(taskId, status);
+    estadoCambiado = true;
+    await refreshBitacoraSection(taskId);
+  }));
 
-  // Foco: la pantalla se abre encima del detalle, que queda abierto debajo
-  // (al terminar la pausa se vuelve a él). Si se abrió desde otro lado,
-  // `alVolver` abre este detalle.
-  document.getElementById('btn-task-foco').addEventListener('click', () => {
-    const id = document.getElementById('task-id').value;
-    if (!id) return;
-    iniciarFoco({ id, title: document.getElementById('task-title').value.trim() }, { alVolver: abrirDetallePorId });
-  });
-
-  const dificultadHidden = document.getElementById('task-dificultad');
-  document.querySelectorAll('.btn-dificultad-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      dificultadHidden.value = btn.getAttribute('data-dificultad');
-      syncDificultadChips(dificultadHidden.value);
-    });
-  });
-
-  document.querySelectorAll('.btn-priority-bar').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const priority = btn.getAttribute('data-priority');
-      priorityHidden.value = priority;
-      syncPriorityBarStyles(priority);
-    });
-  });
-
-  // Chips de estado: en una tarea existente, mover de estado se aplica de
-  // inmediato (misma semántica que antes tenían las flechas del tablero) y
-  // la bitácora se refresca en vivo con el evento recién generado. En una
-  // tarea nueva (sin id) solo queda pendiente hasta guardar.
-  document.querySelectorAll('.btn-state-chip').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const status = btn.getAttribute('data-status');
-      statusPending.value = status;
-      syncStateChipStyles(status);
-      syncFocoBtn();
-      const taskId = document.getElementById('task-id').value;
-      if (taskId) {
-        // Aplica el cambio ya (misma semántica que antes tenían las
-        // flechas de mover) y refresca solo la bitácora en vivo. El
-        // tablero de atrás se refresca recién al cerrar el modal
-        // (Guardar/Cancelar/Eliminar) — refrescarlo acá reemplazaría todo
-        // #view-root, incluido este mismo modal, y lo cerraría de golpe.
-        await db.updateTaskStatus(taskId, status);
-        await refreshBitacoraSection(taskId);
-      }
-    });
-  });
-
-  btnSave.addEventListener('click', async () => {
-    const title = document.getElementById('task-title').value.trim();
-    if (!title) return Toast('El título es requerido', 'warning');
-
-    const subtasks = Array.from(container.children).map(div => ({
-      title: div.querySelector('.subtask-title').value.trim(),
-      done: div.querySelector('.subtask-check').checked
+  $('task-form').addEventListener('submit', async () => {
+    const title = $('task-title').value.trim();
+    if (!title) { $('task-title').focus(); return Toast('Escribe un título', 'warning'); }
+    const subtasks = [...$('subtasks-container').children].map(li => ({
+      title: li.querySelector('.subtask-title').value.trim(),
+      done: li.querySelector('.subtask-check').getAttribute('aria-pressed') === 'true'
     })).filter(s => s.title !== '');
-
-    const taskData = {
-      id: document.getElementById('task-id').value || null,
+    const dificultad = $('task-dificultad').value;
+    guardando = true;
+    await db.saveTask({
+      id: $('task-id').value || null,
       title,
-      description: document.getElementById('task-desc').value.trim(),
-      priority: priorityHidden.value,
-      dueDate: dueInput.value,
-      project: document.getElementById('task-project').value.trim(),
-      status: statusPending.value,
+      description: $('task-desc').value.trim(),
+      priority: $('task-priority').value,
+      dueDate: $('task-due-date').value,
+      project: $('task-project').value.trim(),
+      status: $('task-status-pending').value,
       subtasks,
       // Solo si se eligió: sin tocar, la tarea queda sin el campo.
-      ...(dificultadHidden.value ? { dificultad: dificultadHidden.value } : {})
-    };
-
-    await db.saveTask(taskData);
+      ...(dificultad ? { dificultad } : {})
+    });
     Toast('Tarea guardada', 'success');
-    closeModal();
-    if (onSaveCallback) onSaveCallback();
+    estadoCambiado = false;
+    await cerrarHoja(ID);
+    guardando = false;
+    avisar();
   });
 
-  btnDelete.addEventListener('click', async () => {
-    const id = document.getElementById('task-id').value;
+  $('btn-delete-task-modal').addEventListener('click', async () => {
+    const id = $('task-id').value;
     if (!id) return;
-    const title = document.getElementById('task-title').value.trim();
-    const subtaskCount = document.getElementById('subtasks-container').children.length;
-    const confirmed = await ConfirmDialog(
+    const title = $('task-title').value.trim();
+    const n = $('subtasks-container').children.length;
+    const ok = await ConfirmDialog(
       `Eliminar tarea${title ? ' ' + title : ''}`,
-      subtaskCount > 0
-        ? `Se perderán sus ${subtaskCount} subtarea${subtaskCount === 1 ? '' : 's'}. No se puede deshacer.`
-        : 'No se puede deshacer.',
+      n > 0 ? `Se perderán sus ${n} ${n === 1 ? 'subtarea' : 'subtareas'}. No se puede deshacer.` : 'No se puede deshacer.',
       { verb: 'Eliminar' }
     );
-    if (confirmed) {
-      await db.deleteTask(id);
-      Toast('Tarea eliminada', 'success');
-      closeModal();
-      if (onSaveCallback) onSaveCallback();
-    }
+    if (!ok) return;
+    guardando = true;
+    await db.deleteTask(id);
+    Toast('Tarea eliminada', 'success');
+    estadoCambiado = false;
+    await cerrarHoja(ID);
+    guardando = false;
+    avisar();
   });
 }
 
-// Abre el detalle de una tarea por id (fin de la pausa de un foco abierto
-// desde Semana u Hoy). Sin el formulario montado en la vista, no hace nada.
+// Abre la hoja de una tarea por id (fin de la pausa de un foco abierto desde
+// Semana u Hoy). Sin la hoja montada en la vista, no hace nada.
 export async function abrirDetallePorId(id) {
-  if (!document.getElementById('task-modal')) return;
+  if (!$(ID)) return;
   const task = (await db.getTasks()).find(t => t.id === id);
   if (task) openTaskForm(task);
 }
 
 export function openTaskForm(task = null) {
-  const modal = document.getElementById('task-modal');
-  const titleEl = document.getElementById('task-modal-title');
-  const container = document.getElementById('subtasks-container');
-  const dueInput = document.getElementById('task-due-date');
-  const priorityHidden = document.getElementById('task-priority');
-  const statusPending = document.getElementById('task-status-pending');
-  const bitacoraSection = document.getElementById('bitacora-section');
-  const btnDelete = document.getElementById('btn-delete-task-modal');
-
-  container.innerHTML = '';
-  // "N focos · X min" aparece cuando carga la bitácora (no en una tarea nueva).
-  const focosLinea = document.getElementById('task-focos');
-  focosLinea.hidden = true;
-  focosLinea.innerHTML = '';
-
+  if (!$(ID)) return;
+  const sub = $('subtasks-container');
+  sub.innerHTML = '';
+  $('task-focos').hidden = true;
+  $('task-focos').innerHTML = '';
+  $(`${ID}-titulo`).textContent = task ? 'Editar tarea' : 'Nueva tarea';
+  $('task-id').value = task ? task.id : '';
+  $('task-title').value = task ? task.title || '' : '';
+  $('task-desc').value = task ? task.description || '' : '';
+  $('task-priority').value = (task && task.priority) || 'medium';
+  $('task-due-date').value = (task && task.dueDate) || '';
+  $('task-project').value = (task && task.project) || '';
+  $('task-status-pending').value = (task && task.status) || 'todo';
+  $('task-dificultad').value = task && ['facil', 'media', 'dificil'].includes(task.dificultad) ? task.dificultad : '';
+  (task && task.subtasks || []).forEach(s => sub.appendChild(filaSubtarea(s)));
+  $('bitacora-section').hidden = !task;
+  $('btn-delete-task-modal').hidden = !task;
   if (task) {
-    titleEl.innerText = 'Detalle de tarea';
-    document.getElementById('task-id').value = task.id;
-    document.getElementById('task-title').value = task.title || '';
-    document.getElementById('task-desc').value = task.description || '';
-    priorityHidden.value = task.priority || 'medium';
-    dueInput.value = task.dueDate || '';
-    dueInput.style.color = colorTexto(dueDateColor(task.dueDate));
-    document.getElementById('task-project').value = task.project || '';
-    statusPending.value = task.status || 'todo';
-    document.getElementById('task-dificultad').value = ['facil', 'media', 'dificil'].includes(task.dificultad) ? task.dificultad : '';
-
-    if (task.subtasks) {
-      task.subtasks.forEach(sub => {
-        const div = document.createElement('div');
-        div.style.display = 'flex';
-        div.style.gap = '8px';
-        div.innerHTML = `
-          <input type="checkbox" class="subtask-check" style="width: 20px; height: 20px;" ${sub.done ? 'checked' : ''}>
-          <input type="text" class="subtask-title" value="${escapeHtml(sub.title)}" style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 16px;">
-          <button class="tappable btn-remove-sub" type="button" aria-label="Eliminar subtarea" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
-        `;
-        div.querySelector('.btn-remove-sub').addEventListener('click', () => div.remove());
-        container.appendChild(div);
-      });
-    }
-
-    bitacoraSection.style.display = 'block';
-    document.getElementById('task-bitacora').innerHTML = `<div style="font-size:12px; color:var(--t4);">Cargando…</div>`;
-    btnDelete.style.display = 'block';
+    $('task-bitacora').innerHTML = '<p class="o-tarea-nada">Cargando…</p>';
     refreshBitacoraSection(task.id);
-  } else {
-    titleEl.innerText = 'Nueva tarea';
-    document.getElementById('task-id').value = '';
-    document.getElementById('task-title').value = '';
-    document.getElementById('task-desc').value = '';
-    priorityHidden.value = 'medium';
-    dueInput.value = '';
-    dueInput.style.color = 'var(--text-primary)';
-    document.getElementById('task-project').value = '';
-    statusPending.value = 'todo';
-    document.getElementById('task-dificultad').value = '';
-    bitacoraSection.style.display = 'none';
-    btnDelete.style.display = 'none';
   }
-
-  syncPriorityBarStyles(priorityHidden.value);
-  syncStateChipStyles(statusPending.value);
-  syncDificultadChips(document.getElementById('task-dificultad').value);
+  marcarOpciones('.btn-state-chip', 'data-status', $('task-status-pending').value);
+  marcarOpciones('.btn-priority-chip', 'data-priority', $('task-priority').value);
+  marcarOpciones('.btn-dificultad-chip', 'data-dificultad', $('task-dificultad').value, 'media');
   syncFocoBtn();
-
-  modal.style.display = 'flex';
-  setTimeout(() => modal.classList.add('open'), 10);
+  pintarAviso();
+  $(ID).dispatchEvent(new CustomEvent('vg-hoja-abierta'));
+  abrirHoja(ID);
 }

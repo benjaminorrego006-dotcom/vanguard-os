@@ -82,6 +82,27 @@ const SEL = {
   tareaGuardar: '#btn-save-task',
   tareaEliminar: '#btn-delete-task-modal',
   tareaCard: (titulo) => `.btn-edit-task:has-text("${titulo}")`,
+  // Plan (Fase 7: pestañas Tareas · Semana · Notas; Tareas con lista + detalle)
+  planTab: (id) => `.tareas-subtab[data-sub="${id}"]`,
+  tareaNueva: '#btn-new-task',
+  tareaEstado: (s) => `.btn-state-tab[data-state="${s}"]`,
+  tareaFila: (titulo) => `.o-tarea-fila:has(.btn-edit-task:has-text("${titulo}"))`,
+  tareaRapida: '#task-quick-add',
+  tareaVolver: '#btn-volver-tarea',
+  tareaCerrar: '#btn-cerrar-tarea',
+  tareaEditar: '#btn-editar-tarea',
+  tareaEliminarDet: '#btn-eliminar-tarea',
+  tareaDetEstado: (s) => `.o-tarea-det-estado[data-status="${s}"]`,
+  tareaFoco: '#btn-foco-tarea',
+  tarLdLista: '#tar-ld > .o-ld-lista',
+  tarLdDetalle: '#tar-ld > .o-ld-detalle',
+  tarLdTitulo: '#tar-ld .o-ld-titulo',
+  focoModal: '#foco-modal',
+  semanaDia: '.plan-dia',
+  semanaNueva: '.plan-nueva',
+  semanaItem: (t) => `.plan-item:has(.plan-item-texto:has-text("${t}"))`,
+  semanaTira: '#plan-tira-toggle',
+  notaCatFila: (t) => `.o-nota-cat:has(.cat-abrir:has-text("${t}"))`,
   // Hábitos (Fase 6: pestañas Hoy · Análisis · Logros, detalle como sub-pantalla)
   habitoMarcado: (nombre) => `.o-habitos .day-toggle-hoy[aria-label="Desmarcar ${nombre} hoy"][aria-pressed="true"]`,
   habCheck: (nombre) => `.o-habitos .day-toggle-hoy[aria-label$=" ${nombre} hoy"]`,
@@ -154,8 +175,13 @@ async function prueba(nombre, fn) {
     resultados.push({ nombre, ok: true, ms: Date.now() - t0 });
     console.log(`  OK   ${nombre}`);
   } catch (err) {
-    resultados.push({ nombre, ok: false, ms: Date.now() - t0, error: String(err.message || err).split('\n')[0] });
-    console.log(`  FALLA ${nombre}: ${String(err.message || err).split('\n')[0]}`);
+    // Primera línea + qué esperaba Playwright y dónde quedó la app.
+    const lineas = String(err.message || err).split('\n');
+    const espera = lineas.find((l) => /waiting for/.test(l));
+    const donde = paginaActual ? await paginaActual.evaluate(() => `${location.hash} ${JSON.stringify(history.state)}`).catch(() => '') : '';
+    const error = `${lineas[0]}${espera ? ` [${espera.trim()}]` : ''}${donde ? ` (en ${donde})` : ''}`;
+    resultados.push({ nombre, ok: false, ms: Date.now() - t0, error });
+    console.log(`  FALLA ${nombre}: ${error}`);
     if (paginaActual) await paginaActual.screenshot({ path: path.join(SALIDA, `FALLA-${resultados.length}.png`) }).catch(() => {});
   }
 }
@@ -759,21 +785,200 @@ async function main() {
     await page.goto(BASE + 'index.html#tareas'); // también suelta la sesión de entreno de la vista
     await page.waitForFunction(() => window.appRouter && window.appRouter.currentView === 'tareas');
     await page.locator(SEL.tareaCard('Prueba verificación')).first().click();
+    await page.locator(SEL.tareaEditar).click();
     await page.waitForFunction((s) => document.querySelector(s)?.classList.contains('open'), SEL.tareaModal);
     await page.locator(SEL.tareaTitulo).fill('Prueba verificación editada');
     await page.locator(SEL.tareaGuardar).click();
     await esperarToast(page, /Tarea guardada/);
+    // El detalle (sub-pantalla en 390) se pone al día; atrás vuelve a la lista.
+    await page.waitForSelector('.o-plan-det-cab h1:has-text("Prueba verificación editada")');
+    await page.goBack();
     await page.waitForSelector(SEL.tareaCard('Prueba verificación editada'));
   });
 
   await prueba('CRUD · borrar la tarea (con confirmación)', async () => {
     await page.locator(SEL.tareaCard('Prueba verificación editada')).first().click();
-    await page.waitForFunction((s) => document.querySelector(s)?.classList.contains('open'), SEL.tareaModal);
-    await page.locator(SEL.tareaEliminar).click();
+    await page.locator(SEL.tareaEliminarDet).click();
     await page.locator(SEL.confirmOk).click();
     await esperarToast(page, /Tarea eliminada/);
     await page.waitForSelector(SEL.toastOk, { timeout: 2000 });
     await page.waitForSelector(SEL.tareaCard('Prueba verificación editada'), { state: 'detached' });
+  });
+
+  // ---------- Plan (Fase 7) ----------
+  const histTarea = () => page.evaluate(() => ({ push: window.__espia.push, back: window.__espia.back, hash: location.hash, vista: window.appRouter.currentView, detalle: !!(history.state && history.state.tareaDetalle) }));
+  const sinDetalleTarea = async () => {
+    if (await page.$(SEL.tareaVolver)) await page.locator(SEL.tareaVolver).click();
+    if (await page.$(SEL.tareaCerrar)) await page.locator(SEL.tareaCerrar).click();
+    await page.waitForSelector(SEL.tarLdLista);
+  };
+
+  await prueba('Plan · Tareas con lista + detalle: sub-pantalla en 390, al lado en 1440 sin tocar el historial', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    try {
+      await irA(page, 'tareas');
+      await sinDetalleTarea();
+      await espiarHistorial();
+      const antes = await histTarea();
+      await page.locator(SEL.tareaCard('Renovar el pasaporte')).click();
+      await page.waitForSelector(SEL.tareaVolver);
+      afirmar(!(await page.$('.o-tarea-fila')), 'la lista sigue en pantalla junto al detalle');
+      // La fecha vencida es una alerta real: ícono y texto.
+      afirmar(!!(await page.$('.o-tarea-chip-alerta svg')) && /Venció/.test(await page.locator('.o-tarea-chip-alerta').textContent()), 'la fecha vencida no lleva ícono y texto');
+      let h = await histTarea();
+      afirmar(h.push === antes.push + 1 && h.detalle && h.hash === '#tareas', `abrir no empujó una entrada (${JSON.stringify(h)})`);
+      await page.goBack();
+      await page.waitForSelector(SEL.tareaCard('Renovar el pasaporte'));
+      h = await histTarea();
+      afirmar(h.vista === 'tareas' && !h.detalle, 'atrás salió de Plan');
+
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.waitForSelector(`${SEL.tarLdDetalle} .o-ld-vacio`, { state: 'visible' });
+      const pc = await histTarea();
+      await page.locator(SEL.tareaEstado('in-progress')).click();
+      await page.locator(SEL.tareaCard('Preparar presentación')).click();
+      await page.waitForFunction((s) => document.querySelector(s)?.textContent.trim() === 'Preparar presentación', SEL.tarLdTitulo, { timeout: 8000 });
+      const caja = await page.evaluate(([l, d]) => {
+        const a = document.querySelector(l).getBoundingClientRect(); const b = document.querySelector(d).getBoundingClientRect();
+        return { lista: a.width > 0, detalle: b.width > 0, derecha: b.left >= a.right };
+      }, [SEL.tarLdLista, SEL.tarLdDetalle]);
+      afirmar(caja.lista && caja.detalle && caja.derecha, `columnas: ${JSON.stringify(caja)}`);
+      afirmar(await page.locator(SEL.tareaCard('Preparar presentación')).getAttribute('aria-current') === 'true', 'la fila abierta no queda marcada');
+      await page.locator(SEL.tareaCard('Curso de inglés')).click();
+      await page.waitForFunction((s) => /Curso de inglés/.test(document.querySelector(s)?.textContent || ''), SEL.tarLdTitulo, { timeout: 8000 });
+      await page.screenshot({ path: path.join(SALIDA, 'plan-tareas-detalle-1440.png') });
+      await page.locator(SEL.tareaCerrar).click();
+      await page.waitForSelector(`${SEL.tarLdDetalle} .o-ld-vacio`, { state: 'visible' });
+      h = await histTarea();
+      afirmar(h.push === pc.push && h.back === pc.back && h.hash === '#tareas' && h.vista === 'tareas', `en PC el detalle tocó el historial o la ruta (${JSON.stringify(h)})`);
+    } finally {
+      await page.setViewportSize({ width: 390, height: 844 });
+      if (await page.$(SEL.tareaEstado('todo'))) await page.locator(SEL.tareaEstado('todo')).click();
+    }
+  });
+
+  await prueba('Plan · alta rápida, Empezar desde la fila, Hecho desde el detalle y eliminar', async () => {
+    await irA(page, 'tareas');
+    await sinDetalleTarea();
+    await page.locator(SEL.tareaRapida).fill('QA rápida');
+    await page.locator(SEL.tareaRapida).press('Enter');
+    await esperarToast(page, /Tarea agregada/);
+    await page.locator(`${SEL.tareaFila('QA rápida')} .btn-advance-task`).click();
+    await esperarToast(page, /Tarea en curso/);
+    await page.locator(SEL.tareaEstado('in-progress')).click();
+    await page.waitForSelector(`${SEL.tareaFila('QA rápida')} .o-check`);
+    await page.locator(SEL.tareaCard('QA rápida')).click();
+    await page.locator(SEL.tareaDetEstado('done')).click();
+    await esperarToast(page, /Pasó a Hecho/);
+    await page.waitForSelector(`${SEL.tareaDetEstado('done')}[aria-pressed="true"]`);
+    afirmar(!(await page.$(SEL.tareaFoco)), 'una tarea hecha sigue ofreciendo Foco');
+    await page.locator(SEL.tareaEliminarDet).click();
+    await page.locator(SEL.confirmOk).click();
+    await esperarToast(page, /Tarea eliminada/);
+    await page.waitForSelector(SEL.tarLdLista);
+    afirmar(!(await page.$(SEL.tareaCard('QA rápida'))), 'la tarea eliminada sigue en la lista');
+    afirmar(!(await page.evaluate(() => !!(history.state && history.state.tareaDetalle))), 'quedó la entrada de historial del detalle');
+    await page.locator(SEL.tareaEstado('todo')).click();
+  });
+
+  await prueba('Plan · la hoja de tarea nueva y el Foco desde el detalle', async () => {
+    await irA(page, 'tareas');
+    await sinDetalleTarea();
+    await page.locator(SEL.tareaNueva).click();
+    await abierta(SEL.tareaModal);
+    afirmar((await page.locator('#task-modal-titulo').textContent()).trim() === 'Nueva tarea', 'la hoja no dice «Nueva tarea»');
+    afirmar(!!(await page.$('#task-modal .btn-dificultad-chip.o-tarea-sugerida[data-dificultad="media"]')), 'falta la dificultad «Media» sugerida');
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(SALIDA, 'plan-hoja-tarea-390.png') });
+    await page.goBack();
+    await cerrada(SEL.tareaModal);
+    afirmar((await page.evaluate(() => location.hash)) === '#tareas', 'atrás en la hoja cambió de vista');
+    // Foco: pantalla completa; Terminar pregunta y no registra.
+    await page.locator(SEL.tareaCard('Ordenar la bodega')).click();
+    await page.locator(SEL.tareaFoco).click();
+    await abierta(SEL.focoModal);
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(SALIDA, 'plan-foco-390.png') });
+    const fallas = await fallasContraste(page, '#foco-modal *');
+    afirmar(fallas.length === 0, `foco: «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+    await page.locator('#foco-terminar').click();
+    await page.locator('#foco-cancelar').click();
+    await esperarToast(page, /Foco terminado sin registrar/);
+    await page.waitForSelector(SEL.focoModal, { state: 'detached' });
+    await page.goBack();
+    await page.waitForSelector(SEL.tarLdLista);
+  });
+
+  await prueba('Plan · Semana: agregar, marcar y borrar un ítem del día', async () => {
+    await irA(page, 'tareas/semana');
+    afirmar((await page.locator(SEL.semanaDia).count()) === 7, 'la franja no tiene 7 días');
+    afirmar(!!(await page.$(`${SEL.semanaTira} svg`)), 'la tira de atrasadas no lleva ícono');
+    await page.locator(SEL.semanaNueva).fill('QA semana');
+    await page.locator(SEL.semanaNueva).press('Enter');
+    await page.waitForSelector(SEL.semanaItem('QA semana'));
+    await page.locator(`${SEL.semanaItem('QA semana')} .plan-check`).click();
+    await page.waitForSelector(`.plan-item--hecha:has(.plan-item-texto:has-text("QA semana"))`);
+    await page.locator(`${SEL.semanaItem('QA semana')} .plan-delete`).click();
+    await page.locator(SEL.confirmOk).click();
+    await page.waitForSelector(SEL.semanaItem('QA semana'), { state: 'detached' });
+    afirmar(!!(await page.$('.tareas-subtabs')), 'las pestañas de Plan desaparecieron al repintar Semana');
+    await irA(page, 'tareas');
+  });
+
+  await prueba('Plan · objetivos táctiles de 44 px y contraste AA en Tareas, el detalle, Semana y Notas (color y sobrio)', async () => {
+    const revisar = async (donde) => {
+      const chicos = await page.$$eval('.o-plan button', (bs) => bs.filter((b) => {
+        const r = b.getBoundingClientRect();
+        return r.width > 0 && !b.closest('.modal-overlay, .plan-col') && (r.width < 44 || r.height < 44);
+      }).map((b) => `${b.getAttribute('aria-label') || b.textContent.trim()} (${Math.round(b.getBoundingClientRect().width)}×${Math.round(b.getBoundingClientRect().height)})`));
+      afirmar(chicos.length === 0, `${donde}: botones bajo 44 px: ${chicos.slice(0, 3).join(', ')}`);
+      const fallas = await fallasContraste(page, '.o-plan *');
+      afirmar(fallas.length === 0, `${donde}: «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+    };
+    try {
+      for (const tema of ['color', 'gris']) {
+        await page.evaluate((t) => localStorage.setItem('vg-tema', t), tema);
+        for (const vp of VIEWPORTS) {
+          await page.setViewportSize({ width: vp.width, height: vp.height });
+          await page.reload();
+          await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+          await irA(page, 'tareas');
+          await revisar(`${tema} ${vp.nombre} tareas`);
+          await page.screenshot({ path: path.join(SALIDA, `plan-tareas-${tema}-${vp.nombre}.png`), fullPage: true });
+          const ancho = vp.width >= 1024;
+          await page.locator(SEL.tareaCard('Renovar el pasaporte')).click();
+          await page.waitForSelector(ancho ? SEL.tareaCerrar : SEL.tareaVolver);
+          await page.waitForTimeout(300);
+          await revisar(`${tema} ${vp.nombre} detalle`);
+          await page.screenshot({ path: path.join(SALIDA, `plan-detalle-${tema}-${vp.nombre}.png`), fullPage: true });
+          if (ancho) await page.locator(SEL.tareaCerrar).click();
+          else await page.goBack();
+          await page.waitForSelector(SEL.tarLdLista);
+          for (const sub of ['semana', 'notas']) {
+            await irA(page, `tareas/${sub}`);
+            await page.waitForTimeout(300);
+            await revisar(`${tema} ${vp.nombre} ${sub}`);
+            await page.screenshot({ path: path.join(SALIDA, `plan-${sub}-${tema}-${vp.nombre}.png`), fullPage: true });
+          }
+        }
+      }
+      // Hoja de tarea en sobrio (390): contraste dentro de la hoja.
+      await page.setViewportSize({ width: 390, height: 844 });
+      await irA(page, 'tareas');
+      await page.locator(SEL.tareaNueva).click();
+      await abierta(SEL.tareaModal);
+      await page.waitForTimeout(400);
+      const fallas = await fallasContraste(page, '#task-modal *');
+      afirmar(fallas.length === 0, `hoja (sobrio): «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+      await page.screenshot({ path: path.join(SALIDA, 'plan-hoja-gris-390.png') });
+      await page.goBack();
+      await cerrada(SEL.tareaModal);
+    } finally {
+      await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.reload();
+      await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+    }
   });
 
   // ---------- Botón atrás ----------
@@ -845,7 +1050,7 @@ async function main() {
     await page.locator('#cat-nueva').press('Enter');
     await page.waitForSelector('.cat-abrir:has-text("Prueba QA")');
     afirmar(!!(await page.$('.tareas-subtabs')), 'las pestañas de Plan desaparecieron al repintar Notas');
-    await page.locator('.cat-abrir:has-text("Prueba QA") .cat-delete').click();
+    await page.locator(`${SEL.notaCatFila('Prueba QA')} .cat-delete`).click();
     await page.locator(SEL.confirmOk).click();
     await page.waitForSelector('.cat-abrir:has-text("Prueba QA")', { state: 'detached' });
     await irA(page, 'dashboard');
