@@ -458,7 +458,7 @@ async function cuerpoDetalle(h) {
 async function renderDetalle(id) {
   await cargarDiasSemana();
   const h = (await db.getHabitos()).find(x => x.id === id);
-  if (!h) { ld.olvidar(); return renderModulo(); }
+  if (!h) { ld.descartar(); return renderModulo(); } // borrado (en otro dispositivo)
   return `
     <div class="o-vista o-habitos o-mod-habitos">
       <header class="o-hab-det-cab">

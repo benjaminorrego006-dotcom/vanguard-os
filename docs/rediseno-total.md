@@ -372,6 +372,10 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - Cubre Hoy (atrasadas, cobros sin saldo y gastos anuales, que son las alertas de Finanzas con ícono), Plan (lista, detalle, Semana), la hoja de tarea y los avisos emergentes. Hábitos no tiene íconos de alerta; los de Finanzas llegan con la Fase 8.
 - Prueba nueva: en sobrio, cada ícono de alerta visible tiene color y el mismo que su texto (en los avisos emergentes, donde el texto es neutro, basta con que no sea gris); de control, un ícono común sigue gris. `CACHE_NAME` → `v356`. **49/49 OK.**
 
+#### Hábitos · hábito borrado en otro dispositivo (24-11-2026)
+- Si el hábito abierto como sub-pantalla (celular) se borra en otro dispositivo, al llegar la sincronización el detalle usa `ld.descartar()` en vez de `ld.olvidar()`: vuelve a la lista **y suelta su paso del historial**. Antes quedaba un «atrás» que no hacía nada. Tareas ya lo hacía así desde la Fase 7.
+- Prueba nueva (390): una segunda pestaña, con la misma base local, borra el hábito por su UI y la primera recibe el mismo aviso (`budget-updated`) que manda `sync.js`; se comprueba que vuelve a la lista, que soltó la entrada y que el siguiente atrás sale de Hábitos. Sin el arreglo falla. `CACHE_NAME` → `v357`. **50/50 OK.**
+
 ## 9. Riesgos y cómo se controlan
 
 | Riesgo | Mitigación |

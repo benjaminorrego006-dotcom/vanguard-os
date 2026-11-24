@@ -660,6 +660,54 @@ async function main() {
     afirmar(fin.push === tras.push + 1 && fin.back === tras.back + 1 && !fin.detalle, `«Volver» dejó el historial descuadrado (${JSON.stringify(fin)})`);
   });
 
+  await prueba('Lista + detalle · 390: si el hábito abierto se borra en otro dispositivo, el detalle suelta su paso del historial', async () => {
+    const nombre = 'QA remoto';
+    await page.setViewportSize({ width: 390, height: 844 });
+    await irA(page, 'dashboard');
+    await irA(page, 'habitos');
+    await sinDetalle();
+    await page.locator(SEL.habNuevo).click();
+    await abierta(SEL.habModal);
+    await page.locator(SEL.habNombre).fill(nombre);
+    await page.locator(SEL.habGuardar).click();
+    await cerrada(SEL.habModal);
+    await page.waitForSelector(SEL.habFila(nombre));
+    await espiarHistorial();
+    await page.locator(SEL.habFila(nombre)).click();
+    await page.waitForSelector(SEL.habVolver);
+    const abierto = await historial();
+    afirmar(abierto.detalle, 'abrir no dejó la entrada del detalle');
+    // «Otro dispositivo»: una segunda pestaña (misma base local) lo borra por
+    // su propia UI; acá llega el mismo aviso que manda sync.js tras aplicar
+    // eventos remotos.
+    const otra = await context.newPage();
+    try {
+      await otra.goto(`${BASE}#habitos`);
+      await otra.waitForFunction(() => window.appRouter && window.appRouter.currentView === 'habitos');
+      await otra.locator(SEL.habFila(nombre)).click();
+      await otra.locator(SEL.habEliminar).click();
+      await otra.locator(SEL.confirmOk).click();
+      // En celular la fila ya no está con el detalle abierto: se espera el
+      // aviso del borrado y la vuelta a la lista sin ella.
+      await esperarToast(otra, /Hábito eliminado/);
+      await otra.waitForSelector(SEL.habPanel);
+      afirmar(!(await otra.$(SEL.habFila(nombre))), 'la otra pestaña no borró el hábito');
+    } finally {
+      await otra.close();
+    }
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('budget-updated')));
+    await page.waitForSelector(SEL.habPanel);
+    await page.waitForFunction((s) => !document.querySelector(s), SEL.habVolver, { timeout: 8000 });
+    await page.waitForFunction(() => !(history.state && history.state.habitoDetalle), null, { timeout: 8000 });
+    const tras = await historial();
+    afirmar(tras.vista === 'habitos' && tras.back === abierto.back + 1, `el detalle no soltó su entrada (${JSON.stringify(tras)})`);
+    afirmar(!(await page.$(SEL.habFila(nombre))), 'el hábito borrado sigue en la lista');
+    // El siguiente atrás sale de Hábitos (antes no hacía nada).
+    await page.goBack();
+    await page.waitForFunction(() => window.appRouter.currentView === 'dashboard', null, { timeout: 8000 });
+    await irA(page, 'habitos');
+  });
+
   await prueba('Lista + detalle · 1440: lista y detalle juntos; abrir, cambiar y cerrar no cambian de ruta', async () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     try {
