@@ -42,37 +42,20 @@ body {
 }
 #btn-perfil:focus-visible { outline: none; box-shadow: var(--o-focus); }
 
-/* --- Hoja de Perfil (reemplaza al panel ☰). Los selectores con id le ganan
-   a la regla MK III que deja recto todo lo que va dentro de un modal
-   (components.css); los radios de Órbita se mantienen. --- */
-#perfil-overlay { background: var(--o-scrim); }
-#perfil-overlay .o-hoja {
-  background: var(--o-sheet); background-image: none;
-  border: 1px solid var(--o-line-strong); border-bottom: none;
-  border-radius: var(--o-r-xl) var(--o-r-xl) 0 0 !important;
-  box-shadow: var(--o-shadow-sheet);
-  font-family: var(--o-font); color: var(--o-text);
-  padding: var(--o-sp-3) var(--o-gutter) calc(var(--o-sp-6) + env(safe-area-inset-bottom));
-  max-width: 480px;
-  transition: transform var(--o-dur-3) var(--o-ease-out), opacity var(--o-dur-2) var(--o-ease-out);
-}
-#perfil-overlay .o-hoja::before { background: var(--o-line-strong); border-radius: var(--o-r-pill) !important; }
-.o-hoja-titulo {
-  font-family: var(--o-font); font-size: var(--o-fs-xl); font-weight: var(--o-fw-bold);
-  letter-spacing: var(--o-ls-title); line-height: var(--o-lh-tight); margin: 0 0 var(--o-sp-4);
-}
+/* --- Hoja de Perfil (reemplaza al panel ☰): hoja .o-hoja de Órbita
+   (css/orbita.css); aquí solo sus filas. --- */
 .o-perfil-lista { display: grid; gap: var(--o-sp-2); }
-#perfil-overlay .o-perfil-item {
+.o-perfil-item {
   display: flex; align-items: center; gap: var(--o-sp-3);
   min-height: calc(var(--o-touch) + var(--o-sp-4)); padding: var(--o-sp-2) var(--o-sp-3);
-  border-radius: var(--o-r-md) !important; background: var(--o-surface-1); border: 1px solid var(--o-line);
+  border-radius: var(--o-r-md); background: var(--o-surface-1); border: 1px solid var(--o-line);
   color: var(--o-text); text-decoration: none;
 }
-#perfil-overlay .o-perfil-item.active { background: var(--o-surface-2); border-color: var(--o-line-strong); }
-#perfil-overlay .o-perfil-item:focus-visible { outline: none; box-shadow: var(--o-focus); }
-#perfil-overlay .o-perfil-ico {
+.o-perfil-item.active { background: var(--o-surface-2); border-color: var(--o-line-strong); }
+.o-perfil-item:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-perfil-ico {
   width: var(--o-touch); height: var(--o-touch); flex-shrink: 0; display: grid; place-items: center;
-  border-radius: var(--o-r-sm) !important; background: var(--o-surface-2); color: var(--o-text-2);
+  border-radius: var(--o-r-sm); background: var(--o-surface-2); color: var(--o-text-2);
 }
 .o-perfil-texto { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .o-perfil-texto b { font-size: var(--o-fs-base); font-weight: var(--o-fw-semibold); }
@@ -82,10 +65,6 @@ body {
   text-transform: uppercase; color: var(--o-ok-t);
 }
 .o-perfil-hecho[hidden] { display: none; }
-@media (min-width: 640px) {
-  #perfil-overlay .o-hoja { border-radius: var(--o-r-xl) !important; border-bottom: 1px solid var(--o-line-strong); padding: var(--o-sp-6); }
-  #perfil-overlay .o-hoja::before { display: none; }
-}
 /* Todas las hojas (.modal-overlay) cubren la pantalla completa, barra
    inferior y riel incluidos (docs/PLAN-REVISION-OCT.md, 1.2): z-index 3000,
    por encima de la navegación (1000). Antes algunas dejaban la navegación

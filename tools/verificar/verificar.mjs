@@ -50,7 +50,15 @@ const SEL = {
   notasHost: '#notas-host',
   demoBtn: '#btn-cfg-demo',
   confirmOk: '#confirm-ok',
+  confirmCancel: '#confirm-cancel',
+  confirmModal: '#global-confirm-modal',
   toast: '#toast-container',
+  toastOk: '#toast-container .o-toast--ok .o-toast-ico', // Fase 4: aviso Órbita con ícono
+  // Muestra de componentes (docs/rediseno/componentes-orbita.html, fuera de la app)
+  muestra: 'docs/rediseno/componentes-orbita.html',
+  muestraHoja: '#demo-hoja',
+  muestraMision: '#mazo .o-mision',
+  muestraRegistro: '#mazo-registro',
   // Hoy
   hoyAgenda: '#hoy-agenda',
   hoyResumenes: '#hoy-resumenes',
@@ -242,6 +250,7 @@ async function main() {
     await page.locator(SEL.tareaEliminar).click();
     await page.locator(SEL.confirmOk).click();
     await esperarToast(page, /Tarea eliminada/);
+    await page.waitForSelector(SEL.toastOk, { timeout: 2000 });
     await page.waitForSelector(SEL.tareaCard('Prueba verificación editada'), { state: 'detached' });
   });
 
@@ -345,6 +354,55 @@ async function main() {
     await capturar(page, 'offline-390.png');
     await context.setOffline(false);
   });
+
+  // ---------- Componentes Órbita (muestra fuera de la app) ----------
+  for (const modo of ['color', 'sobrio']) {
+    await prueba(`Componentes · muestra en modo ${modo} (hoja, diálogo, avisos, mazo)`, async () => {
+      const url = BASE + SEL.muestra + (modo === 'sobrio' ? '?modo=sobrio' : '');
+      for (const vp of VIEWPORTS) {
+        await page.setViewportSize({ width: vp.width, height: vp.height });
+        await page.goto(url);
+        await page.waitForSelector(SEL.muestraMision);
+        await page.screenshot({ path: path.join(SALIDA, `componentes-${modo}-${vp.nombre}.png`), fullPage: true });
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
+      // Hoja: abre, atrás la cierra.
+      await page.locator('#d-hoja').click();
+      await page.waitForFunction((s) => document.querySelector(s)?.classList.contains('open'), SEL.muestraHoja);
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: path.join(SALIDA, `componentes-${modo}-hoja-390.png`) });
+      await page.goBack();
+      await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.muestraHoja);
+      // Diálogo destructivo: ícono visible, Cancelar lo cierra.
+      await page.locator('#d-confirmar').click();
+      await page.waitForFunction((s) => document.querySelector(s)?.classList.contains('open'), SEL.confirmModal);
+      afirmar(await page.locator('#confirm-icon').isVisible(), 'el diálogo destructivo no muestra el ícono');
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: path.join(SALIDA, `componentes-${modo}-dialogo-390.png`) });
+      await page.locator(SEL.confirmCancel).click();
+      await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.confirmModal);
+      // Avisos: los cuatro tipos con ícono.
+      await page.evaluate((s) => { document.querySelector(s).innerHTML = ''; }, SEL.toast);
+      await page.locator('#d-toasts').click();
+      await page.waitForFunction(() => document.querySelectorAll('#toast-container .o-toast .o-toast-ico').length === 4);
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: path.join(SALIDA, `componentes-${modo}-avisos-390.png`) });
+      // Mazo: Hecho saca la misión; Después la manda al final.
+      await page.locator(`${SEL.muestraMision} [data-mision-accion="hecho"]`).click();
+      await page.waitForFunction((s) => /Hecho: Inglés/.test(document.querySelector(s).textContent), SEL.muestraRegistro);
+      await page.locator(`${SEL.muestraMision} [data-mision-accion="despues"]`).click();
+      await page.waitForFunction((s) => /Después: Entregar informe/.test(document.querySelector(s).textContent), SEL.muestraRegistro);
+      afirmar(/Empuje A/.test(await page.locator(SEL.muestraMision).textContent()), 'la siguiente misión no quedó arriba');
+      // Deslizar a la izquierda también la pasa.
+      await page.locator(SEL.muestraMision).scrollIntoViewIfNeeded();
+      const caja = await page.locator(`${SEL.muestraMision} .o-mision-titulo`).boundingBox();
+      await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(caja.x - 180, caja.y + caja.height / 2, { steps: 8 });
+      await page.mouse.up();
+      await page.waitForFunction((s) => /Después: Empuje A/.test(document.querySelector(s).textContent), SEL.muestraRegistro);
+    });
+  }
 
   await browser.close();
   srv.close();

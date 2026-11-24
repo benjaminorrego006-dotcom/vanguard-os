@@ -83,6 +83,7 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/orbita.css">
   <link rel="stylesheet" href="js/components/mk3-muscle-map.css">
 </head>
 <body>
@@ -150,9 +151,9 @@
   </div>
 
   <!-- Hoja de Perfil (reemplaza al menú ☰): .modal-overlay con id + open,
-       así history.js la cierra con el botón atrás. -->
-  <div id="perfil-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="perfil-titulo">
-    <div class="modal-content o-hoja">
+       así history.js la cierra con el botón atrás. Hoja de Órbita (.o-ui). -->
+  <div id="perfil-overlay" class="modal-overlay o-ui" role="dialog" aria-modal="true" aria-labelledby="perfil-titulo">
+    <div class="o-hoja">
       <h2 id="perfil-titulo" class="o-hoja-titulo">Perfil</h2>
       <nav class="o-perfil-lista" aria-label="Perfil">
         <a href="#laboratorio" class="o-perfil-item tappable" data-menu-view="laboratorio">
@@ -176,14 +177,14 @@
   <div id="toast-container" role="status" aria-live="polite" style="position: fixed; bottom: calc(env(safe-area-inset-bottom) + var(--o-dock-h) + var(--o-sp-8)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: var(--o-sp-2); z-index: var(--o-z-toast); pointer-events: none; width: 90%; max-width: 400px;"></div>
 
   <!-- Global Confirm Dialog -->
-  <div id="global-confirm-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message" style="z-index: 5000;">
-    <div class="modal-content" style="padding: 24px; border-radius: 24px; text-align: center; max-width: 320px; margin: auto; transform: scale(0.95); opacity: 0; transition: all 220ms ease-out;">
-      <div id="confirm-icon" aria-hidden="true" style="font-size: 32px; margin-bottom: 16px;"><svg width="48" height="48" fill="none" stroke="var(--state-high)" stroke-width="2" viewBox="0 0 24 24" style="display:inline-block;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
-      <h3 id="confirm-title" style="font-size: 18px; font-weight: 600; margin: 0 0 8px 0; color: var(--text-primary);">Confirmar</h3>
-      <p id="confirm-message" style="font-size: 14px; color: var(--text-secondary); margin: 0 0 24px 0; line-height: 1.4;">¿Estás seguro?</p>
-      <div style="display: flex; gap: 12px;">
-        <button id="confirm-cancel" class="tappable" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: var(--surface-2); color: var(--text-primary); font-weight: 600; cursor: pointer;">Cancelar</button>
-        <button id="confirm-ok" class="tappable" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: var(--state-high); color: #000; font-weight: 600; cursor: pointer;">Confirmar</button>
+  <div id="global-confirm-modal" class="modal-overlay o-ui o-dialogo-overlay" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <div class="o-dialogo">
+      <div id="confirm-icon" class="o-dialogo-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+      <h3 id="confirm-title" class="o-dialogo-titulo">Confirmar</h3>
+      <p id="confirm-message" class="o-dialogo-texto">¿Confirmas?</p>
+      <div class="o-dialogo-acciones">
+        <button id="confirm-cancel" type="button" class="o-btn o-btn--secundario">Cancelar</button>
+        <button id="confirm-ok" type="button" class="o-btn o-btn--alerta">Confirmar</button>
       </div>
     </div>
   </div>

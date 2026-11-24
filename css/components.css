@@ -250,9 +250,10 @@ input[type="number"] {
    adentro (inputs, chips, filas, botones con radio inline). El !important
    le gana a los radios inline de las plantillas viejas. Los círculos y
    anillos quedan: icon-chip, avatares, el punto de nota y todo lo que
-   lleva 50% inline. */
-.modal-overlay .modal-content,
-.modal-overlay *:not(.icon-chip):not(.avatar):not(.avatar-circle):not(.dia-punto):not([style*="50%"]) {
+   lleva 50% inline. Los overlays de Órbita (.o-ui, css/orbita.css)
+   quedan fuera: tienen sus propios radios. */
+.modal-overlay:not(.o-ui) .modal-content,
+.modal-overlay:not(.o-ui) *:not(.icon-chip):not(.avatar):not(.avatar-circle):not(.dia-punto):not([style*="50%"]) {
   border-radius: 0 !important;
 }
 

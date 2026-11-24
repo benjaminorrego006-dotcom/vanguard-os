@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'vanguard-os-v344';
+const CACHE_NAME = 'vanguard-os-v345';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -21,6 +21,7 @@ const PRECACHE_URLS = [
   './css/variables.css',
   './css/layout.css',
   './css/components.css',
+  './css/orbita.css',
   './js/core/app.js',
   './js/core/db.js',
   './js/core/idb.js',
@@ -105,6 +106,7 @@ const PRECACHE_URLS = [
   './js/components/nivel-onboarding-form.js',
   './js/components/mini-chart.js',
   './js/components/NumericKeypad.js',
+  './js/components/orbita.js',
   './js/components/ejercicio-detalle.js',
   './js/components/plate-calculator.js',
   './js/components/hiit-timer.js',

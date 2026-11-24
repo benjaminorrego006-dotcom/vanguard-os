@@ -377,7 +377,6 @@ export function initSesionesHistorialListeners(signal) {
     await refrescarLista();
     ToastAccion('Sesión eliminada', {
       accion: 'Deshacer',
-      color: 'var(--cy)',
       alAccion: async () => {
         const r = await db.restaurarSesion(s.id);
         if (!r || !r.ok) { Toast('No se pudo deshacer', 'error'); return; }

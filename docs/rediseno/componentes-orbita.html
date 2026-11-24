@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Órbita · componentes</title>
+<script>
+  // ?modo=sobrio muestra el modo sobrio (mismo atributo que usa la app).
+  if (new URLSearchParams(location.search).get('modo') === 'sobrio') document.documentElement.setAttribute('data-tema', 'gris');
+</script>
+<link rel="stylesheet" href="../../css/variables.css">
+<link rel="stylesheet" href="../../css/components.css">
+<link rel="stylesheet" href="../../css/orbita.css">
+<style>
+  /* Muestra de los componentes base de la Fase 4. No es parte de la app
+     (no está en el precache): usa las mismas hojas y el mismo JS que la
+     app, con datos de ejemplo. */
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--o-bg); background-image: var(--o-ambient); background-attachment: fixed; color: var(--o-text); font-family: var(--o-font); font-size: var(--o-fs-base); line-height: var(--o-lh-body); padding: var(--o-sp-6) var(--o-gutter) var(--o-sp-10); }
+  main { max-width: var(--o-content-max); margin: 0 auto; display: grid; gap: var(--o-sp-8); }
+  h1 { margin: 0; font-size: var(--o-fs-2xl); font-weight: var(--o-fw-black); letter-spacing: var(--o-ls-title); line-height: var(--o-lh-tight); }
+  .sub { margin: var(--o-sp-2) 0 0; color: var(--o-text-2); }
+  section > .o-rotulo { margin-bottom: var(--o-sp-3); }
+  .fila { display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-sp-3); }
+  .rejilla { display: grid; gap: var(--o-sp-4); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .pila { display: grid; gap: var(--o-sp-3); }
+  a { color: var(--o-text-2); }
+</style>
+</head>
+<body class="o-ui">
+<main>
+  <header>
+    <h1>Componentes de Órbita</h1>
+    <p class="sub">Fase 4 · <a id="cambiar-modo" href="?modo=sobrio">Ver en modo sobrio</a></p>
+  </header>
+
+  <section>
+    <h2 class="o-rotulo">Botones</h2>
+    <div class="pila" id="botones"></div>
+  </section>
+
+  <section>
+    <h2 class="o-rotulo">Campos</h2>
+    <div class="rejilla o-mod-finanzas">
+      <div class="o-campo">
+        <label for="demo-monto">Monto</label>
+        <input id="demo-monto" class="o-input o-input--monto" inputmode="numeric" value="4.500">
+        <p class="o-campo-ayuda">En pesos chilenos.</p>
+      </div>
+      <div class="o-campo">
+        <label for="demo-desc">Descripción</label>
+        <input id="demo-desc" class="o-input" placeholder="Ej.: almuerzo">
+      </div>
+      <div class="o-campo">
+        <label for="demo-error">Sobre</label>
+        <input id="demo-error" class="o-input" value="Ocio" aria-invalid="true" aria-describedby="demo-error-msg">
+        <p class="o-campo-error" id="demo-error-msg"></p>
+      </div>
+      <div class="o-campo">
+        <label for="demo-nota">Nota</label>
+        <textarea id="demo-nota" class="o-input" placeholder="Escribe una nota"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="o-rotulo">Tarjetas y anillos</h2>
+    <div class="rejilla" id="tarjetas"></div>
+  </section>
+
+  <section>
+    <h2 class="o-rotulo">Lista, check y chips</h2>
+    <div class="rejilla">
+      <div class="pila o-mod-habitos">
+        <div class="o-tabs" role="tablist" aria-label="Hábitos">
+          <button class="o-tab" role="tab" aria-selected="true">Hoy</button>
+          <button class="o-tab" role="tab" aria-selected="false">Análisis</button>
+          <button class="o-tab" role="tab" aria-selected="false">Logros</button>
+        </div>
+        <ul class="o-lista" id="lista-habitos"></ul>
+      </div>
+      <div class="pila o-mod-finanzas">
+        <ul class="o-chips" aria-label="Filtro de movimientos">
+          <li><button class="o-chip" aria-pressed="true">Todos <span class="o-chip-num">24</span></button></li>
+          <li><button class="o-chip" aria-pressed="false"><span class="o-chip-punto"></span>Gastos</button></li>
+          <li><button class="o-chip" aria-pressed="false">Ingresos</button></li>
+          <li><button class="o-chip" aria-pressed="false">Ahorro</button></li>
+        </ul>
+        <ul class="o-lista" id="lista-movimientos"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="o-rotulo">Mazo de misiones</h2>
+    <div class="rejilla">
+      <div id="mazo"></div>
+      <div class="o-card" id="mazo-registro"><p class="o-card-texto">Toca «Hecho», «Después» o desliza la misión.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="o-rotulo">Estado vacío</h2>
+    <div class="rejilla">
+      <div class="o-card o-mod-plan" id="vacio-plan"></div>
+      <div class="o-card" id="vacio-neutro"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="o-rotulo">Hoja, diálogo y avisos</h2>
+    <div class="fila" id="disparadores"></div>
+  </section>
+</main>
+
+<div id="hoja-host"></div>
+<div id="toast-container" role="status" aria-live="polite" style="position: fixed; bottom: calc(env(safe-area-inset-bottom) + var(--o-sp-6)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: var(--o-sp-2); z-index: var(--o-z-toast); pointer-events: none; width: 90%; max-width: 400px;"></div>
+<div id="global-confirm-modal" class="modal-overlay o-ui o-dialogo-overlay" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+  <div class="o-dialogo">
+    <div id="confirm-icon" class="o-dialogo-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+    <h3 id="confirm-title" class="o-dialogo-titulo">Confirmar</h3>
+    <p id="confirm-message" class="o-dialogo-texto">¿Confirmas?</p>
+    <div class="o-dialogo-acciones">
+      <button id="confirm-cancel" type="button" class="o-btn o-btn--secundario">Cancelar</button>
+      <button id="confirm-ok" type="button" class="o-btn o-btn--alerta">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { oIcono, oAnillo, oVacio, oMazo, montarMazo, oHoja, abrirHoja, montarHoja } from '../../js/components/orbita.js';
+  import { Toast, ToastAccion, ConfirmDialog } from '../../js/utils/states.js';
+  import { initModalHistory, initSheetDragToDismiss } from '../../js/core/history.js';
+  import { formatCurrency } from '../../js/utils/currency.js';
+
+  initModalHistory();
+  initSheetDragToDismiss();
+  const $ = (id) => document.getElementById(id);
+  const sobrio = document.documentElement.dataset.tema === 'gris';
+  if (sobrio) { $('cambiar-modo').href = '?'; $('cambiar-modo').textContent = 'Ver Órbita a color'; }
+
+  const MODULOS = [['habitos', 'Hábitos'], ['plan', 'Plan'], ['entreno', 'Entreno'], ['finanzas', 'Finanzas']];
+
+  $('botones').innerHTML = MODULOS.map(([m, nombre]) => `
+    <div class="fila o-mod-${m}">
+      <button class="o-btn o-btn--primario">${oIcono('check')}${nombre}</button>
+      <button class="o-btn o-btn--secundario">Secundario</button>
+      <button class="o-btn o-btn--fantasma">Fantasma</button>
+      <button class="o-btn o-btn--secundario o-btn--icono" aria-label="Pasar">${oIcono('despues')}</button>
+    </div>`).join('') + `
+    <div class="fila">
+      <button class="o-btn o-btn--primario">Sin módulo</button>
+      <button class="o-btn o-btn--alerta">${oIcono('alerta')}Eliminar</button>
+      <button class="o-btn o-btn--secundario" disabled>Deshabilitado</button>
+    </div>`;
+
+  $('demo-error-msg').innerHTML = `${oIcono('alerta')}Este sobre no alcanza: quedan ${formatCurrency(-12000)}.`;
+
+  const AVANCE = { habitos: [4, 6, 'Hábitos: 4 de 6'], plan: [3, 5, 'Tareas: 3 de 5'], entreno: [1, 1, 'Entreno: 1 de 1'], finanzas: [66, 100, 'Presupuesto: 66 %'] };
+  $('tarjetas').innerHTML = MODULOS.map(([m, nombre]) => {
+    const [v, max, etiqueta] = AVANCE[m];
+    return `
+      <article class="o-card o-mod-${m}">
+        <div class="o-card-cab">
+          <div><p class="o-rotulo">${nombre}</p><h3 class="o-card-titulo">${etiqueta.split(': ')[1]}</h3></div>
+          ${oAnillo({ valor: v, max, etiqueta, centro: m === 'finanzas' ? `${v}%` : `${v}/${max}` })}
+        </div>
+        <p class="o-card-texto">Tarjeta estándar con el anillo del módulo.</p>
+      </article>`;
+  }).join('') + `
+    <article class="o-card o-card--destacada o-mod-hoy">
+      <div class="o-card-cab"><div><p class="o-rotulo">Hoy</p><h3 class="o-card-titulo">Puntaje del día</h3></div>${oAnillo({ valor: 64, etiqueta: 'Puntaje del día: 64', centro: 64, sub: 'Día', grande: true })}</div>
+      <p class="o-card-texto">Tarjeta destacada (lavado del módulo).</p>
+    </article>`;
+
+  const habitos = [['Meditar 10 min', '7 días seguidos', true], ['Leer 20 páginas', 'Pendiente', false], ['Inglés 15 min', 'Pendiente', false]];
+  const pintarHabitos = () => {
+    $('lista-habitos').innerHTML = habitos.map(([n, d, hecho], i) => `
+      <li class="o-fila${hecho ? ' o-fila--hecha' : ''}">
+        <button class="o-check" aria-pressed="${hecho}" aria-label="Marcar ${n}" data-i="${i}">${oIcono('check')}</button>
+        <span class="o-fila-texto"><b>${n}</b><small>${d}</small></span>
+        <span class="o-fila-meta">${hecho ? '1/1' : '0/1'}</span>
+      </li>`).join('');
+    $('lista-habitos').querySelectorAll('.o-check').forEach(b => b.addEventListener('click', () => { habitos[b.dataset.i][2] = !habitos[b.dataset.i][2]; pintarHabitos(); }));
+  };
+  pintarHabitos();
+
+  $('lista-movimientos').innerHTML = [['Almuerzo', 'Comida · hoy 13:10', -4500], ['Sueldo', 'Ingreso · 20 nov', 650000], ['Metro', 'Transporte · ayer', -830]].map(([t, d, monto]) => `
+    <li><button class="o-fila"><span class="o-fila-ico">${oIcono(monto < 0 ? 'despues' : 'estrella')}</span><span class="o-fila-texto"><b>${t}</b><small>${d}</small></span><span class="o-fila-meta">${formatCurrency(monto)}</span></button></li>`).join('');
+
+  const misiones = [
+    { id: 'm1', modulo: 'habitos', titulo: 'Inglés 15 min', detalle: 'Hábito diario', pista: 'Cierra el anillo de Hábitos' },
+    { id: 'm2', modulo: 'plan', titulo: 'Entregar informe de Cálculo', detalle: 'Tarea · vence hoy', pista: 'Cierra el anillo de Tareas' },
+    { id: 'm3', modulo: 'entreno', titulo: 'Empuje A', detalle: 'Hoy toca · 45 min', pista: 'Cierra el anillo de Entreno', hecho: 'Empezar' },
+    { id: 'm4', modulo: 'finanzas', titulo: 'Respaldo pendiente', detalle: 'Hace 9 días del último', pista: 'Mantén tus datos a salvo', hecho: 'Respaldar' }
+  ];
+  const registro = (txt) => { $('mazo-registro').innerHTML = `<p class="o-card-texto">${txt}</p>`; };
+  const pintarMazo = () => {
+    $('mazo').innerHTML = oMazo(misiones, { vacio: `<div class="o-card">${oVacio({ icono: 'check', titulo: 'Misiones del día completas', texto: 'Ya cerraste todo lo de hoy.' })}</div>` });
+  };
+  pintarMazo();
+  montarMazo($('mazo'), {
+    alHecho: (id) => { const m = misiones.splice(misiones.findIndex(x => x.id === id), 1)[0]; registro(`Hecho: ${m.titulo}`); pintarMazo(); },
+    alDespues: (id) => { const i = misiones.findIndex(x => x.id === id); const [m] = misiones.splice(i, 1); misiones.push(m); registro(`Después: ${m.titulo}`); pintarMazo(); }
+  });
+
+  $('vacio-plan').innerHTML = oVacio({ icono: 'check', titulo: 'Sin tareas para hoy', texto: 'Agrega una con el botón Tarea o desde la captura rápida.', accion: 'Agregar tarea', accionId: 'vacio-accion' });
+  $('vacio-neutro').innerHTML = oVacio({ titulo: 'Sin movimientos este mes', texto: 'Cuando registres un gasto aparece aquí.' });
+
+  $('hoja-host').innerHTML = oHoja({
+    id: 'demo-hoja', modulo: 'finanzas', titulo: 'Registrar gasto',
+    cuerpo: `<div class="o-campo"><label for="hoja-monto">Monto</label><input id="hoja-monto" class="o-input o-input--monto" inputmode="numeric" placeholder="$0"></div>
+      <ul class="o-chips" aria-label="Sobre"><li><button class="o-chip" aria-pressed="true"><span class="o-chip-punto"></span>Comida</button></li><li><button class="o-chip" aria-pressed="false">Transporte</button></li><li><button class="o-chip" aria-pressed="false">Ocio</button></li></ul>`,
+    pie: '<button class="o-btn o-btn--secundario" data-hoja-cerrar>Cancelar</button><button class="o-btn o-btn--primario" data-hoja-cerrar>Guardar</button>'
+  });
+  montarHoja('demo-hoja');
+
+  $('disparadores').innerHTML = `
+    <button class="o-btn o-btn--secundario" id="d-hoja">Abrir hoja</button>
+    <button class="o-btn o-btn--secundario" id="d-confirmar">Diálogo destructivo</button>
+    <button class="o-btn o-btn--secundario" id="d-confirmar2">Diálogo neutro</button>
+    <button class="o-btn o-btn--secundario" id="d-toasts">Avisos</button>
+    <button class="o-btn o-btn--secundario" id="d-accion">Aviso con acción</button>`;
+  $('d-hoja').addEventListener('click', () => abrirHoja('demo-hoja'));
+  $('d-confirmar').addEventListener('click', async () => { const ok = await ConfirmDialog('Eliminar sobre Ocio', 'Su historial y su saldo de -$12.000 quedan archivados.', { verb: 'Eliminar' }); Toast(ok ? 'Sobre eliminado' : 'Cancelado', ok ? 'success' : 'info'); });
+  $('d-confirmar2').addEventListener('click', () => ConfirmDialog('Mover a hoy', 'Las 3 tareas atrasadas pasan a hoy.', { verb: 'Mover', danger: false }));
+  $('d-toasts').addEventListener('click', () => {
+    Toast('Tarea guardada', 'success', 6000);
+    Toast('No se pudo guardar el gasto', 'error', 6000);
+    Toast('Sin conexión: se sincroniza al volver', 'warning', 6000);
+    Toast('Nuevo récord: 80 kg en sentadilla', 'pr', 6000);
+  });
+  $('d-accion').addEventListener('click', () => ToastAccion('Sesión eliminada', { accion: 'Deshacer', alAccion: () => Toast('Sesión restaurada', 'success') }));
+</script>
+</body>
+</html>

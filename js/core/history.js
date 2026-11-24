@@ -102,8 +102,11 @@ export function initSheetDragToDismiss() {
   let drag = null; // { sheet, overlay, startY, lastY, startTime }
 
   document.addEventListener('pointerdown', (e) => {
-    const sheet = e.target.closest('.sheet-content');
+    // .o-hoja: hojas de Órbita (css/orbita.css). En ≥ 640 px son tarjetas
+    // centradas sin agarre, y ahí no se arrastran.
+    const sheet = e.target.closest('.sheet-content, .o-hoja');
     if (!sheet) return;
+    if (sheet.classList.contains('o-hoja') && getComputedStyle(sheet, '::before').display === 'none') return;
     // Solo arrastra si el toque empieza cerca del grip de arriba (el
     // ::before de 36x4px) o el contenido ya está scrolleado hasta el
     // tope — si no, un swipe adentro del formulario se comería el scroll

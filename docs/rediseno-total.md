@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (24-11-2026):** la **Fase 3 (esqueleto) está terminada** (commit `96dde63`, con push) y el bug previo de Finanzas › Movimientos (lista vacía al volver con esa pestaña activa) está corregido, con su prueba de regresión en `verificar.mjs` (23/23 OK). Lo siguiente: la **Fase 4** (componentes base).
+> **Estado actual (24-11-2026):** la **Fase 4 (componentes base) está terminada** (25/25 OK en `verificar.mjs fase-4`). Antes se corrigió el bug previo de Finanzas › Movimientos (commit `1fe6143`). Lo siguiente: la **Fase 5** (Hoy).
 
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
@@ -297,6 +297,24 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Verificación:** se agregaron pruebas para Perfil (atrás y navegación), el dock, el orbe, las redirecciones y Plan › Notas (crear y borrar una categoría sin perder las pestañas). Las capturas ahora incluyen Plan › Notas.
 - **ESLint:** `no-undef` limpio.
 - **Resultado: 22/22 OK y 0 errores de consola** (`node tools/verificar/verificar.mjs fase-3`).
+
+**Bug previo de Finanzas › Movimientos (24-11-2026, commit `1fe6143`)**
+- Al volver a Finanzas con Movimientos activa, la lista se llena al montar la vista (antes solo al tocar la pestaña). Prueba de regresión en `verificar.mjs`.
+
+**Fase 4 · componentes base (24-11-2026)**
+- **`css/orbita.css`** (nuevo, en `PRECACHE_URLS`): botón (primario con el degradado y la sombra del módulo, secundario, fantasma, alerta, ícono, bloque), campo (etiqueta, ayuda y error con ícono), tarjeta (estándar y destacada), lista y fila, check, chip, pestañas superiores, anillo, mazo de misiones, hoja inferior, diálogo, estado vacío y aviso. Solo tokens `--o-*`; sin módulo, los componentes caen a neutros.
+- **`js/components/orbita.js`** (nuevo): `oIcono`, `oAnillo`, `oVacio`, `oMision`, `oMazo` + `montarMazo` («Hecho», «Después» o deslizar), `oHoja` + `abrirHoja` / `cerrarHoja` / `montarHoja`, y `msDeToken` (las esperas siguen a los tokens de movimiento).
+- **Tokens nuevos** en `variables.css`: tamaños (`--o-icon-sm`, `--o-check`, `--o-anillo`, `--o-anillo-lg`, `--o-grip-w`, `--o-sheet-max`, `--o-dialog-max`, `--o-text-max`) y movimiento (`--o-move-sheet`, `--o-move-out`, `--o-press`, `--o-pop`, `--o-disabled`), con su versión para `prefers-reduced-motion`.
+- **Transversales migrados a Órbita:**
+  - Avisos (`Toast`, `ToastAccion`): píldora con ícono por tipo. `'warning'` (11 llamadas) antes salía sin color; ahora sale en ámbar con ⚠, y el rojo queda solo para `'error'`.
+  - Diálogo de confirmación global: `.o-dialogo`; el ícono ⚠ solo acompaña a las acciones destructivas; foco inicial en «Cancelar».
+  - Hoja de Perfil: pasa a `.o-hoja` (sin los `!important` de la Fase 3).
+- **Convivencia con MK III:** los overlays de Órbita llevan `.o-ui`, que `components.css` excluye de la regla que deja recto todo lo que va dentro de un modal. `history.js` también deja arrastrar el agarre de `.o-hoja` para cerrarla (en ≥ 640 px no hay agarre).
+- **Muestra fuera de la app:** `docs/rediseno/componentes-orbita.html` (`?modo=sobrio`), con los mismos CSS y JS de la app.
+- **Contraste:** texto de acento sobre el tinte del módulo ≥ 4.75:1; tinta sobre el rojo de alerta, 5.5:1.
+- **Verificación:** nuevas pruebas de la muestra en los dos modos (capturas en 390/768/1440; hoja con atrás, diálogo, los cuatro avisos y el mazo con botones y deslizando) y del aviso con ícono en la app. ESLint `no-undef` limpio. **25/25 OK y 0 errores de consola.**
+- **Pendiente detectado (sin cambiar, ya existía):** si el diálogo de confirmación se cierra con el botón atrás o con Escape, la promesa de `ConfirmDialog` no se resuelve. Quien espera la respuesta queda colgado sin error visible.
+
 ## 9. Riesgos y cómo se controlan
 
 | Riesgo | Mitigación |
