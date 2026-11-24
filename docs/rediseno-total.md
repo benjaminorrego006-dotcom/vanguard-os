@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (24-11-2026):** la **Fase 5 (Hoy) está terminada**, y después se unificaron los bordes de toda la app («Esquina Vanguard», 32/32 OK en `verificar.mjs esquina`). Pendientes de decidir: (1) el ítem activo del riel en modo sobrio casi no se lee (Fase 3); (2) los números del mapa de calor de Finanzas no llegan a 4,5:1. Lo siguiente: la **Fase 6**.
+> **Estado actual (24-11-2026):** la **Fase 5 (Hoy) está terminada**, y después se unificaron los bordes de toda la app («Esquina Vanguard», 32/32 OK en `verificar.mjs esquina`). Pendientes de decidir: (1) el ítem activo del riel en modo sobrio casi no se lee (Fase 3); Lo siguiente: la **Fase 6**.
 
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
@@ -332,6 +332,7 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 
 #### Pendientes corregidos antes de la Fase 6 (24-11-2026)
 - **Hoja de gasto desde Hoy (regresión de la Fase 5):** el teclado numérico, los chips y la animación del check de los formularios de Finanzas pasaron del `<style>` de esa vista a `components.css` (con tokens de Órbita), así que funcionan en cualquier vista. Prueba nueva: abre la hoja desde Hoy, comprueba estilos reales (12 teclas ≥ 44 px sin aspecto nativo, chips con caja táctil, relleno y radio, el elegido con fondo) y registra un gasto de punta a punta (sale en Movimientos con su monto y su sobre). Falla sin el arreglo («tecla de 21 px de alto») y pasa con él. La prueba del orbe ahora espera a que Hoy termine de pintarse. `v349`, 33/33.
+- **Mapa de calor (Finanzas y Tareas):** cada celda ya no baja la opacidad (apagaba también el número); se pinta con una mezcla opaca del acento sobre el fondo, y al montar se elige texto claro o tinta oscura según el contraste real, corriendo la mezcla lo justo en los tonos medios donde ninguno llega a 4,5:1. Prueba nueva de contraste de todas las celdas en color y en sobrio: falla sin el arreglo (19 celdas, la peor 3,2:1) y pasa con él. `v350`, 34/34.
 
 ## 9. Riesgos y cómo se controlan
 

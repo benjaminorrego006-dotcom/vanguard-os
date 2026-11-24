@@ -43,12 +43,15 @@ export function renderActivityHeatmap({ id, monthLabel, year, month, countByDay,
   const cellHtml = (day) => {
     const count = countByDay[day] || 0;
     const details = detailByDay[day] || [];
-    const alpha = count === 0 ? 0 : 0.28 + (count / maxCount) * 0.72;
+    // Intensidad = cuánto acento lleva la mezcla con el fondo (no una
+    // opacidad: esa también apagaba el número). El color del texto se elige
+    // al montar (pintarCeldas) según el fondo real, para cumplir AA.
+    const mezcla = count === 0 ? 0 : Math.round((0.28 + (count / maxCount) * 0.72) * 100);
     const detailText = details.length ? details.join(', ') : emptyLabel;
     const fullLabel = `${day} de ${monthLabel}: ${detailText}`;
     return `
-      <div class="heatmap-cell tappable" data-day="${day}" data-count="${count}" data-detail="${escapeHtml(fullLabel)}" title="${escapeHtml(fullLabel)}"
-        style="position: relative; aspect-ratio: 1; width: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-sizing: border-box; border: 1.5px solid transparent; font-size: clamp(10px, 3.6vw, 14px); font-weight: 700; transition: border-color 0.15s ease, transform 0.1s ease; background: ${count === 0 ? 'var(--surface-2)' : accentVar}; opacity: ${count === 0 ? 1 : alpha}; color: ${count === 0 ? 'var(--text-disabled)' : '#000'};">
+      <div class="heatmap-cell tappable" data-day="${day}" data-count="${count}" data-mezcla="${mezcla}" data-detail="${escapeHtml(fullLabel)}" title="${escapeHtml(fullLabel)}"
+        style="position: relative; aspect-ratio: 1; width: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-sizing: border-box; border: 1.5px solid transparent; font-size: clamp(10px, 3.6vw, 14px); font-weight: 700; transition: border-color 0.15s ease, transform 0.1s ease; background: ${count === 0 ? 'var(--surface-2)' : `color-mix(in srgb, ${accentVar} ${mezcla}%, var(--o-bg))`}; color: ${count === 0 ? 'var(--text-disabled)' : 'var(--o-ink)'};">
         ${day}
       </div>`;
   };
@@ -76,11 +79,64 @@ export function renderActivityHeatmap({ id, monthLabel, year, month, countByDay,
   `;
 }
 
+// --- Contraste AA de los números (WCAG 2.x): con el fondo real de cada
+// celda (acento y fondo leídos del tema en curso, color o sobrio) se elige
+// el texto claro (--o-text) o la tinta oscura (--o-ink), el que contraste
+// más. En los tonos medios ninguno llega a 4,5:1, así que la mezcla se
+// corre lo justo (más oscura con texto claro o más clara con tinta) hasta
+// que uno cumpla.
+const AA = 4.5;
+function rgbDe(css, dentro) {
+  const sonda = document.createElement('span');
+  sonda.style.color = css;
+  dentro.appendChild(sonda);
+  const m = getComputedStyle(sonda).color.match(/[\d.]+/g).map(Number);
+  sonda.remove();
+  return m.slice(0, 3);
+}
+function luminancia(rgb) {
+  const [r, g, b] = rgb.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contraste(a, b) {
+  const [x, y] = [luminancia(a), luminancia(b)].sort((m, n) => n - m);
+  return (x + 0.05) / (y + 0.05);
+}
+const mezclar = (a, b, t) => a.map((v, i) => Math.round(v * t + b[i] * (1 - t)));
+
+function pintarCeldas(container, accentVar) {
+  const acento = rgbDe(accentVar, container);
+  const fondo = rgbDe('var(--o-bg)', container);
+  const claro = rgbDe('var(--o-text)', container);
+  const tinta = rgbDe('var(--o-ink)', container);
+  container.querySelectorAll('.heatmap-cell[data-count]:not([data-count="0"])').forEach((cell) => {
+    const t0 = Number(cell.dataset.mezcla) / 100;
+    let bg = mezclar(acento, fondo, t0);
+    let usarTinta = contraste(tinta, bg) >= contraste(claro, bg);
+    const ajustar = () => {
+      const texto = usarTinta ? tinta : claro;
+      const paso = usarTinta ? 0.02 : -0.02;
+      let t = t0;
+      bg = mezclar(acento, fondo, t);
+      while (contraste(texto, bg) < AA && t + paso <= 1 && t + paso >= 0.1) {
+        t += paso;
+        bg = mezclar(acento, fondo, t);
+      }
+      return contraste(texto, bg) >= AA;
+    };
+    // Si un acento muy oscuro (o muy claro) no llega con un texto, el otro sí.
+    if (!ajustar()) { usarTinta = !usarTinta; ajustar(); }
+    cell.style.background = `rgb(${bg.join(', ')})`;
+    cell.style.color = usarTinta ? 'var(--o-ink)' : 'var(--o-text)';
+  });
+}
+
 // Click/tap (funciona igual con mouse y touch) o Enter muestra el detalle
 // del día bajo la grilla; el `title` nativo ya cubre el hover en desktop.
 export function initActivityHeatmapListeners(id, accentVar) {
   const container = document.getElementById(id);
   if (!container) return;
+  pintarCeldas(container, accentVar);
   const detailEl = document.getElementById(`${id}-detail`);
   const year = Number(container.dataset.year);
   const month = Number(container.dataset.month);

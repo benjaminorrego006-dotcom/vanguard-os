@@ -94,6 +94,7 @@ const SEL = {
   fechaDesde: '#history-date-from',
   limpiarFechas: '#btn-clear-date-filter',
   finTitulo: '#view-root h1',
+  mapaCalor: '#finanzas-heatmap',
   // Entreno
   sesionActiva: '#sesion-barra, #hiit-container' // GYM/Calistenia o temporizador HIIT
 };
@@ -141,6 +142,34 @@ async function irA(page, vista) {
 async function esperarToast(page, re) {
   await page.waitForFunction(([src, flags]) => new RegExp(src, flags).test(document.querySelector('#toast-container')?.textContent || ''), [re.source, re.flags], { timeout: 8000 });
 }
+// Contraste WCAG del texto de cada elemento que calce con el selector contra
+// su fondo real (los fondos translúcidos de los ancestros compuestos sobre
+// --o-bg). Devuelve los que no llegan a 4,5:1 (3:1 si el texto es grande).
+async function fallasContraste(page, selector) {
+  return page.$$eval(selector, (els) => {
+    const rgba = (s) => { const m = s.match(/[\d.]+/g).map(Number); return { r: m[0], g: m[1], b: m[2], a: m.length > 3 ? m[3] : 1 }; };
+    const sobre = (c, f) => ({ r: c.r * c.a + f.r * (1 - c.a), g: c.g * c.a + f.g * (1 - c.a), b: c.b * c.a + f.b * (1 - c.a), a: 1 });
+    const lum = (c) => { const t = [c.r, c.g, c.b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * t[0] + 0.7152 * t[1] + 0.0722 * t[2]; };
+    const sonda = document.createElement('span'); sonda.style.color = 'var(--o-bg)'; document.body.appendChild(sonda);
+    const base = rgba(getComputedStyle(sonda).color); sonda.remove();
+    return els.filter((el) => el.textContent.trim() && el.getBoundingClientRect().width > 0).map((el) => {
+      const capas = []; let op = 1;
+      for (let e = el; e; e = e.parentElement) {
+        const c = getComputedStyle(e); op *= Number(c.opacity);
+        const bg = rgba(c.backgroundColor); if (bg.a > 0) capas.unshift(bg);
+        if (bg.a === 1) break;
+      }
+      let fondo = base; for (const c of capas) fondo = sobre(c, fondo);
+      const cs = getComputedStyle(el); const fg = rgba(cs.color);
+      const texto = sobre({ ...fg, a: fg.a * op }, fondo);
+      const [x, y] = [lum(texto), lum(fondo)].sort((m, n) => n - m);
+      const q = (x + 0.05) / (y + 0.05);
+      const grande = parseFloat(cs.fontSize) >= 24 || (parseFloat(cs.fontSize) >= 18.66 && Number(cs.fontWeight) >= 700);
+      return { texto: el.textContent.trim().slice(0, 24), q: Math.round(q * 100) / 100, min: grande ? 3 : 4.5 };
+    }).filter((r) => r.q < r.min);
+  });
+}
+
 // Captura sin los toasts que dejaron pruebas anteriores (tapan la pantalla).
 async function capturar(page, archivo) {
   await page.evaluate((s) => { const t = document.querySelector(s); if (t) t.innerHTML = ''; }, SEL.toast);
@@ -271,6 +300,32 @@ async function main() {
       return '';
     });
     afirmar(fondo === '', `cabecera con fondo propio: ${fondo}`);
+  });
+
+  await prueba('Finanzas · los números del mapa de calor cumplen AA (color y sobrio)', async () => {
+    for (const tema of ['color', 'gris']) {
+      await page.evaluate((t) => localStorage.setItem('vg-tema', t), tema);
+      await page.reload();
+      await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+      await irA(page, 'finanzas');
+      await page.locator(SEL.finTab('resumen')).click();
+      await page.waitForSelector(`${SEL.mapaCalor} .heatmap-cell`);
+      const celdas = await page.$$eval(`${SEL.mapaCalor} .heatmap-cell`, (cs) => cs.length);
+      const conActividad = await page.$$eval(`${SEL.mapaCalor} .heatmap-cell:not([data-count="0"])`, (cs) => new Set(cs.map((c) => c.dataset.count)).size);
+      afirmar(celdas >= 28 && conActividad >= 2, `mapa sin niveles para revisar (${celdas} celdas, ${conActividad} niveles)`);
+      const fallas = await fallasContraste(page, `${SEL.mapaCalor} .heatmap-cell`);
+      afirmar(fallas.length === 0, `${tema}: ${fallas.length} celdas bajo AA, ej. «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+      if (tema === 'color') {
+        await page.setViewportSize({ width: 768, height: 1024 });
+        await page.locator(SEL.mapaCalor).scrollIntoViewIfNeeded();
+        await page.waitForTimeout(300);
+        await capturar(page, 'mapa-calor-768.png');
+        await page.setViewportSize({ width: 390, height: 844 });
+      }
+    }
+    await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
+    await page.reload();
+    await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
   });
 
   await prueba('Bordes · «Esquina Vanguard» sin chaflán en Hábitos, Plan, Entreno y Finanzas', async () => {
