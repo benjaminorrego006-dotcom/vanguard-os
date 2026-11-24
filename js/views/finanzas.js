@@ -36,6 +36,7 @@ import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { ensureChartJs, anchoEtiquetasBarraH, baseChartOptions, hdPixelRatio, horizontalBarValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
 import { renderDonutChart, destroyAllDonuts } from '../components/donut-chart.js';
 import { renderGoalForm, initGoalForm, openGoalForm } from '../components/goal-form.js';
+import { getGoalSVG } from '../components/goal-card.js';
 import { escapeHtml } from '../utils/escape.js';
 import { mesKeyDe, diaKeyDe, diasEntre, formatFechaCorta, formatFechaLarga, formatMes, formatMesCorto, fechaLocalDe, claveDiaDe, conMayuscula } from '../utils/fecha.js';
 import { colorTexto } from '../utils/tema.js';
@@ -708,6 +709,7 @@ function metasHtml() {
     return `
       <li class="o-card o-fin-meta goal-row" data-id="${escapeHtml(g.id)}">
         <div class="o-fin-meta-cab">
+          <span class="o-fila-ico">${getGoalSVG(g.icon)}</span>
           <h3 class="o-fin-meta-nombre">${nombre}</h3>
           <button type="button" class="o-btn o-btn--fantasma o-btn--icono edit-goal" data-id="${escapeHtml(g.id)}" aria-label="Editar meta ${nombre}">${ICO.editar}</button>
           <button type="button" class="o-btn o-btn--fantasma o-btn--icono delete-goal" data-id="${escapeHtml(g.id)}" aria-label="Eliminar meta ${nombre}">${ICO.borrar}</button>

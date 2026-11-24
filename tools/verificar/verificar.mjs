@@ -1202,6 +1202,9 @@ async function main() {
     await page.locator(SEL.finTab('sobres')).click();
     const tarjeta = await page.locator(`${SEL.finSobre('Transporte')} .o-fin-sobre-saldo`).evaluate((p) => ({ icono: !!p.querySelector('svg.o-ico-alerta'), texto: p.textContent.replace(/\s+/g, ' ').trim() }));
     afirmar(tarjeta.icono && /Saldo negativo: -\$/.test(tarjeta.texto), `tarjeta de Transporte: ${JSON.stringify(tarjeta)}`);
+    // Cada meta conserva su ícono (como en la tarjeta de antes).
+    const metasSinIcono = await page.$$eval('.goal-row', (gs) => gs.filter((g) => !g.querySelector('.o-fila-ico svg')).length);
+    afirmar(metasSinIcono === 0, `${metasSinIcono} metas sin ícono`);
   });
 
   await prueba('Finanzas · eliminar un movimiento y un pago fijo desde su detalle', async () => {
