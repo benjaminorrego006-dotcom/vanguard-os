@@ -1040,3 +1040,27 @@ html[data-tema="gris"] .mk3-dashboard { --text-primary: #F5F5F7; }
 :where(html[data-tema="gris"] .mk3-planificador :is(h1, h2, h3, h4, .num)) { color: var(--accent-plan-t); }
 :where(html[data-tema="gris"] .mk3-anotaciones) :is(h1, h2, h3, h4, .num) { --text-primary: var(--accent-notas-t); --t1: var(--accent-notas-t); }
 :where(html[data-tema="gris"] .mk3-anotaciones :is(h1, h2, h3, h4, .num)) { color: var(--accent-notas-t); }
+
+/* Teclado numérico y chips de los formularios de Finanzas (Gasto, Ingreso,
+   Ahorro) y la entrada del check de su confirmación. Antes vivían en el
+   <style> que inyecta la vista Finanzas, así que el formulario de gasto
+   abierto desde Hoy salía sin estilo; aquí están cargados en toda la app. */
+@keyframes scaleIn {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.numpad-btn {
+  min-height: var(--o-touch); padding: var(--o-sp-4);
+  background: transparent; border: none; color: var(--text-primary);
+  font-family: inherit; font-size: var(--o-fs-xl); font-weight: var(--o-fw-regular);
+  cursor: pointer; transition: background var(--o-dur-1) var(--o-ease-out);
+}
+.numpad-btn:active { background: var(--o-surface-2); }
+.chip {
+  display: inline-flex; align-items: center; min-height: var(--o-touch);
+  padding: var(--o-sp-2) var(--o-sp-4); box-sizing: border-box;
+  border: 1px solid transparent; border-radius: var(--o-radius-chip);
+  font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold);
+  cursor: pointer; transition: border-color var(--o-dur-2) var(--o-ease-out), background var(--o-dur-2) var(--o-ease-out);
+}
+.chip.active { border-color: var(--o-line-strong); }

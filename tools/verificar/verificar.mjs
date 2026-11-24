@@ -85,6 +85,10 @@ const SEL = {
   habitoMarcado: (nombre) => `button[aria-label="Editar ${nombre} hoy"][aria-pressed="true"]`,
   // Finanzas
   gastoModal: '#gasto-modal',
+  gastoTecla: (v) => `#gasto-modal .numpad-btn[data-val="${v}"]`,
+  gastoChip: '#gasto-chip-container .chip',
+  gastoLabel: '#gasto-label',
+  gastoGuardar: '#btn-submit-gasto',
   finTab: (tab) => `.fin-tab[data-tab="${tab}"]`,
   movimientos: '#history-list-content',
   fechaDesde: '#history-date-from',
@@ -291,6 +295,42 @@ async function main() {
     await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.gastoModal);
   });
 
+  await prueba('Hoy · la hoja de gasto tiene estilo y registra un gasto de punta a punta', async () => {
+    await irA(page, 'dashboard');
+    await page.locator(SEL.qaGasto).click();
+    await page.waitForFunction((s) => document.querySelector(s)?.classList.contains('open'), SEL.gastoModal, { timeout: 8000 });
+    await page.waitForTimeout(500); // entrada de la hoja
+    // Teclado: las 12 teclas con objetivo táctil ≥ 44 px y sin el aspecto nativo del navegador.
+    const teclas = await page.$$eval('#gasto-modal .numpad-btn', (bs) => bs.map((b) => {
+      const c = getComputedStyle(b); const r = b.getBoundingClientRect();
+      return { alto: r.height, fondo: c.backgroundColor, borde: c.borderTopStyle, letra: parseFloat(c.fontSize) };
+    }));
+    afirmar(teclas.length === 12, `teclas: ${teclas.length}`);
+    for (const t of teclas) {
+      afirmar(t.alto >= 44, `tecla de ${t.alto} px de alto`);
+      afirmar(t.fondo === 'rgba(0, 0, 0, 0)' && t.borde === 'none', `tecla con aspecto nativo (${t.fondo}, borde ${t.borde})`);
+      afirmar(t.letra >= 20, `tecla con letra de ${t.letra} px`);
+    }
+    // Chips de sobre: caja táctil con relleno y radio; el elegido toma fondo.
+    const chip = page.locator(SEL.gastoChip).first();
+    const antes = await chip.evaluate((e) => { const c = getComputedStyle(e); const r = e.getBoundingClientRect(); return { alto: r.height, relleno: parseFloat(c.paddingLeft), radio: c.borderTopLeftRadius }; });
+    afirmar(antes.alto >= 44 && antes.relleno >= 8 && antes.radio !== '0px', `chip sin estilo: ${JSON.stringify(antes)}`);
+    const nombreSobre = (await chip.textContent()).trim();
+    await chip.click();
+    const fondo = await chip.evaluate((e) => getComputedStyle(e).backgroundColor);
+    afirmar(fondo !== 'rgba(0, 0, 0, 0)', 'el chip elegido no tomó fondo');
+    for (const v of ['3', '2', '0', '0']) await page.locator(SEL.gastoTecla(v)).click();
+    await page.locator(SEL.gastoLabel).fill('Prueba hoja Hoy');
+    await capturar(page, 'hoja-gasto-390.png');
+    await page.locator(SEL.gastoGuardar).click();
+    await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.gastoModal, { timeout: 8000 });
+    await irA(page, 'finanzas');
+    await page.locator(SEL.finTab('movimientos')).click();
+    await page.waitForFunction((s) => /Prueba hoja Hoy/.test(document.querySelector(s)?.textContent || ''), SEL.movimientos, { timeout: 8000 });
+    const fila = await page.locator(SEL.movimientos).textContent();
+    afirmar(/-\$3\.200/.test(fila) && fila.includes(nombreSobre), `el gasto no quedó con $3.200 en ${nombreSobre}`);
+  });
+
   await prueba('Acción 4 · agregar una tarea (botón Tarea)', async () => {
     await irA(page, 'dashboard');
     await page.locator(SEL.qaTarea).click();
@@ -377,6 +417,8 @@ async function main() {
   });
 
   await prueba('Orbe · estando en Hoy abre la captura rápida', async () => {
+    // Hoy se pinta de forma asíncrona: esperar a que exista su hoja de captura.
+    await page.waitForSelector(SEL.hoyCaptura, { state: 'attached' });
     await page.locator(SEL.orbe).click();
     await page.waitForFunction((s) => document.activeElement?.matches(s), SEL.capturaInput);
     afirmar((await page.evaluate(() => location.hash)) === '#dashboard', 'el orbe cambió de vista');

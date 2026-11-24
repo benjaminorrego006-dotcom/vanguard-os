@@ -1340,10 +1340,6 @@ export async function render() {
   if (projectedPct > 110) projColor = 'var(--state-high)';
 
   const modalCSS = `
-    @keyframes scaleIn {
-      0% { transform: scale(0); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
-    }
     /* Los modales usan la geometría común de components.css (rectos, sin
        sombra); acá ya no hay una copia propia que le gane en Finanzas. */
     .input-group { margin-bottom: 20px; }
@@ -1363,10 +1359,6 @@ export async function render() {
     .tx-row { cursor: pointer; }
     .tx-row:hover { background: var(--surface-2) !important; }
     .top-card { cursor: pointer; }
-    .numpad-btn { background: transparent; border: none; font-size: 24px; font-weight: 500; padding: 16px; cursor: pointer; color: var(--text-primary); transition: background 0.1s; }
-    .numpad-btn:active { background: var(--surface-2); }
-    .chip { padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
-    .chip.active { border-color: rgba(255,255,255,0.2); }
   `;
 
   const fullStr = formatDisponible(balanceSafe);

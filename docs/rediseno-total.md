@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (24-11-2026):** la **Fase 5 (Hoy) está terminada**, y después se unificaron los bordes de toda la app («Esquina Vanguard», 32/32 OK en `verificar.mjs esquina`). Pendientes de decidir: (1) el ítem activo del riel en modo sobrio casi no se lee (Fase 3); (2) la hoja de gasto abierta desde Hoy sale sin el estilo de su teclado y sus chips (Fase 5: ese CSS vive en el `<style>` de Finanzas); (3) los números del mapa de calor de Finanzas no llegan a 4,5:1. Lo siguiente: la **Fase 6**.
+> **Estado actual (24-11-2026):** la **Fase 5 (Hoy) está terminada**, y después se unificaron los bordes de toda la app («Esquina Vanguard», 32/32 OK en `verificar.mjs esquina`). Pendientes de decidir: (1) el ítem activo del riel en modo sobrio casi no se lee (Fase 3); (2) los números del mapa de calor de Finanzas no llegan a 4,5:1. Lo siguiente: la **Fase 6**.
 
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
@@ -329,6 +329,9 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Finanzas:** la cabecera ya no es `sticky` con fondo propio (era la franja negra detrás del título).
 - **Fechas dd-mm-aaaa:** `js/utils/campo-fecha.js` convierte cada `input type="date"` en un campo que se ve `dd-mm-aaaa` (es-CL, sin depender del idioma del navegador) y cuyo `.value` sigue siendo `YYYY-MM-DD`; el calendario nativo se abre con el ícono, con un toque en pantallas táctiles o con Alt+↓.
 - **Verificación:** pruebas nuevas (filtro de fechas de Movimientos escrito por teclado, título de Finanzas sin franja, sin chaflán y con 18/4 px en las tarjetas de Hábitos, Plan, Entreno y Finanzas). Auditoría de contraste AA del texto de Hoy, Hábitos, Plan, Entreno y Finanzas en los dos modos: sin fallas salvo los números del mapa de calor de Finanzas (problema previo, pendiente). Capturas en 390/768/1440 en los dos modos. ESLint limpio. **32/32 OK y 0 errores de consola.** `CACHE_NAME` → `v348`.
+
+#### Pendientes corregidos antes de la Fase 6 (24-11-2026)
+- **Hoja de gasto desde Hoy (regresión de la Fase 5):** el teclado numérico, los chips y la animación del check de los formularios de Finanzas pasaron del `<style>` de esa vista a `components.css` (con tokens de Órbita), así que funcionan en cualquier vista. Prueba nueva: abre la hoja desde Hoy, comprueba estilos reales (12 teclas ≥ 44 px sin aspecto nativo, chips con caja táctil, relleno y radio, el elegido con fondo) y registra un gasto de punta a punta (sale en Movimientos con su monto y su sobre). Falla sin el arreglo («tecla de 21 px de alto») y pasa con él. La prueba del orbe ahora espera a que Hoy termine de pintarse. `v349`, 33/33.
 
 ## 9. Riesgos y cómo se controlan
 
