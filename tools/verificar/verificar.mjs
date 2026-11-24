@@ -46,6 +46,7 @@ const SEL = {
   menuOverlay: '#perfil-overlay',
   perfilItem: (vista) => `#perfil-overlay .o-perfil-item[data-menu-view="${vista}"]`,
   orbe: '#app-nav .nav-orbe',
+  rielActivo: '#app-nav .nav-item.active:not(.nav-orbe)',
   dockItems: '#app-nav .nav-item',
   notasHost: '#notas-host',
   demoBtn: '#btn-cfg-demo',
@@ -156,8 +157,13 @@ async function fallasContraste(page, selector) {
       const capas = []; let op = 1;
       for (let e = el; e; e = e.parentElement) {
         const c = getComputedStyle(e); op *= Number(c.opacity);
+        // Un degradado de un solo color (relleno sólido, p. ej.
+        // linear-gradient(X, X)) pinta encima del color de fondo y se cuenta.
+        // Las luces ambientales (radiales que se desvanecen) no.
+        const deg = c.backgroundImage.match(/rgba?\([^)]*\)/g);
+        const dg = deg && new Set(deg).size === 1 ? rgba(deg[0]) : null; if (dg && dg.a > 0) capas.unshift(dg);
         const bg = rgba(c.backgroundColor); if (bg.a > 0) capas.unshift(bg);
-        if (bg.a === 1) break;
+        if (bg.a === 1 || (dg && dg.a === 1)) break;
       }
       let fondo = base; for (const c of capas) fondo = sobre(c, fondo);
       const cs = getComputedStyle(el); const fg = rgba(cs.color);
@@ -326,6 +332,30 @@ async function main() {
     await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
     await page.reload();
     await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+  });
+
+  await prueba('Riel · en modo sobrio el ítem activo cumple AA en 768 y 1440', async () => {
+    await page.evaluate(() => localStorage.setItem('vg-tema', 'gris'));
+    try {
+      for (const ancho of [768, 1440]) {
+        await page.setViewportSize({ width: ancho, height: 900 });
+        await page.reload();
+        await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+        for (const vista of ['habitos', 'tareas', 'entrenamiento', 'finanzas']) {
+          await irA(page, vista);
+          await page.waitForSelector(SEL.rielActivo);
+          // Etiqueta (texto, 4,5:1) e ícono (mismo color, objeto gráfico).
+          const fallas = await fallasContraste(page, SEL.rielActivo);
+          afirmar(fallas.length === 0, `${ancho} px, ${vista}: «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+          if (ancho === 1440 && vista === 'finanzas') await capturar(page, 'riel-sobrio-1440.png');
+        }
+      }
+    } finally {
+      await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.reload();
+      await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+    }
   });
 
   await prueba('Bordes · «Esquina Vanguard» sin chaflán en Hábitos, Plan, Entreno y Finanzas', async () => {

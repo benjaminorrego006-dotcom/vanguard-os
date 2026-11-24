@@ -980,11 +980,8 @@ html[data-tema="gris"] svg { color: oklch(from currentColor l 0 h); }
 /* Barra inferior y riel: el ícono activo en gris claro; el texto conserva
    el acento del módulo (.nav-item.active, layout.css). */
 html[data-tema="gris"] .nav-item.active .icon { color: #D0D0D4; }
-/* En el riel (escritorio) el filo de 2 px del ítem activo usaba
-   currentColor (el acento): pasa al mismo gris claro del ícono. */
-@media (min-width: 768px) {
-  html[data-tema="gris"] .nav-item.active { background-image: linear-gradient(#D0D0D4, #D0D0D4); }
-}
+/* (El filo de 2 px del riel MK III ya no existe: en el riel de Órbita ese
+   degradado rellenaba todo el ítem activo y dejaba el texto ilegible.) */
 
 /* Botón principal (y el FAB): gris claro con texto oscuro, en vez del
    acento del módulo. Los botones que usan .btn-primary como secundarios
