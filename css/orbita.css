@@ -289,6 +289,8 @@ html[data-tema="gris"] .o-mision { background-image: none; }
   cursor: grab;
 }
 .modal-overlay.open .o-hoja { animation: o-hoja-entrar var(--o-dur-3) var(--o-ease-out); }
+/* Repintada con la hoja ya abierta: sin volver a entrar. */
+.modal-overlay.open.o-sin-entrada .o-hoja { animation: none; }
 @keyframes o-hoja-entrar { from { transform: translateY(var(--o-move-sheet)); opacity: 0; } }
 .o-hoja-cab { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-3); margin-bottom: var(--o-sp-4); }
 .o-hoja-titulo {
@@ -338,6 +340,32 @@ html[data-tema="gris"] .o-mision { background-image: none; }
 .o-dialogo-titulo { margin: 0 0 var(--o-sp-2); font-size: var(--o-fs-lg); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-title); line-height: var(--o-lh-snug); }
 .o-dialogo-texto { margin: 0; font-size: var(--o-fs-base); color: var(--o-text-2); line-height: var(--o-lh-body); white-space: pre-line; }
 .o-dialogo-acciones { display: grid; grid-template-columns: 1fr 1fr; gap: var(--o-sp-3); margin-top: var(--o-sp-6); }
+
+/* ---------------------------------------------------------------------
+   Alerta: tarjeta con ícono y texto (nunca solo color). Rojo solo para
+   alertas reales; --aviso (ámbar) para lo que todavía tiene margen.
+   --------------------------------------------------------------------- */
+.o-alerta {
+  display: flex; align-items: flex-start; gap: var(--o-sp-3); width: 100%;
+  padding: var(--o-sp-3) var(--o-sp-4); text-align: left;
+  background: var(--o-alert-soft); border: 1px solid color-mix(in srgb, var(--o-alert) 40%, transparent);
+  border-radius: var(--o-r-lg); color: var(--o-text); font-family: var(--o-font);
+}
+:is(a, button).o-alerta { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.o-alerta:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-alerta-ico {
+  width: var(--o-touch); height: var(--o-touch); flex-shrink: 0; display: grid; place-items: center;
+  border-radius: var(--o-r-sm); background: var(--o-alert-soft); color: var(--o-alert-t);
+}
+.o-alerta-ico svg { width: var(--o-icon); height: var(--o-icon); }
+.o-alerta-cuerpo { flex: 1; min-width: 0; display: grid; gap: var(--o-sp-1); }
+.o-alerta-titulo { font-size: var(--o-fs-sm); font-weight: var(--o-fw-bold); color: var(--o-alert-t); }
+.o-alerta-linea { font-size: var(--o-fs-sm); color: var(--o-text-2); line-height: var(--o-lh-snug); }
+.o-alerta-linea b { color: var(--o-text); font-weight: var(--o-fw-semibold); }
+.o-alerta--aviso { background: var(--o-warn-soft); border-color: color-mix(in srgb, var(--o-warn) 40%, transparent); }
+.o-alerta--aviso .o-alerta-ico { background: var(--o-warn-soft); color: var(--o-warn-t); }
+.o-alerta--aviso .o-alerta-titulo { color: var(--o-warn-t); }
+.o-alerta-linea--alerta b { color: var(--o-alert-t); }
 
 /* ---------------------------------------------------------------------
    Estado vacío

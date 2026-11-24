@@ -389,6 +389,7 @@ html[data-tema="gris"] .mk3-anotaciones { --accent-notas: #8E8E94; }
   --o-check: 26px;          /* caja visible del check (el objetivo táctil sigue en --o-touch) */
   --o-anillo: 64px;         /* anillo suelto (chip de módulo, tarjeta) */
   --o-anillo-lg: 120px;
+  --o-orbita: 260px;        /* órbita de Hoy (4 anillos) */
   --o-grip-w: 36px;         /* agarre de las hojas */
   --o-sheet-max: 480px;     /* ancho máximo de una hoja */
   --o-dialog-max: 360px;    /* ancho máximo de un diálogo */

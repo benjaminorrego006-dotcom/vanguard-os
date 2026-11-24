@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (24-11-2026):** la **Fase 4 (componentes base) está terminada** (25/25 OK en `verificar.mjs fase-4`). Antes se corrigió el bug previo de Finanzas › Movimientos (commit `1fe6143`). Lo siguiente: la **Fase 5** (Hoy).
+> **Estado actual (24-11-2026):** la **Fase 5 (Hoy) está terminada** (29/29 OK en `verificar.mjs fase-5`). Pendiente de decidir: el ítem activo del riel en modo sobrio casi no se lee (viene de la Fase 3). Lo siguiente: la **Fase 6**.
 
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
@@ -314,6 +314,14 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Contraste:** texto de acento sobre el tinte del módulo ≥ 4.75:1; tinta sobre el rojo de alerta, 5.5:1.
 - **Verificación:** nuevas pruebas de la muestra en los dos modos (capturas en 390/768/1440; hoja con atrás, diálogo, los cuatro avisos y el mazo con botones y deslizando) y del aviso con ícono en la app. ESLint `no-undef` limpio. **25/25 OK y 0 errores de consola.**
 - **Bug previo del diálogo, corregido en un commit aparte (24-11-2026):** cerrar el diálogo de confirmación con el botón atrás, con Escape o tocando fuera dejaba sin resolver la promesa de `ConfirmDialog`. Ahora cuenta como «Cancelar» (`false`), con su prueba en `verificar.mjs` (26/26 OK).
+
+#### Fase 5 · Hoy (24-11-2026)
+- **Vista nueva** (`js/views/dashboard.js` + `css/hoy.css`): cabecera (saludo, fecha, Día, racha con vidas, línea de Foco); **órbita** de 4 anillos (Hábitos, Tareas, Entreno, Presupuesto) con el puntaje del día al centro, que lleva a Laboratorio › Semana; chips por anillo que llevan a su módulo; **mazo de misiones** (la misión contextual de siempre —ritual, tu semana, respaldo, vida extra, avances, hoy toca— y después la agenda pendiente; «Después» la manda al final); 5 acciones rápidas (Gasto, Tarea, Entrenar, Hábito, Nota); alertas reales con ícono y texto (`.o-alerta`); franja «Agenda del día» que abre la hoja de agenda (con atrasadas y «Mover a hoy»).
+- **Hojas:** agenda, hábitos de hoy, captura rápida (la abre el orbe del dock estando en Hoy) y progreso de hábito con cantidad. Repintar Hoy deja abierta la hoja que lo estaba, sin volver a animarla; `history.js` cierra por `id`.
+- **Diseño adaptable:** celular en una columna; tablet con la órbita a la izquierda; PC en tres columnas con la agenda fija a la derecha (deja de ser hoja).
+- **Gasto y Tarea** se abren sin salir de Hoy (formularios MK III dentro de su ámbito `.mk3-*` hasta su fase). Salen las filas heroicas y la «última nota» (§ 4).
+- Todo se deriva en memoria; las mutaciones son las mismas funciones de `db.js` (cada una con su `logEvent`). `CACHE_NAME` → `v347`, `css/hoy.css` en el precache.
+- **Verificación:** pruebas de Hoy actualizadas y nuevas (órbita → Laboratorio, «Después» en el mazo, hábito desde la agenda sin cerrarla, botón Hábito, orbe → captura con atrás). Capturas en 390/768/1440 en los dos modos. ESLint `no-undef` limpio. **29/29 OK y 0 errores de consola.**
 
 ## 9. Riesgos y cómo se controlan
 

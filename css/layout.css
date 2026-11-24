@@ -184,18 +184,6 @@ body {
   .nav-orbe .icon svg { padding: var(--o-sp-2); }
   .nav-orbe.active, .nav-orbe:hover { background-color: transparent; }
 
-  /* Hoy en 2 columnas: agenda a la izquierda, resúmenes a la derecha; el
-     resto de los bloques ocupa el ancho completo. */
-  .hoy-root {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: var(--space-4);
-    align-items: start;
-  }
-  .hoy-root > * { grid-column: 1 / -1; }
-  .hoy-root > #hoy-agenda { grid-column: 1; }
-  .hoy-root > #hoy-resumenes { grid-column: 2; }
-
   /* Centrar y limitar el ancho del contenido principal. Sin dock abajo,
      basta el aire normal al final. */
   #view-root {
@@ -205,9 +193,10 @@ body {
     background-color: transparent;
   }
 
-  /* El div inyectado por las vistas toma un ancho razonable (no las hojas
-     que la vista monta como hijas directas: cubren toda la pantalla). */
-  #view-root > div:not(.modal-overlay) {
+  /* El div inyectado por las vistas MK III toma un ancho razonable (no las
+     hojas que la vista monta como hijas directas: cubren toda la pantalla).
+     Las vistas de Órbita (.o-vista) fijan su ancho con tokens (hoy.css). */
+  #view-root > div:not(.modal-overlay):not(.o-vista) {
     max-width: 800px !important;
     width: 100% !important;
     padding: var(--space-5) !important;
@@ -227,14 +216,10 @@ body {
   .nav-orbe { padding-left: var(--o-sp-2); }
 }
 
-/* Vistas en PC (≥ 1024 px, sin cambios hasta su fase): contenido centrado
-   de hasta 1200 px y Hoy en grilla de 12 columnas (agenda 7 / resúmenes 5). */
+/* Vistas MK III en PC (≥ 1024 px, sin cambios hasta su fase): contenido
+   centrado de hasta 1200 px. */
 @media (min-width: 1024px) {
-  #view-root > div:not(.modal-overlay) { max-width: 1200px !important; }
-
-  .hoy-root { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-  .hoy-root > #hoy-agenda { grid-column: 1 / span 7; }
-  .hoy-root > #hoy-resumenes { grid-column: 8 / span 5; }
+  #view-root > div:not(.modal-overlay):not(.o-vista) { max-width: 1200px !important; }
 }
 
 /* Avisos (toasts) con una hoja abierta: suben arriba de la pantalla, donde

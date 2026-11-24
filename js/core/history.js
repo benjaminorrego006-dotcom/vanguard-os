@@ -46,10 +46,13 @@ export function initModalHistory() {
   window.addEventListener('popstate', (e) => {
     // Cualquier modal trackeado cuyo id ya no sea el del estado actual es
     // porque "atrás" lo dejó atrás — hay que cerrarlo visualmente.
+    // Por id y no por el nodo guardado: una vista que se repinta con su
+    // hoja abierta (Hoy) reemplaza el nodo, y el que hay que cerrar es el
+    // que está en pantalla.
     for (const [id, el] of Array.from(trackedOpen.entries())) {
       if (!e.state || e.state.modalId !== id) {
         trackedOpen.delete(id);
-        closeModalElement(el);
+        closeModalElement(document.getElementById(id) || el);
       }
     }
   });

@@ -478,18 +478,15 @@ class Router {
   }
 
   // Orbe (Hoy, al centro del dock): desde otra pantalla lleva a Hoy (el
-  // href normal); estando ya en Hoy lleva a la captura rápida. En la Fase 5
-  // abrirá la hoja de captura; mientras, enfoca el campo actual de Hoy.
+  // href normal); estando ya en Hoy abre la hoja de captura rápida
+  // (dashboard.js escucha 'vg-orbe-hoy').
   initOrbe() {
     const orbe = document.querySelector('#app-nav .nav-orbe');
     if (!orbe) return;
     orbe.addEventListener('click', (e) => {
       if (this.currentView !== 'dashboard') return;
       e.preventDefault();
-      const input = document.getElementById('quick-capture-input');
-      if (!input) return;
-      input.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      input.focus({ preventScroll: true });
+      window.dispatchEvent(new CustomEvent('vg-orbe-hoy'));
     });
   }
 
@@ -634,10 +631,10 @@ class Router {
     // mismo dominio): no hace falta un .mk3-habitos aparte que
     // duplicaría el mismo bloque de chaflán/tipografía en components.css.
     this.root.classList.toggle('mk3-tareas', viewId === 'tareas' || viewId === 'habitos');
-    // Más y Configuración son pantallas utilitarias sin identidad de
-    // módulo propia — comparten la paleta neutra de Inicio en vez de sumar
-    // un .mk3-mas/.mk3-configuracion que duplicaría el mismo bloque neutro.
-    this.root.classList.toggle('mk3-dashboard', viewId === 'dashboard' || viewId === 'configuracion');
+    // Configuración es una pantalla utilitaria sin identidad de módulo
+    // propia: usa la paleta neutra de MK III. Hoy ya es Órbita (Fase 5) y
+    // no lleva ámbito MK III.
+    this.root.classList.toggle('mk3-dashboard', viewId === 'configuracion');
     this.root.classList.toggle('mk3-ritual', viewId === 'ritual');
     this.root.classList.toggle('mk3-planificador', viewId === 'planificador');
 

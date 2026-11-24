@@ -1,107 +1,85 @@
 import { db } from '../core/db.js';
 import { formatCurrency } from '../utils/currency.js';
 import { Toast } from '../utils/states.js';
-import { parseQuickGasto, pedirGastoFinanzas, pedirPestanaFinanzas } from './finanzas.js';
+import { parseQuickGasto, pedirPestanaFinanzas } from './finanzas.js';
 import { escapeHtml } from '../utils/escape.js';
-import { diaKeyDe, diasEntre, formatFechaCorta, fechaLocalDe, sumarDias } from '../utils/fecha.js';
+import { diaKeyDe, claveDiaDe, conMayuscula, diasEntre, formatFechaCorta, fechaLocalDe, sumarDias } from '../utils/fecha.js';
 import { exportAllData, getDiasDesdeUltimoBackup } from '../utils/backup.js';
 import { getEstadoSincronizacion } from '../core/sync.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
 import { calcularAtrasadas } from '../utils/atrasadas.js';
 import { calcularHoyToca } from '../utils/hoyToca.js';
 import { renderTaskForm, setupTaskForm, openTaskForm, abrirDetallePorId } from '../components/task-form.js';
+import { renderGastoForm, initGastoForm } from '../components/GastoForm.js';
 import { lineaFocoHoy, abrirPantallaFoco } from '../components/foco.js';
 import * as Anotaciones from './anotaciones.js';
 import { svgEscudo, avisarPrimeraVidaSiCorresponde } from '../components/racha-reactor.js';
-import { pedirSemana, rangoHtml } from '../components/lab-semana.js';
+import { pedirSemana, rangoTexto } from '../components/lab-semana.js';
 import { abrirHojaDia } from '../components/dia-hoja.js';
-import { colorTexto } from '../utils/tema.js';
+import { oIcono, oMazo, montarMazo, oVacio, oHoja, abrirHoja, cerrarHoja, montarHoja } from '../components/orbita.js';
+import { esperarSalidaDeModal } from '../core/history.js';
+
+// Hoy (Órbita, Fase 5; docs/rediseno-total.md § 3). Responde de un vistazo
+// cómo voy (la órbita: 4 anillos y el puntaje del día), qué hago ahora (el
+// mazo de misiones) y qué viene (la franja que abre la agenda). Todo se
+// deriva en memoria de db.js en cada render: nada de lo que se muestra
+// aquí se guarda aparte.
 
 // Si la fila "N atrasadas" está desplegada; vive acá (no en el DOM) para
 // sobrevivir a los repintados de la agenda.
 let atrasadasAbierta = false;
+// Misiones de la agenda que se pasaron con «Después» en esta sesión: van al
+// final del mazo. Es solo orden de pantalla (no un dato), así que vive en
+// memoria y se olvida al recargar.
+const pospuestas = new Set();
+// Presupuesto del último render, para el formulario de gasto (GastoForm).
+let presupuestoActual = null;
+// Hábitos con cantidad del último render (id → datos para la hoja de progreso).
+let habitosConMeta = new Map();
+// Misión contextual del último render (su semana o su día de vida extra).
+let misionCtx = null;
 
+// Repinta Hoy en el lugar, sin navegar: conserva el scroll y deja abiertas
+// las hojas de Órbita que lo estaban (la agenda o la de hábitos), sin
+// volver a animar su entrada. history.js las sigue cerrando por id.
 async function repintar() {
   const root = document.getElementById('view-root');
+  if (!root || !window.appRouter || window.appRouter.currentView !== 'dashboard') return;
+  const abiertas = [...root.querySelectorAll('.modal-overlay.o-ui.open')].map(el => ({
+    id: el.id, scroll: el.querySelector('.o-hoja')?.scrollTop || 0
+  }));
   const scroll = root.scrollTop;
-  root.innerHTML = await render();
+  const html = await render();
+  if (window.appRouter.currentView !== 'dashboard') return;
+  root.innerHTML = html;
+  for (const { id, scroll: s } of abiertas) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.classList.add('open', 'o-sin-entrada');
+    el.style.display = 'flex';
+    const hoja = el.querySelector('.o-hoja');
+    if (hoja) hoja.scrollTop = s;
+  }
   mountListeners();
   root.scrollTop = scroll;
 }
 
-// ¿Este hábito toca hoy y todavía no está cumplido? Mismo criterio que los
-// helpers de db.js (días de la semana con getDay() local; con meta numérica,
-// "cumplido" es llegar a la cantidad).
-function habitoPendienteHoy(h, hoyIso) {
+// Mismo criterio que los helpers de db.js (días de la semana con getDay()
+// local; con meta numérica, "cumplido" es llegar a la cantidad).
+function tocaHoy(h) {
   const f = h.frecuencia || { tipo: 'diario' };
-  if (f.tipo === 'dias' && !(f.dias || []).includes((new Date().getDay() + 6) % 7)) return false;
-  const v = h.marcas && h.marcas[hoyIso];
-  if (h.meta && h.meta.cantidad) return !(Number(v) >= Number(h.meta.cantidad));
-  return !v;
+  return !(f.tipo === 'dias' && !(f.dias || []).includes((new Date().getDay() + 6) % 7));
 }
-
-// Agenda de hoy: tareas con fecha de hoy (Tareas y Semana) + hábitos que
-// tocan hoy y no están cumplidos. Cada fila lleva su checkbox en línea.
-function renderAgenda({ tareasHoy, planHoy, habitosPend, atrasadas, hoyIso }) {
-  if (atrasadas.length === 0) atrasadasAbierta = false;
-  const items = [
-    ...tareasHoy.map(t => ({ tipo: 'tarea', id: t.id, texto: t.title, etiqueta: 'Tarea' })),
-    ...planHoy.map(t => ({ tipo: 'plan', id: t.id, texto: t.texto, etiqueta: 'Semana' })),
-    // Hábito con meta numérica ('habito-num'): no se cumple con un toque, se
-    // abre el modal de progreso y se muestra lo avanzado (ej. 5/20 min).
-    ...habitosPend.map(h => {
-      const conMeta = !!(h.meta && h.meta.cantidad);
-      const meta = conMeta ? Number(h.meta.cantidad) : 0;
-      const actual = conMeta ? (Number(h.marcas && h.marcas[hoyIso]) || 0) : 0;
-      const unidad = conMeta && h.meta.unidad ? String(h.meta.unidad) : '';
-      return {
-        tipo: conMeta ? 'habito-num' : 'habito', id: h.id, texto: h.nombre, actual, meta, unidad,
-        etiqueta: conMeta ? `Hábito · ${actual}/${meta}${unidad ? ' ' + escapeHtml(unidad) : ''}` : 'Hábito'
-      };
-    })
-  ];
-  const fila = (it) => `
-    <div style="display: flex; align-items: center; gap: 4px;">
-      <button class="agenda-check tappable" data-tipo="${it.tipo}" data-id="${it.id}" data-nombre="${escapeHtml(it.texto)}" data-actual="${it.actual || 0}" data-meta="${it.meta || 0}" data-unidad="${escapeHtml(it.unidad || '')}" aria-label="${it.tipo === 'habito-num' ? 'Registrar progreso de' : 'Marcar'} ${escapeHtml(it.texto)}" style="width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;">
-        <span aria-hidden="true" style="display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1.5px solid var(--text-disabled); color: var(--text-secondary);">${it.tipo === 'habito-num' ? '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>' : ''}</span>
-      </button>
-      <div style="flex: 1; min-width: 0;">
-        <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(it.texto)}</div>
-        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 1px;">${it.etiqueta}</div>
-      </div>
-    </div>`;
-  // Atrasadas de Tareas y de Semana (fecha anterior a hoy, comparada como texto YYYY-MM-DD
-  // local — diaKeyDe, nunca toISOString). Los días se cuentan con diasEntre.
-  const diasAtras = (fecha) => diasEntre(fecha, hoyIso);
-  const haceTexto = (n) => (n === 1 ? 'ayer' : `hace ${n} días`);
-  const filaAtrasada = (t) => `
-    <div style="display: flex; align-items: center; gap: 4px;">
-      <button class="agenda-check tappable" data-tipo="${t.tipo}" data-id="${t.id}" data-nombre="${escapeHtml(t.texto)}" aria-label="Marcar ${escapeHtml(t.texto)}" style="width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;">
-        <span aria-hidden="true" style="display: block; width: 22px; height: 22px; border: 1.5px solid var(--state-high);"></span>
-      </button>
-      <div style="flex: 1; min-width: 0;">
-        <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(t.texto)}</div>
-        <div style="font-size: 11px; color: var(--state-high-t); margin-top: 1px;">${t.tipo === 'plan' ? '<span style="color: var(--text-secondary);">Semana · </span>' : ''}${haceTexto(diasAtras(t.fecha))}</div>
-      </div>
-      <button class="agenda-mover tappable" data-tipo="${t.tipo}" data-id="${t.id}" style="flex-shrink: 0; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 8px 10px; font-size: 12px; font-weight: 600; cursor: pointer;">Mover a hoy</button>
-    </div>`;
-  const atrasadasHtml = atrasadas.length === 0 ? '' : `
-      <button id="hoy-atrasadas-toggle" class="tappable" aria-expanded="${atrasadasAbierta}" aria-controls="hoy-atrasadas-lista" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: color-mix(in srgb, var(--state-high) 12%, transparent); border: 1px solid color-mix(in srgb, var(--state-high) 40%, transparent); color: var(--state-high-t); padding: 10px 12px; margin: 4px 0 6px; font-size: 13px; font-weight: 700; cursor: pointer;">
-        <span>${atrasadas.length} ${atrasadas.length === 1 ? 'atrasada' : 'atrasadas'}</span>
-        <svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition: transform 150ms ease; transform: rotate(${atrasadasAbierta ? 180 : 0}deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </button>
-      <div id="hoy-atrasadas-lista" ${atrasadasAbierta ? '' : 'hidden'} style="margin-bottom: 6px;">
-        ${atrasadas.map(filaAtrasada).join('')}
-      </div>`;
-
-  return `
-    <div id="hoy-agenda" class="card" style="padding: 14px 16px 10px; margin-bottom: 20px;">
-      <div class="num" style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px;">Agenda de hoy${items.length ? ` · ${items.length}` : ''}</div>
-      ${atrasadasHtml}
-      ${items.length
-        ? items.map(fila).join('')
-        : '<div style="font-size: 13px; color: var(--text-disabled); padding: 6px 0 8px;">Nada pendiente hoy</div>'}
-    </div>`;
+function cumplidoHoy(h, hoyIso) {
+  const v = h.marcas && h.marcas[hoyIso];
+  if (h.meta && h.meta.cantidad) return Number(v) >= Number(h.meta.cantidad);
+  return !!v;
+}
+function datosMeta(h, hoyIso) {
+  const meta = Number(h.meta.cantidad);
+  const actual = Number(h.marcas && h.marcas[hoyIso]) || 0;
+  const unidad = h.meta.unidad ? String(h.meta.unidad) : '';
+  return { id: h.id, nombre: h.nombre, actual, meta, unidad };
 }
 
 // El evento beforeinstallprompt lo captura index.html apenas carga la
@@ -140,6 +118,12 @@ window.addEventListener('vg-install-available', () => {
   }
 });
 
+// Orbe del dock estando en Hoy (app.js): abre la hoja de captura rápida.
+// Mismo motivo que el de arriba para registrarlo una sola vez.
+window.addEventListener('vg-orbe-hoy', () => {
+  if (document.getElementById('hoy-captura')) abrirHoja('hoy-captura');
+});
+
 // Todo IndexedDB, sin backend: si Chrome libera espacio, el usuario borra
 // datos de navegación o cambia de teléfono, se pierde todo. exportAllData()
 // hoy vivía escondida en Ajustes de Finanzas — este aviso la trae a Inicio,
@@ -148,13 +132,12 @@ window.addEventListener('vg-install-available', () => {
 // siempre): la fecha (diaKeyDe) queda en localStorage porque es una
 // preferencia de UI, no dato de la app.
 const BACKUP_AVISO_DIAS = 14;
-const BACKUP_ALERTA_ROJA_DIAS = 30;
 
 function backupNecesitaAviso(diasDesdeBackup) {
   return diasDesdeBackup === null || diasDesdeBackup > BACKUP_AVISO_DIAS;
 }
 
-// "Después" de la tarjeta contextual (ritual / respaldo / hoy toca): guarda
+// "Después" de la misión contextual (ritual / respaldo / hoy toca…): guarda
 // el día en que se ocultó; vuelve a aparecer mañana.
 const OCULTA_PREFIX = 'vg-ctx-oculta-';
 
@@ -186,60 +169,24 @@ function saludoPorHora() {
   return 'Buenas noches';
 }
 
-// Misma escala verde/ámbar/rojo que las barras de categoría en
-// Finanzas > Presupuesto, para que la barra miniatura del dashboard se
-// lea igual que el detalle.
-function colorAlerta(nivel) {
-  if (nivel === 'exceeded') return 'var(--state-high)';
-  if (nivel === 'warning') return 'var(--state-medium)';
-  return 'var(--state-low)';
-}
-
-// Fila heroica compacta: barra de color lateral + una sola métrica grande,
-// nada más — reemplaza a las dos tarjetas grandes (círculo de progreso /
-// ícono de billetera) de la versión anterior.
-function renderHeroicRow({ id, color, label, value }) {
-  return `
-    <div id="${id}" class="card tappable" style="display: flex; align-items: center; gap: 14px; padding: 15px 16px; margin-bottom: 10px; border-left: 2px solid ${color}; cursor: pointer;">
-      <div style="flex: 1; min-width: 0;">
-        <div class="num" style="font-size: 10px; font-weight: 700; color: ${colorTexto(color)}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px;">${label}</div>
-        <div class="num" style="font-size: 19px; font-weight: 800; color: var(--text-primary); line-height: 1.15;">${value}</div>
-      </div>
-      <svg width="16" height="16" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-    </div>
-  `;
-}
-
-// Tarjeta contextual: un solo espacio con prioridad Ritual pendiente (solo
-// antes de las 12:00) > "Tu semana" (lunes y martes) > aviso de respaldo >
-// vida extra usada (ayer o anteayer) > avances de nivel listos > "Hoy
-// toca" de Entreno. "Después"
-// oculta esa tarjeta hasta mañana (ver ocultarHoy) y deja pasar a la
-// siguiente en la prioridad; en "Tu semana", la oculta para esa semana.
-async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincronizadoReciente, sesiones, rachaGlobal }) {
+// Misión contextual: una sola, con prioridad Ritual pendiente (solo antes
+// de las 12:00) > "Tu semana" (lunes y martes) > aviso de respaldo > vida
+// extra usada (ayer o anteayer) > avances de nivel listos > "Hoy toca" de
+// Entreno. "Después" la oculta hasta mañana (ver ocultarHoy) y deja pasar a
+// la siguiente; en "Tu semana", la oculta para esa semana. Devuelve los
+// datos de la misión (texto plano: oMision escapa) o null.
+async function misionContextual({ hayDatosReales, diasDesdeBackup, sincronizadoReciente, sesiones, rachaGlobal }) {
   const hoy = diaKeyDe(new Date());
-
-  const tarjeta = ({ tipo, color, eyebrow, titulo, detalle, accion, vida = null, semana = null, despuesAria = 'Ocultar hasta mañana' }) => `
-    <div id="ctx-card" data-tipo="${tipo}"${vida ? ` data-vida="${vida}"` : ''}${semana ? ` data-semana="${semana}"` : ''} class="card card-hero" style="padding: 14px 16px; margin-bottom: 14px;">
-      <div class="num" style="font-size: 10px; font-weight: 700; color: ${colorTexto(color)}; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">${eyebrow}</div>
-      <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${titulo}</div>
-      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4;">${detalle}</div>
-      <div style="display: flex; gap: 8px; margin-top: 12px;">
-        <button id="ctx-accion" class="tappable" style="flex: 1; background: ${color}; color: #000; border: none; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer;">${accion}</button>
-        <button id="ctx-despues" class="tappable" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer;" aria-label="${despuesAria}">Después</button>
-      </div>
-    </div>`;
+  const mision = (datos) => ({ id: `ctx:${datos.tipo}`, ...datos });
 
   if (new Date().getHours() < 12 && !ocultaHoy('ritual')) {
     const p = await db.getProgresoRitual(hoy);
     if (!p.completo) {
-      return tarjeta({
-        tipo: 'ritual',
-        color: 'var(--accent-ritual)',
-        eyebrow: 'Ritual de hoy',
+      return mision({
+        tipo: 'ritual', modulo: 'plan', etiqueta: 'Ritual de hoy',
         titulo: 'Tu ritual está pendiente',
         detalle: `${p.hechos} de ${p.total} campos completados. Empieza el día con intención.`,
-        accion: 'Hacer ritual'
+        hecho: 'Hacer ritual'
       });
     }
   }
@@ -256,15 +203,11 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincro
       if (conDatos) {
         const obs = s.observaciones && s.observaciones[0];
         const resumen = `${s.entreno.sesiones} ${s.entreno.sesiones === 1 ? 'entreno' : 'entrenos'} · ${formatCurrency(s.finanzas.gastoTotal)} gastado · ${s.tareas.completadas} ${s.tareas.completadas === 1 ? 'tarea' : 'tareas'}`;
-        return tarjeta({
-          tipo: 'semana',
-          color: 'var(--text-primary)',
-          eyebrow: 'Revisión semanal',
-          titulo: `Tu semana · ${rangoHtml(s.lunes, s.domingo)}`,
-          detalle: escapeHtml(obs ? obs.texto : resumen),
-          accion: 'Ver',
-          semana: s.lunes,
-          despuesAria: 'Ocultar la revisión de esta semana'
+        return mision({
+          tipo: 'semana', modulo: 'hoy', etiqueta: 'Revisión semanal',
+          titulo: `Tu semana · ${rangoTexto(s.lunes, s.domingo)}`,
+          detalle: obs ? obs.texto : resumen,
+          hecho: 'Ver', semana: s.lunes
         });
       }
     }
@@ -273,16 +216,11 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincro
   // Con sesión iniciada y una sync correcta hace menos de 7 días los datos
   // ya tienen copia en la nube: no hace falta el aviso de respaldo.
   if (hayDatosReales && !sincronizadoReciente && backupNecesitaAviso(diasDesdeBackup) && !ocultaHoy('backup')) {
-    const esAlertaRoja = diasDesdeBackup !== null && diasDesdeBackup > BACKUP_ALERTA_ROJA_DIAS;
-    return tarjeta({
-      tipo: 'backup',
-      color: esAlertaRoja ? 'var(--state-high)' : 'var(--state-medium)',
-      eyebrow: 'Respaldo',
-      titulo: diasDesdeBackup === null
-        ? 'Nunca has exportado un respaldo'
-        : `Hace ${diasDesdeBackup} días sin respaldo`,
+    return mision({
+      tipo: 'backup', etiqueta: 'Respaldo',
+      titulo: diasDesdeBackup === null ? 'Nunca has exportado un respaldo' : `Hace ${diasDesdeBackup} días sin respaldo`,
       detalle: 'Tus datos viven solo en este dispositivo. Sin respaldo, se pierden si borras la app o cambias de equipo.',
-      accion: 'Exportar respaldo'
+      hecho: 'Exportar'
     });
   }
 
@@ -296,16 +234,11 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincro
       && vidaUsadaVista() !== usada && !ocultaHoy('vida')) {
     const f = fechaLocalDe(usada);
     const dia = `${f.toLocaleDateString('es-CL', { weekday: 'long' })} ${f.getDate()}`;
-    return tarjeta({
-      tipo: 'vida',
-      color: 'var(--vi)',
-      eyebrow: 'Vida extra',
-      // El título va en una sola línea (con elipsis): corto a propósito; la
-      // frase completa va en el detalle.
+    return mision({
+      tipo: 'vida', modulo: 'habitos', etiqueta: 'Vida extra',
       titulo: 'Tu racha se salvó',
-      detalle: `Usaste una vida extra el ${dia} — tu racha sigue en ${rachaGlobal.actual}. ${rachaGlobal.vidas > 0 ? `Te ${rachaGlobal.vidas === 1 ? 'queda 1 vida' : `quedan ${rachaGlobal.vidas} vidas`}.` : 'Registra algo hoy para no cortarla.'}`,
-      accion: 'Entendido',
-      vida: usada
+      detalle: `Usaste una vida extra el ${dia} y tu racha sigue en ${rachaGlobal.actual}. ${rachaGlobal.vidas > 0 ? `Te ${rachaGlobal.vidas === 1 ? 'queda 1 vida' : `quedan ${rachaGlobal.vidas} vidas`}.` : 'Registra algo hoy para no cortarla.'}`,
+      hecho: 'Entendido', vida: usada
     });
   }
 
@@ -319,13 +252,11 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincro
       if (avances.length > 0) {
         const n = avances.length;
         const primero = avances[0];
-        return tarjeta({
-          tipo: 'avances',
-          color: 'var(--cy)',
-          eyebrow: 'Entreno',
+        return mision({
+          tipo: 'avances', modulo: 'entreno', etiqueta: 'Entreno',
           titulo: `${n} ${n === 1 ? 'avance listo' : 'avances listos'} en Entreno`,
-          detalle: `${escapeHtml(primero.ramaLabel)}: ${escapeHtml(primero.ejercicioActual.nombre)} → ${escapeHtml(primero.ejercicioSiguiente.nombre)}${n > 1 ? ` y ${n - 1} más` : ''}`,
-          accion: 'Ver avances'
+          detalle: `${primero.ramaLabel}: ${primero.ejercicioActual.nombre} → ${primero.ejercicioSiguiente.nombre}${n > 1 ? ` y ${n - 1} más` : ''}`,
+          hecho: 'Ver avances'
         });
       }
     } catch (err) {
@@ -337,18 +268,133 @@ async function renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincro
     const rutina = await calcularHoyToca(sesiones);
     if (rutina) {
       const catNames = { gym: 'GYM', calistenia: 'Calistenia', hiit: 'HIIT' };
-      return tarjeta({
-        tipo: 'hoytoca',
-        color: 'var(--cy)',
-        eyebrow: 'Hoy toca',
-        titulo: escapeHtml(rutina.nombre),
-        detalle: escapeHtml(catNames[rutina.categoria] || rutina.categoria),
-        accion: 'Ir a entrenar'
+      return mision({
+        tipo: 'hoytoca', modulo: 'entreno', etiqueta: 'Hoy toca',
+        titulo: rutina.nombre,
+        detalle: catNames[rutina.categoria] || rutina.categoria,
+        hecho: 'Ir a entrenar'
       });
     }
   }
 
-  return '';
+  return null;
+}
+
+// --- Órbita: 4 anillos concéntricos (de afuera hacia adentro: Hábitos,
+// Tareas, Entreno y Presupuesto) con el puntaje del día al centro. Cada
+// anillo toma los colores de su módulo (.o-mod-* en su grupo). Sin meta
+// para hoy (ej. sin hábitos que toquen), queda solo la pista.
+const ANILLOS = [
+  { clave: 'habitos', modulo: 'habitos', r: 132 },
+  { clave: 'tareas', modulo: 'plan', r: 112 },
+  { clave: 'entreno', modulo: 'entreno', r: 92 },
+  { clave: 'finanzas', modulo: 'finanzas', r: 72 }
+];
+const GROSOR_ANILLO = 14; // unidades del viewBox (290): --o-ring-w a tamaño real
+
+function renderOrbita(anillos, puntaje) {
+  const grupos = ANILLOS.map(({ clave, modulo, r }) => {
+    const pct = anillos[clave].pct;
+    const arco = pct > 0
+      ? `<circle class="o-orbita-arco" cx="145" cy="145" r="${r}" fill="none" stroke="url(#o-orbita-${clave})" stroke-width="${GROSOR_ANILLO}" stroke-linecap="round" pathLength="100" stroke-dasharray="${pct.toFixed(2)} 100"></circle>`
+      : '';
+    return `
+      <g class="o-mod-${modulo}">
+        <linearGradient id="o-orbita-${clave}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color: var(--o-mod)"></stop><stop offset="1" style="stop-color: var(--o-mod-2)"></stop></linearGradient>
+        <circle class="o-orbita-pista" cx="145" cy="145" r="${r}" fill="none" stroke-width="${GROSOR_ANILLO}"></circle>
+        ${arco}
+      </g>`;
+  }).join('');
+  const etiqueta = puntaje === null
+    ? 'Todavía no hay metas para hoy. Ver tu semana en Laboratorio'
+    : `Puntaje del día: ${puntaje}. Ver tu semana en Laboratorio`;
+  return `
+    <button type="button" id="hoy-orbita" class="o-orbita" aria-label="${etiqueta}">
+      <svg viewBox="0 0 290 290" aria-hidden="true" focusable="false">${grupos}</svg>
+      <span class="o-orbita-centro" aria-hidden="true">
+        <span class="o-orbita-puntaje">${puntaje === null ? '—' : puntaje}</span>
+        <span class="o-rotulo">Día</span>
+      </span>
+    </button>`;
+}
+
+function chipAnillo({ id, modulo, nombre, valor, etiqueta }) {
+  return `<button type="button" id="${id}" class="o-chip o-mod-${modulo}" aria-label="${escapeHtml(etiqueta)}"><span class="o-chip-punto"></span>${nombre}<span class="o-chip-num">${valor}</span></button>`;
+}
+
+// --- Agenda del día: tareas y Semana con fecha de hoy + hábitos que tocan
+// y no están cumplidos, y las atrasadas (plegables, con «Mover a hoy»).
+function renderAgenda({ items, atrasadas, hoyIso }) {
+  if (atrasadas.length === 0) atrasadasAbierta = false;
+  const fila = (it) => it.tipo === 'habito-num' ? `
+      <li class="o-fila o-mod-habitos">
+        <span class="o-fila-texto"><b>${escapeHtml(it.texto)}</b><small>Hábito · ${it.actual}/${it.meta}${it.unidad ? ' ' + escapeHtml(it.unidad) : ''}</small></span>
+        <button type="button" class="o-btn o-btn--secundario o-agenda-sumar agenda-check" data-tipo="habito-num" data-id="${escapeHtml(it.id)}" aria-label="Registrar progreso de ${escapeHtml(it.texto)}">Sumar</button>
+      </li>` : `
+      <li class="o-fila o-mod-${it.tipo === 'habito' ? 'habitos' : 'plan'}">
+        <button type="button" class="o-check agenda-check" aria-pressed="false" data-tipo="${it.tipo}" data-id="${escapeHtml(it.id)}" data-nombre="${escapeHtml(it.texto)}" aria-label="Marcar ${escapeHtml(it.texto)}">${oIcono('check')}</button>
+        <span class="o-fila-texto"><b>${escapeHtml(it.texto)}</b><small>${it.etiqueta}</small></span>
+      </li>`;
+
+  // Atrasadas de Tareas y de Semana (fecha anterior a hoy, comparada como texto YYYY-MM-DD
+  // local — diaKeyDe, nunca toISOString). Los días se cuentan con diasEntre.
+  const haceTexto = (n) => (n === 1 ? 'ayer' : `hace ${n} días`);
+  const filaAtrasada = (t) => `
+      <li class="o-fila o-agenda-atrasada o-mod-plan">
+        <button type="button" class="o-check agenda-check" aria-pressed="false" data-tipo="${t.tipo}" data-id="${escapeHtml(t.id)}" data-nombre="${escapeHtml(t.texto)}" aria-label="Marcar ${escapeHtml(t.texto)}">${oIcono('check')}</button>
+        <span class="o-fila-texto"><b>${escapeHtml(t.texto)}</b><small>${t.tipo === 'plan' ? 'Semana · ' : ''}${haceTexto(diasEntre(t.fecha, hoyIso))}</small></span>
+        <button type="button" class="o-btn o-btn--secundario o-agenda-mover agenda-mover" data-tipo="${t.tipo}" data-id="${escapeHtml(t.id)}">Mover a hoy</button>
+      </li>`;
+  const atrasadasHtml = atrasadas.length === 0 ? '' : `
+      <div class="o-agenda-seccion">
+        <button type="button" id="hoy-atrasadas-toggle" class="o-btn o-btn--secundario o-btn--bloque o-agenda-toggle" aria-expanded="${atrasadasAbierta}" aria-controls="hoy-atrasadas-lista">
+          ${oIcono('alerta')}${atrasadas.length} ${atrasadas.length === 1 ? 'atrasada' : 'atrasadas'}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <ul id="hoy-atrasadas-lista" class="o-lista" ${atrasadasAbierta ? '' : 'hidden'}>${atrasadas.map(filaAtrasada).join('')}</ul>
+      </div>`;
+
+  return `
+      <div id="hoy-agenda" class="o-agenda-seccion">
+        ${atrasadasHtml}
+        ${items.length
+          ? `<ul class="o-lista">${items.map(fila).join('')}</ul>`
+          : oVacio({ icono: 'check', titulo: 'Nada pendiente hoy', texto: 'Lo que tenga fecha de hoy aparece aquí.' })}
+      </div>`;
+}
+
+// Hábitos que tocan hoy, marcados o no: la hoja de la acción rápida «Hábito».
+function renderHabitosHoy(habitosHoy, hoyIso) {
+  if (habitosHoy.length === 0) {
+    return oVacio({ icono: 'check', titulo: 'No tienes hábitos para hoy', texto: 'Créalos en Hábitos; los que tocan hoy aparecen aquí.' });
+  }
+  return `<ul class="o-lista o-mod-habitos">${habitosHoy.map(h => {
+    const hecho = cumplidoHoy(h, hoyIso);
+    if (h.meta && h.meta.cantidad) {
+      const d = datosMeta(h, hoyIso);
+      return `
+        <li class="o-fila${hecho ? ' o-fila--hecha' : ''}">
+          <span class="o-fila-texto"><b>${escapeHtml(h.nombre)}</b><small>${d.actual}/${d.meta}${d.unidad ? ' ' + escapeHtml(d.unidad) : ''}${hecho ? ' · meta cumplida' : ''}</small></span>
+          <button type="button" class="o-btn o-btn--secundario o-agenda-sumar agenda-check" data-tipo="habito-num" data-id="${escapeHtml(h.id)}" aria-label="Registrar progreso de ${escapeHtml(h.nombre)}">Sumar</button>
+        </li>`;
+    }
+    return `
+        <li class="o-fila${hecho ? ' o-fila--hecha' : ''}">
+          <button type="button" class="o-check agenda-check" aria-pressed="${hecho}" data-tipo="habito" data-id="${escapeHtml(h.id)}" data-nombre="${escapeHtml(h.nombre)}" aria-label="${hecho ? 'Desmarcar' : 'Marcar'} ${escapeHtml(h.nombre)}">${oIcono('check')}</button>
+          <span class="o-fila-texto"><b>${escapeHtml(h.nombre)}</b><small>${hecho ? 'Hecho hoy' : 'Pendiente'}</small></span>
+        </li>`;
+  }).join('')}</ul>`;
+}
+
+const ICONOS_ACCION = {
+  gasto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.4 4.5 3.2-2 3-4.5 3-4.5-1.3-4.5-3"></path></svg>',
+  tarea: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"></path></svg>',
+  entreno: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"></path></svg>',
+  habito: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg>',
+  nota: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path><path d="M14 4v6h6"></path></svg>'
+};
+function accionRapida(id, modulo, etiqueta, icono, extra = '') {
+  return `<button type="button" id="${id}" class="o-accion o-mod-${modulo}" ${extra}><span class="o-accion-ico">${ICONOS_ACCION[icono]}</span>${etiqueta}</button>`;
 }
 
 export async function render() {
@@ -358,22 +404,20 @@ export async function render() {
   // acaba de generar con el estado anterior al procesamiento.
   const presupuesto = db.getBudget();
   const budgetYProyeccion = presupuesto.then(async b => [b, await db.getProyeccionRecurrentes()]);
-  // La racha (y con ella las vidas y la tarjeta contextual) se lee DESPUÉS
+  // La racha (y con ella las vidas y la misión contextual) se lee DESPUÉS
   // de procesar las recurrentes: un cobro que vence hoy es actividad de hoy,
   // y leída en paralelo Hoy mostraba la racha anterior (86 en vez de 87)
   // hasta el siguiente render. El resto de las lecturas sigue en paralelo.
   const rachaTrasRecurrentes = presupuesto.then(() => db.getRachaGlobal());
   // Gastos anuales: después de getBudget (que ajusta el presupuesto del mes).
   const anualesTrasPresupuesto = presupuesto.then(() => db.getEstadoGastosAnuales());
-  const [[budget, alertasCaja], stats, sesiones, rachaGlobal, habitos, tareas, notas, categoriasNota, diasDesdeBackup, plan, perfil, estadoSync, diaHoy, estadoAnuales] = await Promise.all([
+  const [[budget, alertasCaja], sesiones, rachaGlobal, habitos, tareas, notas, diasDesdeBackup, plan, perfil, estadoSync, diaHoy, estadoAnuales] = await Promise.all([
     budgetYProyeccion,
-    db.getDashboardStats(),
     db.getSesiones(),
     rachaTrasRecurrentes,
     db.getHabitos(),
     db.getTasks(),
     db.getNotas(),
-    db.getCategoriasNota(),
     getDiasDesdeUltimoBackup(),
     db.getTareasPlan(),
     db.getProfile(),
@@ -381,41 +425,95 @@ export async function render() {
     db.getDia(hoyIso),
     anualesTrasPresupuesto
   ]);
-  // Fila Laboratorio: días activos de la semana en curso (lunes a hoy), con
-  // la misma actividad de la racha que cuenta Laboratorio › Semana. last7
-  // siempre alcanza al lunes.
-  const lunesHoy = sumarDias(hoyIso, -((new Date().getDay() + 6) % 7));
-  const semanaLab = {
-    activos: rachaGlobal.last7.filter(d => d.date >= lunesHoy && d.count > 0).length,
-    dias: diasEntre(lunesHoy, hoyIso) + 1
-  };
-  // Semana (Planificador): los de hoy van a la agenda; los de días
-  // anteriores sin hacer, a las atrasadas junto con las de Tareas.
-  const planHoy = plan.filter(t => t.fecha === hoyIso);
+  presupuestoActual = budget;
 
+  // --- Anillos y puntaje (decisión 7.1: promedio de los anillos con meta
+  // hoy, calculado en memoria y nunca guardado). ---
+  const habitosHoy = habitos.filter(tocaHoy);
+  const tareasDeHoy = tareas.filter(t => t.dueDate === hoyIso);
+  const planDeHoy = plan.filter(t => t.fecha === hoyIso);
+  const entrenoHecho = sesiones.some(s => claveDiaDe(s.fecha) === hoyIso);
+  const descanso = !!(diaHoy && diaHoy.descanso);
+  const anillo = (hechos, total) => ({ hechos, total, pct: total > 0 ? Math.min(100, (hechos / total) * 100) : null });
+  // Presupuesto (decisión 7.4): disponible del mes sobre lo que entró este
+  // mes, sin el arrastre de los sobres. Lleno es «vas bien».
+  const pctFin = budget.income > 0 ? Math.max(0, Math.min(100, (budget.remaining / budget.income) * 100)) : null;
+  const anillos = {
+    habitos: anillo(habitosHoy.filter(h => cumplidoHoy(h, hoyIso)).length, habitosHoy.length),
+    tareas: anillo(tareasDeHoy.filter(t => t.status === 'done').length + planDeHoy.filter(t => t.hecha).length, tareasDeHoy.length + planDeHoy.length),
+    // Un día de descanso planificado no pide entreno (si igual entrenaste, cuenta).
+    entreno: descanso && !entrenoHecho ? anillo(0, 0) : anillo(entrenoHecho ? 1 : 0, 1),
+    finanzas: { pct: pctFin }
+  };
+  const conMeta = Object.values(anillos).filter(a => a.pct !== null);
+  const puntaje = conMeta.length ? Math.round(conMeta.reduce((s, a) => s + a.pct, 0) / conMeta.length) : null;
+  const fraccion = (a) => (a.pct === null ? '—' : `${a.hechos}/${a.total}`);
+  const pctFinTexto = pctFin === null ? '—' : `${Math.round(pctFin)}%`;
+
+  // --- Agenda pendiente (misiones + hoja) ---
+  const habitosPend = habitosHoy.filter(h => !cumplidoHoy(h, hoyIso));
+  habitosConMeta = new Map(habitos.filter(h => h.meta && h.meta.cantidad).map(h => [h.id, datosMeta(h, hoyIso)]));
+  const items = [
+    ...tareasDeHoy.filter(t => t.status !== 'done').map(t => ({ tipo: 'tarea', id: t.id, texto: t.title, etiqueta: 'Tarea' })),
+    ...planDeHoy.filter(t => !t.hecha).map(t => ({ tipo: 'plan', id: t.id, texto: t.texto, etiqueta: 'Semana' })),
+    // Hábito con meta numérica ('habito-num'): no se cumple con un toque, se
+    // abre la hoja de progreso y se muestra lo avanzado (ej. 5/20 min).
+    ...habitosPend.map(h => (h.meta && h.meta.cantidad)
+      ? { tipo: 'habito-num', ...datosMeta(h, hoyIso), texto: h.nombre }
+      : { tipo: 'habito', id: h.id, texto: h.nombre, etiqueta: 'Hábito' })
+  ];
+  // Mismo cálculo que la tira de Semana (utils/atrasadas.js).
+  const atrasadas = calcularAtrasadas({ tareas, plan, hoyIso });
+
+  // Sin esto, alguien que recién instaló la app y todavía no cargó nada
+  // ve el aviso de respaldo cuando no hay nada real que respaldar.
+  const hayDatosReales = sesiones.length > 0 || habitos.length > 0 || tareas.length > 0 || budget.breakdown.length > 0;
+  const sincronizadoReciente = estadoSync.conSesion && estadoSync.ultimaSyncTs !== null
+    && diasEntre(diaKeyDe(new Date(estadoSync.ultimaSyncTs)), hoyIso) < 7;
+  const ctx = await misionContextual({ hayDatosReales, diasDesdeBackup, sincronizadoReciente, sesiones, rachaGlobal });
+  misionCtx = ctx;
+  avisarPrimeraVidaSiCorresponde(rachaGlobal);
+
+  // Mazo: la misión contextual primero, después la agenda; las pasadas con
+  // «Después» al final, en el orden en que se pasaron.
+  const deAgenda = items.map(it => {
+    const id = `${it.tipo === 'habito-num' ? 'habito' : it.tipo}:${it.id}`;
+    const esHabito = it.tipo === 'habito' || it.tipo === 'habito-num';
+    return {
+      id, modulo: esHabito ? 'habitos' : 'plan', etiqueta: esHabito ? 'Hábito' : it.etiqueta,
+      titulo: it.texto,
+      detalle: it.tipo === 'habito-num' ? `Llevas ${it.actual}/${it.meta}${it.unidad ? ' ' + it.unidad : ''}` : '',
+      pista: `Cierra el anillo de ${esHabito ? 'Hábitos' : 'Tareas'}`,
+      hecho: it.tipo === 'habito-num' ? 'Sumar' : 'Hecho',
+      accion: it.tipo === 'habito-num' ? 'sumar' : 'hecho'
+    };
+  });
+  const orden = [...pospuestas];
+  deAgenda.sort((a, b) => (orden.includes(a.id) ? orden.indexOf(a.id) + 1 : 0) - (orden.includes(b.id) ? orden.indexOf(b.id) + 1 : 0));
+  const misiones = [...(ctx ? [ctx] : []), ...deAgenda];
+  if (misiones.length) misiones[0] = { ...misiones[0], rotulo: `${misiones[0].etiqueta} · 1 de ${misiones.length}` };
+  const mazoHtml = oMazo(misiones, {
+    vacio: `<div class="o-card">${oVacio({ icono: 'check', titulo: 'Misiones del día completas', texto: 'No queda nada pendiente para hoy.' })}</div>`
+  });
+
+  // --- Alertas reales (rojo con ícono y texto; ámbar si todavía hay margen) ---
   let alertasHtml = '';
   if (alertasCaja && alertasCaja.length > 0) {
-    // Alerta real (un cobro que no alcanza): rojo por tokens (--state-high
-    // con color-mix, igual que la fila de atrasadas), estilos en
-    // .alerta-caja (components.css). Una línea por cobro, máximo 3, bajo
-    // un solo título. Toda la tarjeta lleva a Finanzas (no hay ruta a un
-    // sobre puntual).
+    // Un cobro de los próximos 7 días que no alcanza. Una línea por cobro,
+    // máximo 3, bajo un solo título. Toda la tarjeta lleva a Finanzas (no
+    // hay ruta a un sobre puntual).
     const visibles = alertasCaja.slice(0, 3);
     const extra = alertasCaja.length - visibles.length;
-    alertasHtml = `
-      <button id="alerta-caja" type="button" class="card tappable alerta-caja" aria-label="${alertasCaja.length === 1 ? 'Un cobro' : `${alertasCaja.length} cobros`} de los próximos 7 días sin saldo suficiente. Ver Finanzas">
-        <span class="icon-chip alerta-caja-icono" aria-hidden="true">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+    alertasHtml += `
+      <button id="alerta-caja" type="button" class="o-alerta" aria-label="${alertasCaja.length === 1 ? 'Un cobro' : `${alertasCaja.length} cobros`} de los próximos 7 días sin saldo suficiente. Ver Finanzas">
+        <span class="o-alerta-ico" aria-hidden="true">${oIcono('alerta')}</span>
+        <span class="o-alerta-cuerpo">
+          <span class="o-alerta-titulo">Cobros sin saldo · 7 días</span>
+          ${visibles.map(a => `<span class="o-alerta-linea">El ${formatFechaCorta(fechaLocalDe(a.date))}, <b>${escapeHtml(a.name)}</b> (${formatCurrency(a.amount)}) excederá el saldo de <b>${escapeHtml(a.envelopeName)}</b>. Faltan ${formatCurrency(a.shortfall)}.</span>`).join('')}
+          ${extra > 0 ? `<span class="o-alerta-linea">y ${extra} más en Finanzas</span>` : ''}
         </span>
-        <span class="alerta-caja-cuerpo">
-          <span class="alerta-caja-titulo">Cobros sin saldo · 7 días</span>
-          ${visibles.map(a => `<span class="alerta-caja-linea">El ${formatFechaCorta(fechaLocalDe(a.date))}, <b>${escapeHtml(a.name)}</b> (${formatCurrency(a.amount)}) excederá el saldo de <b>${escapeHtml(a.envelopeName)}</b>. Faltan ${formatCurrency(a.shortfall)}.</span>`).join('')}
-          ${extra > 0 ? `<span class="alerta-caja-linea alerta-caja-mas">y ${extra} más en Finanzas</span>` : ''}
-        </span>
-      </button>
-    `;
+      </button>`;
   }
-
   // Gastos anuales por vencer (B3): un solo aviso agrupado desde 30 días
   // antes si el sobre no alcanza. Ámbar; rojo (alerta real) si alguno vence
   // en 7 días o menos sin alcanzar. Lleva a Finanzas › Recurrentes.
@@ -426,299 +524,209 @@ export async function render() {
     const extra = avisosAnuales.length - visibles.length;
     const cuando = (a) => (a.dias === 0 ? 'Hoy' : a.dias === 1 ? 'Mañana' : `En ${a.dias} días`);
     alertasHtml += `
-      <button id="alerta-anual" type="button" class="card tappable alerta-caja alerta-anual${rojo ? ' alerta-anual--rojo' : ''}" aria-label="${avisosAnuales.length === 1 ? 'Un gasto anual' : `${avisosAnuales.length} gastos anuales`} por vencer sin saldo suficiente. Ver Finanzas">
-        <span class="icon-chip alerta-caja-icono" aria-hidden="true">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      <button id="alerta-anual" type="button" class="o-alerta${rojo ? '' : ' o-alerta--aviso'}" aria-label="${avisosAnuales.length === 1 ? 'Un gasto anual' : `${avisosAnuales.length} gastos anuales`} por vencer sin saldo suficiente. Ver Finanzas">
+        <span class="o-alerta-ico" aria-hidden="true">${oIcono('alerta')}</span>
+        <span class="o-alerta-cuerpo">
+          <span class="o-alerta-titulo">Gastos anuales por vencer</span>
+          ${visibles.map(a => `<span class="o-alerta-linea${a.rojo ? ' o-alerta-linea--alerta' : ''}">${cuando(a)} (${formatFechaCorta(fechaLocalDe(a.vence))}) vence <b>${escapeHtml(a.nombre)}</b> (${formatCurrency(a.monto)}). Faltan ${formatCurrency(a.falta)} en su sobre.</span>`).join('')}
+          ${extra > 0 ? `<span class="o-alerta-linea">y ${extra} más en Finanzas</span>` : ''}
         </span>
-        <span class="alerta-caja-cuerpo">
-          <span class="alerta-caja-titulo">Gastos anuales por vencer</span>
-          ${visibles.map(a => `<span class="alerta-caja-linea${a.rojo ? ' alerta-anual-linea--rojo' : ''}">${cuando(a)} (${formatFechaCorta(fechaLocalDe(a.vence))}) vence <b>${escapeHtml(a.nombre)}</b> (${formatCurrency(a.monto)}). Faltan ${formatCurrency(a.falta)} en su sobre.</span>`).join('')}
-          ${extra > 0 ? `<span class="alerta-caja-linea alerta-caja-mas">y ${extra} más en Finanzas</span>` : ''}
-        </span>
-      </button>
-    `;
+      </button>`;
   }
 
-  // Sin esto, alguien que recién instaló la app y todavía no cargó nada
-  // ve el aviso de respaldo cuando no hay nada real que respaldar.
-  // Reutiliza datos que este render() ya pidió arriba, sin consultas nuevas.
-  const hayDatosReales = sesiones.length > 0 || habitos.length > 0 || tareas.length > 0 || budget.breakdown.length > 0;
-  const sincronizadoReciente = estadoSync.conSesion && estadoSync.ultimaSyncTs !== null
-    && diasEntre(diaKeyDe(new Date(estadoSync.ultimaSyncTs)), hoyIso) < 7;
-  const tarjetaContextualHtml = await renderTarjetaContextual({ hayDatosReales, diasDesdeBackup, sincronizadoReciente, sesiones, rachaGlobal });
-  const nombre = (perfil?.nombre || '').trim();
-  avisarPrimeraVidaSiCorresponde(rachaGlobal);
-
   const installBannerHtml = debeMostrarBannerInstalar() ? `
-    <div id="install-banner" class="card" style="padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
-      <div class="icon-chip" style="width: 36px; height: 36px; background: color-mix(in srgb, var(--fondo-cian) 15%, transparent); color: var(--cy-t); flex-shrink: 0;">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-      </div>
-      <div style="flex: 1; min-width: 0;">
-        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Instalar Vanguard en tu teléfono</div>
-        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Acceso directo desde tu pantalla de inicio.</div>
-      </div>
-      <button id="btn-install-app" class="tappable" style="background: var(--cy); color: #000; border: none; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; white-space: nowrap;">Instalar</button>
-      <button id="btn-dismiss-install" class="tappable" style="background: transparent; border: none; color: var(--text-disabled); cursor: pointer; padding: 4px; flex-shrink: 0;" aria-label="Cerrar">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-    </div>
-  ` : '';
+    <div id="install-banner" class="o-card o-instalar o-mod-entreno">
+      <span class="o-fila-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
+      <span class="o-fila-texto"><b>Instalar Vanguard en tu teléfono</b><small>Acceso directo desde tu pantalla de inicio.</small></span>
+      <button id="btn-install-app" type="button" class="o-btn o-btn--secundario">Instalar</button>
+      <button id="btn-dismiss-install" type="button" class="o-btn o-btn--fantasma o-btn--icono" aria-label="Cerrar">${oIcono('cerrar')}</button>
+    </div>` : '';
 
-
-  const habitosMarcadosHoy = habitos.filter(h => h.marcas && h.marcas[hoyIso]).length;
-  const tareasActivas = tareas.filter(t => t.status !== 'done').length;
-
-  const fechaLarga = new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
-  const ultimaNota = notas[0] || null;
-  const catUltimaNota = ultimaNota ? categoriasNota.find(c => c.id === ultimaNota.catId) : null;
-
-  const agendaHtml = renderAgenda({
-    tareasHoy: tareas.filter(t => t.status !== 'done' && t.dueDate === hoyIso),
-    planHoy: planHoy.filter(t => !t.hecha),
-    habitosPend: habitos.filter(h => habitoPendienteHoy(h, hoyIso)),
-    // Mismo cálculo que la tira de Semana (utils/atrasadas.js).
-    atrasadas: calcularAtrasadas({ tareas, plan, hoyIso }),
-    hoyIso
-  });
-
-  const quickBtn = (id, color, label, iconSvg, extra = '') => `
-    <button id="${id}" ${extra} class="tappable card" style="flex: 1; min-width: 0; padding: 10px 4px; font-size: 12px; font-weight: 700; color: var(--text-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; margin-bottom: 0;">
-      <div class="icon-chip" style="width: 28px; height: 28px; background: color-mix(in srgb, ${color} 15%, transparent); color: ${color}; flex-shrink: 0;">${iconSvg}</div>
-      ${label}
+  // --- Franja «Agenda del día» ---
+  const pendientes = items.length;
+  const siguiente = items[0];
+  const franjaHtml = `
+    <button type="button" id="hoy-franja" class="o-franja" aria-haspopup="dialog" aria-controls="hoy-agenda-hoja">
+      <span class="o-franja-texto">
+        <span class="o-rotulo">Agenda del día · ${pendientes} ${pendientes === 1 ? 'pendiente' : 'pendientes'}</span>
+        <b>${siguiente ? `Siguiente: ${escapeHtml(siguiente.texto)}` : 'Nada pendiente hoy'}</b>
+        ${atrasadas.length ? `<span class="o-franja-atrasadas">${oIcono('alerta')}${atrasadas.length} ${atrasadas.length === 1 ? 'atrasada' : 'atrasadas'}</span>` : ''}
+      </span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
     </button>`;
 
+  const nombre = (perfil?.nombre || '').trim();
+  const fechaLarga = conMayuscula(new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }));
+  const ultimaNota = notas[0] || null;
+  const vidas = rachaGlobal.vidas;
+
   return `
-    <div class="hoy-root" style="padding: 16px 20px 8px; color: var(--text-primary);">
+    <div class="o-vista o-hoy">
+      <div class="o-hoy-grid">
 
-      <!-- Encabezado compacto: saludo, fecha y chip de racha (el botón ☰ es
-           el del encabezado global de la app, ver index.html). -->
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px;">
-        <div style="min-width: 0;">
-          <h1 style="font-size: clamp(18px, 5.3vw, 22px); font-weight: 800; margin: 0; letter-spacing: -0.4px;">${saludoPorHora()}${nombre ? `, ${escapeHtml(nombre)}` : ''}</h1>
-          <!-- Hoja "Día" (descanso planificado y nota de hoy): va en la línea
-               de la fecha, compacto, para que el saludo no se parta en dos
-               líneas a 375 px; el ::after le da el área de toque de 44 px. -->
-          <div class="hoy-fecha-fila">
-            <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">${escapeHtml(fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1))}</div>
-            <button type="button" id="btn-dia-hoy" class="dia-abrir dia-abrir--compacto tappable${diaHoy && diaHoy.descanso ? ' dia-abrir--descanso' : ''}" aria-label="Día de hoy: descanso planificado y nota${diaHoy && diaHoy.descanso ? ' (hoy es de descanso)' : ''}${diaHoy && diaHoy.nota ? ' (con nota)' : ''}">
-              ${diaHoy && diaHoy.descanso ? 'Descanso' : 'Día'}${diaHoy && diaHoy.nota ? '<span class="dia-punto" aria-hidden="true"></span>' : ''}
-            </button>
-          </div>
-        </div>
-        <div style="flex-shrink: 0; display: flex; align-items: center; gap: 6px;">
-        <button id="chip-racha" class="tappable" aria-label="Racha de ${rachaGlobal.actual} ${rachaGlobal.actual === 1 ? 'día' : 'días'}, ${rachaGlobal.vidas} ${rachaGlobal.vidas === 1 ? 'vida extra' : 'vidas extra'}. Ver hábitos" style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 12px; font-weight: 700; padding: 6px 12px 6px 10px; border-radius: 999px; cursor: pointer;">
-          🔥 <span class="num">${rachaGlobal.actual}</span>
-          <span class="chip-vidas${rachaGlobal.vidas > 0 ? '' : ' chip-vidas--vacio'}" aria-hidden="true">· ${svgEscudo({ lleno: rachaGlobal.vidas > 0, size: 12 })}<span class="num">${rachaGlobal.vidas}</span></span>
-        </button>
-        </div>
-      </div>
-
-      ${lineaFocoHoy()}
-
-      ${tarjetaContextualHtml}
-
-      <!-- Accesos rápidos -->
-      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-        ${quickBtn('qa-gasto', 'var(--am)', 'Gasto', '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>')}
-        ${quickBtn('qa-entreno', 'var(--cy)', 'Entrenar', '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>')}
-        ${quickBtn('qa-tarea', 'var(--vi)', 'Tarea', '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>')}
-        ${quickBtn('qa-nota', 'var(--accent-notas)', 'Nota', '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path><path d="M14 4v6h6"></path></svg>', `data-cat="${ultimaNota ? ultimaNota.catId : ''}"`)}
-      </div>
-
-      ${alertasHtml}
-
-      <!-- Agenda de hoy: tareas con fecha de hoy + hábitos pendientes -->
-      ${agendaHtml}
-
-      <!-- Filas heroicas por módulo -->
-      <div id="hoy-resumenes" style="margin-bottom: 20px;">
-        ${renderHeroicRow({
-          id: 'row-entreno',
-          color: 'var(--cy)',
-          label: 'Entreno',
-          value: `${stats.sesionesSemana} ${stats.sesionesSemana === 1 ? 'sesión' : 'sesiones'} esta semana`
-        })}
-        ${renderHeroicRow({
-          id: 'row-finanzas',
-          color: 'var(--am)',
-          label: 'Finanzas',
-          value: `${formatCurrency(Math.max(0, budget.remaining))} disponibles`
-        })}
-        ${renderHeroicRow({
-          id: 'row-tareas',
-          color: 'var(--vi)',
-          label: 'Tareas',
-          value: `${tareasActivas} activa${tareasActivas === 1 ? '' : 's'}`
-        })}
-        ${renderHeroicRow({
-          id: 'row-habitos',
-          color: 'var(--vi)',
-          label: 'Hábitos',
-          value: habitos.length === 0
-            ? 'Sin hábitos todavía'
-            : `${habitosMarcadosHoy}/${habitos.length} marcados hoy`
-        })}
-        ${renderHeroicRow({
-          id: 'row-anotaciones',
-          color: 'var(--accent-notas)',
-          label: 'Anotaciones',
-          value: notas.length === 0
-            ? 'Sin notas todavía'
-            : `${notas.length} ${notas.length === 1 ? 'nota' : 'notas'} en ${categoriasNota.length} ${categoriasNota.length === 1 ? 'categoría' : 'categorías'}`
-        })}
-        ${renderHeroicRow({
-          id: 'row-laboratorio',
-          color: 'var(--t2)',
-          label: 'Laboratorio',
-          value: `${semanaLab.activos} de ${semanaLab.dias} ${semanaLab.dias === 1 ? 'día activo' : 'días activos'}`
-        })}
-      </div>
-
-      <!-- Última nota -->
-      ${ultimaNota ? `
-        <div id="ultima-nota" class="card tappable" style="padding: 14px 16px; margin-bottom: 20px; cursor: pointer;">
-          <div class="num" style="font-size: 10px; font-weight: 700; color: var(--accent-notas-t); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Última nota${catUltimaNota ? ` · ${escapeHtml(catUltimaNota.nombre)}` : ''}</div>
-          <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">${escapeHtml(ultimaNota.titulo || 'Sin título')}</div>
-          ${ultimaNota.texto ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(ultimaNota.texto)}</div>` : ''}
-        </div>
-      ` : ''}
-
-      <!-- Captura rápida global — <form> a propósito, no un div + keydown:
-           ver commit 4396aa1 (mismo fix que "Agregar gasto rápido" de
-           Finanzas). Un <input> solo dentro de un <form> ya dispara
-           "submit" en Enter/Ir/Listo sin necesitar un botón visible. -->
-      <div style="margin-bottom: 20px;">
-        <form id="quick-capture-form" onsubmit="return false;">
-          <div style="position: relative;">
-            <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
-            <input type="text" id="quick-capture-input" placeholder="Anota algo — tarea o gasto (ej. &quot;50 en super&quot;)..." enterkeyhint="go" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 16px; padding: 13px 20px 13px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box;" autocomplete="off">
-          </div>
-        </form>
-        <div id="quick-capture-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
-        <div id="quick-capture-sobre-opciones" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
-      </div>
-
-
-      ${installBannerHtml}
-
-      ${renderTaskForm()}
-
-      <!-- Progreso de un hábito numérico desde la agenda -->
-      <div id="hoy-progreso-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="hoy-prog-titulo">
-        <div class="modal-content">
-          <h2 id="hoy-prog-titulo" style="margin: 0 0 4px 0; font-size: 20px; font-weight: 800; color: var(--text-primary);">Registrar progreso</h2>
-          <div id="hoy-prog-detalle" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;"></div>
-          <form id="hoy-prog-form" onsubmit="return false;">
-            <input id="hoy-prog-cantidad" type="number" inputmode="decimal" min="0" step="any" placeholder="Cantidad a sumar" autocomplete="off" style="width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 14px; font-size: 16px; font-family: inherit; box-sizing: border-box; outline: none;">
-            <div style="display: flex; gap: 8px; margin-top: 14px;">
-              <button type="button" id="hoy-prog-cancelar" class="tappable" style="flex: 1; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">Cancelar</button>
-              <button type="submit" id="hoy-prog-guardar" class="tappable" style="flex: 1; background: var(--vi); color: #000; border: none; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer;">Sumar</button>
+        <header class="o-hoy-cab">
+          <div class="o-hoy-cab-fila">
+            <div>
+              <h1 class="o-hoy-saludo">${saludoPorHora()}${nombre ? `, ${escapeHtml(nombre)}` : ''}</h1>
+              <p class="o-hoy-fecha">${escapeHtml(fechaLarga)}</p>
             </div>
-          </form>
+            <div class="o-hoy-cab-chips">
+              <!-- Hoja "Día": descanso planificado y nota de hoy. -->
+              <button type="button" id="btn-dia-hoy" class="o-chip${descanso ? ' o-dia--descanso' : ''}" aria-label="Día de hoy: descanso planificado y nota${descanso ? ' (hoy es de descanso)' : ''}${diaHoy && diaHoy.nota ? ' (con nota)' : ''}">${descanso ? 'Descanso' : 'Día'}${diaHoy && diaHoy.nota ? '<span class="o-dia-punto" aria-hidden="true"></span>' : ''}</button>
+              <button type="button" id="chip-racha" class="o-chip" aria-label="Racha de ${rachaGlobal.actual} ${rachaGlobal.actual === 1 ? 'día' : 'días'}, ${vidas} ${vidas === 1 ? 'vida extra' : 'vidas extra'}. Ver hábitos">
+                <span aria-hidden="true">🔥</span><span class="o-num">${rachaGlobal.actual}</span>
+                <span class="chip-vidas${vidas > 0 ? '' : ' chip-vidas--vacio'}" aria-hidden="true">${svgEscudo({ lleno: vidas > 0, size: 14 })}<span class="o-num">${vidas}</span></span>
+              </button>
+            </div>
+          </div>
+          ${lineaFocoHoy()}
+        </header>
+
+        <section class="o-hoy-orbita o-hoy-col" aria-label="Cómo vas hoy">
+          ${renderOrbita(anillos, puntaje)}
+          <div class="o-orbita-chips">
+            ${chipAnillo({ id: 'chip-habitos', modulo: 'habitos', nombre: 'Hábitos', valor: fraccion(anillos.habitos), etiqueta: `Hábitos: ${anillos.habitos.pct === null ? 'ninguno toca hoy' : `${anillos.habitos.hechos} de ${anillos.habitos.total}`}. Abrir Hábitos` })}
+            ${chipAnillo({ id: 'chip-tareas', modulo: 'plan', nombre: 'Tareas', valor: fraccion(anillos.tareas), etiqueta: `Tareas de hoy: ${anillos.tareas.pct === null ? 'ninguna' : `${anillos.tareas.hechos} de ${anillos.tareas.total}`}. Abrir Plan` })}
+            ${chipAnillo({ id: 'chip-entreno', modulo: 'entreno', nombre: 'Entreno', valor: fraccion(anillos.entreno), etiqueta: `Entreno: ${anillos.entreno.pct === null ? 'día de descanso' : entrenoHecho ? 'hecho hoy' : 'pendiente hoy'}. Abrir Entreno` })}
+            ${chipAnillo({ id: 'chip-finanzas', modulo: 'finanzas', nombre: 'Presupuesto', valor: pctFinTexto, etiqueta: `Disponible del mes: ${formatCurrency(budget.remaining)}${pctFin === null ? '' : `, ${Math.round(pctFin)} % de lo que entró`}. Abrir Finanzas` })}
+          </div>
+        </section>
+
+        <section class="o-hoy-centro o-hoy-col" aria-label="Qué hacer ahora">
+          <div id="hoy-mazo">${mazoHtml}</div>
+          <div class="o-acciones" role="group" aria-label="Acciones rápidas">
+            ${accionRapida('qa-gasto', 'finanzas', 'Gasto', 'gasto')}
+            ${accionRapida('qa-tarea', 'plan', 'Tarea', 'tarea')}
+            ${accionRapida('qa-entreno', 'entreno', 'Entrenar', 'entreno')}
+            ${accionRapida('qa-habito', 'habitos', 'Hábito', 'habito')}
+            ${accionRapida('qa-nota', 'notas', 'Nota', 'nota', `data-cat="${ultimaNota ? escapeHtml(ultimaNota.catId) : ''}"`)}
+          </div>
+          ${alertasHtml}
+          ${franjaHtml}
+          ${installBannerHtml}
+        </section>
+
+        <div class="o-hoy-agenda">
+          ${oHoja({ id: 'hoy-agenda-hoja', titulo: 'Agenda del día', cuerpo: renderAgenda({ items, atrasadas, hoyIso }) })}
         </div>
       </div>
 
+      ${oHoja({ id: 'hoy-habitos-hoja', modulo: 'habitos', titulo: 'Hábitos de hoy', cuerpo: renderHabitosHoy(habitosHoy, hoyIso) })}
+
+      ${oHoja({
+        id: 'hoy-captura', titulo: 'Captura rápida',
+        // <form> a propósito, no un div + keydown: ver commit 4396aa1. Un
+        // <input> solo dentro de un <form> ya dispara "submit" en
+        // Enter/Ir/Listo sin necesitar un botón visible.
+        cuerpo: `
+          <form id="quick-capture-form" class="o-campo" onsubmit="return false;">
+            <label for="quick-capture-input">Tarea o gasto</label>
+            <input type="text" id="quick-capture-input" class="o-input" placeholder="Ej.: 4500 almuerzo · Comprar pan" enterkeyhint="go" autocomplete="off">
+            <p class="o-campo-ayuda">Si empieza con un monto se guarda como gasto; si no, como tarea.</p>
+            <p id="quick-capture-hint" class="o-campo-ayuda" role="status"></p>
+          </form>
+          <ul id="quick-capture-sobre-opciones" class="o-chips o-mod-finanzas" aria-label="Sobres posibles"></ul>`,
+        pie: '<button type="submit" form="quick-capture-form" class="o-btn o-btn--primario">Guardar</button>'
+      })}
+
+      ${oHoja({
+        id: 'hoy-progreso-modal', modulo: 'habitos', titulo: 'Registrar progreso',
+        cuerpo: `
+          <form id="hoy-prog-form" class="o-campo" onsubmit="return false;">
+            <label for="hoy-prog-cantidad">Cantidad a sumar</label>
+            <input id="hoy-prog-cantidad" class="o-input o-input--monto" type="number" inputmode="decimal" min="0" step="any" autocomplete="off">
+            <p id="hoy-prog-detalle" class="o-campo-ayuda"></p>
+          </form>`,
+        pie: '<button type="button" class="o-btn o-btn--secundario" data-hoja-cerrar>Cancelar</button><button type="submit" form="hoy-prog-form" id="hoy-prog-guardar" class="o-btn o-btn--primario">Sumar</button>'
+      })}
+
+      <!-- Formularios MK III que Hoy abre sin salir (se migran en su fase):
+           su ámbito les da el mismo aspecto que en su módulo. -->
+      <div class="mk3-tareas">${renderTaskForm()}</div>
+      <div class="mk3-finanzas">${renderGastoForm()}</div>
     </div>
   `;
 }
 
+let soltarMazo = null;
+let vigiaGasto = null;
+
+export function cleanup() {
+  if (soltarMazo) { soltarMazo(); soltarMazo = null; }
+  if (vigiaGasto) { vigiaGasto.disconnect(); vigiaGasto = null; }
+}
+
 export function mountListeners() {
+  cleanup();
   const go = (view) => {
     if (window.appRouter) window.appRouter.navigate(view);
   };
-  const refresh = () => { if (window.appRouter) window.appRouter.navigate('dashboard'); };
+  const hoy = () => diaKeyDe(new Date());
+  const fallo = (err, donde) => {
+    console.error(`Error al ${donde}:`, err);
+    Toast('No se pudo guardar. Inténtalo de nuevo.', 'error');
+  };
 
-  // Tarjeta contextual: el botón principal depende del tipo; "Después" la
-  // oculta hasta mañana y el re-render deja pasar a la siguiente.
-  const ctx = document.getElementById('ctx-card');
-  if (ctx) {
-    const tipo = ctx.getAttribute('data-tipo');
-    document.getElementById('ctx-accion').addEventListener('click', async () => {
-      if (tipo === 'ritual') go('ritual');
-      else if (tipo === 'backup') { await exportAllData(); refresh(); } // diasDesdeUltimoBackup ya quedó en 0 — la tarjeta se saca sola al re-renderizar
-      else if (tipo === 'vida') { marcarVidaUsadaVista(ctx.getAttribute('data-vida')); refresh(); }
-      else if (tipo === 'semana') {
-        const lunes = ctx.getAttribute('data-semana');
-        await db.marcarSemanaRevisada(lunes);
-        pedirSemana(lunes);
-        go('laboratorio');
-      }
-      else go('entrenamiento');
-    });
-    document.getElementById('ctx-despues').addEventListener('click', async () => {
-      if (tipo === 'semana') await db.marcarSemanaRevisada(ctx.getAttribute('data-semana'));
-      else ocultarHoy(tipo);
-      refresh();
-    });
+  // En PC la agenda es un panel fijo, no un diálogo.
+  const agendaHoja = document.getElementById('hoy-agenda-hoja');
+  if (agendaHoja && window.matchMedia('(min-width: 1280px)').matches) {
+    agendaHoja.removeAttribute('role');
+    agendaHoja.removeAttribute('aria-modal');
   }
-  const chipRacha = document.getElementById('chip-racha');
-  if (chipRacha) chipRacha.addEventListener('click', () => go('habitos'));
-  const btnDiaHoy = document.getElementById('btn-dia-hoy');
-  if (btnDiaHoy) btnDiaHoy.addEventListener('click', () => abrirHojaDia(diaKeyDe(new Date()), { alGuardar: () => refresh() }));
-  const ultimaNotaEl = document.getElementById('ultima-nota');
-  if (ultimaNotaEl) ultimaNotaEl.addEventListener('click', () => go('anotaciones'));
+  ['hoy-agenda-hoja', 'hoy-habitos-hoja', 'hoy-captura', 'hoy-progreso-modal'].forEach(montarHoja);
 
-  const btnInstallApp = document.getElementById('btn-install-app');
-  const btnDismissInstall = document.getElementById('btn-dismiss-install');
-  if (btnInstallApp) {
-    btnInstallApp.addEventListener('click', async () => {
-      const evt = window.__vgInstall && window.__vgInstall.deferredPrompt;
-      if (!evt) return;
-      evt.prompt();
-      const choice = await evt.userChoice;
-      window.__vgInstall.deferredPrompt = null;
-      if (choice.outcome === 'accepted') {
-        Toast('Vanguard instalada', 'success');
-      } else {
-        // Rechazó el prompt nativo del navegador — cuenta como descarte
-        // igual que el botón de cerrar, para no insistir de nuevo enseguida.
-        try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) { /* modo privado */ }
-      }
-      const banner = document.getElementById('install-banner');
-      if (banner) banner.remove();
-    });
-  }
-  if (btnDismissInstall) {
-    btnDismissInstall.addEventListener('click', () => {
-      try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) { /* modo privado */ }
-      const banner = document.getElementById('install-banner');
-      if (banner) banner.remove();
-    });
-  }
+  // --- Cabecera ---
+  document.getElementById('chip-racha')?.addEventListener('click', () => go('habitos'));
+  document.getElementById('btn-dia-hoy')?.addEventListener('click', () => abrirHojaDia(hoy(), { alGuardar: () => repintar() }));
+  // Foco en curso (components/foco.js): la línea abre su pantalla.
+  document.getElementById('hoy-foco')?.addEventListener('click', () => abrirPantallaFoco({ alVolver: abrirDetallePorId }));
 
-  // Agenda: marcar en línea con las mismas funciones de db.js que usan
-  // Tareas, Semana y Hábitos (cada una emite su logEvent).
+  // --- Órbita y chips ---
+  // La órbita lleva a Laboratorio › Semana en la semana en curso.
+  document.getElementById('hoy-orbita')?.addEventListener('click', () => {
+    const h = hoy();
+    pedirSemana(sumarDias(h, -((new Date().getDay() + 6) % 7)));
+    go('laboratorio');
+  });
+  document.getElementById('chip-habitos')?.addEventListener('click', () => go('habitos'));
+  document.getElementById('chip-tareas')?.addEventListener('click', () => go('tareas'));
+  document.getElementById('chip-entreno')?.addEventListener('click', () => go('entrenamiento'));
+  document.getElementById('chip-finanzas')?.addEventListener('click', () => go('finanzas'));
+
+  // --- Marcar desde la agenda, la hoja de hábitos o una misión: las mismas
+  // funciones de db.js que usan Tareas, Semana y Hábitos (cada una emite su
+  // logEvent). ---
+  const marcar = async (tipo, id) => {
+    if (tipo === 'tarea') await db.updateTaskStatus(id, 'done');
+    else if (tipo === 'plan') await db.toggleTareaPlan(id);
+    else await db.toggleMarcaHabito(id, hoy());
+  };
   document.querySelectorAll('.agenda-check').forEach(btn => {
     btn.addEventListener('click', async () => {
       const tipo = btn.getAttribute('data-tipo');
       const id = btn.getAttribute('data-id');
-      if (tipo === 'habito-num') { abrirProgreso(btn); return; }
+      if (tipo === 'habito-num') { abrirProgreso(id); return; }
       btn.disabled = true;
       try {
-        if (tipo === 'tarea') await db.updateTaskStatus(id, 'done');
-        else if (tipo === 'plan') await db.toggleTareaPlan(id);
-        else await db.toggleMarcaHabito(id, diaKeyDe(new Date()));
+        await marcar(tipo, id);
         await repintar();
       } catch (err) {
-        console.error('Error al marcar desde la agenda:', err);
-        Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
+        fallo(err, 'marcar desde la agenda');
         btn.disabled = false;
       }
     });
   });
 
   // Atrasadas: la fila las despliega en línea (sin repintar); cada una se
-  // marca con el mismo checkbox de la agenda (.agenda-check: updateTaskStatus
-  // o toggleTareaPlan, como en Semana) o se pasa a hoy con saveTask({ id,
-  // dueDate }) (tarea_actualizada) o moverTareaPlan (tarea_reprogramada).
+  // marca con el mismo check de la agenda o se pasa a hoy con
+  // saveTask({ id, dueDate }) (tarea_actualizada) o moverTareaPlan
+  // (tarea_reprogramada).
   const atrasadasToggle = document.getElementById('hoy-atrasadas-toggle');
   if (atrasadasToggle) {
     atrasadasToggle.addEventListener('click', () => {
       atrasadasAbierta = !atrasadasAbierta;
       document.getElementById('hoy-atrasadas-lista').hidden = !atrasadasAbierta;
       atrasadasToggle.setAttribute('aria-expanded', String(atrasadasAbierta));
-      atrasadasToggle.querySelector('svg').style.transform = `rotate(${atrasadasAbierta ? 180 : 0}deg)`;
     });
   }
   document.querySelectorAll('.agenda-mover').forEach(btn => {
@@ -726,136 +734,175 @@ export function mountListeners() {
       btn.disabled = true;
       try {
         const id = btn.getAttribute('data-id');
-        const hoy = diaKeyDe(new Date());
-        if (btn.getAttribute('data-tipo') === 'plan') await db.moverTareaPlan(id, hoy);
-        else await db.saveTask({ id, dueDate: hoy });
+        if (btn.getAttribute('data-tipo') === 'plan') await db.moverTareaPlan(id, hoy());
+        else await db.saveTask({ id, dueDate: hoy() });
         Toast('Tarea movida a hoy', 'success');
         await repintar();
       } catch (err) {
-        console.error('Error al mover la tarea a hoy:', err);
-        Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
+        fallo(err, 'mover la tarea a hoy');
         btn.disabled = false;
       }
     });
   });
 
-  // Hábito numérico: el modal suma la cantidad ingresada a lo que ya lleva
-  // hoy y guarda el total con registrarProgresoHabito (que emite su
-  // logEvent con la cantidad). Si el total llega a la meta, el hábito sale
-  // de la agenda al repintar; si no, queda con el avance (ej. 5/20).
-  const progModal = document.getElementById('hoy-progreso-modal');
+  // --- Mazo de misiones ---
+  const mazo = document.getElementById('hoy-mazo');
+  soltarMazo = montarMazo(mazo, {
+    alHecho: async (misionId) => {
+      const [tipo, ...resto] = misionId.split(':');
+      const id = resto.join(':');
+      if (tipo === 'ctx') { await hechoContextual(id); return; }
+      try {
+        await marcar(tipo, id);
+        pospuestas.delete(misionId);
+        await repintar();
+      } catch (err) {
+        fallo(err, 'completar la misión');
+        await repintar();
+      }
+    },
+    alDespues: async (misionId) => {
+      const [tipo, ...resto] = misionId.split(':');
+      if (tipo === 'ctx') {
+        const tipoCtx = resto.join(':');
+        if (tipoCtx === 'semana') await db.marcarSemanaRevisada(misionCtx.semana);
+        else ocultarHoy(tipoCtx);
+      } else {
+        pospuestas.delete(misionId);
+        pospuestas.add(misionId);
+      }
+      await repintar();
+    },
+    alAccion: (accion, misionId) => {
+      if (accion === 'sumar') abrirProgreso(misionId.split(':').slice(1).join(':'));
+    }
+  });
+  async function hechoContextual(tipo) {
+    if (tipo === 'ritual') go('ritual');
+    else if (tipo === 'backup') { await exportAllData(); await repintar(); } // los días desde el respaldo quedan en 0: la misión sale sola
+    else if (tipo === 'vida') { marcarVidaUsadaVista(misionCtx.vida); await repintar(); }
+    else if (tipo === 'semana') {
+      await db.marcarSemanaRevisada(misionCtx.semana);
+      pedirSemana(misionCtx.semana);
+      go('laboratorio');
+    }
+    else go('entrenamiento');
+  }
+
+  // --- Hoja de progreso de un hábito con cantidad: suma lo ingresado a lo
+  // que ya lleva hoy y guarda el total con registrarProgresoHabito (emite su
+  // logEvent con la cantidad). ---
   const progInput = document.getElementById('hoy-prog-cantidad');
   const progForm = document.getElementById('hoy-prog-form');
   const progGuardar = document.getElementById('hoy-prog-guardar');
   let progreso = null;
-
-  const cerrarProgreso = () => {
-    if (!progModal.classList.contains('open')) return;
-    progModal.classList.remove('open');
-    progModal.style.display = 'none';
-  };
-  function abrirProgreso(btn) {
-    progreso = {
-      id: btn.getAttribute('data-id'),
-      actual: Number(btn.getAttribute('data-actual')) || 0,
-      meta: Number(btn.getAttribute('data-meta')) || 0,
-      unidad: btn.getAttribute('data-unidad') || ''
-    };
-    const nombre = btn.getAttribute('data-nombre') || '';
+  function abrirProgreso(id) {
+    progreso = habitosConMeta.get(id) || null;
+    if (!progreso) return;
+    document.getElementById('hoy-progreso-modal-titulo').textContent = progreso.nombre;
     document.getElementById('hoy-prog-detalle').textContent =
-      `${nombre} · llevas ${progreso.actual}/${progreso.meta}${progreso.unidad ? ' ' + progreso.unidad : ''}`;
+      `Llevas ${progreso.actual}/${progreso.meta}${progreso.unidad ? ' ' + progreso.unidad : ''} hoy.`;
     progInput.value = '';
     progGuardar.disabled = false;
-    progModal.style.display = 'flex';
-    progModal.classList.add('open');
-    setTimeout(() => progInput.focus(), 50);
+    abrirHoja('hoy-progreso-modal');
   }
-  if (progModal) {
-    progModal.addEventListener('click', (e) => { if (e.target === progModal) cerrarProgreso(); });
-    document.getElementById('hoy-prog-cancelar').addEventListener('click', cerrarProgreso);
-    progForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const cantidad = Number(String(progInput.value).replace(',', '.'));
-      if (!progreso || !(cantidad > 0)) { progInput.focus(); return; }
-      const total = progreso.actual + cantidad;
-      progGuardar.disabled = true;
-      try {
-        await db.registrarProgresoHabito(progreso.id, diaKeyDe(new Date()), total);
-        cerrarProgreso();
-        Toast(total >= progreso.meta ? 'Meta cumplida' : 'Progreso guardado', 'success');
-        await repintar();
-      } catch (err) {
-        console.error('Error al registrar progreso desde la agenda:', err);
-        Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
-        progGuardar.disabled = false;
-      }
-    });
-  }
+  progForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const cantidad = Number(String(progInput.value).replace(',', '.'));
+    if (!progreso || !(cantidad > 0)) { progInput.focus(); return; }
+    const total = progreso.actual + cantidad;
+    progGuardar.disabled = true;
+    try {
+      await db.registrarProgresoHabito(progreso.id, hoy(), total);
+      await cerrarHoja('hoy-progreso-modal');
+      await esperarSalidaDeModal('hoy-progreso-modal');
+      Toast(total >= progreso.meta ? 'Meta cumplida' : 'Progreso guardado', 'success');
+      await repintar();
+    } catch (err) {
+      fallo(err, 'registrar el progreso');
+      progGuardar.disabled = false;
+    }
+  });
 
+  // --- Franja → hoja «Agenda del día» ---
+  document.getElementById('hoy-franja')?.addEventListener('click', () => abrirHoja('hoy-agenda-hoja'));
+
+  // --- Acciones rápidas ---
   // Formulario de tarea existente (components/task-form.js), montado acá.
   setupTaskForm(repintar);
-  // Foco en curso (components/foco.js): la línea abre su pantalla.
-  document.getElementById('hoy-foco')?.addEventListener('click', () => abrirPantallaFoco({ alVolver: abrirDetallePorId }));
-  const qaTarea = document.getElementById('qa-tarea');
-  if (qaTarea) qaTarea.addEventListener('click', () => openTaskForm());
-
-  // "Nota": abre el formulario de nota nueva de Anotaciones, en la
-  // categoría de la última nota (o la primera).
-  const qaNota = document.getElementById('qa-nota');
-  if (qaNota) {
-    qaNota.addEventListener('click', async () => {
-      const cats = await db.getCategoriasNota();
-      const cat = cats.find(c => c.id === qaNota.getAttribute('data-cat')) || cats[0];
-      if (cat) Anotaciones.abrirCategoria(cat.id);
-      go('anotaciones');
+  document.getElementById('qa-tarea')?.addEventListener('click', () => openTaskForm());
+  // Gasto: la hoja de Finanzas (GastoForm) se abre aquí, sin salir de Hoy.
+  // Al cerrarse (guardado o no), Hoy se repinta para mover los anillos.
+  const gastoModal = document.getElementById('gasto-modal');
+  if (gastoModal) {
+    initGastoForm(db, () => presupuestoActual, () => {});
+    document.getElementById('qa-gasto')?.addEventListener('click', () => gastoModal.openForm());
+    vigiaGasto = new MutationObserver(async () => {
+      if (gastoModal.classList.contains('open') || gastoModal.dataset.vigilado !== '1') {
+        if (gastoModal.classList.contains('open')) gastoModal.dataset.vigilado = '1';
+        return;
+      }
+      gastoModal.dataset.vigilado = '';
+      await esperarSalidaDeModal('gasto-modal');
+      await repintar();
     });
+    vigiaGasto.observe(gastoModal, { attributes: true, attributeFilter: ['class'] });
   }
-
-  const alertaCaja = document.getElementById('alerta-caja');
-  if (alertaCaja) alertaCaja.addEventListener('click', () => go('finanzas'));
-  const alertaAnual = document.getElementById('alerta-anual');
-  if (alertaAnual) alertaAnual.addEventListener('click', () => { pedirPestanaFinanzas('recurrentes'); go('finanzas'); });
-
-  const qaGasto = document.getElementById('qa-gasto');
-  const qaEntreno = document.getElementById('qa-entreno');
-  const rowEntreno = document.getElementById('row-entreno');
-  const rowFinanzas = document.getElementById('row-finanzas');
-  const rowTareas = document.getElementById('row-tareas');
-  const rowHabitos = document.getElementById('row-habitos');
-  const rowAnotaciones = document.getElementById('row-anotaciones');
-
-  if (qaGasto) qaGasto.addEventListener('click', () => { pedirGastoFinanzas(); go('finanzas'); });
-  if (qaEntreno) qaEntreno.addEventListener('click', async () => {
+  document.getElementById('qa-entreno')?.addEventListener('click', async () => {
     const { pedirEntrenarDesdeHoy } = await window.appRouter.importar('js/views/entrenamiento.js');
     pedirEntrenarDesdeHoy();
     go('entrenamiento');
   });
-  if (rowEntreno) rowEntreno.addEventListener('click', () => go('entrenamiento'));
-  if (rowFinanzas) rowFinanzas.addEventListener('click', () => go('finanzas'));
-  if (rowTareas) rowTareas.addEventListener('click', () => go('tareas'));
-  if (rowHabitos) rowHabitos.addEventListener('click', () => go('habitos'));
-  if (rowAnotaciones) rowAnotaciones.addEventListener('click', () => go('anotaciones'));
-  // Laboratorio › Semana en la semana en curso (la de la cifra), no en la
-  // pasada que abre por defecto.
-  const rowLaboratorio = document.getElementById('row-laboratorio');
-  if (rowLaboratorio) rowLaboratorio.addEventListener('click', () => {
-    const hoy = diaKeyDe(new Date());
-    pedirSemana(sumarDias(hoy, -((new Date().getDay() + 6) % 7)));
-    go('laboratorio');
+  document.getElementById('qa-habito')?.addEventListener('click', () => abrirHoja('hoy-habitos-hoja'));
+  // "Nota": abre el formulario de nota nueva de Anotaciones (Plan › Notas),
+  // en la categoría de la última nota (o la primera).
+  const qaNota = document.getElementById('qa-nota');
+  qaNota?.addEventListener('click', async () => {
+    const cats = await db.getCategoriasNota();
+    const cat = cats.find(c => c.id === qaNota.getAttribute('data-cat')) || cats[0];
+    if (cat) Anotaciones.abrirCategoria(cat.id);
+    go('anotaciones');
   });
 
-  // Captura rápida: si el texto trae un monto, se registra como gasto
-  // (mismo parser que "Agregar gasto rápido" de Finanzas); si no, se crea
-  // como tarea. Dos destinos nada más — evita inventar un "log de nota
-  // libre" de Entreno que la app no tiene forma estructurada de guardar.
+  // --- Alertas ---
+  document.getElementById('alerta-caja')?.addEventListener('click', () => go('finanzas'));
+  document.getElementById('alerta-anual')?.addEventListener('click', () => { pedirPestanaFinanzas('recurrentes'); go('finanzas'); });
+
+  // --- Banner de instalación ---
+  document.getElementById('btn-install-app')?.addEventListener('click', async () => {
+    const evt = window.__vgInstall && window.__vgInstall.deferredPrompt;
+    if (!evt) return;
+    evt.prompt();
+    const choice = await evt.userChoice;
+    window.__vgInstall.deferredPrompt = null;
+    if (choice.outcome === 'accepted') {
+      Toast('Vanguard instalada', 'success');
+    } else {
+      // Rechazó el prompt nativo del navegador — cuenta como descarte
+      // igual que el botón de cerrar, para no insistir de nuevo enseguida.
+      try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) { /* modo privado */ }
+    }
+    document.getElementById('install-banner')?.remove();
+  });
+  document.getElementById('btn-dismiss-install')?.addEventListener('click', () => {
+    try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) { /* modo privado */ }
+    document.getElementById('install-banner')?.remove();
+  });
+
+  // --- Captura rápida (hoja del orbe): si el texto trae un monto AL
+  // PRINCIPIO, se registra como gasto (mismo parser que "Agregar gasto
+  // rápido" de Finanzas); si no, se crea como tarea. Dos destinos nada más. ---
   const quickInput = document.getElementById('quick-capture-input');
   const quickHint = document.getElementById('quick-capture-hint');
   const quickOpciones = document.getElementById('quick-capture-sobre-opciones');
 
-  const limpiarCapturaRapida = () => {
+  const terminarCaptura = async () => {
     quickInput.value = '';
     quickHint.textContent = '';
-    if (quickOpciones) quickOpciones.innerHTML = '';
+    quickOpciones.innerHTML = '';
+    await cerrarHoja('hoy-captura');
+    await esperarSalidaDeModal('hoy-captura');
+    await repintar();
   };
 
   const registrarGasto = async (parsed, env) => {
@@ -868,20 +915,16 @@ export function mountListeners() {
       goalId: null
     });
     Toast(`Gasto de ${formatCurrency(parsed.amount)} registrado`, 'success');
-    limpiarCapturaRapida();
-    refresh();
+    await terminarCaptura();
   };
 
-  // Cuando el texto matchea más de un sobre (ej. "Auto" y "Autopista" con
-  // "15000 en auto"), no elegimos por el usuario — se muestran los sobres
-  // encontrados como opciones y que confirme cuál es, mismo criterio que ya
-  // usa Finanzas (ahí abre el formulario completo para desambiguar; acá, al
-  // no vivir ese modal en Inicio, se resuelve inline).
+  // Cuando el texto calza con más de un sobre (ej. "Auto" y "Autopista" con
+  // "15000 en auto"), no elegimos por el usuario: se muestran los sobres
+  // encontrados para que confirme cuál es.
   const mostrarSelectorDeSobre = (parsed) => {
-    if (!quickOpciones) return;
-    quickHint.textContent = 'Encontré más de un sobre posible — elige cuál es:';
+    quickHint.textContent = 'Encontré más de un sobre posible. Elige cuál es:';
     quickOpciones.innerHTML = parsed.matches.map((env, i) => `
-      <button type="button" class="tappable qa-sobre-opcion" data-idx="${i}" style="background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer;">${escapeHtml(env.name)}</button>
+      <li><button type="button" class="o-chip qa-sobre-opcion" data-idx="${i}"><span class="o-chip-punto"></span>${escapeHtml(env.name)}</button></li>
     `).join('');
     quickOpciones.querySelectorAll('.qa-sobre-opcion').forEach(btn => {
       btn.addEventListener('click', () => registrarGasto(parsed, parsed.matches[Number(btn.dataset.idx)]));
@@ -890,18 +933,17 @@ export function mountListeners() {
 
   const submitQuickCapture = async () => {
     const text = quickInput.value.trim();
-    if (!text) return;
-    if (quickOpciones) quickOpciones.innerHTML = '';
+    if (!text) { quickInput.focus(); return; }
+    quickOpciones.innerHTML = '';
 
-    // El monto tiene que ir AL PRINCIPIO ("50 en super", el ejemplo del
-    // placeholder) — un dígito en cualquier parte del texto (ej. "Comprar
-    // 2 entradas") mandaba tareas comunes a Finanzas como gasto.
-    const amountFound = /^\$?\s*\d/.test(text);
-    if (amountFound) {
+    // El monto tiene que ir AL PRINCIPIO ("4500 almuerzo") — un dígito en
+    // cualquier parte del texto (ej. "Comprar 2 entradas") mandaba tareas
+    // comunes a Finanzas como gasto.
+    if (/^\$?\s*\d/.test(text)) {
       const budget = await db.getBudget();
       const parsed = parseQuickGasto(text, budget.envelopes);
       if (!parsed) {
-        quickHint.textContent = 'No encontré un monto válido';
+        quickHint.textContent = 'No encontré un monto válido.';
         return;
       }
       if (parsed.matches.length > 1) {
@@ -910,12 +952,10 @@ export function mountListeners() {
       }
       await registrarGasto(parsed, parsed.matches[0] || null);
       return;
-    } else {
-      await db.saveTask({ title: text, status: 'todo', priority: 'medium' });
-      Toast('Tarea creada', 'success');
     }
-    limpiarCapturaRapida();
-    refresh();
+    await db.saveTask({ title: text, status: 'todo', priority: 'medium' });
+    Toast('Tarea creada', 'success');
+    await terminarCaptura();
   };
   bindQuickCaptureForm(document.getElementById('quick-capture-form'), submitQuickCapture);
 }

@@ -1,0 +1,160 @@
+/* =====================================================================
+   HOY (Órbita, Fase 5) — js/views/dashboard.js
+   ---------------------------------------------------------------------
+   Celular: una columna (cabecera, órbita y chips, mazo, acciones,
+   alertas, franja «Agenda del día»). Tablet (≥ 768 px): órbita a la
+   izquierda; misiones, acciones y franja a la derecha. PC (≥ 1280 px):
+   tres columnas; la agenda deja de ser hoja y queda fija a la derecha.
+   Componentes base en orbita.css; aquí solo lo propio de Hoy.
+   ===================================================================== */
+
+/* Contenedor de una vista de Órbita (layout.css excluye .o-vista de las
+   reglas de ancho de MK III). */
+.o-vista {
+  width: 100%; max-width: var(--o-content-max); margin: 0 auto;
+  padding: var(--o-sp-2) var(--o-gutter) var(--o-sp-6);
+  color: var(--o-text); font-family: var(--o-font); line-height: var(--o-lh-body);
+}
+.o-vista h1, .o-vista h2, .o-vista h3 { font-family: var(--o-font); }
+
+.o-hoy-grid { display: grid; gap: var(--o-sp-5); grid-template-columns: minmax(0, 1fr); align-items: start; }
+.o-hoy-col { display: grid; gap: var(--o-sp-4); min-width: 0; }
+/* La agenda es una hoja (fixed) salvo en PC: su envoltorio no ocupa fila. */
+.o-hoy-agenda { display: contents; }
+
+/* --- Cabecera --- */
+.o-hoy-cab { display: grid; gap: var(--o-sp-3); }
+.o-hoy-cab-fila { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--o-sp-3); }
+.o-hoy-saludo {
+  margin: 0; font-size: var(--o-fs-xl); font-weight: var(--o-fw-black);
+  letter-spacing: var(--o-ls-title); line-height: var(--o-lh-tight);
+}
+.o-hoy-fecha { margin: var(--o-sp-1) 0 0; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-hoy-cab-chips { display: flex; gap: var(--o-sp-2); flex-shrink: 0; }
+.o-hoy-cab-chips .o-chip { padding: 0 var(--o-sp-3); color: var(--o-text); }
+.o-hoy-cab-chips .escudo-vida { color: var(--o-hab-t); }
+.o-hoy-cab-chips .chip-vidas--vacio .escudo-vida { color: var(--o-text-3); }
+.o-dia-punto { width: var(--o-sp-1); height: var(--o-sp-1); border-radius: var(--o-r-pill); background: var(--o-text-2); }
+.o-dia--descanso { border-color: var(--o-line-strong); }
+
+/* Línea de Foco en curso (components/foco.js): mismo botón, en Órbita. */
+.o-hoy .hoy-foco {
+  margin: 0; min-height: var(--o-touch); gap: var(--o-sp-2); padding: var(--o-sp-2) var(--o-sp-4);
+  background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-r-pill);
+  color: var(--o-text); font-family: var(--o-font); font-size: var(--o-fs-sm);
+}
+.o-hoy .hoy-foco-etq { font-family: var(--o-font-num); font-size: var(--o-fs-2xs); letter-spacing: var(--o-ls-label); color: var(--o-plan-t); }
+.o-hoy .hoy-foco-tiempo { font-family: var(--o-font-num); color: var(--o-plan-t); }
+.o-hoy .hoy-foco:focus-visible { filter: none; box-shadow: var(--o-focus); }
+
+/* --- Órbita: 4 anillos + puntaje del día --- */
+.o-orbita {
+  position: relative; display: grid; place-items: center; justify-self: center;
+  width: 100%; max-width: var(--o-orbita); aspect-ratio: 1; padding: 0;
+  background: none; border: 0; border-radius: var(--o-r-pill); color: var(--o-text);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.o-orbita:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-orbita svg { grid-area: 1 / 1; width: 100%; height: 100%; transform: rotate(-90deg); }
+.o-orbita-pista { stroke: var(--o-surface-1); }
+.o-orbita-arco { transition: stroke-dasharray var(--o-dur-4) var(--o-ease-out); }
+.o-orbita-centro { grid-area: 1 / 1; display: grid; justify-items: center; gap: var(--o-sp-1); }
+.o-orbita-puntaje {
+  font-family: var(--o-font); font-size: var(--o-fs-display); font-weight: var(--o-fw-black);
+  letter-spacing: var(--o-ls-display); line-height: var(--o-lh-tight);
+  background: var(--o-grad-titulo); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.o-orbita-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-orbita-chips .o-chip { justify-content: flex-start; color: var(--o-text); }
+.o-orbita-chips .o-chip-num { margin-left: auto; }
+
+/* --- Acciones rápidas (5) --- */
+.o-acciones { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-accion {
+  display: grid; justify-items: center; gap: var(--o-sp-2); padding: 0; min-width: 0;
+  background: none; border: 0; color: var(--o-text-2);
+  font-family: var(--o-font); font-size: var(--o-fs-xs); font-weight: var(--o-fw-semibold);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.o-accion-ico {
+  width: 100%; max-width: var(--o-quick); aspect-ratio: 1; display: grid; place-items: center;
+  border-radius: var(--o-r-md); background: var(--o-mod-wash); border: 1px solid var(--o-line);
+  color: var(--o-mod-t);
+  transition: transform var(--o-dur-1) var(--o-ease-spring);
+}
+.o-accion-ico svg { width: var(--o-icon); height: var(--o-icon); }
+.o-accion:active .o-accion-ico { transform: scale(var(--o-press)); }
+.o-accion:focus-visible { outline: none; }
+.o-accion:focus-visible .o-accion-ico { box-shadow: var(--o-focus); }
+html[data-tema="gris"] .o-accion-ico { color: var(--o-text); }
+
+/* --- Franja «Agenda del día» (abre la hoja) --- */
+.o-franja {
+  display: flex; align-items: center; gap: var(--o-sp-3); width: 100%;
+  min-height: calc(var(--o-touch) + var(--o-sp-4)); padding: var(--o-sp-2) var(--o-sp-4);
+  background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-r-lg);
+  color: var(--o-text); font-family: var(--o-font); text-align: left;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.o-franja:hover { background: var(--o-surface-2); }
+.o-franja:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-franja-texto { flex: 1; min-width: 0; display: grid; gap: var(--o-sp-1); }
+.o-franja-texto b { font-size: var(--o-fs-base); font-weight: var(--o-fw-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.o-franja-atrasadas { display: inline-flex; align-items: center; gap: var(--o-sp-1); font-size: var(--o-fs-xs); font-weight: var(--o-fw-bold); color: var(--o-alert-t); }
+.o-franja-atrasadas svg, .o-franja > svg { width: var(--o-icon-sm); height: var(--o-icon-sm); flex-shrink: 0; }
+.o-franja > svg { color: var(--o-text-3); }
+
+/* --- Agenda (hoja en celular y tablet; panel fijo en PC) --- */
+.o-agenda-seccion { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--o-sp-2); }.o-agenda-seccion .o-lista[hidden] { display: none; }
+.o-agenda-mover { min-height: var(--o-touch); padding: 0 var(--o-sp-3); font-size: var(--o-fs-xs); }
+.o-agenda-atrasada small { color: var(--o-alert-t); }
+.o-agenda-toggle svg:last-child { margin-left: auto; transition: transform var(--o-dur-2) var(--o-ease-out); }
+.o-agenda-toggle[aria-expanded="true"] svg:last-child { transform: rotate(180deg); }
+.o-agenda-toggle { color: var(--o-alert-t); justify-content: flex-start; }
+.o-agenda-sumar { min-height: var(--o-touch); padding: 0 var(--o-sp-3); font-size: var(--o-fs-xs); }
+
+/* --- Banner de instalación --- */
+.o-instalar { display: flex; align-items: center; gap: var(--o-sp-3); }
+.o-instalar .o-fila-texto { flex: 1; }
+
+/* --- Captura rápida --- */
+#quick-capture-sobre-opciones { flex-wrap: wrap; }
+#quick-capture-sobre-opciones:empty { display: none; }
+
+/* --- Tablet (≥ 768 px): órbita a la izquierda --- */
+@media (min-width: 768px) {
+  .o-vista { padding: var(--o-sp-4) var(--o-sp-6) var(--o-sp-6); }
+  .o-hoy-grid {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    grid-template-areas: "cab cab" "orbita centro";
+    column-gap: var(--o-sp-6);
+  }
+  .o-hoy-cab { grid-area: cab; }
+  .o-hoy-orbita { grid-area: orbita; position: sticky; top: 0; }
+  .o-hoy-centro { grid-area: centro; }
+  /* Columna angosta: un chip por fila para que «Presupuesto 67%» quepa. */
+  .o-orbita-chips { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- PC (≥ 1280 px): tres columnas, agenda fija --- */
+@media (min-width: 1280px) {
+  .o-vista { padding: var(--o-sp-5) var(--o-sp-7) var(--o-sp-7); }
+  .o-hoy-grid {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 5fr) minmax(0, 4fr);
+    grid-template-areas: "cab cab cab" "orbita centro agenda";
+  }
+  .o-orbita-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .o-hoy-agenda { display: block; grid-area: agenda; }
+  .o-hoy #hoy-franja { display: none; }
+  .o-hoy #hoy-agenda-hoja {
+    position: static; display: block; opacity: 1; padding: 0;
+    background: none; backdrop-filter: none; -webkit-backdrop-filter: none; z-index: auto;
+  }
+  .o-hoy #hoy-agenda-hoja .o-hoja {
+    max-width: none; max-height: none; overflow: visible; padding: var(--o-sp-4);
+    background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-r-xl);
+    box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; animation: none;
+  }
+  .o-hoy #hoy-agenda-hoja .o-hoja-titulo { font-size: var(--o-fs-lg); }
+  .o-hoy #hoy-agenda-hoja [data-hoja-cerrar] { display: none; }
+}

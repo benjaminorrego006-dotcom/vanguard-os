@@ -59,9 +59,16 @@ const SEL = {
   muestraHoja: '#demo-hoja',
   muestraMision: '#mazo .o-mision',
   muestraRegistro: '#mazo-registro',
-  // Hoy
+  // Hoy (Fase 5: órbita, mazo y franja que abre la agenda)
+  hoyOrbita: '#hoy-orbita',
+  hoyMazo: '#hoy-mazo',
+  hoyMision: '#hoy-mazo .o-mision',
+  hoyFranja: '#hoy-franja',
+  hoyAgendaHoja: '#hoy-agenda-hoja',
   hoyAgenda: '#hoy-agenda',
-  hoyResumenes: '#hoy-resumenes',
+  hoyCaptura: '#hoy-captura',
+  hoyHabitosHoja: '#hoy-habitos-hoja',
+  qaHabito: '#qa-habito',
   qaTarea: '#qa-tarea',
   qaGasto: '#qa-gasto',
   qaEntreno: '#qa-entreno',
@@ -174,22 +181,47 @@ async function main() {
   });
 
   // ---------- Las 5 acciones frecuentes ----------
-  await prueba('Acción 1 · revisar el día (Hoy con agenda y resúmenes)', async () => {
+  await prueba('Acción 1 · revisar el día (órbita, mazo y agenda)', async () => {
     await irA(page, 'dashboard');
+    await page.waitForSelector(SEL.hoyOrbita, { state: 'visible' });
+    await page.waitForSelector(SEL.hoyMision, { state: 'visible' });
+    await page.locator(SEL.hoyFranja).click();
     await page.waitForSelector(SEL.hoyAgenda, { state: 'visible' });
-    await page.waitForSelector(SEL.hoyResumenes, { state: 'visible' });
+    await capturar(page, 'hoy-agenda-390.png');
+    await page.goBack();
+    await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.hoyAgendaHoja);
+    afirmar((await page.evaluate(() => location.hash)) === '#dashboard', 'atrás cambió de vista');
   });
 
-  await prueba('Acción 2 · marcar un hábito desde Hoy', async () => {
+  await prueba('Hoy · la órbita lleva a Laboratorio', async () => {
+    await page.locator(SEL.hoyOrbita).click();
+    await page.waitForFunction(() => window.appRouter.currentView === 'laboratorio');
     await irA(page, 'dashboard');
-    await page.locator(SEL.checkHabitoHoy(HABITO_PENDIENTE)).click();
-    await page.waitForSelector(SEL.checkHabitoHoy(HABITO_PENDIENTE), { state: 'detached', timeout: 8000 });
+  });
+
+  await prueba('Hoy · «Después» pasa la misión al final del mazo', async () => {
+    await irA(page, 'dashboard');
+    const primera = await page.locator(SEL.hoyMision).getAttribute('data-mision-id');
+    await page.locator(`${SEL.hoyMision} [data-mision-accion="despues"]`).click();
+    await page.waitForFunction(([s, id]) => document.querySelector(s)?.getAttribute('data-mision-id') !== id, [SEL.hoyMision, primera], { timeout: 8000 });
+  });
+
+  await prueba('Acción 2 · marcar un hábito desde Hoy (agenda)', async () => {
+    await irA(page, 'dashboard');
+    await page.locator(SEL.hoyFranja).click();
+    await page.locator(`${SEL.hoyAgendaHoja} ${SEL.checkHabitoHoy(HABITO_PENDIENTE)}`).click();
+    await page.waitForSelector(`${SEL.hoyAgendaHoja} ${SEL.checkHabitoHoy(HABITO_PENDIENTE)}`, { state: 'detached', timeout: 8000 });
+    afirmar(await page.evaluate((s) => document.querySelector(s).classList.contains('open'), SEL.hoyAgendaHoja), 'la agenda se cerró al marcar');
+    await page.goBack();
+    await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.hoyAgendaHoja);
     await irA(page, 'habitos');
     await page.waitForSelector(SEL.habitoMarcado(HABITO_PENDIENTE), { timeout: 8000 });
   });
 
   await prueba('Acción 3 · registrar un gasto (captura rápida "4500 almuerzo")', async () => {
     await irA(page, 'dashboard');
+    await page.locator(SEL.orbe).click();
+    await page.waitForFunction((s) => document.querySelector(s)?.classList.contains('open'), SEL.hoyCaptura);
     await page.locator(SEL.capturaInput).fill('4500 almuerzo');
     await page.locator(SEL.capturaInput).press('Enter');
     const opcion = page.locator(SEL.capturaOpcionSobre).first();
@@ -230,6 +262,16 @@ async function main() {
     await page.locator(SEL.qaEntreno).click();
     await page.waitForSelector(SEL.sesionActiva, { state: 'visible', timeout: 15000 });
     await capturar(page, 'sesion-activa-390.png');
+  });
+
+  await prueba('Hoy · botón Hábito abre los hábitos del día', async () => {
+    await page.goto(BASE + 'index.html#dashboard'); // suelta la sesión de entreno de la vista
+    await page.waitForFunction(() => window.appRouter && window.appRouter.currentView === 'dashboard');
+    await page.locator(SEL.qaHabito).click();
+    await page.waitForFunction((s) => document.querySelector(s)?.classList.contains('open'), SEL.hoyHabitosHoja);
+    await page.waitForSelector(`${SEL.hoyHabitosHoja} .o-check[aria-pressed="true"]`);
+    await page.goBack();
+    await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.hoyHabitosHoja);
   });
 
   // ---------- Crear / editar / borrar (Tareas) ----------
@@ -291,10 +333,13 @@ async function main() {
     afirmar(dentro, 'algún ítem del dock mide menos de 44 px');
   });
 
-  await prueba('Orbe · estando en Hoy enfoca la captura rápida', async () => {
+  await prueba('Orbe · estando en Hoy abre la captura rápida', async () => {
     await page.locator(SEL.orbe).click();
     await page.waitForFunction((s) => document.activeElement?.matches(s), SEL.capturaInput);
     afirmar((await page.evaluate(() => location.hash)) === '#dashboard', 'el orbe cambió de vista');
+    await page.goBack();
+    await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.hoyCaptura);
+    afirmar((await page.evaluate(() => location.hash)) === '#dashboard', 'atrás cambió de vista');
   });
 
   await prueba('Redirecciones · #anotaciones, #mas y #planificador', async () => {

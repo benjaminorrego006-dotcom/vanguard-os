@@ -79,7 +79,10 @@ export function oVacio({ icono = 'vacio', titulo = '', texto = '', accion = '', 
 // --- Misiones -----------------------------------------------------------
 // Una misión: { id, modulo ('habitos'|'plan'|'entreno'|'finanzas'|'notas'),
 // rotulo, titulo, detalle, pista ("cierra el anillo"), hecho (verbo) }.
-export function oMision({ id, modulo = '', rotulo = '', titulo = '', detalle = '', pista = '', hecho = 'Hecho' } = {}) {
+// accion: si no es 'hecho', el botón principal no completa la misión (sin
+// animación de salida) y montarMazo llama a alAccion(accion, id); p. ej.
+// un hábito con cantidad abre su hoja de progreso.
+export function oMision({ id, modulo = '', rotulo = '', titulo = '', detalle = '', pista = '', hecho = 'Hecho', accion = 'hecho' } = {}) {
   return `
     <article class="o-mision${modulo ? ` o-mod-${escapeHtml(modulo)}` : ''}" data-mision-id="${escapeHtml(id)}" aria-roledescription="misión">
       <div>
@@ -90,7 +93,7 @@ export function oMision({ id, modulo = '', rotulo = '', titulo = '', detalle = '
       <div class="o-mision-pie">
         <span class="o-mision-pista">${escapeHtml(pista)}</span>
         <button type="button" class="o-btn o-btn--secundario o-btn--icono" data-mision-accion="despues" aria-label="Después: ${escapeHtml(titulo)}">${oIcono('despues')}</button>
-        <button type="button" class="o-btn o-btn--primario" data-mision-accion="hecho">${oIcono('check')}${escapeHtml(hecho)}</button>
+        <button type="button" class="o-btn o-btn--primario" data-mision-accion="${escapeHtml(accion)}">${accion === 'hecho' ? oIcono('check') : ''}${escapeHtml(hecho)}</button>
       </div>
     </article>`;
 }
@@ -107,10 +110,11 @@ export function oMazo(misiones = [], { vacio = '' } = {}) {
 // Comportamiento del mazo: "Hecho" completa, "Después" o deslizar de lado
 // la pasan. Llama a alHecho(id) / alDespues(id) cuando termina la salida;
 // quien llama guarda el cambio (logEvent vía db.js) y vuelve a pintar.
+// Otra acción del botón principal llama a alAccion(accion, id) al tiro.
 // Devuelve una función para soltar los listeners.
 const UMBRAL_DESLIZAR = 0.3; // fracción del ancho de la tarjeta
 const UMBRAL_INICIO_PX = 8;
-export function montarMazo(contenedor, { alHecho, alDespues } = {}) {
+export function montarMazo(contenedor, { alHecho, alDespues, alAccion } = {}) {
   if (!contenedor) return () => {};
   let ocupado = false;
   let arrastre = null;
@@ -134,8 +138,10 @@ export function montarMazo(contenedor, { alHecho, alDespues } = {}) {
     if (!btn || !contenedor.contains(btn)) return;
     const mision = btn.closest('.o-mision');
     if (!mision) return;
-    if (btn.dataset.misionAccion === 'hecho') salir(mision, 'o-hecha');
-    else salir(mision, 'o-saliendo', 'izq');
+    const accion = btn.dataset.misionAccion;
+    if (accion === 'hecho') salir(mision, 'o-hecha');
+    else if (accion === 'despues') salir(mision, 'o-saliendo', 'izq');
+    else if (alAccion && !ocupado) alAccion(accion, mision.dataset.misionId);
   };
 
   const alBajar = (e) => {
@@ -208,7 +214,7 @@ export function oHoja({ id, titulo = '', cuerpo = '', pie = '', modulo = '' } = 
 export function abrirHoja(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
-  overlay.classList.remove('o-saliendo');
+  overlay.classList.remove('o-saliendo', 'o-sin-entrada');
   overlay.style.display = 'flex';
   overlay.classList.add('open');
   // Foco en el primer control del contenido; si no hay, en Cerrar.
