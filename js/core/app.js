@@ -628,9 +628,10 @@ class Router {
     // donde varios módulos van a estar montados a la vez, cada uno en su
     // propio contenedor con su propio scope, sin pisarse entre ellos.
     this.root.classList.toggle('mk3-entreno', viewId === 'entrenamiento');
-    this.root.classList.toggle('mk3-finanzas', viewId === 'finanzas');
-    // Hábitos y Plan ya son Órbita (Fases 6 y 7): sus vistas llevan
-    // .o-mod-habitos / .o-mod-plan y no usan ámbito MK III.
+    // Hábitos, Plan y Finanzas ya son Órbita (Fases 6, 7 y 8): sus vistas
+    // llevan .o-mod-habitos / .o-mod-plan / .o-mod-finanzas y no usan ámbito
+    // MK III (las hojas de Finanzas van envueltas en .mk3-finanzas hasta que
+    // se migren).
     // Configuración es una pantalla utilitaria sin identidad de módulo
     // propia: usa la paleta neutra de MK III. Hoy ya es Órbita (Fase 5) y
     // no lleva ámbito MK III.

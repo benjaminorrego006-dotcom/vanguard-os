@@ -21,6 +21,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { tomarFoto, leerUiOrbita, compararFotos, ARCHIVO_ANTES } from './foto-finanzas.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '..', '..');
@@ -145,6 +146,19 @@ const SEL = {
   limpiarFechas: '#btn-clear-date-filter',
   finTitulo: '#view-root h1',
   mapaCalor: '#finanzas-heatmap',
+  // Finanzas (Órbita, Fase 8): lista + detalle en Movimientos y Recurrentes.
+  // El más reciente con ese nombre (los datos demo repiten Metro, Restaurante…).
+  finMov: (nombre) => `.o-fin-mov-abrir:has(.o-fin-mov-nombre:text-is("${nombre}")) >> nth=0`,
+  finRec: (nombre) => `.o-fin-rec-abrir:has(.o-fin-rec-nombre:text-is("${nombre}"))`,
+  finMovLd: '#fin-mov-ld',
+  finRecLd: '#fin-rec-ld',
+  finMovVolver: '#btn-volver-mov',
+  finMovCerrar: '#btn-cerrar-mov',
+  finMovEliminar: '#btn-eliminar-mov',
+  finRecVolver: '#btn-volver-rec',
+  finRecCerrar: '#btn-cerrar-rec',
+  finRecEliminar: '#btn-eliminar-recurrente',
+  finSobre: (nombre) => `.env-row:has(.o-fin-sobre-nombre:text-is("${nombre}"))`,
   // Entreno
   sesionActiva: '#sesion-barra, #hiit-container' // GYM/Calistenia o temporizador HIIT
 };
@@ -337,7 +351,7 @@ async function main() {
     // Sigue a la prueba anterior: sale de Finanzas con Movimientos activa y vuelve sin tocar la pestaña.
     await irA(page, 'dashboard');
     await irA(page, 'finanzas');
-    afirmar(await page.locator(SEL.finTab('movimientos')).evaluate((e) => e.classList.contains('active')), 'Movimientos no quedó activa');
+    afirmar(await page.locator(SEL.finTab('movimientos')).getAttribute('aria-selected') === 'true', 'Movimientos no quedó activa');
     await page.waitForFunction((s) => /almuerzo/i.test(document.querySelector(s)?.textContent || ''), SEL.movimientos, { timeout: 8000 });
   });
 
@@ -1091,6 +1105,165 @@ async function main() {
       await page.screenshot({ path: path.join(SALIDA, 'plan-hoja-gris-390.png') });
       await page.goBack();
       await cerrada(SEL.tareaModal);
+    } finally {
+      await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.reload();
+      await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+    }
+  });
+
+  // ---------- Finanzas (Órbita, Fase 8) ----------
+  await prueba('Finanzas · saldos, arrastre y totales idénticos a la foto de antes de la Fase 8', async () => {
+    // Contexto propio (datos demo + escenario de foto-finanzas.mjs), leído por la interfaz Órbita.
+    const despues = await tomarFoto(browser, BASE, { leerUi: leerUiOrbita, capturas: path.join(SALIDA, 'finanzas-foto') });
+    fs.writeFileSync(path.join(SALIDA, 'finanzas-despues.json'), JSON.stringify(despues, null, 2) + '\n');
+    afirmar(despues.errores.length === 0, `errores de consola: ${despues.errores[0]}`);
+    const difs = compararFotos(JSON.parse(fs.readFileSync(ARCHIVO_ANTES, 'utf8')), despues);
+    afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
+  });
+
+  const histFin = (clave) => page.evaluate((c) => ({ push: window.__espia.push, back: window.__espia.back, hash: location.hash, vista: window.appRouter.currentView, detalle: !!(history.state && history.state[c]) }), clave);
+
+  await prueba('Finanzas · Movimientos y Recurrentes con lista + detalle: sub-pantalla en 390, al lado en 1440 sin tocar el historial', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    try {
+      await irA(page, 'finanzas');
+      await espiarHistorial();
+      for (const caso of [
+        { tab: 'movimientos', fila: SEL.finMov('Metro'), volver: SEL.finMovVolver, cerrar: SEL.finMovCerrar, ld: SEL.finMovLd, clave: 'movDetalle', titulo: 'Metro', otra: SEL.finMov('Restaurante') },
+        { tab: 'recurrentes', fila: SEL.finRec('Internet'), volver: SEL.finRecVolver, cerrar: SEL.finRecCerrar, ld: SEL.finRecLd, clave: 'recDetalle', titulo: 'Internet', otra: null }
+      ]) {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.locator(SEL.finTab(caso.tab)).click();
+        await page.waitForSelector(caso.fila);
+        const antes = await histFin(caso.clave);
+        await page.locator(caso.fila).click();
+        await page.waitForSelector(caso.volver);
+        afirmar(!(await page.$(caso.ld)), `${caso.tab}: la lista sigue en pantalla junto al detalle`);
+        afirmar((await page.locator('#view-root h1').textContent()).trim() === caso.titulo, `${caso.tab}: el título del detalle no es ${caso.titulo}`);
+        let h = await histFin(caso.clave);
+        afirmar(h.push === antes.push + 1 && h.detalle && h.hash === '#finanzas', `${caso.tab}: abrir no empujó una entrada (${JSON.stringify(h)})`);
+        await page.screenshot({ path: path.join(SALIDA, `finanzas-${caso.tab}-detalle-390.png`) });
+        await page.goBack();
+        await page.waitForSelector(caso.fila);
+        h = await histFin(caso.clave);
+        afirmar(h.vista === 'finanzas' && !h.detalle, `${caso.tab}: atrás salió de Finanzas`);
+        afirmar(await page.locator(SEL.finTab(caso.tab)).getAttribute('aria-selected') === 'true', `${caso.tab}: atrás cambió de pestaña`);
+
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.waitForSelector(`${caso.ld} .o-ld-vacio`, { state: 'visible' });
+        const pc = await histFin(caso.clave);
+        await page.locator(caso.fila).click();
+        await page.waitForSelector(caso.cerrar);
+        const caja = await page.evaluate((ld) => {
+          const a = document.querySelector(`${ld} .o-ld-lista`).getBoundingClientRect(); const b = document.querySelector(`${ld} .o-ld-detalle`).getBoundingClientRect();
+          return { lista: a.width > 0, detalle: b.width > 0, derecha: b.left >= a.right };
+        }, caso.ld);
+        afirmar(caja.lista && caja.detalle && caja.derecha, `${caso.tab}: columnas ${JSON.stringify(caja)}`);
+        afirmar(await page.locator(caso.fila).getAttribute('aria-current') === 'true', `${caso.tab}: la fila abierta no queda marcada`);
+        if (caso.otra) {
+          await page.locator(caso.otra).click();
+          await page.waitForFunction((ld) => /Restaurante/.test(document.querySelector(`${ld} .o-ld-titulo`)?.textContent || ''), caso.ld, { timeout: 8000 });
+        }
+        await page.screenshot({ path: path.join(SALIDA, `finanzas-${caso.tab}-detalle-1440.png`) });
+        await page.locator(caso.cerrar).click();
+        await page.waitForSelector(`${caso.ld} .o-ld-vacio`, { state: 'visible' });
+        h = await histFin(caso.clave);
+        afirmar(h.push === pc.push && h.back === pc.back && h.hash === '#finanzas' && h.vista === 'finanzas', `${caso.tab}: en PC el detalle tocó el historial o la ruta (${JSON.stringify(h)})`);
+      }
+    } finally {
+      await page.setViewportSize({ width: 390, height: 844 });
+    }
+  });
+
+  await prueba('Finanzas · los detalles muestran saldo y alertas con ícono y texto (sobre negativo, cobro que no alcanza)', async () => {
+    await irA(page, 'finanzas');
+    // Movimiento de Transporte (saldo negativo en los datos demo): saldo del sobre con ícono de alerta.
+    await page.locator(SEL.finTab('movimientos')).click();
+    await page.locator(SEL.finMov('Metro')).click();
+    await page.waitForSelector(SEL.finMovVolver);
+    const saldo = await page.evaluate(() => {
+      const fila = [...document.querySelectorAll('.o-fin-datos > div')].find((d) => /Saldo de Transporte/.test(d.textContent));
+      return fila ? { texto: fila.querySelector('dd').textContent.trim(), icono: !!fila.querySelector('dd svg.o-ico-alerta') } : null;
+    });
+    afirmar(saldo && /^-\$[\d.]+$/.test(saldo.texto) && saldo.icono, `saldo del sobre en el detalle: ${JSON.stringify(saldo)}`);
+    await page.goBack();
+    await page.waitForSelector(SEL.movimientos);
+    // Recurrente que su sobre no cubre: aviso con ícono y texto.
+    await page.locator(SEL.finTab('recurrentes')).click();
+    await page.locator(SEL.finRec('Internet')).click();
+    await page.waitForSelector(SEL.finRecVolver);
+    const aviso = await page.evaluate(() => { const a = document.querySelector('.o-fin-aviso-cobro'); return a ? { texto: a.textContent.replace(/\s+/g, ' ').trim(), icono: !!a.querySelector('svg.o-ico-alerta') } : null; });
+    afirmar(aviso && /no alcanza para este cobro: faltan \$[\d.]+/.test(aviso.texto) && aviso.icono, `aviso del cobro: ${JSON.stringify(aviso)}`);
+    await page.goBack();
+    await page.waitForSelector(SEL.finRec('Internet'));
+    // Sobre con saldo negativo: ícono + texto en la tarjeta.
+    await page.locator(SEL.finTab('sobres')).click();
+    const tarjeta = await page.locator(`${SEL.finSobre('Transporte')} .o-fin-sobre-saldo`).evaluate((p) => ({ icono: !!p.querySelector('svg.o-ico-alerta'), texto: p.textContent.replace(/\s+/g, ' ').trim() }));
+    afirmar(tarjeta.icono && /Saldo negativo: -\$/.test(tarjeta.texto), `tarjeta de Transporte: ${JSON.stringify(tarjeta)}`);
+  });
+
+  await prueba('Finanzas · eliminar un movimiento y un pago fijo desde su detalle', async () => {
+    await irA(page, 'finanzas');
+    await page.locator(SEL.finTab('movimientos')).click();
+    await page.locator(SEL.finMov('Almuerzo')).click();
+    await page.waitForSelector(SEL.finMovEliminar);
+    await page.locator(SEL.finMovEliminar).click();
+    await page.locator(SEL.confirmOk).click();
+    await esperarToast(page, /Movimiento eliminado/);
+    await page.waitForSelector(SEL.movimientos);
+    await page.waitForFunction((s) => !/Almuerzo/.test(document.querySelector(s)?.textContent || ''), SEL.movimientos, { timeout: 8000 });
+    afirmar(!(await histFin('movDetalle')).detalle, 'quedó la entrada de historial del detalle');
+    await page.locator(SEL.finTab('recurrentes')).click();
+    await page.locator(SEL.finRec('App de música')).click();
+    await page.waitForSelector(SEL.finRecEliminar);
+    await page.locator(SEL.finRecEliminar).click();
+    await page.locator(SEL.confirmOk).click();
+    await esperarToast(page, /Pago fijo eliminado/);
+    await page.waitForSelector(SEL.finRecLd);
+    afirmar(!(await page.$(SEL.finRec('App de música'))), 'el pago fijo sigue en la lista');
+    afirmar((await histFin('recDetalle')).vista === 'finanzas', 'eliminar salió de Finanzas');
+  });
+
+  await prueba('Finanzas · objetivos táctiles de 44 px y contraste AA en las cuatro pestañas y los detalles (color y sobrio)', async () => {
+    const revisar = async (donde) => {
+      const chicos = await page.$$eval('#fin-cuerpo :is(button, input, summary)', (bs) => bs.filter((b) => {
+        const r = b.getBoundingClientRect();
+        return r.width > 0 && (r.width < 44 || r.height < 44);
+      }).map((b) => `${b.getAttribute('aria-label') || b.textContent.trim()} (${Math.round(b.getBoundingClientRect().width)}×${Math.round(b.getBoundingClientRect().height)})`));
+      afirmar(chicos.length === 0, `${donde}: objetivos bajo 44 px: ${chicos.slice(0, 3).join(', ')}`);
+      const fallas = await fallasContraste(page, '#fin-cuerpo *');
+      afirmar(fallas.length === 0, `${donde}: «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+    };
+    try {
+      for (const tema of ['color', 'gris']) {
+        await page.evaluate((t) => localStorage.setItem('vg-tema', t), tema);
+        for (const vp of VIEWPORTS) {
+          await page.setViewportSize({ width: vp.width, height: vp.height });
+          await page.reload();
+          await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+          await irA(page, 'finanzas');
+          for (const tab of ['resumen', 'movimientos', 'sobres', 'recurrentes']) {
+            await page.locator(SEL.finTab(tab)).click();
+            await page.waitForSelector(`${SEL.finTab(tab)}[aria-selected="true"]`);
+            await page.waitForTimeout(300);
+            await revisar(`${tema} ${vp.nombre} ${tab}`);
+            await page.screenshot({ path: path.join(SALIDA, `finanzas-${tab}-${tema}-${vp.nombre}.png`), fullPage: true });
+          }
+          const ancho = vp.width >= 1024;
+          for (const [tab, fila, cerrar, volver] of [['movimientos', SEL.finMov('Metro'), SEL.finMovCerrar, SEL.finMovVolver], ['recurrentes', SEL.finRec('Internet'), SEL.finRecCerrar, SEL.finRecVolver]]) {
+            await page.locator(SEL.finTab(tab)).click();
+            await page.locator(fila).click();
+            await page.waitForSelector(ancho ? cerrar : volver);
+            await page.waitForTimeout(200);
+            await revisar(`${tema} ${vp.nombre} detalle de ${tab}`);
+            if (ancho) await page.locator(cerrar).click();
+            else await page.goBack();
+            await page.waitForSelector(fila);
+          }
+        }
+      }
     } finally {
       await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
       await page.setViewportSize({ width: 390, height: 844 });

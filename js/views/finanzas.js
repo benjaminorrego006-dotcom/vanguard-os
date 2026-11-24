@@ -1,9 +1,31 @@
-import { Toast, ConfirmDialog, SkeletonCard } from '../utils/states.js';
-import { renderDonut } from '../utils/donut.js';
+// js/views/finanzas.js
+// Finanzas (Órbita, Fase 8): pestañas Resumen · Movimientos · Sobres ·
+// Recurrentes (docs/rediseno-total.md). Sobres reúne lo que antes eran
+// Presupuesto (regla 50/30/20) y Cuentas (sobres con arrastre, archivados y
+// metas). Las pestañas son estado del módulo; no van en el hash.
+//
+// Movimientos y Recurrentes usan el layout lista + detalle
+// (components/lista-detalle.js): en celular el detalle es sub-pantalla (el
+// atrás vuelve a la lista); desde 1024 px va a la derecha sin tocar el
+// historial.
+//
+// Solo cambia la presentación: cada cifra sale del mismo cálculo de
+// siempre (db.getBudget y calcularSaldosConArrastre en db.js) y todo monto
+// pasa por formatCurrency / formatCompactCurrency. tools/verificar compara
+// saldos y totales contra la foto de antes de la Fase 8
+// (finanzas-antes.json).
+//
+// La vista se arma en dos partes: el cuerpo (#fin-cuerpo: cabecera,
+// pestañas y panel, o la sub-pantalla de un detalle), que se repinta, y las
+// hojas de formulario, que se montan una vez y quedan fuera del repintado
+// (así un cambio que llega mientras una hoja está abierta no la destruye).
+// Las hojas siguen con su estilo MK III dentro de .mk3-finanzas, igual que
+// la hoja de gasto de Hoy, hasta que se migren.
+import { Toast, ConfirmDialog, hayModalAbierto } from '../utils/states.js';
 import { db, esMovimientoEntreSobres } from '../core/db.js';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
-import { renderAnualesHTML, renderAnualForm, initAnuales, repintarAnuales } from '../components/gastos-anuales.js';
+import { renderAnualesHTML, renderAnualForm, initAnuales, enlazarFilasAnuales } from '../components/gastos-anuales.js';
 import { renderIngresoForm, initIngresoForm } from '../components/IngresoForm.js';
 import { renderGastoForm, initGastoForm } from '../components/GastoForm.js';
 import { renderAhorroForm, initAhorroForm } from '../components/AhorroForm.js';
@@ -11,25 +33,53 @@ import { renderEnvelopeForm, initEnvelopeForm } from '../components/EnvelopeForm
 import { renderTransferForm, initTransferForm } from '../components/TransferForm.js';
 import { renderRecurringForm, initRecurringForm } from '../components/RecurringForm.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
-import { ensureChartJs, appPalette, anchoEtiquetasBarraH, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, horizontalBarValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
+import { ensureChartJs, anchoEtiquetasBarraH, baseChartOptions, hdPixelRatio, horizontalBarValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
 import { renderDonutChart, destroyAllDonuts } from '../components/donut-chart.js';
-import { renderGoalCard } from '../components/goal-card.js';
-import { renderGoalForm, initGoalForm, openGoalForm, openGoalContribute } from '../components/goal-form.js';
+import { renderGoalForm, initGoalForm, openGoalForm } from '../components/goal-form.js';
 import { escapeHtml } from '../utils/escape.js';
-import { mesKeyDe, formatFechaCorta, formatMes, formatMesCorto, fechaLocalDe, claveDiaDe, conMayuscula } from '../utils/fecha.js';
+import { mesKeyDe, diaKeyDe, diasEntre, formatFechaCorta, formatFechaLarga, formatMes, formatMesCorto, fechaLocalDe, claveDiaDe, conMayuscula } from '../utils/fecha.js';
 import { colorTexto } from '../utils/tema.js';
+import { proximaFechaRecurrente } from '../utils/recurrentes.js';
+import { oIcono, oVacio, oAnillo } from '../components/orbita.js';
+import { oListaDetalle, oListaDetalleCab, crearListaDetalle } from '../components/lista-detalle.js';
+import { guardiaVista } from '../core/vista-activa.js';
 
-const editSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
-const transferSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
-const delSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
-// Archivar un sobre (caja con tapa), R3: reemplaza al botón de eliminar.
-const archiveSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4"></rect><path d="M5 8v12h14V8"></path><line x1="10" y1="12" x2="14" y2="12"></line></svg>`;
-const backspaceSvg = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>`;
+// --- Íconos -------------------------------------------------------------------
+const svg = (trazo, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"${extra}>${trazo}</svg>`;
+const ICO = {
+  mas: svg('<line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>'),
+  volver: svg('<line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline>'),
+  ingreso: svg('<line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline>'),
+  gasto: svg('<line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline>'),
+  ahorro: svg('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>'),
+  transferir: svg('<path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path>'),
+  recurrente: svg('<polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>'),
+  reloj: svg('<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>'),
+  editar: svg('<path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>'),
+  archivar: svg('<rect x="3" y="4" width="18" height="4"></rect><path d="M5 8v12h14V8"></path><line x1="10" y1="12" x2="14" y2="12"></line>'),
+  borrar: svg('<polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>'),
+  opciones: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>',
+  subir: svg('<line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline>'),
+  bajar: svg('<line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline>'),
+  enviar: svg('<line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline>')
+};
+
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+
+// --- Estado del módulo ----------------------------------------------------------
 let b = null;
+const PESTANAS = [
+  { id: 'resumen', label: 'Resumen' },
+  { id: 'movimientos', label: 'Movimientos' },
+  { id: 'sobres', label: 'Sobres' },
+  { id: 'recurrentes', label: 'Recurrentes' }
+];
 let activeFinTab = 'resumen';
 // Otra vista (Hoy, aviso de gastos anuales) pide abrir Finanzas en una
-// pestaña puntual: se usa en el próximo render.
-export function pedirPestanaFinanzas(tab) { activeFinTab = tab; }
+// pestaña puntual: se usa en el próximo render. Presupuesto y Cuentas
+// (pestañas de antes de la Fase 8) viven ahora en Sobres.
+const PESTANA_ANTERIOR = { presupuesto: 'sobres', cuentas: 'sobres' };
+export function pedirPestanaFinanzas(tab) { activeFinTab = PESTANA_ANTERIOR[tab] || tab; }
 // Atajo "Gasto" de Hoy: la próxima vez que se monte Finanzas abre la hoja de
 // gasto (la misma GastoForm, sin otra copia del formulario).
 let gastoPedido = false;
@@ -37,74 +87,40 @@ export function pedirGastoFinanzas() { gastoPedido = true; }
 let dailyBalanceChartInstance = null;
 let monthCompareChartInstance = null;
 let currentMonth = mesKeyDe(new Date());
-// Referencia al refresh() de la mount actual, para poder desenganchar
-// exactamente ese listener de 'budget-updated' en cleanup() — sin esto,
-// entrar y salir de Finanzas varias veces acumulaba un listener nuevo por
-// cada visita (cada uno disparando su propio refresh() de más).
-let currentRefresh = null;
 
-const ICON_PATHS = {
-  'Ingreso': '<polyline points="5 12 12 5 19 12"></polyline><line x1="12" y1="19" x2="12" y2="5"></line>',
-  'Needs': '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>',
-  'Wants': '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>',
-  'Ahorro': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>',
-  'shield': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>',
-  'plane': '<path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"></path>',
-  'car': '<rect x="1" y="9" width="22" height="12" rx="3"></rect><path d="M3 9V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2"></path><circle cx="6" cy="21" r="2"></circle><circle cx="18" cy="21" r="2"></circle>',
-  'home': '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>',
-  'laptop': '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line>',
-  'education': '<path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path>',
-  'default': '<circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle>'
-};
+// Filtros de Movimientos: sobreviven a los repintados.
+let filtroMov = 'All';
+let fechaDesde = '';
+let fechaHasta = '';
 
-const getSVG = (key, color = 'currentColor') => {
-  if (!key) return '';
-  // Normalización para casos como 'Income' o 'Necesidades'
-  let matchedKey = key;
-  if (key === 'Income') matchedKey = 'Ingreso';
-  if (key === 'Savings') matchedKey = 'Ahorro';
-  if (key === 'Necesidades') matchedKey = 'Needs';
-  if (key === 'Deseos') matchedKey = 'Wants';
+// Detalles (lista + detalle): un movimiento y un pago fijo.
+const ldMov = crearListaDetalle({ clave: 'movDetalle', alCambiar: () => repintar() });
+const ldRec = crearListaDetalle({ clave: 'recDetalle', alCambiar: () => repintar() });
 
-  const path = ICON_PATHS[matchedKey] || ICON_PATHS['default'];
-  return `<svg width="18" height="18" fill="none" stroke="${color}" stroke-width="2" viewBox="0 0 24 24">${path}</svg>`;
-};
+// Guardia de la navegación con que se montó esta vista (core/vista-activa.js).
+let vistaVigente = () => true;
+// Mientras la propia vista guarda o borra, el aviso 'budget-updated' no
+// repinta: cada acción repinta al terminar (y espera a que su diálogo
+// suelte la entrada de historial).
+let ocupado = false;
 
+const CAT_LABELS = { Needs: 'Necesidades', Wants: 'Deseos' };
 
-
-// Compacta el monto ("$50 mil") cuando el formato completo se pasa de
-// ancho en la card "Disponible en Mes" — mide el string YA formateado, no
-// el número crudo (un número corto puede formatear largo con símbolo de
-// moneda + separadores).
+// --- Utilidades de presentación ------------------------------------------------
+// Compacta el monto ("$50 mil") cuando el formato completo se pasa de ancho
+// en el balance — mide el string YA formateado, no el número crudo.
 const formatDisponible = (amount) => (formatCurrency(amount).length > 13) ? formatCompactCurrency(amount) : formatCurrency(amount);
-
-// A diferencia de animateNumber() de utils/animate.js (que formatea con
-// formatCurrency o formatCompactCurrency según un flag fijo), esta card
-// necesita decidir el formato en cada frame según el ancho del string ya
-// formateado (formatDisponible), así que no puede reusar ese utilitario.
-const finAnimateCurrency = (el, from, to, duration = 500) => {
-  const start = performance.now();
-  const step = (timestamp) => {
-    const progress = Math.min((timestamp - start) / duration, 1);
-    const easeProgress = 1 - Math.pow(1 - progress, 3);
-    const current = from + (to - from) * easeProgress;
-    el.innerText = formatDisponible(current);
-    if (progress < 1) requestAnimationFrame(step);
-    else el.innerText = formatDisponible(to);
-  };
-  requestAnimationFrame(step);
+const conSigno = (n) => `${n < 0 ? '−' : '+'}${formatCurrency(Math.abs(n))}`;
+const formatMonth = (str) => {
+  const [anio, mes] = str.split('-').map(Number);
+  return conMayuscula(`${formatMes(new Date(anio, mes - 1, 1))} de ${anio}`);
 };
+const sobresDe = () => b.todosLosSobres || b.envelopes;
 
-export let mountListeners;
-
-// Llamado por el router (app.js) antes de desmontar esta vista — evita que
-// las instancias de Chart.js sigan vivas con su canvas ya fuera del DOM.
-export function cleanup() {
-  destroyAllDonuts();
-  if (dailyBalanceChartInstance) { dailyBalanceChartInstance.destroy(); dailyBalanceChartInstance = null; }
-  if (monthCompareChartInstance) { monthCompareChartInstance.destroy(); monthCompareChartInstance = null; }
-  if (currentRefresh) { window.removeEventListener('budget-updated', currentRefresh); currentRefresh = null; }
-  cerrarMenuSobre();
+// Color real de un token del módulo (para Chart.js, que no entiende var()).
+function colorModulo(token) {
+  const el = document.querySelector('.o-fin') || document.documentElement;
+  return getComputedStyle(el).getPropertyValue(token).trim();
 }
 
 // Menú ⋯ de cada sobre (docs/PLAN-REVISION-OCT.md, 4.2): Editar y Archivar
@@ -146,604 +162,471 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && menuSobre) { e.stopPropagation(); const { btn } = menuSobre; cerrarMenuSobre().then(() => btn.focus()); }
 }, { capture: true });
 
-export async function init() {
-  b = await db.getBudget(currentMonth);
+// =============================================================================
+// Movimientos: datos de una fila (mismos textos y montos que antes)
+// =============================================================================
+const ETQ_CATEGORIA = (cat) => (cat === 'Needs' ? 'Necesidades' : cat === 'Wants' ? 'Deseos' : cat === 'Savings' ? 'Ahorro' : 'Ingreso');
 
-  const refresh = async () => {
-    const prevB = b;
-    b = await db.getBudget(currentMonth);
-    
-    // Animate stats
-    const elIncome = document.getElementById('stat-income');
-    const elExpense = document.getElementById('stat-expense');
-    if(elIncome) finAnimateCurrency(elIncome, prevB.income, b.income, 400);
-    if(elExpense) finAnimateCurrency(elExpense, prevB.expenses, b.expenses, 400);
-    
-    // Update disponible big number (card-disponible)
-    const elDisponible = document.getElementById('disponible-mes-value');
-    if (elDisponible) {
-      elDisponible.innerText = formatDisponible(b.remaining);
-      elDisponible.style.color = (b.remaining >= 0) ? 'var(--state-success-t)' : 'var(--state-high-t)';
-    }
-
-    // Donut de Presupuesto (SVG dibujado a mano, sin cambios) + gráficos
-    // reales de Resumen (Chart.js, ver renderResumenCharts).
-    const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
-    const totalWants = b.allocations.find(a => a.category === 'Wants')?.amount || 0;
-    const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
-    const getPct = (val) => b.budgeted > 0 ? Math.round((val / b.budgeted) * 100) : 0;
-
-    const segments = [
-      { percent: getPct(totalNeeds), color: 'var(--am2)' },
-      { percent: getPct(totalWants), color: 'var(--accent-blue)' },
-      { percent: getPct(totalSavings), color: 'var(--accent-purple)' }
-    ];
-    const donutSvg = renderDonut(segments, b.budgeted, b.budgeted === 0);
-
-    const donutPresupuesto = document.getElementById('chart-donut-presupuesto');
-    if (donutPresupuesto) donutPresupuesto.innerHTML = donutSvg;
-
-    const donutPresupuestoText = document.querySelector('#chart-donut-presupuesto + div > div:last-child');
-    if (donutPresupuestoText) donutPresupuestoText.innerText = formatCurrency(b.expenses + b.savedThisMonth);
-
-    const resumenLegend = document.getElementById('resumen-cat-legend');
-    if (resumenLegend) resumenLegend.innerHTML = renderResumenLegend(b);
-
-    renderResumenCharts(b);
-
-    const heatmapContainer = document.getElementById('finanzas-heatmap');
-    if (heatmapContainer) {
-      heatmapContainer.outerHTML = buildFinanzasHeatmapHtml();
-      initActivityHeatmapListeners('finanzas-heatmap', 'var(--am)');
-    }
-
-    const trendContainer = document.getElementById('month-trend-container');
-    if (trendContainer) trendContainer.innerHTML = renderMonthTrend(b);
-
-    const dailyAvailContainer = document.getElementById('daily-available-container');
-    if (dailyAvailContainer) dailyAvailContainer.innerHTML = renderDailyAvailable(b);
-
-    // Update transactions
-    const txContainer = document.getElementById('recent-tx-list');
-    if(txContainer) {
-      txContainer.innerHTML = b.breakdown.length === 0 ? finEmptyState('Sin datos', 'Todavía no hay movimientos', 'Toca el botón Ingreso o Gasto para registrar el primero.') : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.todosLosSobres || b.envelopes)).join('');
-    }
-
-    // Update Presupuesto Tab Legend (budget cards de la regla 50/30/20)
-    const legendContainer = document.getElementById('presupuesto-legend-container');
-    if (legendContainer) legendContainer.innerHTML = renderPresupuestoLegend(b);
-
-    // Update Cuentas Tab (sobres como account-cards)
-    const envelopesContainer = document.getElementById('envelopes-list-container');
-    if (envelopesContainer) {
-      envelopesContainer.innerHTML = await renderEnvelopesHTML(b);
-      attachEnvListeners();
-    }
-
-    const aomCard = document.getElementById('card-ageofmoney');
-    if (aomCard) {
-      aomCard.outerHTML = renderAgeOfMoneyHTML(b);
-    }
-
-    const recurringContainer = document.getElementById('recurring-container');
-    if(recurringContainer) {
-      recurringContainer.innerHTML = renderRecurringHTML(b);
-      attachRecurringListeners();
-    }
-    repintarAnuales();
-
-    const goalsContainer = document.getElementById('goals-container');
-    if(goalsContainer) {
-      goalsContainer.innerHTML = renderGoalsHTML(b);
-      attachGoalListeners();
-    }
-    
-    // Re-attach listeners for dynamically updated Tx rows
-    attachTxListeners();
-
-    // Mantiene sincronizada la pestaña Movimientos si está montada (evita
-    // que una fila editada/eliminada quede "pegada" con datos viejos).
-    renderHistoryList();
-  };
-  currentRefresh = refresh;
-
-  let currentTypeFilter = 'All';
-
-  const renderHistoryList = (filterVal) => {
-    if (filterVal !== undefined) currentTypeFilter = filterVal;
-    const container = document.getElementById('history-list-content');
-    if (!container) return;
-
-    let filtered = b.breakdown;
-    if (currentTypeFilter === 'Ingreso') filtered = filtered.filter(t => t.type === 'Ingreso');
-    if (currentTypeFilter === 'Gasto') filtered = filtered.filter(t => t.type === 'Gasto' && t.category !== 'Savings');
-    if (currentTypeFilter === 'Ahorro') filtered = filtered.filter(t => t.category === 'Savings');
-
-    const dateFrom = document.getElementById('history-date-from')?.value;
-    const dateTo = document.getElementById('history-date-to')?.value;
-    if (dateFrom) filtered = filtered.filter(t => t.date && claveDiaDe(t.date) >= dateFrom);
-    if (dateTo) filtered = filtered.filter(t => t.date && claveDiaDe(t.date) <= dateTo);
-
-    if (filtered.length === 0) {
-      container.innerHTML = finEmptyState('Sin resultados', 'No hay movimientos', 'No se encontraron resultados con este filtro.');
-      return;
-    }
-
-    container.innerHTML = filtered.map(tx => txHtml(tx, b.todosLosSobres || b.envelopes)).join('');
-    attachTxListeners();
-  };
-
-  const attachEnvListeners = () => {
-    document.querySelectorAll('.env-row').forEach(row => {
-      row.addEventListener('click', (e) => {
-        if (e.target.closest('button')) return;
-        const id = e.currentTarget.getAttribute('data-id');
-        // No existe un "assign-modal" separado — el envelope-modal ya trae
-        // el campo "Monto Asignado", así que tocar la fila abre el mismo
-        // formulario que el ícono de editar (antes esto tiraba
-        // TypeError: apuntaba a un modal que nunca se llegó a construir).
-        const env = b.envelopes.find(x => x.id === id);
-        if (env) document.getElementById('envelope-modal').openForm(env);
-      });
-    });
-    document.querySelectorAll('.sobre-menu-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const yaAbierto = menuSobre && menuSobre.btn === btn;
-        await cerrarMenuSobre();
-        if (!yaAbierto) abrirMenuSobre(btn);
-      });
-    });
-    document.querySelectorAll('.edit-env').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.currentTarget.getAttribute('data-id');
-        await cerrarMenuSobre();
-        const env = b.envelopes.find(x => x.id === id);
-        if (env) document.getElementById('envelope-modal').openForm(env);
-      });
-    });
-    // R3: archivar en vez de eliminar. Si hay recurrentes apuntando al sobre,
-    // no se archiva: se muestran y se ofrece ir a Recurrentes.
-    document.querySelectorAll('.archive-env').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.currentTarget.getAttribute('data-id');
-        await cerrarMenuSobre();
-        const env = b.envelopes.find(x => x.id === id);
-        const nombre = env ? env.name : 'el sobre';
-        const recurrentes = (await db.getRecurring()).filter(r => r.envelopeId === id);
-        if (recurrentes.length > 0) {
-          const uno = recurrentes.length === 1;
-          const lista = recurrentes.map(r => r.label || 'Sin nombre').join(', ');
-          const irARecurrentes = await ConfirmDialog(
-            `No se puede archivar ${nombre}`,
-            `${uno ? 'Lo usa este pago fijo' : 'Lo usan estos pagos fijos'}: ${lista}. ${uno ? 'Cámbialo de sobre o bórralo' : 'Cámbialos de sobre o bórralos'} en Recurrentes primero.`,
-            { verb: 'Ver recurrentes', danger: false }
-          );
-          if (irARecurrentes) document.querySelector('.fin-tab[data-tab="recurrentes"]')?.click();
-          return;
-        }
-        const confirmed = await ConfirmDialog(
-          `Archivar sobre ${nombre}`,
-          'El sobre se oculta; su historial y saldo se conservan. Puedes desarchivarlo cuando quieras.',
-          { verb: 'Archivar', danger: false }
-        );
-        if (!confirmed) return;
-        await db.archivarSobre(id);
-        refresh();
-      });
-    });
-    document.querySelectorAll('.desarchivar-env').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        await db.desarchivarSobre(e.currentTarget.getAttribute('data-id'));
-        refresh();
-      });
-    });
-    document.querySelectorAll('.transfer-env').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.currentTarget.getAttribute('data-id');
-        await cerrarMenuSobre();
-        document.getElementById('transfer-modal').openForm(id);
-      });
-    });
-    
-    document.querySelectorAll('.btn-add-envelope').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        document.getElementById('envelope-modal').openForm();
-        // pre-select category based on button
-        const cat = e.currentTarget.getAttribute('data-cat');
-        const catSelect = document.getElementById('envelope-category');
-        if (catSelect && cat) {
-          catSelect.value = cat;
-        }
-      });
-    });
-  };
-
-  const openModal = (id) => { 
-    document.getElementById(id).style.display = 'flex'; 
-    setTimeout(() => document.getElementById(id).classList.add('open'), 10); 
-  };
-  const closeModal = (id) => { 
-    document.getElementById(id).classList.remove('open'); 
-    setTimeout(() => document.getElementById(id).style.display = 'none', 300); 
-  };
-
-  // --- REEMPLAZO DE TX EDIT (extraída para reutilizarse en refresh() e historial) ---
-  const attachTxListeners = () => {
-    document.querySelectorAll('.delete-tx').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-         e.stopPropagation();
-         const id = e.currentTarget.getAttribute('data-id');
-         const confirmed = await ConfirmDialog("Eliminar movimiento", "No se puede deshacer.", { verb: 'Eliminar' });
-         if(confirmed) {
-           await db.deleteTransaction(id);
-           refresh();
-         }
-        });
-      });
-
-      document.querySelectorAll('.edit-tx').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          if (e.target.closest('.delete-tx')) return;
-          e.stopPropagation();
-          const id = e.currentTarget.getAttribute('data-id');
-          const tx = b.breakdown.find(x => x.id === id);
-          if(tx) {
-            if (tx.type === 'Transfer' || tx.type === 'Assignment') {
-              Toast("No es posible editar transferencias. Elimínala y crea una nueva.", "warning");
-              return;
-            }
-            
-            if(tx.type === 'Ingreso') {
-              document.getElementById('ingreso-modal').openForm(tx);
-            } else if (tx.category === 'Savings') {
-              document.getElementById('ahorro-modal').openForm(tx);
-            } else {
-              document.getElementById('gasto-modal').openForm(tx);
-            }
-          }
-        });
-      });
-  };
-
-  const attachRecurringListeners = () => {
-    const btnAddReq = document.getElementById('btn-add-recurring');
-    if (btnAddReq) {
-      btnAddReq.addEventListener('click', () => {
-        if (!b.envelopes || b.envelopes.length === 0) {
-          Toast("Primero debes crear un sobre", "warning");
-          return;
-        }
-        document.getElementById('recurring-modal').openForm();
-      });
-    }
-    document.querySelectorAll('.delete-recurring').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.currentTarget.getAttribute('data-id');
-        const req = (b.recurring || []).find(r => r.id === id);
-        const confirmed = await ConfirmDialog(
-          `Eliminar pago fijo${req ? ' ' + req.label : ''}`,
-          'Ya no se descontará dinero automáticamente de tu sobre.',
-          { verb: 'Eliminar' }
-        );
-        if (confirmed) {
-           await db.deleteRecurring(id);
-           refresh();
-        }
-      });
-    });
-  };
-
-  const attachGoalListeners = () => {
-    const btnAddGoal = document.getElementById('btn-add-goal');
-    if (btnAddGoal) btnAddGoal.addEventListener('click', () => openGoalForm(null, { dominio: 'finanzas', tipo: 'dinero' }));
-
-    document.querySelectorAll('.edit-goal').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = e.currentTarget.getAttribute('data-id');
-        const goal = b.goals.find(g => g.id === id);
-        if (goal) openGoalForm(goal);
-      });
-    });
-
-    document.querySelectorAll('.delete-goal').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.currentTarget.getAttribute('data-id');
-        const goal = b.goals.find(g => g.id === id);
-        if (goal) {
-          const confirmed = await ConfirmDialog(
-            `Eliminar meta ${goal.name}`,
-            goal.currentAmount > 0
-              ? `El seguimiento de esta meta desaparece. Los ${formatCurrency(goal.currentAmount)} que llevas ahorrados quedan en tu historial de movimientos. No se puede deshacer.`
-              : 'No se puede deshacer.',
-            { verb: 'Eliminar' }
-          );
-          if (confirmed) {
-             await db.deleteGoal(id);
-             refresh();
-          }
-        }
-      });
-    });
-
-    document.querySelectorAll('.goal-row').forEach(row => {
-      row.addEventListener('click', (e) => {
-        if (e.target.closest('button')) return;
-        const id = e.currentTarget.getAttribute('data-id');
-        document.getElementById('ahorro-modal').openForm(null, id);
-      });
-    });
-  };
-  
-  mountListeners = () => {
-
-    const rielPestanas = document.getElementById('fin-tabs');
-    if (rielPestanas) {
-      rielPestanas.addEventListener('scroll', () => marcarBordesRiel(rielPestanas), { passive: true });
-      ajustarRielPestanas();
-    }
-
-    document.querySelectorAll('.fin-tab').forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        const target = e.currentTarget.getAttribute('data-tab');
-        
-        document.querySelectorAll('.fin-tab').forEach(t => {
-          t.classList.remove('active');
-          t.style.background = 'transparent';
-          t.style.color = 'var(--text-secondary)';
-        });
-        e.currentTarget.classList.add('active');
-        activeFinTab = target;
-        e.currentTarget.style.background = 'var(--surface-1)';
-        e.currentTarget.style.color = 'var(--text-primary)';
-        
-        document.querySelectorAll('.fin-tab-content').forEach(c => c.style.display = 'none');
-        document.getElementById('tab-content-' + target).style.display = 'block';
-        ajustarRielPestanas();
-
-        if (target === 'movimientos') {
-          renderHistoryList('All');
-        }
-      });
-    });
-
-    // Al volver a Finanzas con Movimientos activa, la pestaña ya sale visible
-    // pero su lista solo se llenaba al tocarla: se llena aquí también.
-    if (activeFinTab === 'movimientos') renderHistoryList('All');
-
-    initActivityHeatmapListeners('finanzas-heatmap', 'var(--am)');
-
-    const elIncome = document.getElementById('stat-income');
-    const elExpense = document.getElementById('stat-expense');
-
-    if(elIncome) finAnimateCurrency(elIncome, 0, b.income, 800);
-    if(elExpense) finAnimateCurrency(elExpense, 0, b.expenses, 800);
-    document.querySelectorAll('.btn-close-modal').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const modal = e.target.closest('.modal-overlay');
-          if (modal) closeModal(modal.id);
-        });
-      });
-
-    const btnVerTodos = document.getElementById('btn-ver-todos');
-    if (btnVerTodos) {
-      btnVerTodos.addEventListener('click', () => {
-        document.querySelector('.fin-tab[data-tab="movimientos"]').click();
-        renderHistoryList('All');
-      });
-    }
-
-    initIngresoForm(db, () => b, refresh);
-    initGastoForm(db, () => b, refresh);
-    initAhorroForm(db, () => b, refresh);
-    initEnvelopeForm(db, refresh);
-    initTransferForm(db, () => b, refresh);
-    initRecurringForm(db, () => b, refresh);
-    initAnuales();
-
-    window.addEventListener('budget-updated', refresh);
-
-    const btnFabIngreso = document.getElementById('btn-fab-ingreso');
-    const btnFabGasto = document.getElementById('btn-fab-gasto');
-    const btnFabAhorro = document.getElementById('btn-fab-ahorro');
-    if (btnFabIngreso) btnFabIngreso.addEventListener('click', () => { document.getElementById('ingreso-modal').openForm(); });
-    if (btnFabGasto) btnFabGasto.addEventListener('click', () => { document.getElementById('gasto-modal').openForm(); });
-    if (btnFabAhorro) btnFabAhorro.addEventListener('click', () => { document.getElementById('ahorro-modal').openForm(); });
-    if (gastoPedido) {
-      gastoPedido = false;
-      document.getElementById('gasto-modal')?.openForm();
-    }
-
-    const quickGastoForm = document.getElementById('quick-gasto-form');
-    const quickGastoInput = document.getElementById('quick-gasto-input');
-    const quickGastoHint = document.getElementById('quick-gasto-hint');
-    const submitQuickGasto = async () => {
-      const text = quickGastoInput.value.trim();
-      if (!text) return;
-
-      const parsed = parseQuickGasto(text, b.envelopes);
-      if (!parsed) {
-        quickGastoHint.textContent = 'No pude leer el monto — prueba algo como "50 en supermercado"';
-        quickGastoHint.style.color = 'var(--state-high-t)';
-        return;
+function datosMovimiento(tx, envelopes) {
+  const fallbackLabel = tx.type === 'Ingreso' ? 'Ingreso' : (tx.category === 'Savings' ? 'Ahorro' : (tx.category === 'Needs' ? 'Necesidades' : 'Deseos'));
+  const fecha = formatFechaCorta(fechaLocalDe(tx.date));
+  let meta = `${fecha} · ${ETQ_CATEGORIA(tx.category)}`;
+  let prefijo = tx.type === 'Ingreso' ? '+' : '-';
+  let clase = tx.type === 'Ingreso' ? 'ingreso' : (tx.type === 'Gasto' && tx.category !== 'Savings' ? 'gasto' : 'neutro');
+  let tipo = tx.type === 'Ingreso' ? 'Ingreso' : tx.category === 'Savings' ? 'Ahorro' : 'Gasto';
+  let icono = tx.type === 'Ingreso' ? ICO.ingreso : tx.category === 'Savings' ? ICO.ahorro : ICO.gasto;
+  let sobre = null;
+  if (tx.envelopeId && envelopes) {
+    const env = envelopes.find(e => e.id === tx.envelopeId);
+    if (env) {
+      sobre = env;
+      if (tx.type === 'Gasto') {
+        meta = `${fecha} · ${env.name}`;
+      } else if (tx.type === 'Assignment') {
+        prefijo = tx.isSubtraction ? '-' : '+';
+        clase = 'neutro';
+        tipo = 'Asignación';
+        icono = ICO.transferir;
+        meta = `${fecha} · ${tx.isSubtraction ? 'Retirado de' : 'Asignado a'} ${env.name}`;
       }
+    }
+  } else if (tx.type === 'Transfer' && envelopes) {
+    const desde = envelopes.find(e => e.id === tx.fromEnvelopeId)?.name || 'Desconocido';
+    const hacia = envelopes.find(e => e.id === tx.toEnvelopeId)?.name || 'Desconocido';
+    meta = `${fecha} · ${desde} → ${hacia}`;
+    prefijo = '';
+    clase = 'neutro';
+    tipo = 'Transferencia';
+    icono = ICO.transferir;
+  }
+  return {
+    nombre: conMayuscula(tx.label || fallbackLabel),
+    meta, monto: `${prefijo}${formatCurrency(tx.amount)}`, clase, tipo, icono, sobre,
+    editable: tx.type !== 'Transfer' && tx.type !== 'Assignment'
+  };
+}
 
-      if (parsed.matches.length === 1) {
-        const env = parsed.matches[0];
-        await db.addTransaction({
-          type: 'Gasto',
-          category: env.category,
-          label: parsed.label || env.name,
-          amount: parsed.amount,
-          envelopeId: env.id,
-          goalId: null
-        });
-        Toast(`Gasto de ${formatCurrency(parsed.amount)} agregado a ${escapeHtml(env.name)}`, 'success');
-        quickGastoInput.value = '';
-        quickGastoHint.textContent = '';
-      } else {
-        quickGastoHint.textContent = parsed.matches.length > 1
-          ? 'Encontré más de un sobre posible — confirma cuál es'
-          : 'No encontré una categoría clara — confirma cuál es';
-        quickGastoHint.style.color = 'var(--text-disabled)';
-        document.getElementById('gasto-modal').openForm({ amount: parsed.amount, label: parsed.label });
-        quickGastoInput.value = '';
-      }
-    };
-    bindQuickCaptureForm(quickGastoForm, submitQuickGasto);
-
-    attachTxListeners();
-    attachGoalListeners();
-    attachRecurringListeners();
-    attachEnvListeners();
-
-    initGoalForm(refresh);
-
-      // La Regla de Asignación (y Respaldos/Seguridad, que vivían en el
-      // mismo modal) se centralizaron en Configuración — ver views/mas.js.
-      const btnOpenSettings = document.getElementById('btn-open-settings');
-      if (btnOpenSettings) btnOpenSettings.addEventListener('click', () => window.appRouter.navigate('configuracion'));
-
-      const btnCardDisponible = document.getElementById('card-disponible');
-      // (el listener de click de esta tarjeta se agrega más abajo junto a las demás top-cards)
-
-      // --- HISTORY MODAL & TABS ---
-      document.querySelectorAll('.history-tab').forEach(tab => {
-        tab.addEventListener('click', (e) => {
-          const filterVal = e.currentTarget.getAttribute('data-filter');
-          document.querySelectorAll('.history-tab').forEach(t => {
-            t.style.background = 'var(--surface-2)';
-            t.style.color = 'var(--text-secondary)';
-          });
-          e.currentTarget.style.background = 'var(--surface-1)';
-          e.currentTarget.style.color = 'var(--text-primary)';
-          renderHistoryList(filterVal);
-        });
-      });
-
-      const dateFromInput = document.getElementById('history-date-from');
-      const dateToInput = document.getElementById('history-date-to');
-      if (dateFromInput) dateFromInput.addEventListener('change', () => renderHistoryList());
-      if (dateToInput) dateToInput.addEventListener('change', () => renderHistoryList());
-      const btnClearDates = document.getElementById('btn-clear-date-filter');
-      if (btnClearDates) btnClearDates.addEventListener('click', () => {
-        if (dateFromInput) dateFromInput.value = '';
-        if (dateToInput) dateToInput.value = '';
-        renderHistoryList();
-      });
-
-      // --- TOP CARDS & DONUT MAPPINGS ---
-      const cardIngresos = document.getElementById('card-ingresos');
-      const cardGastos = document.getElementById('card-gastos');
-      
-      if(cardIngresos) cardIngresos.addEventListener('click', () => { renderHistoryList('Ingreso'); document.querySelector('.fin-tab[data-tab="movimientos"]').click(); });
-      if(cardGastos) cardGastos.addEventListener('click', () => { renderHistoryList('Gasto'); document.querySelector('.fin-tab[data-tab="movimientos"]').click(); });
-
-      document.querySelectorAll('.legend-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-          const cat = e.currentTarget.getAttribute('data-cat');
-          let filterType = 'All';
-          if (cat === 'Necesidades' || cat === 'Deseos') filterType = 'Gasto';
-          if (cat === 'Ahorro') filterType = 'Ahorro';
-          renderHistoryList(filterType);
-          document.querySelector('.fin-tab[data-tab="movimientos"]').click();
-        });
-      });
-
-      renderResumenCharts(b);
-    };
-};
-
-
-const renderAgeOfMoneyHTML = (b) => {
+function filaMovimiento(tx, { abierto = false } = {}) {
+  const d = datosMovimiento(tx, sobresDe());
   return `
-    <div class="card" id="card-ageofmoney" style="padding: 16px; margin-bottom: 24px; background: linear-gradient(145deg, var(--surface-1), var(--surface-2)); display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--surface-border);">
-      <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 48px; height: 48px; background: color-mix(in srgb, var(--fondo-ambar) 15%, transparent); display: flex; align-items: center; justify-content: center; color: var(--accent-purple-t);">
-          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-        </div>
-        <div>
-          <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Edad del dinero</div>
-          <div style="font-size: 20px; font-weight: 800; color: var(--text-primary);"><span class="num">${b.ageOfMoney}</span> <span style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">días</span></div>
-        </div>
+    <li class="o-fila o-fin-mov${abierto ? ' o-fila--actual' : ''}" data-id="${escapeHtml(tx.id)}">
+      <button type="button" class="o-fin-abrir o-fin-mov-abrir" data-id="${escapeHtml(tx.id)}"${abierto ? ' aria-current="true"' : ''} aria-label="${escapeHtml(`${d.nombre}, ${d.monto}, ${d.meta}`)}. Ver detalle">
+        <span class="o-fila-ico o-fin-ico--${d.clase}">${d.icono}</span>
+        <span class="o-fila-texto"><b class="o-fin-mov-nombre">${escapeHtml(d.nombre)}</b><small>${escapeHtml(d.meta)}</small></span>
+        <span class="o-num o-fin-monto o-fin-monto--${d.clase}">${escapeHtml(d.monto)}</span>
+      </button>
+    </li>`;
+}
+
+function movimientosFiltrados() {
+  let filtered = b.breakdown;
+  if (filtroMov === 'Ingreso') filtered = filtered.filter(t => t.type === 'Ingreso');
+  if (filtroMov === 'Gasto') filtered = filtered.filter(t => t.type === 'Gasto' && t.category !== 'Savings');
+  if (filtroMov === 'Ahorro') filtered = filtered.filter(t => t.category === 'Savings');
+  if (fechaDesde) filtered = filtered.filter(t => t.date && claveDiaDe(t.date) >= fechaDesde);
+  if (fechaHasta) filtered = filtered.filter(t => t.date && claveDiaDe(t.date) <= fechaHasta);
+  return filtered;
+}
+
+function listaMovimientosHtml() {
+  const filtered = movimientosFiltrados();
+  if (filtered.length === 0) {
+    const sinNada = b.breakdown.length === 0;
+    return `<li class="o-card">${oVacio({ icono: 'vacio', titulo: sinNada ? 'Todavía no hay movimientos' : 'No hay movimientos', texto: sinNada ? 'Toca Ingreso o Gasto para registrar el primero.' : 'No se encontraron resultados con este filtro.' })}</li>`;
+  }
+  return filtered.map(tx => filaMovimiento(tx, { abierto: ldMov.id === tx.id })).join('');
+}
+
+// =============================================================================
+// Resumen
+// =============================================================================
+// Comparativo simple contra el mes anterior, reutiliza b.trend (ya calculado
+// en db.getBudget). b.trend es null cuando el mes anterior no tuvo gastos.
+function tendenciaHtml() {
+  if (!b.trend) return `<p class="o-fin-tendencia" id="fin-tendencia">Sin datos del mes anterior</p>`;
+  const { pct, isUp, hastaDia } = b.trend;
+  const referencia = hastaDia ? 'a esta altura del mes pasado' : 'el mes pasado';
+  const texto = isUp ? `Gastaste ${pct}% más que ${referencia}` : `Vas ${pct}% mejor que ${referencia}`;
+  return `<p class="o-fin-tendencia" id="fin-tendencia">${isUp ? ICO.subir : ICO.bajar}<span>${texto}</span></p>`;
+}
+
+// "Puedes gastar $X hoy" = (disponible restante) / días que quedan del mes
+// (incluye hoy). Es del mes: no usa el arrastre de los sobres.
+function disponiblePorDiaHtml() {
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const diasRestantes = Math.max(1, daysInMonth - now.getDate() + 1);
+  const saldoDiario = Math.max(0, b.remaining) / diasRestantes;
+  return `
+    <div class="o-card o-fin-pordia" id="daily-available-container">
+      <span class="o-fila-ico">${ICO.reloj}</span>
+      <div>
+        <p class="o-rotulo">Disponible por día</p>
+        <p class="o-fin-pordia-texto">Puedes gastar <span class="o-num" id="fin-pordia">${formatCurrency(saldoDiario)}</span> hoy</p>
+        <p class="o-fin-pordia-sub"><span class="o-num" id="fin-restantes">${formatCurrency(Math.max(0, b.remaining))}</span> restantes · <span class="o-num" id="fin-dias">${diasRestantes}</span> ${diasRestantes === 1 ? 'día' : 'días'} del mes</p>
       </div>
-      <div style="text-align: right; max-width: 120px;">
-        <div style="font-size: 11px; font-weight: 500; color: var(--text-secondary); line-height: 1.3;">
-          ${b.ageOfMoney >= 30 ? '<span style="color:var(--text-primary);">¡Vives con ingresos del mes pasado!</span>' : 'Aumenta esta métrica para salir del cheque a cheque.'}
-        </div>
-      </div>
-    </div>
-  `;
+    </div>`;
+}
+
+// Uso de una categoría contra lo que le toca según la regla 50/30/20.
+// ≥ 100 %: alerta (rojo, con ícono y texto); ≥ 80 %: aviso ámbar.
+function marcaUso(usoCatPct) {
+  if (usoCatPct < 80) return '';
+  const excedido = usoCatPct >= 100;
+  const mensaje = excedido ? 'Superaste el presupuesto de esta categoría' : 'Ya usaste el 80% o más del presupuesto de esta categoría';
+  return `<span class="o-fin-uso o-fin-uso--${excedido ? 'alerta' : 'aviso'}" title="${mensaje}">${oIcono('alerta')}<span>${excedido ? 'Excedido' : '80%+'}</span><span class="o-fin-oculto">: ${mensaje}</span></span>`;
+}
+
+const CATEGORIAS = [
+  { key: 'Needs', label: 'Necesidades', share: 'needs', color: '--o-mod' },
+  { key: 'Wants', label: 'Deseos', share: 'wants', color: '--o-mod-2' },
+  { key: 'Savings', label: 'Ahorro', share: 'savings', color: '--o-text-2' }
+];
+const reglaDe = () => b.rule || { needs: 0.5, wants: 0.3, savings: 0.2 };
+const totalCat = (key) => b.allocations.find(a => a.category === key)?.amount || 0;
+
+// Leyenda de la dona: cuánto se gastó en cada categoría este mes.
+function distribucionHtml() {
+  const rule = reglaDe();
+  return CATEGORIAS.map(c => {
+    const amount = totalCat(c.key);
+    const disponibleCat = b.budgeted * rule[c.share];
+    const usoCatPct = disponibleCat > 0 ? Math.round((amount / disponibleCat) * 100) : (amount > 0 ? 100 : 0);
+    return `
+      <li class="o-fin-dist-fila" data-cat="${c.label}">
+        <span class="o-fin-dist-punto" style="background: var(${c.color});"></span>
+        <span class="o-fin-dist-nombre">${c.label}</span>
+        ${marcaUso(usoCatPct)}
+        <span class="o-fin-dist-monto${amount > 0 ? ' o-num' : ''}">${amount > 0 ? formatCurrency(amount) : 'Sin movimientos'}</span>
+      </li>`;
+  }).join('');
+}
+
+// Mapa de calor: días del mes con al menos un movimiento.
+const buildFinanzasHeatmapHtml = () => {
+  const [heatYear, heatMonthNum] = currentMonth.split('-').map(Number);
+  const heatMonth = heatMonthNum - 1;
+  const nombreMesActual = formatMes(new Date(heatYear, heatMonth, 1));
+  const TX_TYPE_LABELS = { Gasto: 'Gasto', Ingreso: 'Ingreso', Ahorro: 'Ahorro', Transfer: 'Transferencia' };
+  const countByDay = {};
+  const detailByDay = {};
+  b.breakdown.forEach(tx => {
+    if (!tx.date) return;
+    const day = Number(claveDiaDe(tx.date).split('-')[2]);
+    if (!day) return;
+    countByDay[day] = (countByDay[day] || 0) + 1;
+    if (!detailByDay[day]) detailByDay[day] = [];
+    const label = TX_TYPE_LABELS[tx.type] || tx.type;
+    detailByDay[day].push(`${label}: ${tx.label || 'Sin descripción'} (${formatCurrency(tx.amount)})`);
+  });
+  return renderActivityHeatmap({
+    id: 'finanzas-heatmap', monthLabel: nombreMesActual, year: heatYear, month: heatMonth,
+    countByDay, detailByDay, accentVar: 'var(--o-mod)', emptyLabel: 'Sin movimientos'
+  });
 };
 
+async function panelResumen() {
+  const isHealthy = b.remaining >= 0;
+  const trendHistory6 = await db.getHistoricalSummary(6);
+  const tendencia6 = trendHistory6.hasEnoughData ? (() => {
+    const maxVal = Math.max(...trendHistory6.data.map(d => d.expenses + d.saved), 1);
+    return `
+      <section class="o-card o-fin-seccion" aria-labelledby="fin-tend-titulo">
+        <h2 class="o-rotulo" id="fin-tend-titulo">Tendencia de gastos</h2>
+        <div class="o-fin-barras">
+          ${trendHistory6.data.map(d => {
+            const h = Math.max(4, Math.round(((d.expenses + d.saved) / maxVal) * 100));
+            return `<div class="o-fin-barra${d.month === b.currentMonth ? ' o-fin-barra--actual' : ''}"><div class="o-fin-barra-pista"><i style="height: ${h}%;"></i></div><span>${formatMesCorto(fechaLocalDe(d.month + '-01'))}</span></div>`;
+          }).join('')}
+        </div>
+        <p class="o-fin-nota"><span>Actual: <span class="o-num">${formatCompactCurrency(b.expenses)}</span></span><span>Presupuesto: <span class="o-num">${formatCompactCurrency(b.budgeted)}</span></span></p>
+      </section>`;
+  })() : '';
+  const [y, m] = currentMonth.split('-').map(Number);
+  const recientes = b.breakdown.slice(0, 5);
+  return `
+    <div class="o-fin-resumen">
+      <section class="o-card o-card--destacada o-fin-balance" id="card-disponible" aria-labelledby="fin-balance-rotulo">
+        <p class="o-rotulo" id="fin-balance-rotulo">Balance del mes</p>
+        <p class="o-fin-balance-valor${isHealthy ? '' : ' o-fin-alerta'}">${isHealthy ? '' : `${oIcono('alerta')}<span class="o-fin-oculto">Balance negativo: </span>`}<span class="o-num" id="fin-balance">${formatDisponible(b.remaining)}</span></p>
+        ${tendenciaHtml()}
+        <div class="o-fin-balance-pie">
+          <button type="button" class="o-fin-stat" id="card-gastos" aria-label="Gastos del mes: ${formatDisponible(b.expenses)}. Ver gastos">
+            <span class="o-rotulo">Gastos</span><span class="o-num" id="fin-gastos">${formatDisponible(b.expenses)}</span>
+          </button>
+          <button type="button" class="o-fin-stat" id="card-ingresos" aria-label="Ingresos del mes: ${formatDisponible(b.income)}. Ver ingresos">
+            <span class="o-rotulo">Ingresos</span><span class="o-num o-fin-monto--ingreso" id="fin-ingresos">${formatDisponible(b.income)}</span>
+          </button>
+        </div>
+      </section>
 
-const renderRecurringHTML = (b) => {
-  const addBtnHtml = `<button id="btn-add-recurring" class="tappable" style="margin-top: 12px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; cursor: pointer; font-weight: 600; width: 100%;">+ Nuevo pago</button>`;
+      <div class="o-fin-acciones">
+        <button type="button" id="btn-fab-ingreso" class="o-btn o-btn--secundario">${ICO.ingreso}Ingreso</button>
+        <button type="button" id="btn-fab-ahorro" class="o-btn o-btn--secundario">${ICO.ahorro}Ahorro</button>
+        <button type="button" id="btn-fab-transferir" class="o-btn o-btn--secundario">${ICO.transferir}Transferir</button>
+      </div>
 
-  if (!b.recurring || b.recurring.length === 0) {
-    return finEmptyState('Pagos fijos', 'Sin pagos fijos todavía', 'Automatiza tus suscripciones y arriendos para que se descuenten solos.') + addBtnHtml;
+      ${disponiblePorDiaHtml()}
+
+      <section class="o-card o-fin-seccion" aria-labelledby="fin-dist-titulo">
+        <h2 class="o-rotulo" id="fin-dist-titulo">Distribución del gasto</h2>
+        <div class="o-fin-dona">
+          <canvas id="donut-chart-resumen" width="150" height="150"></canvas>
+          <div class="o-fin-dona-centro" aria-hidden="true"><small>Presupuesto</small><b class="o-num">${formatCompactCurrency(b.budgeted)}</b></div>
+        </div>
+        <ul class="o-fin-dist" id="resumen-cat-legend">${distribucionHtml()}</ul>
+      </section>
+
+      <section class="o-card o-fin-seccion" aria-labelledby="fin-mapa-titulo">
+        <h2 class="o-rotulo" id="fin-mapa-titulo">Actividad de ${escapeHtml(formatMes(new Date(y, m - 1, 1)))}</h2>
+        ${buildFinanzasHeatmapHtml()}
+      </section>
+
+      <section class="o-card o-fin-seccion" aria-labelledby="fin-saldo-titulo">
+        <h2 class="o-rotulo" id="fin-saldo-titulo">Evolución del saldo disponible</h2>
+        <div class="o-fin-grafico o-fin-grafico--linea"><canvas id="line-chart-saldo-diario"></canvas></div>
+      </section>
+
+      <section class="o-card o-fin-seccion" aria-labelledby="fin-comp-titulo">
+        <h2 class="o-rotulo" id="fin-comp-titulo">Gasto vs. mes anterior</h2>
+        <div class="o-fin-grafico o-fin-grafico--barras"><canvas id="bar-chart-mes-comparativo"></canvas></div>
+      </section>
+
+      ${tendencia6}
+
+      <section class="o-fin-seccion" aria-labelledby="fin-recientes-titulo">
+        <div class="o-fin-seccion-cab">
+          <h2 class="o-rotulo" id="fin-recientes-titulo">Movimientos recientes</h2>
+          <button type="button" id="btn-ver-todos" class="o-btn o-btn--fantasma">Ver todos</button>
+        </div>
+        <ul class="o-lista" id="recent-tx-list">
+          ${recientes.length ? recientes.map(tx => filaMovimiento(tx)).join('') : `<li class="o-card">${oVacio({ icono: 'vacio', titulo: 'Todavía no hay movimientos', texto: 'Toca Ingreso o Gasto para registrar el primero.' })}</li>`}
+        </ul>
+      </section>
+    </div>`;
+}
+
+// Saldo disponible acumulado día a día (1 hasta hoy) del mes actual.
+const computeDailyBalanceSeries = () => {
+  const now = new Date();
+  const today = now.getDate();
+  const deltaPorDia = new Array(today + 1).fill(0);
+  (b.breakdown || []).forEach(t => {
+    if (!t.date) return;
+    const day = parseInt(claveDiaDe(t.date).slice(8, 10), 10);
+    if (!day || day < 1 || day > today) return;
+    const amt = Number(t.amount) || 0;
+    if (esMovimientoEntreSobres(t)) return; // mover dinero entre sobres no cambia el balance
+    deltaPorDia[day] += (t.type === 'Ingreso') ? amt : -amt;
+  });
+  const labels = [];
+  const data = [];
+  let running = 0;
+  for (let d = 1; d <= today; d++) {
+    running += deltaPorDia[d];
+    labels.push(String(d));
+    data.push(Math.round(running * 100) / 100);
+  }
+  return { labels, data };
+};
+
+// Gráficos de Resumen (Chart.js, cargado diferido): dona, saldo diario y
+// comparativo con el mes anterior. Colores del módulo, resueltos a valor.
+async function renderResumenCharts() {
+  if (!document.getElementById('donut-chart-resumen')) return;
+  const Chart = await ensureChartJs();
+  if (!document.getElementById('donut-chart-resumen')) return; // se cambió de pestaña mientras cargaba
+  const opts = baseChartOptions();
+  const acento = colorModulo('--o-mod');
+  const linea = colorModulo('--o-line-strong');
+  const texto2 = colorModulo('--o-text-2');
+
+  const entries = CATEGORIAS.map(c => ({ label: c.label, valor: totalCat(c.key), color: colorModulo(c.color) })).filter(e => e.valor > 0);
+  if (entries.length > 0) {
+    await renderDonutChart('donut-chart-resumen', entries, { cutout: '74%', tooltipLabel: (ctx, entry) => `${entry.label}: ${formatCurrency(entry.valor)}` });
+  } else {
+    destroyAllDonuts();
   }
 
-  const total = b.recurring.reduce((s, r) => s + (Number(r.amount) || 0), 0);
-  const rows = b.recurring.map(req => {
-    const env = (b.todosLosSobres || b.envelopes).find(e => e.id === req.envelopeId);
-    const envName = env ? escapeHtml(env.name) : 'Desconocido';
-    return `
-      <div class="fin-row recurring-row" data-id="${req.id}">
-        <div style="width: 32px; height: 32px; flex-shrink: 0; background: var(--surface-2); display: flex; align-items: center; justify-content: center; color: var(--text-primary);">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-        </div>
-        <div class="fin-who">
-          <div class="fin-name">${escapeHtml(req.label)}</div>
-          <div class="fin-meta">Día ${req.dayOfMonth} &bull; ${envName}</div>
-        </div>
-        <div class="fin-amt">${formatCurrency(req.amount)}</div>
-        <button class="delete-recurring" data-id="${req.id}" aria-label="Eliminar pago fijo ${escapeHtml(req.label)}" style="background:transparent; border:none; color:var(--text-disabled); cursor:pointer; flex-shrink: 0;">${delSvg}</button>
-      </div>
-    `;
-  }).join('');
+  const lineCanvas = document.getElementById('line-chart-saldo-diario');
+  if (lineCanvas) {
+    const { labels, data } = computeDailyBalanceSeries();
+    if (dailyBalanceChartInstance) dailyBalanceChartInstance.destroy();
+    const gradient = verticalGradient(lineCanvas.getContext('2d'), acento, lineCanvas.clientHeight || 100);
+    dailyBalanceChartInstance = new Chart(lineCanvas, {
+      type: 'line',
+      data: { labels, datasets: [{ data, borderColor: acento, backgroundColor: gradient, fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 }] },
+      options: { ...opts, devicePixelRatio: hdPixelRatio(), scales: { x: { display: false }, y: { display: false } } }
+    });
+  }
 
+  const barCanvas = document.getElementById('bar-chart-mes-comparativo');
+  if (barCanvas) {
+    // Mismo corte que b.trend: en el mes en curso, el anterior hasta el mismo día.
+    const prevMes = b.prevExpenses || 0;
+    const esteMes = b.expenses || 0;
+    if (monthCompareChartInstance) monthCompareChartInstance.destroy();
+    monthCompareChartInstance = new Chart(barCanvas, {
+      type: 'bar',
+      data: {
+        labels: [b.trendHastaDia ? ['Anterior', `(1–${b.trendHastaDia})`] : ['Mes', 'anterior'], 'Este mes'],
+        datasets: [{ data: [prevMes, esteMes], backgroundColor: [linea, acento], borderRadius: 4, maxBarThickness: 60 }]
+      },
+      options: {
+        ...opts,
+        devicePixelRatio: hdPixelRatio(),
+        indexAxis: 'y',
+        layout: { padding: { right: anchoEtiquetasBarraH([prevMes, esteMes].map(formatCompactCurrency)) } },
+        scales: { x: { display: false }, y: { display: true, grid: { display: false }, ticks: { color: texto2, font: { size: 12, weight: '600' } } } }
+      },
+      plugins: [horizontalBarValueLabelsPlugin(colorModulo('--o-text'), formatCompactCurrency)]
+    });
+  }
+}
+
+function soltarGraficos() {
+  destroyAllDonuts();
+  if (dailyBalanceChartInstance) { dailyBalanceChartInstance.destroy(); dailyBalanceChartInstance = null; }
+  if (monthCompareChartInstance) { monthCompareChartInstance.destroy(); monthCompareChartInstance = null; }
+}
+
+// =============================================================================
+// Movimientos (lista + detalle)
+// =============================================================================
+const FILTROS = [['All', 'Todos'], ['Ingreso', 'Ingresos'], ['Gasto', 'Gastos'], ['Ahorro', 'Ahorro']];
+
+function listaMovimientos() {
   return `
-    <div class="card fin-stat" style="margin-bottom: 14px;">
-      <p class="fin-eyebrow">Total estimado por mes</p>
-      <p class="fin-stat-value">${formatCurrency(total)}</p>
-    </div>
-    <div class="card fin-row-list" style="padding: 0; overflow: hidden;">${rows}</div>
-    ${addBtnHtml}
-  `;
-};
+    <div class="o-fin-col">
+      <!-- Gasto rápido: texto libre tipo "50 en supermercado" (parseQuickGasto).
+           <form> a propósito: Enter/Ir/Listo de cualquier teclado móvil
+           dispara "submit" de forma nativa. -->
+      <form id="quick-gasto-form" class="o-fin-rapido" onsubmit="return false;">
+        <label class="o-fin-oculto" for="quick-gasto-input">Gasto rápido</label>
+        <input type="text" id="quick-gasto-input" class="o-input" inputmode="text" enterkeyhint="go" autocomplete="off" placeholder="Gasto rápido, ej. 50 en supermercado">
+        <button type="submit" id="btn-quick-gasto-submit" class="o-btn o-btn--secundario o-btn--icono" aria-label="Agregar gasto">${ICO.enviar}</button>
+      </form>
+      <p id="quick-gasto-hint" class="o-fin-pista" aria-live="polite"></p>
+      <div class="o-chips o-fin-filtros" role="group" aria-label="Tipo de movimiento">
+        ${FILTROS.map(([v, l]) => `<button type="button" class="o-chip history-tab" data-filter="${v}" aria-pressed="${filtroMov === v}">${l}</button>`).join('')}
+      </div>
+      <div class="o-fin-fechas">
+        <label class="o-fin-oculto" for="history-date-from">Desde</label>
+        <input type="date" id="history-date-from" class="o-input" value="${escapeHtml(fechaDesde)}">
+        <span aria-hidden="true">a</span>
+        <label class="o-fin-oculto" for="history-date-to">Hasta</label>
+        <input type="date" id="history-date-to" class="o-input" value="${escapeHtml(fechaHasta)}">
+        <button type="button" id="btn-clear-date-filter" class="o-btn o-btn--secundario">Limpiar</button>
+      </div>
+      <ul class="o-lista" id="history-list-content" aria-label="Movimientos de ${escapeHtml(formatMonth(currentMonth))}">${listaMovimientosHtml()}</ul>
+      <div class="o-card o-fin-edad" id="card-ageofmoney">
+        <span class="o-fila-ico">${ICO.reloj}</span>
+        <div>
+          <p class="o-rotulo">Edad del dinero</p>
+          <p class="o-fin-edad-valor"><span class="o-num">${b.ageOfMoney}</span> ${b.ageOfMoney === 1 ? 'día' : 'días'}</p>
+          <p class="o-fin-pordia-sub">${b.ageOfMoney >= 30 ? '¡Vives con ingresos del mes pasado!' : 'Aumenta esta métrica para salir del cheque a cheque.'}</p>
+        </div>
+      </div>
+    </div>`;
+}
 
-// Sobres como "cuentas" (Parte 1/Cuentas del rediseño): antes vivían
-// anidados dentro de cada categoría en Presupuesto (renderPresupuestoLegend);
-// acá es una lista plana de account-cards, sin agrupar por Needs/Wants —
-// esa categoría igual se ve como eyebrow tag arriba del nombre.
-const CAT_LABELS = { Needs: 'Necesidades', Wants: 'Deseos' };
-const renderEnvelopesHTML = async (b) => {
-  const addBtnHtml = `<button class="btn-add-envelope tappable" style="margin-top: 12px; width: 100%; padding: 12px; background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer;">+ Nuevo sobre</button>`;
+// Detalle de un movimiento: el mismo en la sub-pantalla y en la columna.
+function cuerpoMovimiento(tx) {
+  const d = datosMovimiento(tx, sobresDe());
+  const filas = [['Tipo', escapeHtml(d.tipo)], ['Fecha', escapeHtml(conMayuscula(formatFechaLarga(fechaLocalDe(tx.date))))]];
+  if (tx.type === 'Transfer') {
+    const env = sobresDe();
+    filas.push(['Desde', escapeHtml(env.find(e => e.id === tx.fromEnvelopeId)?.name || 'Desconocido')]);
+    filas.push(['Hacia', escapeHtml(env.find(e => e.id === tx.toEnvelopeId)?.name || 'Desconocido')]);
+  } else if (d.sobre) {
+    filas.push(['Sobre', escapeHtml(d.sobre.name)]);
+    const negativo = d.sobre.saldo < 0;
+    filas.push([`Saldo de ${escapeHtml(d.sobre.name)}`, `<span class="${negativo ? 'o-fin-alerta' : ''}">${negativo ? oIcono('alerta') : ''}<span class="o-num">${formatCurrency(d.sobre.saldo)}</span></span>`]);
+  } else if (tx.type !== 'Ingreso') {
+    filas.push(['Categoría', ETQ_CATEGORIA(tx.category)]);
+  }
+  if (tx.goalId) {
+    const meta = (b.goals || []).find(g => g.id === tx.goalId);
+    if (meta) filas.push(['Meta', escapeHtml(meta.name)]);
+  }
+  return `
+    <div class="o-fin-det">
+      <p class="o-fin-det-monto o-num o-fin-monto--${d.clase}" id="fin-mov-monto">${escapeHtml(d.monto)}</p>
+      <dl class="o-fin-datos">${filas.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      ${d.editable ? '' : `<p class="o-fin-pista">Las transferencias no se editan: elimínala y crea una nueva.</p>`}
+      <div class="o-fin-det-acciones">
+        ${d.editable ? `<button type="button" id="btn-editar-mov" class="o-btn o-btn--secundario" aria-label="Editar ${escapeHtml(d.nombre)}">Editar</button>` : ''}
+        <button type="button" id="btn-eliminar-mov" class="o-btn o-btn--secundario o-fin-eliminar" aria-label="Eliminar el movimiento ${escapeHtml(d.nombre)}">Eliminar</button>
+      </div>
+    </div>`;
+}
 
-  // R3: sección colapsada al final con los sobres archivados.
+function panelMovimientos() {
+  let detalle = '';
+  if (ldMov.abierto) {
+    const tx = b.breakdown.find(x => x.id === ldMov.id);
+    if (tx) {
+      const nombre = datosMovimiento(tx, sobresDe()).nombre;
+      detalle = `<div class="o-card">${oListaDetalleCab({ titulo: nombre, cerrarId: 'btn-cerrar-mov', cerrarEtiqueta: `Cerrar el detalle de ${nombre}` })}${cuerpoMovimiento(tx)}</div>`;
+    } else ldMov.olvidar();
+  }
+  return oListaDetalle({
+    id: 'fin-mov-ld', lista: listaMovimientos(), detalle, abierto: !!detalle, etiqueta: 'Detalle del movimiento',
+    vacio: `<div class="o-card o-ld-vacio">${oVacio({ icono: 'info', titulo: 'Elige un movimiento', texto: 'Su monto, su sobre y la fecha aparecen aquí, con Editar y Eliminar.' })}</div>`
+  });
+}
+
+// =============================================================================
+// Sobres (regla 50/30/20 + sobres con arrastre + archivados + metas)
+// =============================================================================
+function reglaHtml() {
+  const rule = reglaDe();
+  return CATEGORIAS.map(c => {
+    const totalAmt = totalCat(c.key);
+    const rulePct = Math.round(rule[c.share] * 100);
+    // Barra "gastado vs disponible" de la categoría según la regla 50/30/20.
+    const disponibleCat = b.budgeted * rule[c.share];
+    const usoCatPct = disponibleCat > 0 ? Math.round((totalAmt / disponibleCat) * 100) : (totalAmt > 0 ? 100 : 0);
+    const nivel = usoCatPct >= 100 ? 'alerta' : usoCatPct >= 80 ? 'aviso' : '';
+    const nota = usoCatPct >= 100
+      ? `<p class="o-fin-nota-uso o-fin-alerta">${oIcono('alerta')}<span>Superaste el presupuesto de este mes.</span></p>`
+      : (usoCatPct >= 80 ? `<p class="o-fin-nota-uso o-fin-aviso">${oIcono('alerta')}<span>Estás cerca del límite.</span></p>` : '');
+    return `
+      <button type="button" class="o-card o-fin-regla legend-item" data-cat="${c.label}" aria-label="${c.label}: ${formatCurrency(totalAmt)} de ${formatCurrency(disponibleCat)}. Ver movimientos">
+        <span class="o-fin-regla-cab"><span class="o-fin-regla-nombre">${c.label}</span><span class="o-rotulo"><span class="o-num">${rulePct}%</span> de la regla</span></span>
+        <span class="o-fin-regla-cifras o-num">${formatCurrency(totalAmt)} de ${formatCurrency(disponibleCat)}</span>
+        <span class="o-fin-medidor" aria-hidden="true"><i class="${nivel ? `o-fin-medidor--${nivel}` : ''}" style="width: ${Math.min(100, usoCatPct)}%;"></i></span>
+        ${nota}
+      </button>`;
+  }).join('');
+}
+
+// Tarjeta de cada sobre (R5 + CLAUDE.md, regla 7): saldo con arrastre,
+// "$gastado de $disponible" y una línea aparte con el arrastre del mes
+// anterior. Rojo solo con saldo negativo (con ícono y texto).
+async function sobresHtml() {
   const archivados = b.envelopesArchivados || [];
   const archivadosHtml = archivados.length === 0 ? '' : `
-    <details class="sobres-archivados">
-      <summary>Archivados (${archivados.length})</summary>
-      ${archivados.map(env => `
-        <div class="sobre-archivado-row">
-          <div style="min-width: 0;">
-            <div style="font-weight: 600; font-size: 13px;">${escapeHtml(env.name)}</div>
-            <p class="fin-eyebrow" style="margin: 0;">${CAT_LABELS[env.category] || env.category}</p>
-          </div>
-          <button class="desarchivar-env tappable" data-id="${env.id}" aria-label="Desarchivar sobre ${escapeHtml(env.name)}">Desarchivar</button>
-        </div>`).join('')}
+    <details class="o-card o-fin-archivados">
+      <summary>Archivados (<span class="o-num">${archivados.length}</span>)</summary>
+      <ul class="o-fin-archivados-lista">
+        ${archivados.map(env => `
+          <li class="o-fin-archivado">
+            <span class="o-fila-texto"><b class="o-fin-archivado-nombre">${escapeHtml(env.name)}</b><small>${CAT_LABELS[env.category] || escapeHtml(env.category)}</small></span>
+            <button type="button" class="o-btn o-btn--secundario desarchivar-env" data-id="${escapeHtml(env.id)}" aria-label="Desarchivar sobre ${escapeHtml(env.name)}">Desarchivar</button>
+          </li>`).join('')}
+      </ul>
     </details>`;
+  const nuevo = `<button type="button" class="o-btn o-btn--secundario o-btn--bloque btn-add-envelope">${ICO.mas}Nuevo sobre</button>`;
 
   if (!b.envelopes || b.envelopes.length === 0) {
-    return finEmptyState('Sin cuentas', archivados.length ? 'Todos tus sobres están archivados' : 'Todavía no creaste ningún sobre', 'Un sobre es donde separas plata para una categoría de gasto — luz, comida, salidas.') + addBtnHtml + archivadosHtml;
+    return `<div class="o-card">${oVacio({ icono: 'vacio', titulo: archivados.length ? 'Todos tus sobres están archivados' : 'Todavía no creaste ningún sobre', texto: 'Un sobre es donde separas plata para una categoría de gasto — luz, comida, salidas.' })}</div>${nuevo}${archivadosHtml}`;
   }
 
   // Mini-gráfico de 3 meses (R5): gasto de cada mes contra el disponible de
-  // ESE mes (arrastre + asignado ± transferencias), no contra el asignado
-  // de hoy. Los 2 meses anteriores salen de getBudget, en serie a propósito:
-  // en paralelo podrían procesar la misma recurrente dos veces.
+  // ESE mes (arrastre + asignado ± transferencias). Los 2 meses anteriores
+  // salen de getBudget, en serie a propósito: en paralelo podrían procesar
+  // la misma recurrente dos veces.
   const [anioVista, mesVista] = b.currentMonth.split('-').map(Number);
   const mesesPrevios = [2, 1].map(i => mesKeyDe(new Date(anioVista, mesVista - 1 - i, 1)));
   const sobresPorMes = [];
@@ -751,123 +634,620 @@ const renderEnvelopesHTML = async (b) => {
   sobresPorMes.push(new Map(b.envelopes.map(e => [e.id, e])));
   const disponibleDe = (e) => e.arrastre + e.asignado + e.transferencias;
   const nombreMesAnterior = formatMes(new Date(anioVista, mesVista - 2, 1)).toLowerCase();
-  const conSigno = (n) => `${n < 0 ? '−' : '+'}${formatCurrency(Math.abs(n))}`;
 
   const cards = b.envelopes.map(env => {
     const disponible = disponibleDe(env);
     const negativo = env.saldo < 0;
     // Disponible negativo: el sobre arrastra más sobregiro que lo que recibe
-    // este mes; "$0 de -$66.200" no se entiende. Con 0 justo (sobre vacío)
-    // se deja la línea normal: no es una alerta.
+    // este mes; "$0 de -$66.200" no se entiende. Con 0 justo no es alerta.
     const sobregiroAcumulado = disponible < 0 ? -disponible : 0;
     const pct = negativo ? 100 : disponible > 0 ? Math.min(100, Math.round((env.gastado / disponible) * 100)) : (env.gastado > 0 ? 100 : 0);
-    const meterCls = negativo ? 'danger' : pct >= 80 ? 'warn' : ''; // rojo solo con saldo negativo
-    const catColor = getCatColor(env.category);
+    const nivel = negativo ? 'alerta' : pct >= 80 ? 'aviso' : ''; // rojo solo con saldo negativo
 
     const hist = sobresPorMes.map(mapa => mapa.get(env.id)).map(e => (e ? { gastado: e.gastado, disponible: disponibleDe(e) } : { gastado: 0, disponible: 0 }));
     const maxH = Math.max(...hist.map(h => Math.max(h.gastado, h.disponible)), 1);
-    const sparklineHtml = hist.some(h => h.gastado > 0 || h.disponible > 0) ? `<div class="sobre-spark" title="Gasto contra disponible, últimos 3 meses">${
-      hist.map(h => {
-        const hPct = Math.max(10, Math.round((h.gastado / maxH) * 100));
-        return `<div class="${h.gastado > h.disponible ? 'excedido' : ''}" style="height:${hPct}%;"></div>`;
-      }).join('')
-    }</div>` : '';
+    const spark = hist.some(h => h.gastado > 0 || h.disponible > 0) ? `<span class="o-fin-spark" title="Gasto contra disponible, últimos 3 meses" aria-hidden="true">${
+      hist.map(h => `<i class="${h.gastado > h.disponible ? 'o-fin-spark--excedido' : ''}" style="height: ${Math.max(10, Math.round((h.gastado / maxH) * 100))}%;"></i>`).join('')
+    }</span>` : '';
 
     const lineaArrastre = env.arrastre !== 0
-      ? `<div class="sobre-linea${env.arrastre < 0 ? ' negativo' : ''}">${conSigno(env.arrastre)} de ${nombreMesAnterior}</div>` : '';
+      ? `<p class="o-fin-sobre-linea o-fin-sobre-arrastre"><span class="o-num">${conSigno(env.arrastre)}</span> de ${nombreMesAnterior}</p>` : '';
     const lineaTransf = env.transferencias !== 0
-      ? `<div class="sobre-linea">${conSigno(env.transferencias)} transferido</div>` : '';
-    const aria = `${env.name}: saldo ${formatCurrency(env.saldo)}. ${sobregiroAcumulado ? `Sobregiro de ${formatCurrency(sobregiroAcumulado)} acumulado. Gastado ${formatCurrency(env.gastado)} este mes.` : `Gastado ${formatCurrency(env.gastado)} de ${formatCurrency(disponible)} disponibles.`}`
+      ? `<p class="o-fin-sobre-linea o-fin-sobre-transf"><span class="o-num">${conSigno(env.transferencias)}</span> transferido</p>` : '';
+    const nombre = escapeHtml(env.name);
+    const aria = `${env.name}: saldo ${formatCurrency(env.saldo)}${negativo ? ' (negativo)' : ''}. ${sobregiroAcumulado ? `Sobregiro de ${formatCurrency(sobregiroAcumulado)} acumulado. Gastado ${formatCurrency(env.gastado)} este mes.` : `Gastado ${formatCurrency(env.gastado)} de ${formatCurrency(disponible)} disponibles.`}`
       + (env.arrastre !== 0 ? ` Arrastre ${conSigno(env.arrastre)} de ${nombreMesAnterior}.` : '')
       + (env.transferencias !== 0 ? ` ${conSigno(env.transferencias)} transferido.` : '');
 
     return `
-      <div class="card fin-account-card env-row tappable" data-id="${env.id}" role="group" aria-label="${escapeHtml(aria)}">
-        <div class="flex-between">
-          <p class="fin-eyebrow" style="color: ${colorTexto(catColor)};">${CAT_LABELS[env.category] || env.category}</p>
-          <div class="sobre-acciones">
-            <button class="transfer-env" data-id="${env.id}" aria-label="Transferir desde ${escapeHtml(env.name)}" title="Transferir">${transferSvg}</button>
+      <article class="o-card o-fin-sobre env-row" data-id="${escapeHtml(env.id)}" role="group" aria-label="${escapeHtml(aria)}">
+        <div class="o-fin-sobre-cab">
+          <div class="o-fin-sobre-titulo">
+            <p class="o-rotulo o-fin-sobre-cat">${CAT_LABELS[env.category] || escapeHtml(env.category)}</p>
+            <h3 class="o-fin-sobre-nombre">${nombre}</h3>
+          </div>
+          ${spark}
+          <div class="o-fin-sobre-acciones">
+            <button type="button" class="o-btn o-btn--fantasma o-btn--icono transfer-env" data-id="${escapeHtml(env.id)}" aria-label="Transferir desde ${nombre}" title="Transferir">${ICO.transferir}</button>
             <div class="sobre-menu-wrap">
-              <button class="sobre-menu-btn" aria-label="Más acciones de ${escapeHtml(env.name)}" aria-haspopup="menu" aria-expanded="false" title="Más acciones">
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
-              </button>
-              <div class="sobre-menu" role="menu" hidden>
-                <button type="button" role="menuitem" class="edit-env" data-id="${env.id}">${editSvg}Editar</button>
-                <button type="button" role="menuitem" class="archive-env" data-id="${env.id}">${archiveSvg}Archivar</button>
+              <button type="button" class="o-btn o-btn--fantasma o-btn--icono sobre-menu-btn" aria-label="Más acciones de ${nombre}" aria-haspopup="menu" aria-expanded="false" title="Más acciones">${ICO.opciones}</button>
+              <div class="sobre-menu o-fin-menu" role="menu" hidden>
+                <button type="button" role="menuitem" class="edit-env" data-id="${escapeHtml(env.id)}">${ICO.editar}Editar</button>
+                <button type="button" role="menuitem" class="archive-env" data-id="${escapeHtml(env.id)}">${ICO.archivar}Archivar</button>
               </div>
             </div>
           </div>
         </div>
-        <div class="flex-between" style="margin-top: 2px; align-items: flex-end;">
-          <div style="font-weight: 600; font-size: 14px;">${escapeHtml(env.name)}</div>
-          ${sparklineHtml}
-        </div>
-        <div class="fin-bal" style="color: ${negativo ? 'var(--state-high-t)' : 'var(--text-primary)'};">${formatCurrency(env.saldo)}</div>
-        <div class="fin-meter"><i class="${meterCls}" style="width:${pct}%"></i></div>
+        <p class="o-fin-sobre-saldo${negativo ? ' o-fin-alerta' : ''}">${negativo ? `${oIcono('alerta')}<span class="o-fin-oculto">Saldo negativo: </span>` : ''}<span class="o-num">${formatCurrency(env.saldo)}</span></p>
+        <span class="o-fin-medidor" aria-hidden="true"><i class="${nivel ? `o-fin-medidor--${nivel}` : ''}" style="width: ${pct}%;"></i></span>
         ${sobregiroAcumulado
-          ? `<div class="fin-bc-figures sobre-sobregiro">Sobregiro de ${formatCurrency(sobregiroAcumulado)} acumulado</div>`
-          : `<div class="fin-bc-figures">${formatCurrency(env.gastado)} de ${formatCurrency(disponible)}</div>`}
+          ? `<p class="o-fin-sobre-cifras o-fin-alerta">${oIcono('alerta')}<span>Sobregiro de <span class="o-num">${formatCurrency(sobregiroAcumulado)}</span> acumulado</span></p>`
+          : `<p class="o-fin-sobre-cifras"><span class="o-num">${formatCurrency(env.gastado)}</span> de <span class="o-num">${formatCurrency(disponible)}</span></p>`}
         ${lineaArrastre}${lineaTransf}
-      </div>
-    `;
+      </article>`;
   }).join('');
 
-  return `<div class="fin-grid2">${cards}</div>${addBtnHtml}${archivadosHtml}`;
-};
+  return `<div class="o-fin-sobres">${cards}</div>${nuevo}${archivadosHtml}`;
+}
 
-const renderGoalsHTML = (b) => {
-  let html = `
-    <div class="flex-between" style="margin-bottom: 12px;">
-      <p class="fin-eyebrow">Metas de ahorro</p>
-      ${b.savedThisMonth > 0 ? `<span class="fin-eyebrow">Ahorrado este mes: <span class="num">${formatCurrency(b.savedThisMonth)}</span></span>` : ''}
-    </div>
-  `;
-  if (b.goals.length === 0) {
-    html += `
-       ${finEmptyState('Sin metas', 'Sin metas de ahorro todavía', 'Crea una para apartar dinero mes a mes hacia algo puntual.')}
-       <button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>
-    `;
-  } else {
-    html += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
-    html += b.goals.map(g => renderGoalCard(g)).join('');
-    html += `<button id="btn-add-goal" style="margin-top: 8px; background: transparent; color: var(--text-primary); border: 1px dashed var(--surface-border); padding: 12px; cursor: pointer; font-weight: 600; width: 100%;">+ Nueva meta</button>`;
-    html += `</div>`;
+function metasHtml() {
+  const goals = b.goals || [];
+  const nueva = `<button type="button" id="btn-add-goal" class="o-btn o-btn--secundario o-btn--bloque">${ICO.mas}Nueva meta</button>`;
+  const fila = (g) => {
+    const pct = g.targetAmount > 0 ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
+    let plazo = '';
+    if (g.deadline) {
+      const dias = diasEntre(diaKeyDe(new Date()), g.deadline);
+      const vencida = dias < 0 && !g.completed;
+      const fecha = formatFechaCorta(fechaLocalDe(g.deadline));
+      plazo = vencida
+        ? `<p class="o-fin-meta-plazo o-fin-alerta">${oIcono('alerta')}<span>Venció el ${fecha}</span></p>`
+        : `<p class="o-fin-meta-plazo">Vence el ${fecha}${!g.completed ? ` · ${plural(dias, 'día', 'días')}` : ''}</p>`;
+    }
+    const nombre = escapeHtml(g.name);
+    return `
+      <li class="o-card o-fin-meta goal-row" data-id="${escapeHtml(g.id)}">
+        <div class="o-fin-meta-cab">
+          <h3 class="o-fin-meta-nombre">${nombre}</h3>
+          <button type="button" class="o-btn o-btn--fantasma o-btn--icono edit-goal" data-id="${escapeHtml(g.id)}" aria-label="Editar meta ${nombre}">${ICO.editar}</button>
+          <button type="button" class="o-btn o-btn--fantasma o-btn--icono delete-goal" data-id="${escapeHtml(g.id)}" aria-label="Eliminar meta ${nombre}">${ICO.borrar}</button>
+        </div>
+        <p class="o-num o-fin-meta-montos">${formatCurrency(g.currentAmount)} / ${formatCurrency(g.targetAmount)}</p>
+        <span class="o-fin-medidor" aria-hidden="true"><i class="${g.completed ? 'o-fin-medidor--ok' : ''}" style="width: ${pct}%;"></i></span>
+        ${plazo}
+      </li>`;
+  };
+  return `
+    <section class="o-fin-seccion" aria-labelledby="fin-metas-titulo">
+      <div class="o-fin-seccion-cab">
+        <h2 class="o-rotulo" id="fin-metas-titulo">Metas de ahorro</h2>
+        ${b.savedThisMonth > 0 ? `<span class="o-fin-pista">Ahorrado este mes: <span class="o-num">${formatCurrency(b.savedThisMonth)}</span></span>` : ''}
+      </div>
+      ${goals.length ? `<ul class="o-lista">${goals.map(fila).join('')}</ul>` : `<div class="o-card">${oVacio({ icono: 'vacio', titulo: 'Sin metas de ahorro todavía', texto: 'Crea una para apartar dinero mes a mes hacia algo puntual.' })}</div>`}
+      ${nueva}
+    </section>`;
+}
+
+async function panelSobres() {
+  const gastado = b.expenses + b.savedThisMonth;
+  return `
+    <div class="o-fin-col">
+      <section class="o-card o-fin-presupuesto" aria-labelledby="fin-pres-rotulo">
+        ${oAnillo({ valor: gastado, max: b.budgeted, etiqueta: `Gastado ${formatCurrency(gastado)} de ${formatCurrency(b.budgeted)}` })}
+        <div class="o-fin-presupuesto-texto">
+          <p class="o-rotulo" id="fin-pres-rotulo">Gastado este mes</p>
+          <p class="o-fin-presupuesto-valor o-num" id="fin-pres-gastado">${formatCurrency(gastado)}</p>
+          <p class="o-fin-pordia-sub">de <span class="o-num">${formatCurrency(b.budgeted)}</span> que entraron este mes</p>
+        </div>
+      </section>
+      <div class="o-fin-seccion-cab">
+        <h2 class="o-rotulo">Límites mensuales</h2>
+        <button type="button" id="btn-open-settings" class="o-btn o-btn--fantasma">Editar en Configuración</button>
+      </div>
+      <div class="o-fin-reglas" id="presupuesto-legend-container">${reglaHtml()}</div>
+      <section class="o-fin-seccion" aria-labelledby="fin-sobres-titulo">
+        <h2 class="o-rotulo" id="fin-sobres-titulo">Sobres</h2>
+        <div class="mk3-finanzas">${renderEnvelopeForm()}</div>
+        <div id="envelopes-list-container" class="o-fin-col">${await sobresHtml()}</div>
+      </section>
+      ${metasHtml()}
+    </div>`;
+}
+
+// =============================================================================
+// Recurrentes (lista + detalle) y gastos anuales
+// =============================================================================
+function filaRecurrente(req, abierto) {
+  const env = sobresDe().find(e => e.id === req.envelopeId);
+  const sobre = env ? env.name : 'Desconocido';
+  const nombre = escapeHtml(req.label);
+  return `
+    <li class="o-fila o-fin-rec${abierto ? ' o-fila--actual' : ''}" data-id="${escapeHtml(req.id)}">
+      <button type="button" class="o-fin-abrir o-fin-rec-abrir" data-id="${escapeHtml(req.id)}"${abierto ? ' aria-current="true"' : ''} aria-label="${nombre}, ${formatCurrency(req.amount)}, día ${req.dayOfMonth}, sobre ${escapeHtml(sobre)}. Ver detalle">
+        <span class="o-fila-ico">${ICO.recurrente}</span>
+        <span class="o-fila-texto"><b class="o-fin-rec-nombre">${nombre}</b><small>Día <span class="o-num o-fin-rec-dia">${req.dayOfMonth}</span> · <span class="o-fin-rec-sobre">${escapeHtml(sobre)}</span></small></span>
+        <span class="o-num o-fin-monto">${formatCurrency(req.amount)}</span>
+      </button>
+    </li>`;
+}
+
+async function listaRecurrentes() {
+  const recurring = b.recurring || [];
+  const total = recurring.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  return `
+    <div class="o-fin-col">
+      <p class="o-fin-pista">Configura un pago fijo una vez y se descuenta solo de su sobre cada mes: arriendos, suscripciones, cuentas de servicios.</p>
+      ${recurring.length ? `
+      <div class="o-card o-fin-total">
+        <p class="o-rotulo">Total estimado por mes</p>
+        <p class="o-fin-total-valor o-num" id="fin-rec-total">${formatCurrency(total)}</p>
+      </div>
+      <ul class="o-lista" id="recurring-list" aria-label="Pagos fijos">${recurring.map(r => filaRecurrente(r, ldRec.id === r.id)).join('')}</ul>`
+      : `<div class="o-card">${oVacio({ icono: 'vacio', titulo: 'Sin pagos fijos todavía', texto: 'Automatiza tus suscripciones y arriendos para que se descuenten solos.' })}</div>`}
+      <button type="button" id="btn-add-recurring" class="o-btn o-btn--secundario o-btn--bloque">${ICO.mas}Nuevo pago</button>
+      <!-- Gastos anuales prorrateados (components/gastos-anuales.js). -->
+      <div id="anuales-container">${await renderAnualesHTML()}</div>
+    </div>`;
+}
+
+// Detalle de un pago fijo: monto, día, sobre y su saldo, próximo cobro. Si
+// el saldo del sobre no alcanza para este cobro, alerta con ícono y texto.
+function cuerpoRecurrente(req) {
+  const env = sobresDe().find(e => e.id === req.envelopeId);
+  const proximo = proximaFechaRecurrente(req);
+  const filas = [
+    ['Día de cobro', `Día <span class="o-num">${req.dayOfMonth}</span> de cada mes`],
+    ['Próximo cobro', escapeHtml(conMayuscula(formatFechaLarga(fechaLocalDe(proximo))))],
+    ['Sobre', escapeHtml(env ? env.name : 'Desconocido')]
+  ];
+  let alerta = '';
+  if (env) {
+    const negativo = env.saldo < 0;
+    filas.push([`Saldo de ${escapeHtml(env.name)}`, `<span class="${negativo ? 'o-fin-alerta' : ''}">${negativo ? oIcono('alerta') : ''}<span class="o-num">${formatCurrency(env.saldo)}</span></span>`]);
+    if (env.saldo < req.amount) {
+      alerta = `<p class="o-fin-aviso-cobro o-fin-alerta" role="note">${oIcono('alerta')}<span>El saldo de ${escapeHtml(env.name)} no alcanza para este cobro: faltan <span class="o-num">${formatCurrency(req.amount - Math.max(0, env.saldo))}</span>.</span></p>`;
+    }
   }
-  return html;
-};
+  return `
+    <div class="o-fin-det">
+      <p class="o-fin-det-monto o-num" id="fin-rec-monto">${formatCurrency(req.amount)}</p>
+      ${alerta}
+      <dl class="o-fin-datos">${filas.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      <div class="o-fin-det-acciones o-fin-det-acciones--una">
+        <button type="button" id="btn-eliminar-recurrente" class="o-btn o-btn--secundario o-fin-eliminar" aria-label="Eliminar el pago fijo ${escapeHtml(req.label)}">Eliminar</button>
+      </div>
+    </div>`;
+}
 
-// Empty state propio de Finanzas (eyebrow + título + descripción), en vez
-// del EmptyState() genérico de utils/states.js — ese es compartido por
-// toda la app y el rediseño pidió tocar solo la vista de Finanzas.
-const finEmptyState = (eyebrow, title, desc) => `
-  <div class="fin-empty">
-    <p class="fin-eyebrow">${eyebrow}</p>
-    <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary);">${title}</h3>
-    <p class="fin-desc">${desc}</p>
-  </div>
+async function panelRecurrentes() {
+  let detalle = '';
+  if (ldRec.abierto) {
+    const req = (b.recurring || []).find(x => x.id === ldRec.id);
+    if (req) detalle = `<div class="o-card">${oListaDetalleCab({ titulo: req.label, cerrarId: 'btn-cerrar-rec', cerrarEtiqueta: `Cerrar el detalle de ${req.label}` })}${cuerpoRecurrente(req)}</div>`;
+    else ldRec.olvidar();
+  }
+  return oListaDetalle({
+    id: 'fin-rec-ld', lista: await listaRecurrentes(), detalle, abierto: !!detalle, etiqueta: 'Detalle del pago fijo',
+    vacio: `<div class="o-card o-ld-vacio">${oVacio({ icono: 'info', titulo: 'Elige un pago fijo', texto: 'Su próximo cobro y el saldo de su sobre aparecen aquí.' })}</div>`
+  });
+}
+
+// =============================================================================
+// Cuerpo, sub-pantallas y hojas
+// =============================================================================
+// Sub-pantalla (celular): el detalle ocupa toda la vista, con «Volver».
+function subpantalla({ titulo, volverId, volverEtiqueta, cuerpo }) {
+  return `
+    <header class="o-fin-det-cab">
+      <button type="button" id="${volverId}" class="o-btn o-btn--secundario o-btn--icono" aria-label="${volverEtiqueta}">${ICO.volver}</button>
+      <h1 class="o-mod-titulo">${escapeHtml(titulo)}</h1>
+    </header>
+    ${cuerpo}`;
+}
+
+async function renderCuerpo() {
+  b = await db.getBudget(currentMonth);
+  if (activeFinTab === 'movimientos' && ldMov.subpantalla) {
+    const tx = b.breakdown.find(x => x.id === ldMov.id);
+    if (tx) return subpantalla({ titulo: datosMovimiento(tx, sobresDe()).nombre, volverId: 'btn-volver-mov', volverEtiqueta: 'Volver a Movimientos', cuerpo: cuerpoMovimiento(tx) });
+    ldMov.descartar(); // borrado (desde otra hoja o en otro dispositivo)
+  }
+  if (activeFinTab === 'recurrentes' && ldRec.subpantalla) {
+    const req = (b.recurring || []).find(x => x.id === ldRec.id);
+    if (req) return subpantalla({ titulo: req.label, volverId: 'btn-volver-rec', volverEtiqueta: 'Volver a Recurrentes', cuerpo: cuerpoRecurrente(req) });
+    ldRec.descartar();
+  }
+  const panel = activeFinTab === 'movimientos' ? panelMovimientos()
+    : activeFinTab === 'sobres' ? await panelSobres()
+      : activeFinTab === 'recurrentes' ? await panelRecurrentes()
+        : await panelResumen();
+  return `
+    <header class="o-mod-cab">
+      <div>
+        <h1 class="o-mod-titulo">Finanzas</h1>
+        <p class="o-mod-sub">${formatMonth(currentMonth)}</p>
+      </div>
+      <button type="button" id="btn-fab-gasto" class="o-btn o-btn--primario">${ICO.mas}Gasto</button>
+    </header>
+    <div class="o-tabs fin-tabs" role="tablist" aria-label="Secciones de Finanzas">
+      ${PESTANAS.map(p => `<button type="button" role="tab" class="o-tab fin-tab" data-tab="${p.id}" id="fin-tab-${p.id}" aria-selected="${p.id === activeFinTab}" aria-controls="fin-panel" tabindex="${p.id === activeFinTab ? 0 : -1}">${p.label}</button>`).join('')}
+    </div>
+    <section id="fin-panel" class="o-fin-panel" role="tabpanel" aria-labelledby="fin-tab-${activeFinTab}">${panel}</section>`;
+}
+
+// Estilos de las hojas MK III de Finanzas (hasta que se migren a Órbita).
+const modalCSS = `
+  .input-group { margin-bottom: 20px; }
+  .input-group label { display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .input-group input, .input-group select {
+    width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary);
+    padding: 14px 16px; font-size: 16px; box-sizing: border-box; outline: none;
+    font-family: inherit; transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .input-group input:focus, .input-group select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--fondo-indigo) 18%, transparent);
+  }
+  .tab-btn { flex: 1; padding: 12px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; }
+  .cat-item { cursor: pointer; padding: 4px; transition: background 0.2s; }
+  .cat-item.active { background: rgba(255,255,255,0.1); }
 `;
 
-// Badge de alerta reutilizado en Presupuesto y como indicador en Resumen:
-// ámbar si la categoría superó el 80% de lo asignado, rojo si superó el 100%.
-// compact=true (leyenda de Resumen, junto al nombre de categoría) antes
-// renderizaba un puntito de color sin contenido — sin ícono, texto ni
-// aria-label, se veía como un elemento suelto en vez de una alerta. Ahora
-// lleva un "!" (cabe en un círculo chico) más title/aria-label, así que
-// comunica lo mismo que la versión completa de Presupuesto sin ocupar el
-// espacio de "Excedido"/"80%+" en una fila apretada.
-const alertBadgeHtml = (usoCatPct, compact = false) => {
-  if (usoCatPct < 80) return '';
-  const isOver = usoCatPct >= 100;
-  const bg = isOver ? 'color-mix(in srgb, var(--fondo-alerta) 15%, transparent)' : 'color-mix(in srgb, var(--fondo-aviso) 15%, transparent)';
-  const color = isOver ? 'var(--state-high)' : 'var(--state-medium)';
-  const mensaje = isOver ? 'Superaste el presupuesto de esta categoría' : 'Ya usaste el 80% o más del presupuesto de esta categoría';
-  if (compact) {
-    return `<span role="img" aria-label="${mensaje}" title="${mensaje}" style="display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:${bg}; color:${colorTexto(color)}; font-size:10px; font-weight:800; line-height:1; flex-shrink:0;">!</span>`;
-  }
-  const label = isOver ? 'Excedido' : '80%+';
-  return `<span title="${mensaje}" style="display:inline-flex; align-items:center; gap:4px; background:${bg}; color:${colorTexto(color)}; font-size:10px; font-weight:700; padding:2px 8px;">${label}</span>`;
-};
+export async function render() {
+  const cuerpo = await renderCuerpo();
+  return `
+    <div class="o-vista o-fin o-mod-finanzas">
+      <div id="fin-cuerpo">${cuerpo}</div>
+      <div class="mk3-finanzas o-fin-hojas">
+        <style>${modalCSS}</style>
+        ${renderGoalForm()}
+        ${renderIngresoForm()}
+        ${renderGastoForm()}
+        ${renderAhorroForm()}
+        ${renderTransferForm()}
+        ${renderRecurringForm()}
+        ${renderAnualForm()}
+      </div>
+    </div>`;
+}
 
+// --- Repintar ------------------------------------------------------------------
+let pintadoN = 0;
+async function repintar() {
+  const n = ++pintadoN;
+  await cerrarMenuSobre();
+  const html = await renderCuerpo();
+  const cuerpo = document.getElementById('fin-cuerpo');
+  if (n !== pintadoN || !cuerpo || !vistaVigente()) return;
+  soltarGraficos();
+  cuerpo.innerHTML = html;
+  montarCuerpo();
+}
+
+// 'budget-updated': lo dispara db.js en cada cambio (también los que llegan
+// por sync de otro dispositivo). No pisa una hoja abierta, el formulario de
+// sobre a medio escribir ni el gasto rápido; tampoco una acción propia en
+// curso (esa repinta sola al terminar).
+async function onBudgetUpdated() {
+  if (ocupado || hayModalAbierto() || (history.state && history.state.modalId)) return;
+  const formSobre = document.getElementById('envelope-modal');
+  if (formSobre && formSobre.style.display !== 'none') return;
+  const rapido = document.getElementById('quick-gasto-input');
+  if (rapido && (document.activeElement === rapido || rapido.value.trim())) return;
+  await repintar();
+}
+
+// Llamado por el router (app.js) antes de desmontar esta vista.
+export function cleanup() {
+  soltarGraficos();
+  window.removeEventListener('budget-updated', onBudgetUpdated);
+  ldMov.soltar();
+  ldRec.soltar();
+  cerrarMenuSobre();
+}
+
+// Ejecuta una acción propia (guardar, borrar): el aviso de db.js no repinta
+// a medias; al terminar se repinta una vez.
+async function accion(fn) {
+  ocupado = true;
+  try { await fn(); } finally { ocupado = false; }
+}
+
+// --- Listeners -----------------------------------------------------------------
+// Una vez por montaje: las hojas y el aviso de cambios.
+export function mountListeners() {
+  vistaVigente = guardiaVista('finanzas');
+  const getB = () => b;
+  initIngresoForm(db, getB, repintar);
+  initGastoForm(db, getB, repintar);
+  initAhorroForm(db, getB, repintar);
+  initTransferForm(db, getB, repintar);
+  initRecurringForm(db, getB, repintar);
+  initGoalForm(repintar);
+  initAnuales();
+  window.removeEventListener('budget-updated', onBudgetUpdated);
+  window.addEventListener('budget-updated', onBudgetUpdated);
+  ldMov.enganchar();
+  ldRec.enganchar();
+  montarCuerpo();
+  if (gastoPedido) {
+    gastoPedido = false;
+    document.getElementById('gasto-modal')?.openForm();
+  }
+}
+
+async function cambiarPestana(tab) {
+  if (tab === activeFinTab) return;
+  ldMov.olvidar();
+  ldRec.olvidar();
+  activeFinTab = tab;
+  await repintar();
+  document.getElementById(`fin-tab-${tab}`)?.focus({ preventScroll: true });
+}
+
+// Movimientos filtrados por tipo, desde Resumen (Gastos, Ingresos, una
+// categoría de la regla).
+function irAMovimientos(filtro) {
+  filtroMov = filtro;
+  fechaDesde = '';
+  fechaHasta = '';
+  if (activeFinTab === 'movimientos') { repintar(); return; }
+  cambiarPestana('movimientos');
+}
+
+// Lo de cada repintado del cuerpo.
+function montarCuerpo() {
+  // Pestañas (flechas para moverse entre ellas, como un tablist).
+  const tabs = [...document.querySelectorAll('.fin-tab')];
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => cambiarPestana(tab.dataset.tab));
+    tab.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length].click();
+    });
+  });
+  document.getElementById('btn-fab-gasto')?.addEventListener('click', () => document.getElementById('gasto-modal').openForm());
+
+  // Detalle abierto desde cualquier lista de movimientos (Resumen o Movimientos).
+  document.querySelectorAll('.o-fin-mov-abrir').forEach(btn => btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    if (activeFinTab !== 'movimientos') { ldRec.olvidar(); activeFinTab = 'movimientos'; }
+    await ldMov.abrir(id);
+    if (ldMov.subpantalla) window.scrollTo(0, 0);
+  }));
+
+  if (activeFinTab === 'resumen') montarResumen();
+  if (activeFinTab === 'movimientos') montarMovimientos();
+  if (activeFinTab === 'sobres') montarSobres();
+  if (activeFinTab === 'recurrentes') montarRecurrentes();
+}
+
+function montarResumen() {
+  document.getElementById('btn-fab-ingreso')?.addEventListener('click', () => document.getElementById('ingreso-modal').openForm());
+  document.getElementById('btn-fab-ahorro')?.addEventListener('click', () => document.getElementById('ahorro-modal').openForm());
+  document.getElementById('btn-fab-transferir')?.addEventListener('click', () => document.getElementById('transfer-modal').openForm());
+  document.getElementById('card-gastos')?.addEventListener('click', () => irAMovimientos('Gasto'));
+  document.getElementById('card-ingresos')?.addEventListener('click', () => irAMovimientos('Ingreso'));
+  document.getElementById('btn-ver-todos')?.addEventListener('click', () => irAMovimientos('All'));
+  initActivityHeatmapListeners('finanzas-heatmap', 'var(--o-mod)');
+  renderResumenCharts();
+}
+
+function montarMovimientos() {
+  // Filtros: solo se repinta la lista (sin perder el foco del campo).
+  const pintarLista = () => {
+    const ul = document.getElementById('history-list-content');
+    if (!ul) return;
+    ul.innerHTML = listaMovimientosHtml();
+    ul.querySelectorAll('.o-fin-mov-abrir').forEach(btn => btn.addEventListener('click', async () => {
+      await ldMov.abrir(btn.dataset.id);
+      if (ldMov.subpantalla) window.scrollTo(0, 0);
+    }));
+  };
+  document.querySelectorAll('.history-tab').forEach(chip => chip.addEventListener('click', () => {
+    filtroMov = chip.dataset.filter;
+    document.querySelectorAll('.history-tab').forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+    pintarLista();
+  }));
+  const desde = document.getElementById('history-date-from');
+  const hasta = document.getElementById('history-date-to');
+  desde?.addEventListener('change', () => { fechaDesde = desde.value; pintarLista(); });
+  hasta?.addEventListener('change', () => { fechaHasta = hasta.value; pintarLista(); });
+  document.getElementById('btn-clear-date-filter')?.addEventListener('click', () => {
+    if (desde) desde.value = '';
+    if (hasta) hasta.value = '';
+    fechaDesde = '';
+    fechaHasta = '';
+    pintarLista();
+  });
+
+  // Gasto rápido (parseQuickGasto, sin cambios).
+  const quickGastoForm = document.getElementById('quick-gasto-form');
+  const quickGastoInput = document.getElementById('quick-gasto-input');
+  const quickGastoHint = document.getElementById('quick-gasto-hint');
+  bindQuickCaptureForm(quickGastoForm, async () => {
+    const text = quickGastoInput.value.trim();
+    if (!text) return;
+    const parsed = parseQuickGasto(text, b.envelopes);
+    if (!parsed) {
+      quickGastoHint.textContent = 'No pude leer el monto — prueba algo como "50 en supermercado"';
+      quickGastoHint.classList.add('o-fin-pista--error');
+      return;
+    }
+    quickGastoHint.classList.remove('o-fin-pista--error');
+    if (parsed.matches.length === 1) {
+      const env = parsed.matches[0];
+      await accion(() => db.addTransaction({ type: 'Gasto', category: env.category, label: parsed.label || env.name, amount: parsed.amount, envelopeId: env.id, goalId: null }));
+      Toast(`Gasto de ${formatCurrency(parsed.amount)} agregado a ${escapeHtml(env.name)}`, 'success');
+      quickGastoInput.value = '';
+      await repintar();
+      document.getElementById('quick-gasto-input')?.focus({ preventScroll: true });
+    } else {
+      quickGastoHint.textContent = parsed.matches.length > 1
+        ? 'Encontré más de un sobre posible — confirma cuál es'
+        : 'No encontré una categoría clara — confirma cuál es';
+      document.getElementById('gasto-modal').openForm({ amount: parsed.amount, label: parsed.label });
+      quickGastoInput.value = '';
+    }
+  });
+
+  // Detalle.
+  document.getElementById('btn-volver-mov')?.addEventListener('click', () => ldMov.cerrar());
+  document.getElementById('btn-cerrar-mov')?.addEventListener('click', () => ldMov.cerrar());
+  const txAbierto = () => b.breakdown.find(x => x.id === ldMov.id);
+  document.getElementById('btn-editar-mov')?.addEventListener('click', () => {
+    const tx = txAbierto();
+    if (!tx) return;
+    if (tx.type === 'Ingreso') document.getElementById('ingreso-modal').openForm(tx);
+    else if (tx.category === 'Savings') document.getElementById('ahorro-modal').openForm(tx);
+    else document.getElementById('gasto-modal').openForm(tx);
+  });
+  document.getElementById('btn-eliminar-mov')?.addEventListener('click', () => accion(async () => {
+    const tx = txAbierto();
+    if (!tx) return;
+    const ok = await ConfirmDialog('Eliminar movimiento', 'No se puede deshacer.', { verb: 'Eliminar' });
+    if (!ok) return;
+    await db.deleteTransaction(tx.id);
+    Toast('Movimiento eliminado', 'success');
+    await ldMov.cerrar();
+  }));
+}
+
+function montarSobres() {
+  initEnvelopeForm(db, repintar);
+  document.getElementById('btn-open-settings')?.addEventListener('click', () => window.appRouter.navigate('configuracion'));
+  document.querySelectorAll('.legend-item').forEach(item => item.addEventListener('click', () => {
+    irAMovimientos(item.dataset.cat === 'Ahorro' ? 'Ahorro' : 'Gasto');
+  }));
+
+  document.querySelectorAll('.env-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      const env = b.envelopes.find(x => x.id === row.dataset.id);
+      if (env) document.getElementById('envelope-modal').openForm(env);
+    });
+  });
+  document.querySelectorAll('.sobre-menu-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const yaAbierto = menuSobre && menuSobre.btn === btn;
+      await cerrarMenuSobre();
+      if (!yaAbierto) abrirMenuSobre(btn);
+    });
+  });
+  document.querySelectorAll('.edit-env').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await cerrarMenuSobre();
+      const env = b.envelopes.find(x => x.id === btn.dataset.id);
+      if (env) document.getElementById('envelope-modal').openForm(env);
+    });
+  });
+  // R3: archivar en vez de eliminar. Si hay recurrentes apuntando al sobre,
+  // no se archiva: se muestran y se ofrece ir a Recurrentes.
+  document.querySelectorAll('.archive-env').forEach(btn => {
+    btn.addEventListener('click', () => accion(async () => {
+      const id = btn.dataset.id;
+      await cerrarMenuSobre();
+      const env = b.envelopes.find(x => x.id === id);
+      const nombre = env ? env.name : 'el sobre';
+      const recurrentes = (await db.getRecurring()).filter(r => r.envelopeId === id);
+      if (recurrentes.length > 0) {
+        const uno = recurrentes.length === 1;
+        const lista = recurrentes.map(r => r.label || 'Sin nombre').join(', ');
+        const irARecurrentes = await ConfirmDialog(
+          `No se puede archivar ${nombre}`,
+          `${uno ? 'Lo usa este pago fijo' : 'Lo usan estos pagos fijos'}: ${lista}. ${uno ? 'Cámbialo de sobre o bórralo' : 'Cámbialos de sobre o bórralos'} en Recurrentes primero.`,
+          { verb: 'Ver recurrentes', danger: false }
+        );
+        if (irARecurrentes) cambiarPestana('recurrentes');
+        return;
+      }
+      const confirmed = await ConfirmDialog(
+        `Archivar sobre ${nombre}`,
+        'El sobre se oculta; su historial y saldo se conservan. Puedes desarchivarlo cuando quieras.',
+        { verb: 'Archivar', danger: false }
+      );
+      if (!confirmed) return;
+      await db.archivarSobre(id);
+      await repintar();
+    }));
+  });
+  document.querySelectorAll('.desarchivar-env').forEach(btn => {
+    btn.addEventListener('click', () => accion(async () => {
+      await db.desarchivarSobre(btn.dataset.id);
+      await repintar();
+    }));
+  });
+  document.querySelectorAll('.transfer-env').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await cerrarMenuSobre();
+      document.getElementById('transfer-modal').openForm(btn.dataset.id);
+    });
+  });
+  document.querySelectorAll('.btn-add-envelope').forEach(btn => {
+    btn.addEventListener('click', () => document.getElementById('envelope-modal').openForm());
+  });
+
+  // Metas.
+  document.getElementById('btn-add-goal')?.addEventListener('click', () => openGoalForm(null, { dominio: 'finanzas', tipo: 'dinero' }));
+  document.querySelectorAll('.edit-goal').forEach(btn => btn.addEventListener('click', () => {
+    const goal = b.goals.find(g => g.id === btn.dataset.id);
+    if (goal) openGoalForm(goal);
+  }));
+  document.querySelectorAll('.delete-goal').forEach(btn => btn.addEventListener('click', () => accion(async () => {
+    const goal = b.goals.find(g => g.id === btn.dataset.id);
+    if (!goal) return;
+    const confirmed = await ConfirmDialog(
+      `Eliminar meta ${goal.name}`,
+      goal.currentAmount > 0
+        ? `El seguimiento de esta meta desaparece. Los ${formatCurrency(goal.currentAmount)} que llevas ahorrados quedan en tu historial de movimientos. No se puede deshacer.`
+        : 'No se puede deshacer.',
+      { verb: 'Eliminar' }
+    );
+    if (!confirmed) return;
+    await db.deleteGoal(goal.id);
+    await repintar();
+  })));
+  document.querySelectorAll('.goal-row').forEach(row => row.addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+    document.getElementById('ahorro-modal').openForm(null, row.dataset.id);
+  }));
+}
+
+function montarRecurrentes() {
+  enlazarFilasAnuales();
+  document.getElementById('btn-add-recurring')?.addEventListener('click', () => {
+    if (!b.envelopes || b.envelopes.length === 0) {
+      Toast('Primero debes crear un sobre', 'warning');
+      return;
+    }
+    document.getElementById('recurring-modal').openForm();
+  });
+  document.querySelectorAll('.o-fin-rec-abrir').forEach(btn => btn.addEventListener('click', async () => {
+    await ldRec.abrir(btn.dataset.id);
+    if (ldRec.subpantalla) window.scrollTo(0, 0);
+  }));
+  document.getElementById('btn-volver-rec')?.addEventListener('click', () => ldRec.cerrar());
+  document.getElementById('btn-cerrar-rec')?.addEventListener('click', () => ldRec.cerrar());
+  document.getElementById('btn-eliminar-recurrente')?.addEventListener('click', () => accion(async () => {
+    const req = (b.recurring || []).find(r => r.id === ldRec.id);
+    if (!req) return;
+    const confirmed = await ConfirmDialog(
+      `Eliminar pago fijo ${req.label}`,
+      'Ya no se descontará dinero automáticamente de tu sobre.',
+      { verb: 'Eliminar' }
+    );
+    if (!confirmed) return;
+    await db.deleteRecurring(req.id);
+    Toast('Pago fijo eliminado', 'success');
+    await ldRec.cerrar();
+  }));
+}
+
+// =============================================================================
+// Para otras vistas
+// =============================================================================
 // Palabras que no aportan como pista de categoría en el gasto rápido.
 const QUICK_GASTO_STOPWORDS = new Set(['en', 'de', 'del', 'el', 'la', 'los', 'las', 'para', 'por', 'un', 'una']);
 
@@ -911,17 +1291,42 @@ export const parseQuickGasto = (text, envelopes) => {
   return { amount, label, matches };
 };
 
+// Fila de movimiento MK III: la usa Laboratorio › Finanzas (lab-finanzas.js),
+// que todavía no se migra a Órbita. envelopes se pasa explícito para que sea
+// llamable sin que Finanzas esté montada.
+const ICON_PATHS = {
+  'Ingreso': '<polyline points="5 12 12 5 19 12"></polyline><line x1="12" y1="19" x2="12" y2="5"></line>',
+  'Needs': '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>',
+  'Wants': '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>',
+  'Ahorro': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>',
+  'shield': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>',
+  'plane': '<path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"></path>',
+  'car': '<rect x="1" y="9" width="22" height="12" rx="3"></rect><path d="M3 9V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2"></path><circle cx="6" cy="21" r="2"></circle><circle cx="18" cy="21" r="2"></circle>',
+  'home': '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>',
+  'laptop': '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line>',
+  'education': '<path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path>',
+  'default': '<circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle>'
+};
+const getSVG = (key, color = 'currentColor') => {
+  if (!key) return '';
+  let matchedKey = key;
+  if (key === 'Income') matchedKey = 'Ingreso';
+  if (key === 'Savings') matchedKey = 'Ahorro';
+  if (key === 'Necesidades') matchedKey = 'Needs';
+  if (key === 'Deseos') matchedKey = 'Wants';
+  const path = ICON_PATHS[matchedKey] || ICON_PATHS['default'];
+  return `<svg width="18" height="18" fill="none" stroke="${color}" stroke-width="2" viewBox="0 0 24 24">${path}</svg>`;
+};
 const getCatColor = (cat) => {
-  if(cat === 'Needs') return 'var(--am2)';
-  if(cat === 'Wants') return 'var(--accent-blue)';
-  if(cat === 'Savings') return 'var(--accent-purple)';
-  if(cat === 'Income') return 'var(--state-success)';
+  if (cat === 'Needs') return 'var(--am2)';
+  if (cat === 'Wants') return 'var(--accent-blue)';
+  if (cat === 'Savings') return 'var(--accent-purple)';
+  if (cat === 'Income') return 'var(--state-success)';
   return 'var(--text-secondary)';
 };
+const transferSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3v18M17 3l4 4M17 3l-4 4M7 21V3M7 21l4-4M7 21l-4-4"></path></svg>`;
+const delSvg = `<svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
 
-// envelopes se pasa explícito (en vez de leer el `b` del módulo) para que
-// esto sea llamable desde afuera de finanzas.js (ver Análisis > Finanzas >
-// Movimientos) sin depender de que finanzas.js esté montado.
 export const txHtml = (tx, envelopes) => {
   let catColor = getCatColor(tx.category);
   let iconSvg = getSVG(tx.category, catColor);
@@ -972,607 +1377,3 @@ export const txHtml = (tx, envelopes) => {
     </div>
   `;
 };
-
-
-// Leyenda compacta para el donut de la pestaña Resumen: muestra a qué
-// categoría corresponde cada color y cuánto se gastó en cada una este mes.
-const renderResumenLegend = (b) => {
-  const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
-  const totalWants = b.allocations.find(a => a.category === 'Wants')?.amount || 0;
-  const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
-  const rule = b.rule || { needs: 0.5, wants: 0.3, savings: 0.2 };
-  const items = [
-    { label: 'Necesidades', amount: totalNeeds, color: 'var(--am2)', share: rule.needs },
-    { label: 'Deseos', amount: totalWants, color: 'var(--accent-blue)', share: rule.wants },
-    { label: 'Ahorro', amount: totalSavings, color: 'var(--accent-purple)', share: rule.savings }
-  ];
-  return items.map(item => {
-    const disponibleCat = b.budgeted * item.share;
-    const usoCatPct = disponibleCat > 0 ? Math.round((item.amount / disponibleCat) * 100) : (item.amount > 0 ? 100 : 0);
-    return `
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary);">
-        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${item.color}; flex-shrink: 0;"></span>${item.label}
-        ${alertBadgeHtml(usoCatPct, true)}
-      </div>
-      <div class="${item.amount > 0 ? 'num' : ''}" style="font-size: 12px; font-weight: 700; color: ${item.amount > 0 ? 'var(--text-primary)' : 'var(--text-disabled)'};">${item.amount > 0 ? formatCurrency(item.amount) : 'Sin movimientos'}</div>
-    </div>
-  `;
-  }).join('');
-};
-
-// Mapa de calor: días del mes con al menos un movimiento (ingreso, gasto o
-// ahorro). b.breakdown ya viene filtrado a currentMonth por getBudget().
-// Se llama tanto desde render() como desde el refresco en vivo de
-// 'budget-updated', para que un movimiento nuevo se refleje sin recargar.
-const buildFinanzasHeatmapHtml = () => {
-  const [heatYear, heatMonthNum] = currentMonth.split('-').map(Number);
-  const heatMonth = heatMonthNum - 1;
-  const nombreMesActual = formatMes(new Date(heatYear, heatMonth, 1));
-  const TX_TYPE_LABELS = { Gasto: 'Gasto', Ingreso: 'Ingreso', Ahorro: 'Ahorro', Transfer: 'Transferencia' };
-  const countByDay = {};
-  const detailByDay = {};
-  b.breakdown.forEach(tx => {
-    if (!tx.date) return;
-    // 'date' es 'YYYY-MM-DD' sin hora — se parsean los componentes a mano
-    // para no interpretarlo como medianoche UTC (mismo problema que
-    // documenta toDayKey en db.js > getRachaGlobal).
-    const day = Number(claveDiaDe(tx.date).split('-')[2]); // con ISO, split daba '30T03:00...' (NaN)
-    if (!day) return;
-    countByDay[day] = (countByDay[day] || 0) + 1;
-    if (!detailByDay[day]) detailByDay[day] = [];
-    const label = TX_TYPE_LABELS[tx.type] || tx.type;
-    detailByDay[day].push(`${label}: ${tx.label || 'Sin descripción'} (${formatCurrency(tx.amount)})`);
-  });
-  return renderActivityHeatmap({
-    id: 'finanzas-heatmap',
-    monthLabel: nombreMesActual,
-    year: heatYear,
-    month: heatMonth,
-    countByDay,
-    detailByDay,
-    accentVar: 'var(--am)',
-    emptyLabel: 'Sin movimientos'
-  });
-};
-
-// "Puedes gastar $X hoy" = (disponible restante) / días que quedan del mes (incluye hoy).
-const renderDailyAvailable = (b) => {
-  const now = new Date();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const diasRestantes = Math.max(1, daysInMonth - now.getDate() + 1);
-  const saldoDiario = Math.max(0, b.remaining) / diasRestantes;
-  return `
-    <div class="card" style="padding: 18px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px;">
-      <div class="icon-chip" style="width: 40px; height: 40px; background: color-mix(in srgb, var(--fondo-exito) 15%, transparent); color: var(--state-success-t); flex-shrink: 0;">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-      </div>
-      <div>
-        <div style="font-size: 11px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Disponible por día</div>
-        <div style="font-size: 17px; font-weight: 800; color: var(--text-primary);">Puedes gastar <span class="num">${formatCurrency(saldoDiario)}</span> hoy</div>
-        <div style="font-size: 11px; color: var(--text-disabled); margin-top: 2px;">${formatCurrency(Math.max(0, b.remaining))} restantes &bull; ${diasRestantes} día${diasRestantes === 1 ? '' : 's'} del mes</div>
-      </div>
-    </div>
-  `;
-};
-
-// Comparativo simple contra el mes anterior, reutiliza b.trend (ya calculado en db.getBudget).
-// b.trend es null cuando el mes anterior no tuvo gastos registrados (db.js
-// solo calcula el % si prevExpenses > 0) — un porcentaje contra una base 0
-// no dice nada real, así que se muestra un texto neutro en vez de omitirlo.
-const renderMonthTrend = (b) => {
-  if (!b.trend) return `<div style="font-size: 12px; font-weight: 600; color: var(--text-disabled); margin-top: 10px;">Sin datos del mes anterior</div>`;
-  const { pct, isUp, hastaDia } = b.trend;
-  const color = isUp ? 'var(--state-high)' : 'var(--state-low)';
-  // hastaDia: mes en curso comparado con el anterior hasta el mismo día.
-  const referencia = hastaDia ? 'a esta altura del mes pasado' : 'el mes pasado';
-  const texto = isUp ? `Gastaste ${pct}% más que ${referencia}` : `Vas ${pct}% mejor que ${referencia}`;
-  const arrow = isUp
-    ? `<svg width="12" height="12" fill="none" stroke="${color}" stroke-width="3" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`
-    : `<svg width="12" height="12" fill="none" stroke="${color}" stroke-width="3" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
-  return `<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: ${colorTexto(color)}; margin-top: 10px;">${arrow}${texto}</div>`;
-};
-
-// Saldo disponible acumulado día a día (1 hasta hoy) del mes actual, a
-// partir de los movimientos ya cargados en b.breakdown.
-const computeDailyBalanceSeries = (b) => {
-  const now = new Date();
-  const today = now.getDate();
-  const deltaPorDia = new Array(today + 1).fill(0);
-
-  (b.breakdown || []).forEach(t => {
-    if (!t.date) return;
-    const day = parseInt(claveDiaDe(t.date).slice(8, 10), 10); // día local, también para las ISO
-    if (!day || day < 1 || day > today) return;
-    const amt = Number(t.amount) || 0;
-    if (esMovimientoEntreSobres(t)) return; // mover dinero entre sobres no cambia el balance
-    deltaPorDia[day] += (t.type === 'Ingreso') ? amt : -amt;
-  });
-
-  const labels = [];
-  const data = [];
-  let running = 0;
-  for (let d = 1; d <= today; d++) {
-    running += deltaPorDia[d];
-    labels.push(String(d));
-    data.push(Math.round(running * 100) / 100);
-  }
-  return { labels, data };
-};
-
-// Dibuja/actualiza los 3 gráficos Chart.js de la pestaña Resumen. Se llama
-// tanto en mountListeners() (primer render) como en refresh() (cada vez
-// que cambian los datos), destruyendo la instancia anterior si existe.
-const renderResumenCharts = async (b) => {
-  const Chart = await ensureChartJs();
-  const palette = appPalette();
-  const opts = baseChartOptions();
-
-  const donutCanvas = document.getElementById('donut-chart-resumen');
-  if (donutCanvas) {
-    const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
-    const totalWants = b.allocations.find(a => a.category === 'Wants')?.amount || 0;
-    const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
-    // Mismos colores que renderResumenLegend() de más abajo — antes el
-    // anillo usaba palette.high/blue/purple (un rojo de alerta para
-    // Necesidades) mientras la leyenda pintaba su punto en ámbar: el
-    // anillo y su propia leyenda no coincidían.
-    const entries = [
-      { label: 'Necesidades', valor: totalNeeds, color: 'var(--am2)' },
-      { label: 'Deseos', valor: totalWants, color: 'var(--accent-blue)' },
-      { label: 'Ahorro', valor: totalSavings, color: 'var(--accent-purple)' }
-    ].filter(e => e.valor > 0);
-    if (entries.length > 0) {
-      await renderDonutChart('donut-chart-resumen', entries, {
-        cutout: '74%',
-        tooltipLabel: (ctx, entry) => `${entry.label}: ${formatCurrency(entry.valor)}`
-      });
-    } else {
-      destroyAllDonuts();
-    }
-  }
-
-  const lineCanvas = document.getElementById('line-chart-saldo-diario');
-  if (lineCanvas) {
-    const { labels, data } = computeDailyBalanceSeries(b);
-    if (dailyBalanceChartInstance) dailyBalanceChartInstance.destroy();
-    // Degradado real en vez de un alpha plano — mismo criterio "HD" que el
-    // resto de los line charts de la app. Sin value labels acá a propósito:
-    // esta serie es diaria (hasta 30+ puntos), no semanal — un número por
-    // punto se superpondría todo entre sí en vez de sumar información.
-    const gradient = verticalGradient(lineCanvas.getContext('2d'), palette.purple, lineCanvas.clientHeight || 100);
-    dailyBalanceChartInstance = new Chart(lineCanvas, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          data,
-          borderColor: palette.purple,
-          backgroundColor: gradient,
-          fill: true,
-          tension: 0.3,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          borderWidth: 2
-        }]
-      },
-      options: {
-        ...opts,
-        devicePixelRatio: hdPixelRatio(),
-        scales: {
-          x: { display: false },
-          y: { display: false }
-        }
-      }
-    });
-  }
-
-  const barCanvas = document.getElementById('bar-chart-mes-comparativo');
-  if (barCanvas) {
-    // Mismo corte que b.trend: en el mes en curso, el anterior hasta el mismo día.
-    const prevMes = b.prevExpenses || 0;
-    const esteMes = b.expenses || 0;
-    if (monthCompareChartInstance) monthCompareChartInstance.destroy();
-    monthCompareChartInstance = new Chart(barCanvas, {
-      type: 'bar',
-      data: {
-        // En dos líneas: Chart.js limita el eje a la mitad del ancho y, con
-        // la monoespaciada más ancha de Android, "Anterior (1–16)" se cortaba
-        // por la izquierda a 375 px.
-        labels: [b.trendHastaDia ? ['Anterior', `(1–${b.trendHastaDia})`] : ['Mes', 'anterior'], 'Este mes'],
-        datasets: [{
-          data: [prevMes, esteMes],
-          backgroundColor: [palette.surfaceBorder, esteMes > prevMes ? palette.high : palette.low],
-          borderRadius: 0, // MK III: sin esquinas redondeadas
-          maxBarThickness: 60
-        }]
-      },
-      options: {
-        ...opts,
-        devicePixelRatio: hdPixelRatio(),
-        indexAxis: 'y',
-        layout: { padding: { right: anchoEtiquetasBarraH([prevMes, esteMes].map(formatCompactCurrency)) } },
-        scales: {
-          x: { display: false },
-          y: { display: true, grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 12, weight: '600', family: chartFontFamily() } } }
-        }
-      },
-      plugins: [horizontalBarValueLabelsPlugin(cssVar('--text-primary'), formatCompactCurrency)]
-    });
-  }
-};
-
-// Pestañas de Finanzas: a 375 px no caben las 5 y el riel se desliza. Se
-// desvanece el borde por donde quedan pestañas ocultas (clases fade-izq /
-// fade-der) y la pestaña activa se lleva siempre a la vista.
-const marcarBordesRiel = (riel) => {
-  const max = riel.scrollWidth - riel.clientWidth;
-  riel.classList.toggle('fade-izq', riel.scrollLeft > 1);
-  riel.classList.toggle('fade-der', riel.scrollLeft < max - 1);
-};
-
-const ajustarRielPestanas = () => {
-  const riel = document.getElementById('fin-tabs');
-  if (!riel) return;
-  const activa = riel.querySelector('.fin-tab.active');
-  if (activa) {
-    // Con scrollLeft del riel y no scrollIntoView, que también movería la página.
-    const izq = activa.getBoundingClientRect().left - riel.getBoundingClientRect().left + riel.scrollLeft;
-    const der = izq + activa.offsetWidth;
-    if (izq < riel.scrollLeft + 24) riel.scrollLeft = Math.max(0, izq - 24);
-    else if (der > riel.scrollLeft + riel.clientWidth - 24) riel.scrollLeft = der - riel.clientWidth + 24;
-  }
-  marcarBordesRiel(riel);
-};
-
-// Los 3 "budget cards" macro de la regla 50/30/20 (Necesidades/Deseos/
-// Ahorros). Antes esta función también anidaba la lista de sobres de cada
-// categoría — eso ahora vive en renderEnvelopesHTML (tab Cuentas), para no
-// mostrar la misma plata dos veces enmarcada de formas distintas.
-const renderPresupuestoLegend = (b) => {
-  const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
-  const totalWants = b.allocations.find(a => a.category === 'Wants')?.amount || 0;
-  const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
-  const rule = b.rule || { needs: 0.5, wants: 0.3, savings: 0.2 };
-  const ruleDisplay = { needs: Math.round(rule.needs * 100), wants: Math.round(rule.wants * 100), savings: Math.round(rule.savings * 100) };
-
-  return ['Necesidades', 'Deseos', 'Ahorro'].map(catKey => {
-    const isNeeds = catKey === 'Necesidades';
-    const isWants = catKey === 'Deseos';
-    const totalAmt = isNeeds ? totalNeeds : (isWants ? totalWants : totalSavings);
-    const rulePct = isNeeds ? ruleDisplay.needs : (isWants ? ruleDisplay.wants : ruleDisplay.savings);
-
-    // Barra de progreso "gastado vs disponible" de la categoría, coloreada
-    // por nivel de uso respecto de lo que le corresponde según la regla 50/30/20.
-    const disponibleCat = b.budgeted * (isNeeds ? rule.needs : (isWants ? rule.wants : rule.savings));
-    const usoCatPct = disponibleCat > 0 ? Math.round((totalAmt / disponibleCat) * 100) : (totalAmt > 0 ? 100 : 0);
-    const usoCatPctClamped = Math.min(100, usoCatPct);
-    const meterCls = usoCatPct >= 100 ? 'danger' : usoCatPct >= 80 ? 'warn' : '';
-    const note = usoCatPct >= 100
-      ? `<p style="margin-top:8px; font-size:11px; color:var(--state-high-t);">Superaste el presupuesto de este mes.</p>`
-      : (usoCatPct >= 80 ? `<p style="margin-top:8px; font-size:11px; color:var(--state-medium-t);">Estás cerca del límite.</p>` : '');
-
-    return `
-      <div class="card legend-item tappable" data-cat="${catKey}">
-        <div class="fin-bc-head">
-          <h3 style="font-size: 13.5px; margin: 0;">${catKey}</h3>
-          <span class="fin-eyebrow"><span class="num">${rulePct}%</span> de la regla</span>
-        </div>
-        <p class="fin-bc-figures">${formatCurrency(totalAmt)} de ${formatCurrency(disponibleCat)}</p>
-        <div class="fin-meter"><i class="${meterCls}" style="width:${usoCatPctClamped}%"></i></div>
-        ${note}
-      </div>
-    `;
-  }).join('');
-};
-
-export async function render() {
-  await init();
-
-  const formatMonth = (str) => {
-    const [anio, mes] = str.split('-').map(Number);
-    return conMayuscula(`${formatMes(new Date(anio, mes - 1, 1))} de ${anio}`);
-  };
-  
-  const balanceSafe = b.remaining;
-  
-  const totalNeeds = b.allocations.find(a => a.category === 'Needs')?.amount || 0;
-  const totalWants = b.allocations.find(a => a.category === 'Wants')?.amount || 0;
-  const totalSavings = b.allocations.find(a => a.category === 'Savings')?.amount || 0;
-
-  const rule = b.rule || { needs: 0.5, wants: 0.3, savings: 0.2 };
-  const ruleDisplay = { needs: Math.round(rule.needs * 100), wants: Math.round(rule.wants * 100), savings: Math.round(rule.savings * 100) };
-  
-  const getPct = (val) => b.budgeted > 0 ? Math.round((val / b.budgeted) * 100) : 0;
-  const isHealthy = balanceSafe >= 0;
-
-  const now = new Date();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const currentDay = now.getDate();
-  const dailyAverage = currentDay > 0 ? (b.expenses / currentDay) : 0;
-  const projectedExpense = b.expenses + (dailyAverage * (daysInMonth - currentDay));
-  const projectedPct = b.budgeted > 0 ? (projectedExpense / b.budgeted) * 100 : 0;
-  
-  const segments = [
-    { percent: getPct(totalNeeds), color: 'var(--am2)' },
-    { percent: getPct(totalWants), color: 'var(--accent-blue)' },
-    { percent: getPct(totalSavings), color: 'var(--accent-purple)' }
-  ];
-  const donutSvg = renderDonut(segments, b.budgeted, b.budgeted === 0);
-  const presupuestoLegendHtml = renderPresupuestoLegend(b);
-  const envelopesHtml = await renderEnvelopesHTML(b);
-
-  // getHistoricalSummary ahora es async (lee IndexedDB): se precalcula acá
-  // el bloque de "Tendencia de gastos" en vez de armarlo en una IIFE
-  // síncrona dentro del template literal de más abajo.
-  const trendHistory6 = await db.getHistoricalSummary(6);
-  const trendHtml = (() => {
-    if (!trendHistory6.hasEnoughData) return '';
-    const maxVal = Math.max(...trendHistory6.data.map(d => d.expenses + d.saved));
-    return `
-    <div class="card" style="padding: 20px; margin-bottom: 24px;">
-      <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">Tendencia de gastos</h3>
-      <div style="display: flex; gap: 8px; align-items: flex-end; height: 100px; padding-top: 10px;">
-        ${trendHistory6.data.map(d => {
-          const h = Math.max(4, Math.round(((d.expenses + d.saved) / maxVal) * 100));
-          const isCurrent = d.month === b.currentMonth;
-          return `<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
-            <div style="width: 100%; height: 100px; background: var(--surface-2); position: relative; overflow: hidden;">
-              <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: ${h}%; background: ${isCurrent ? 'var(--text-primary)' : 'var(--text-secondary)'}; transition: height 0.5s ease;"></div>
-            </div>
-            <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600;">${formatMesCorto(fechaLocalDe(d.month + '-01'))}</div>
-          </div>`;
-        }).join('')}
-      </div>
-      <div class="flex-between" style="font-size: 11px; color: var(--text-disabled); margin-top: 12px;">
-        <span>Actual: ${formatCompactCurrency(b.expenses)}</span>
-        <span>Presupuesto: ${formatCompactCurrency(b.budgeted)}</span>
-      </div>
-    </div>`;
-  })();
-
-  const [heatYear, heatMonthNum] = currentMonth.split('-').map(Number);
-  const nombreMesActual = formatMes(new Date(heatYear, heatMonthNum - 1, 1));
-  const heatmapHtml = buildFinanzasHeatmapHtml();
-
-  let projColor = 'var(--state-success)';
-  if (projectedPct > 90) projColor = 'var(--accent-blue)';
-  if (projectedPct > 110) projColor = 'var(--state-high)';
-
-  const modalCSS = `
-    /* Los modales usan la geometría común de components.css (rectos, sin
-       sombra); acá ya no hay una copia propia que le gane en Finanzas. */
-    .input-group { margin-bottom: 20px; }
-    .input-group label { display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
-    .input-group input, .input-group select {
-      width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary);
-      padding: 14px 16px; font-size: 16px; box-sizing: border-box; outline: none;
-      font-family: inherit; transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .input-group input:focus, .input-group select:focus {
-      border-color: var(--accent-primary);
-      box-shadow: 0 0 0 4px color-mix(in srgb, var(--fondo-indigo) 18%, transparent);
-    }
-    .tab-btn { flex: 1; padding: 12px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; }
-    .cat-item { cursor: pointer; padding: 4px; transition: background 0.2s; }
-    .cat-item.active { background: rgba(255,255,255,0.1); }
-    .tx-row { cursor: pointer; }
-    .tx-row:hover { background: var(--surface-2) !important; }
-    .top-card { cursor: pointer; }
-  `;
-
-  const fullStr = formatDisponible(balanceSafe);
-
-  return `
-    <style>${modalCSS}</style>
-    <div style="max-width: 480px; margin: 0 auto; width: 100%; box-sizing: border-box; padding: 0 20px; font-family: 'Inter', sans-serif;">
-
-      <!-- Header (sin sticky: su fondo propio dejaba una franja oscura sobre el fondo de Órbita) -->
-      <div style="padding: 20px 4px 16px 4px; margin: 0 -4px 12px -4px;">
-        <div class="flex-between">
-          <h1 style="font-size: 30px; font-weight: 800; margin: 0; letter-spacing: -0.5px; color: var(--text-primary);">Finanzas</h1>
-          <div style="background: var(--surface-2); border: 1px solid var(--surface-border); border-radius: var(--o-radius-chip); padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            <span>${formatMonth(currentMonth)}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- TABS BAR -->
-      <div id="fin-tabs" class="segmented-control riel-pestanas" style="margin-bottom: 20px; overflow-x: auto; flex-wrap: nowrap;">
-        ${['resumen', 'movimientos', 'presupuesto', 'recurrentes', 'cuentas'].map(t => {
-          const labels = { resumen: 'Resumen', movimientos: 'Movimientos', presupuesto: 'Presupuesto', recurrentes: 'Recurrentes', cuentas: 'Cuentas' };
-          const isActive = activeFinTab === t;
-          return `<button class="fin-tab ${isActive ? 'active' : ''}" data-tab="${t}" style="flex: 0 0 auto; padding: 10px 14px; background: ${isActive ? 'var(--surface-1)' : 'transparent'}; color: ${isActive ? 'var(--text-primary)' : 'var(--text-secondary)'};">${labels[t]}</button>`;
-        }).join('')}
-      </div>
-
-      <!-- TAB 1: RESUMEN -->
-      <div id="tab-content-resumen" class="fin-tab-content" style="display: ${activeFinTab === 'resumen' ? 'block' : 'none'};">
-        <p class="fin-eyebrow" style="margin-bottom: 4px;">Resumen del mes</p>
-        <!-- Una sola tarjeta (docs/PLAN-REVISION-OCT.md, 4.1): Balance grande
-             con la comparación del mes pasado y, debajo, Gastos e Ingresos
-             en una fila. Cada uno lleva a Movimientos filtrado. -->
-        <div class="card fin-stat card-hero" id="card-disponible" style="min-width: 0; padding: 0; margin-bottom: 24px;">
-          <div style="padding: 20px 20px 16px;">
-            <p class="fin-eyebrow">Balance</p>
-            <div id="disponible-mes-value" class="fin-stat-value" style="font-size: 32px; color: ${isHealthy ? 'var(--state-success-t)' : 'var(--state-high-t)'}; overflow-wrap: anywhere;">${fullStr}</div>
-            <div id="month-trend-container">${renderMonthTrend(b)}</div>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line);">
-            <button type="button" class="tappable" id="card-gastos" style="min-width: 0; padding: 14px 20px; background: transparent; border: none; text-align: left; cursor: pointer; font: inherit;">
-              <p class="fin-eyebrow">Gastos</p>
-              <div id="stat-expense" class="fin-stat-value" style="font-size: 18px; color: var(--state-high-t); overflow-wrap: anywhere;">${formatDisponible(b.expenses)}</div>
-            </button>
-            <button type="button" class="tappable" id="card-ingresos" style="min-width: 0; padding: 14px 20px; background: transparent; border: none; border-left: 1px solid var(--line); text-align: left; cursor: pointer; font: inherit;">
-              <p class="fin-eyebrow">Ingresos</p>
-              <div id="stat-income" class="fin-stat-value" style="font-size: 18px; color: var(--state-success-t); overflow-wrap: anywhere;">${formatDisponible(b.income)}</div>
-            </button>
-          </div>
-        </div>
-
-        <!-- BOTONES FAB MOVIDOS AQUÍ -->
-        <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-          <button id="btn-fab-ingreso" class="tappable" style="flex: 1; padding: 14px 8px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
-            <div class="icon-chip" style="width: 36px; height: 36px; background: color-mix(in srgb, var(--fondo-exito) 15%, transparent); color: var(--state-success-t);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"></path></svg></div>
-            <span style="font-size: 11px; font-weight: 700;">Ingreso</span>
-          </button>
-          <button id="btn-fab-gasto" class="tappable" style="flex: 1; padding: 14px 8px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
-            <div class="icon-chip" style="width: 36px; height: 36px; background: color-mix(in srgb, var(--fondo-alerta) 15%, transparent); color: var(--state-high-t);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7 7 7-7"></path></svg></div>
-            <span style="font-size: 11px; font-weight: 700;">Gasto</span>
-          </button>
-          <button id="btn-fab-ahorro" class="tappable" style="flex: 1; padding: 14px 8px; background: var(--surface-1); border: 1px solid var(--surface-border); display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--text-primary);">
-            <div class="icon-chip" style="width: 36px; height: 36px; background: color-mix(in srgb, var(--fondo-ambar) 15%, transparent); color: var(--accent-purple-t);"><svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg></div>
-            <span style="font-size: 11px; font-weight: 700;">Ahorro</span>
-          </button>
-        </div>
-
-        <!-- Gasto rápido: texto libre tipo "50 en supermercado". <form> a
-             propósito, no un div + keydown: un <input> solo dentro de un
-             <form> dispara "submit" al presionar Enter/Ir/Listo en
-             CUALQUIER teclado móvil de forma nativa — no depende de que el
-             navegador mapee ese teclado a un keydown con key:"Enter" (varía
-             entre iOS/Android/enterkeyhint). El botón de la flecha es
-             type="submit" por el mismo motivo: un solo camino (el evento
-             "submit" del form) para ambas formas de confirmar. -->
-        <form id="quick-gasto-form" style="margin-bottom: 24px;" onsubmit="return false;">
-          <div style="position: relative; display: flex; align-items: stretch; gap: 8px;">
-            <div style="position: relative; flex: 1; min-width: 0;">
-              <svg style="position: absolute; left: 16px; top: 15px; color: var(--text-secondary); pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"></path></svg>
-              <input type="text" id="quick-gasto-input" inputmode="text" enterkeyhint="go" placeholder="Agregar gasto rápido, ej. 50 en supermercado" style="width: 100%; background: var(--surface-1); border: 1px solid var(--surface-border); padding: 14px 16px 14px 44px; color: var(--text-primary); font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s ease, box-shadow 0.2s ease;" onfocus="this.style.borderColor='var(--state-high)'; this.style.boxShadow='0 0 0 4px color-mix(in srgb, var(--fondo-alerta) 15%, transparent)';" onblur="this.style.borderColor='var(--surface-border)'; this.style.boxShadow='none';">
-            </div>
-            <button type="submit" id="btn-quick-gasto-submit" class="tappable" title="Agregar gasto" style="flex-shrink: 0; width: 48px; background: var(--state-high); border: none; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-            </button>
-          </div>
-          <div id="quick-gasto-hint" style="font-size: 11px; color: var(--text-disabled); margin-top: 6px; padding-left: 4px; min-height: 14px;"></div>
-        </form>
-
-        <div id="daily-available-container">${renderDailyAvailable(b)}</div>
-
-        <!-- Donut real (Chart.js) -->
-        <div class="card card--glass" style="padding: 28px; margin-bottom: 24px; text-align: center;">
-          <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 20px 0; text-align: left;">Distribución del gasto</h3>
-          <div style="position: relative; width: 150px; height: 150px; margin: 0 auto;">
-            <canvas id="donut-chart-resumen" width="150" height="150"></canvas>
-            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none;">
-              <div style="font-size: 11px; color: var(--text-secondary); font-weight: 600; margin-bottom: 2px;">Presupuesto</div>
-              <div style="font-size: 17px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.3px;">${formatCompactCurrency(b.budgeted)}</div>
-            </div>
-          </div>
-          <div id="resumen-cat-legend" style="display: flex; flex-direction: column; gap: 10px; margin-top: 24px; text-align: left;">
-            ${renderResumenLegend(b)}
-          </div>
-        </div>
-
-        <!-- Mapa de actividad -->
-        <div class="card" style="padding: 18px 20px; margin-bottom: 24px;">
-          <h3 style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 14px 0;">Actividad de ${nombreMesActual}</h3>
-          ${heatmapHtml}
-        </div>
-
-        <!-- Evolución del saldo disponible día a día -->
-        <div class="card" style="padding: 20px; margin-bottom: 24px;">
-          <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">Evolución del saldo disponible</h3>
-          <div style="height: 120px;"><canvas id="line-chart-saldo-diario"></canvas></div>
-        </div>
-
-        <!-- Comparativo de gasto: este mes vs. mes anterior -->
-        <div class="card" style="padding: 20px; margin-bottom: 24px;">
-          <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">Gasto vs. mes anterior</h3>
-          <div style="height: 110px;"><canvas id="bar-chart-mes-comparativo"></canvas></div>
-        </div>
-
-        ${trendHtml}
-
-        <div class="card" style="padding: 0; margin-bottom: 24px; overflow: hidden;">
-          <div class="flex-between" style="padding: 14px 20px; border-bottom: 1px solid var(--line);">
-            <h3 style="font-size: 13px; margin: 0;">Movimientos recientes</h3>
-            <span class="btn-go-movimientos fin-eyebrow" id="btn-ver-todos" style="cursor: pointer;">Ver todos</span>
-          </div>
-          <div id="recent-tx-list" class="fin-row-list">
-            ${b.breakdown.length === 0 ? finEmptyState('Sin datos', 'Todavía no hay movimientos', 'Toca el botón Ingreso o Gasto para registrar el primero.') : b.breakdown.slice(0, 5).map(tx => txHtml(tx, b.todosLosSobres || b.envelopes)).join('')}
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 2: MOVIMIENTOS -->
-      <div id="tab-content-movimientos" class="fin-tab-content" style="display: ${activeFinTab === 'movimientos' ? 'block' : 'none'};">
-        <p class="fin-eyebrow" style="margin-bottom: 12px;">Todos los registros</p>
-        <div class="segmented-control" style="margin-bottom: 16px;">
-          <button class="history-tab" data-filter="All" style="background: var(--surface-1); color: var(--text-primary);">Todos</button>
-          <button class="history-tab" data-filter="Ingreso" style="background: transparent; color: var(--text-secondary);">Ingresos</button>
-          <button class="history-tab" data-filter="Gasto" style="background: transparent; color: var(--text-secondary);">Gastos</button>
-          <button class="history-tab" data-filter="Ahorro" style="background: transparent; color: var(--text-secondary);">Ahorro</button>
-        </div>
-        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
-          <input type="date" id="history-date-from" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; font-size: 16px; box-sizing: border-box; outline: none; font-family: inherit;">
-          <span style="color: var(--text-disabled); font-size: 12px;">a</span>
-          <input type="date" id="history-date-to" style="flex: 1; min-width: 0; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px 12px; font-size: 16px; box-sizing: border-box; outline: none; font-family: inherit;">
-          <button id="btn-clear-date-filter" style="background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 10px 12px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">Limpiar</button>
-        </div>
-        <div class="card" style="padding: 0; margin-bottom: 24px; overflow: hidden;">
-          <div id="history-list-content" class="fin-row-list">
-            <!-- Inyectado por renderHistoryList -->
-          </div>
-        </div>
-        ${renderAgeOfMoneyHTML(b)}
-      </div>
-
-      <!-- TAB 3: PRESUPUESTO -->
-      <div id="tab-content-presupuesto" class="fin-tab-content" style="display: ${activeFinTab === 'presupuesto' ? 'block' : 'none'};">
-        <div class="flex-between" style="margin-bottom: 12px;">
-          <p class="fin-eyebrow">Límites mensuales</p>
-          <button id="btn-open-settings" style="background: transparent; border: none; color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em;">Editar en Configuración</button>
-        </div>
-        <div class="card" style="padding: 24px; margin-bottom: 24px; text-align: center;">
-          <div style="position: relative; width: 180px; height: 180px; margin: 0 auto 32px auto;">
-            <div id="chart-donut-presupuesto" style="width: 180px; height: 180px; margin: 0 auto; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">${donutSvg}</div>
-            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-              <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px;">Gastado</div>
-              <div style="font-size: 20px; font-weight: 800; color: var(--text-primary); line-height: 1;">${formatCurrency(b.expenses + b.savedThisMonth)}</div>
-            </div>
-          </div>
-          <div id="presupuesto-legend-container" class="fin-grid2" style="text-align: left;">
-            ${presupuestoLegendHtml}
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 4: RECURRENTES -->
-      <div id="tab-content-recurrentes" class="fin-tab-content" style="display: ${activeFinTab === 'recurrentes' ? 'block' : 'none'};">
-        <p class="fin-eyebrow" style="margin-bottom: 4px;">Descuento automático</p>
-        <p style="color: var(--text-secondary); font-size: 12.5px; max-width: 520px; margin: 0 0 18px 0;">Configura un pago fijo una vez y se descuenta solo de su sobre cada mes — arriendos, suscripciones, cuentas de servicios.</p>
-        <div id="recurring-container">
-          ${renderRecurringHTML(b)}
-        </div>
-        <!-- Gastos anuales prorrateados (components/gastos-anuales.js). -->
-        <div id="anuales-container" style="margin-top: 24px;">
-          ${await renderAnualesHTML()}
-        </div>
-      </div>
-
-      <!-- TAB 5: CUENTAS -->
-      <div id="tab-content-cuentas" class="fin-tab-content" style="display: ${activeFinTab === 'cuentas' ? 'block' : 'none'};">
-        <p class="fin-eyebrow" style="margin-bottom: 12px;">Sobres y metas</p>
-        ${renderEnvelopeForm()}
-        <div id="envelopes-list-container">
-          ${envelopesHtml}
-        </div>
-        <div id="goals-container" style="margin-top: 24px;">
-          ${renderGoalsHTML(b)}
-        </div>
-      </div>
-
-    </div>
-
-    ${renderGoalForm()}
-
-    ${renderIngresoForm()}
-      ${renderGastoForm()}
-      ${renderAhorroForm()}
-      ${renderTransferForm()}
-      ${renderRecurringForm()}
-      ${renderAnualForm()}
-    `;
-  }

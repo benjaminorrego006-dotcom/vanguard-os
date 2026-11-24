@@ -1,0 +1,518 @@
+{
+  "ui": {
+    "resumen": {
+      "balance": "$1.009.700",
+      "gastos": "$370.300",
+      "ingresos": "$1.500.000",
+      "tendencia": "Vas 11% mejor que a esta altura del mes pasado",
+      "porDia": "$126.213",
+      "restantes": "$1.009.700",
+      "diasRestantes": 8,
+      "categorias": {
+        "Necesidades": "$240.600",
+        "Deseos": "$129.700",
+        "Ahorro": "$120.000"
+      },
+      "recientes": [
+        {
+          "nombre": "Supermercado",
+          "monto": "-$8.000"
+        },
+        {
+          "nombre": "Cuenta de luz",
+          "monto": "-$38.000"
+        },
+        {
+          "nombre": "Cuenta de agua",
+          "monto": "-$22.000"
+        },
+        {
+          "nombre": "Transferencia entre sobres",
+          "monto": "$20.000"
+        },
+        {
+          "nombre": "Aporte mensual",
+          "monto": "-$120.000"
+        }
+      ]
+    },
+    "presupuesto": {
+      "gastado": "$490.300",
+      "categorias": {
+        "Necesidades": "$240.600 de $750.000",
+        "Deseos": "$129.700 de $450.000",
+        "Ahorro": "$120.000 de $300.000"
+      }
+    },
+    "recurrentes": {
+      "total": "$51.000",
+      "filas": [
+        {
+          "nombre": "Internet",
+          "dia": 26,
+          "sobre": "Servicios",
+          "monto": "$45.000"
+        },
+        {
+          "nombre": "App de música",
+          "dia": 15,
+          "sobre": "Suscripciones",
+          "monto": "$6.000"
+        }
+      ],
+      "anuales": [
+        {
+          "nombre": "Patente",
+          "montos": [
+            "$48.000",
+            "$240.000",
+            "$48.000"
+          ]
+        }
+      ]
+    },
+    "sobres": {
+      "Supermercado": {
+        "categoria": "Necesidades",
+        "saldo": "$430.700",
+        "gastado": "$99.200",
+        "disponible": "$529.900",
+        "sobregiro": null,
+        "arrastre": "+$299.900",
+        "mesArrastre": "octubre",
+        "transferido": "−$20.000"
+      },
+      "Transporte": {
+        "categoria": "Necesidades",
+        "saldo": "-$15.000",
+        "gastado": "$81.400",
+        "disponible": "$66.400",
+        "sobregiro": null,
+        "arrastre": "−$13.600",
+        "mesArrastre": "octubre",
+        "transferido": "+$20.000"
+      },
+      "Servicios": {
+        "categoria": "Necesidades",
+        "saldo": "$30.000",
+        "gastado": "$60.000",
+        "disponible": "$90.000",
+        "sobregiro": null,
+        "arrastre": null,
+        "mesArrastre": null,
+        "transferido": null
+      },
+      "Salidas": {
+        "categoria": "Deseos",
+        "saldo": "-$21.600",
+        "gastado": "$100.000",
+        "disponible": "$78.400",
+        "sobregiro": null,
+        "arrastre": "−$1.600",
+        "mesArrastre": "octubre",
+        "transferido": null
+      },
+      "Suscripciones": {
+        "categoria": "Deseos",
+        "saldo": "-$57.000",
+        "gastado": null,
+        "disponible": null,
+        "sobregiro": "$27.300",
+        "arrastre": "−$52.300",
+        "mesArrastre": "octubre",
+        "transferido": null
+      },
+      "Patente": {
+        "categoria": "Necesidades",
+        "saldo": "$48.000",
+        "gastado": "$0",
+        "disponible": "$48.000",
+        "sobregiro": null,
+        "arrastre": null,
+        "mesArrastre": null,
+        "transferido": null
+      }
+    },
+    "archivados": [
+      "Regalos"
+    ],
+    "metas": [
+      {
+        "montos": [
+          "$120.000",
+          "$600.000"
+        ]
+      }
+    ],
+    "movimientos": [
+      {
+        "nombre": "Supermercado",
+        "monto": "-$8.000"
+      },
+      {
+        "nombre": "Cuenta de luz",
+        "monto": "-$38.000"
+      },
+      {
+        "nombre": "Cuenta de agua",
+        "monto": "-$22.000"
+      },
+      {
+        "nombre": "Transferencia entre sobres",
+        "monto": "$20.000"
+      },
+      {
+        "nombre": "Aporte mensual",
+        "monto": "-$120.000"
+      },
+      {
+        "nombre": "Metro",
+        "monto": "-$7.300"
+      },
+      {
+        "nombre": "Restaurante",
+        "monto": "-$16.400"
+      },
+      {
+        "nombre": "Netflix",
+        "monto": "-$6.400"
+      },
+      {
+        "nombre": "Supermercado",
+        "monto": "-$36.100"
+      },
+      {
+        "nombre": "Metro",
+        "monto": "-$28.600"
+      },
+      {
+        "nombre": "Restaurante",
+        "monto": "-$9.200"
+      },
+      {
+        "nombre": "App de música",
+        "monto": "-$5.000"
+      },
+      {
+        "nombre": "Supermercado",
+        "monto": "-$27.200"
+      },
+      {
+        "nombre": "Metro",
+        "monto": "-$21.900"
+      },
+      {
+        "nombre": "Restaurante",
+        "monto": "-$32.000"
+      },
+      {
+        "nombre": "Almacenamiento en la nube",
+        "monto": "-$3.500"
+      },
+      {
+        "nombre": "Supermercado",
+        "monto": "-$18.400"
+      },
+      {
+        "nombre": "Metro",
+        "monto": "-$15.200"
+      },
+      {
+        "nombre": "Restaurante",
+        "monto": "-$24.800"
+      },
+      {
+        "nombre": "Netflix",
+        "monto": "-$8.100"
+      },
+      {
+        "nombre": "Supermercado",
+        "monto": "-$9.500"
+      },
+      {
+        "nombre": "Metro",
+        "monto": "-$8.400"
+      },
+      {
+        "nombre": "Restaurante",
+        "monto": "-$17.600"
+      },
+      {
+        "nombre": "Sueldo",
+        "monto": "+$1.500.000"
+      },
+      {
+        "nombre": "App de música",
+        "monto": "-$6.700"
+      }
+    ],
+    "hoy": {
+      "presupuesto": "Presupuesto67%",
+      "cobros": "Cobros sin saldo · 7 días El 26 nov, Internet ($45.000) excederá el saldo de Servicios. Faltan $15.000.",
+      "anuales": null
+    }
+  },
+  "datos": {
+    "2026-08": {
+      "ingresos": 0,
+      "gastos": 0,
+      "ahorro": 0,
+      "presupuestado": 0,
+      "disponible": 0,
+      "sobres": {
+        "Supermercado": {
+          "archivado": false,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        },
+        "Transporte": {
+          "archivado": false,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        },
+        "Servicios": {
+          "archivado": false,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        },
+        "Salidas": {
+          "archivado": false,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        },
+        "Suscripciones": {
+          "archivado": false,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        },
+        "Regalos": {
+          "archivado": true,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        },
+        "Patente": {
+          "archivado": false,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        }
+      }
+    },
+    "2026-09": {
+      "ingresos": 0,
+      "gastos": 58900,
+      "ahorro": 0,
+      "presupuestado": 0,
+      "disponible": -58900,
+      "sobres": {
+        "Supermercado": {
+          "archivado": false,
+          "asignado": 250000,
+          "arrastre": 0,
+          "gastado": 12400,
+          "transferencias": 0,
+          "saldo": 237600
+        },
+        "Transporte": {
+          "archivado": false,
+          "asignado": 60000,
+          "arrastre": 0,
+          "gastado": 10700,
+          "transferencias": 0,
+          "saldo": 49300
+        },
+        "Servicios": {
+          "archivado": false,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        },
+        "Salidas": {
+          "archivado": false,
+          "asignado": 80000,
+          "arrastre": 0,
+          "gastado": 27200,
+          "transferencias": 0,
+          "saldo": 52800
+        },
+        "Suscripciones": {
+          "archivado": false,
+          "asignado": 25000,
+          "arrastre": 0,
+          "gastado": 8600,
+          "transferencias": 0,
+          "saldo": 16400
+        },
+        "Regalos": {
+          "archivado": true,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        },
+        "Patente": {
+          "archivado": false,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        }
+      }
+    },
+    "2026-10": {
+      "ingresos": 1680000,
+      "gastos": 550700,
+      "ahorro": 0,
+      "presupuestado": 1680000,
+      "disponible": 1129300,
+      "sobres": {
+        "Supermercado": {
+          "archivado": false,
+          "asignado": 250000,
+          "arrastre": 237600,
+          "gastado": 187700,
+          "transferencias": 0,
+          "saldo": 299900
+        },
+        "Transporte": {
+          "archivado": false,
+          "asignado": 60000,
+          "arrastre": 49300,
+          "gastado": 122900,
+          "transferencias": 0,
+          "saldo": -13600
+        },
+        "Servicios": {
+          "archivado": false,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        },
+        "Salidas": {
+          "archivado": false,
+          "asignado": 80000,
+          "arrastre": 52800,
+          "gastado": 134400,
+          "transferencias": 0,
+          "saldo": -1600
+        },
+        "Suscripciones": {
+          "archivado": false,
+          "asignado": 25000,
+          "arrastre": 16400,
+          "gastado": 93700,
+          "transferencias": 0,
+          "saldo": -52300
+        },
+        "Regalos": {
+          "archivado": true,
+          "asignado": 30000,
+          "arrastre": 0,
+          "gastado": 12000,
+          "transferencias": 0,
+          "saldo": 18000
+        },
+        "Patente": {
+          "archivado": false,
+          "asignado": 0,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 0
+        }
+      }
+    },
+    "2026-11": {
+      "ingresos": 1500000,
+      "gastos": 370300,
+      "ahorro": 120000,
+      "presupuestado": 1500000,
+      "disponible": 1009700,
+      "sobres": {
+        "Supermercado": {
+          "archivado": false,
+          "asignado": 250000,
+          "arrastre": 299900,
+          "gastado": 99200,
+          "transferencias": -20000,
+          "saldo": 430700
+        },
+        "Transporte": {
+          "archivado": false,
+          "asignado": 60000,
+          "arrastre": -13600,
+          "gastado": 81400,
+          "transferencias": 20000,
+          "saldo": -15000
+        },
+        "Servicios": {
+          "archivado": false,
+          "asignado": 90000,
+          "arrastre": 0,
+          "gastado": 60000,
+          "transferencias": 0,
+          "saldo": 30000
+        },
+        "Salidas": {
+          "archivado": false,
+          "asignado": 80000,
+          "arrastre": -1600,
+          "gastado": 100000,
+          "transferencias": 0,
+          "saldo": -21600
+        },
+        "Suscripciones": {
+          "archivado": false,
+          "asignado": 25000,
+          "arrastre": -52300,
+          "gastado": 29700,
+          "transferencias": 0,
+          "saldo": -57000
+        },
+        "Regalos": {
+          "archivado": true,
+          "asignado": 30000,
+          "arrastre": 18000,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 48000
+        },
+        "Patente": {
+          "archivado": false,
+          "asignado": 48000,
+          "arrastre": 0,
+          "gastado": 0,
+          "transferencias": 0,
+          "saldo": 48000
+        }
+      }
+    }
+  },
+  "errores": []
+}

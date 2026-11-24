@@ -11,6 +11,7 @@ import { escapeHtml } from '../utils/escape.js';
 import { diaKeyDe, fechaLocalDe, formatFechaLarga } from '../utils/fecha.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
 import { esperarSalidaDeModal } from '../core/history.js';
+import { oIcono } from './orbita.js';
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const ID = 'anual-modal';
@@ -26,17 +27,19 @@ function filaHtml({ gasto, ap }) {
   const negativo = ap.saldo < 0;
   const cubierto = ap.sugerido === 0;
   return `
-    <div class="anual-fila tappable" role="button" tabindex="0" data-id="${gasto.id}" aria-label="Editar ${escapeHtml(gasto.nombre)}">
-      <div class="anual-cab">
-        <span class="anual-nombre">${escapeHtml(gasto.nombre)}</span>
-        <span class="anual-fecha num">${escapeHtml(fechaCorta(ap.vence))}</span>
-      </div>
-      <div class="anual-barra" aria-hidden="true"><div style="width: ${pct.toFixed(1)}%;"></div></div>
-      <div class="anual-pie">
-        <span class="num${negativo ? ' anual-negativo' : ''}">${formatCurrency(ap.saldo)} de ${formatCurrency(gasto.monto)}</span>
-        <span class="anual-apartar">${cubierto ? 'Cubierto' : `Apartar este mes: <span class="num">${formatCurrency(ap.sugerido)}</span>`}</span>
-      </div>
-    </div>`;
+    <li>
+      <button type="button" class="o-card o-anual-fila anual-fila" data-id="${escapeHtml(gasto.id)}" aria-label="Editar ${escapeHtml(gasto.nombre)}">
+        <span class="o-anual-cab">
+          <span class="o-anual-nombre anual-nombre">${escapeHtml(gasto.nombre)}</span>
+          <span class="o-num o-anual-fecha">${escapeHtml(fechaCorta(ap.vence))}</span>
+        </span>
+        <span class="o-anual-barra" aria-hidden="true"><i style="width: ${pct.toFixed(1)}%;"></i></span>
+        <span class="o-anual-pie anual-pie">
+          <span class="o-num${negativo ? ' o-anual-negativo' : ''}">${negativo ? oIcono('alerta') : ''}${formatCurrency(ap.saldo)} de ${formatCurrency(gasto.monto)}</span>
+          <span class="o-anual-apartar">${cubierto ? 'Cubierto' : `Apartar este mes: <span class="o-num">${formatCurrency(ap.sugerido)}</span>`}</span>
+        </span>
+      </button>
+    </li>`;
 }
 
 // HTML de la sección completa (lee los gastos y el saldo de cada sobre).
@@ -44,17 +47,17 @@ export async function renderAnualesHTML() {
   const gastos = await db.getGastosAnuales();
   const filas = await Promise.all(gastos.map(async gasto => ({ gasto, ap: await db.apartarSugerido(gasto) })));
   return `
-    <section class="card anual-seccion" aria-labelledby="anual-titulo">
-      <div class="anual-seccion-cab">
+    <section class="o-fin-seccion o-anual-seccion" aria-labelledby="anual-titulo">
+      <div class="o-fin-seccion-cab">
         <div>
-          <p class="fin-eyebrow" id="anual-titulo" style="margin: 0;">Gastos anuales</p>
-          <p class="anual-ayuda">Cada uno tiene su sobre: lo que apartas cada mes se acumula hasta que vence.</p>
+          <h2 class="o-rotulo" id="anual-titulo">Gastos anuales</h2>
+          <p class="o-fin-pista">Cada uno tiene su sobre: lo que apartas cada mes se acumula hasta que vence.</p>
         </div>
-        <button type="button" id="btn-anual-nuevo" class="anual-btn tappable">+ Agregar</button>
+        <button type="button" id="btn-anual-nuevo" class="o-btn o-btn--secundario">Agregar</button>
       </div>
       ${filas.length
-        ? filas.map(filaHtml).join('')
-        : '<p class="anual-vacio">Todavía no tienes gastos anuales. Agrega uno, como la patente o un seguro.</p>'}
+        ? `<ul class="o-lista">${filas.map(filaHtml).join('')}</ul>`
+        : '<p class="o-card o-fin-pista">Todavía no tienes gastos anuales. Agrega uno, como la patente o un seguro.</p>'}
     </section>`;
 }
 
@@ -142,7 +145,9 @@ async function abrir(gasto = null) {
   }
 }
 
-function enlazarFilas() {
+// Botón Agregar y filas: tras cada render de la sección (Finanzas los
+// llama en cada repintado; repintarAnuales, después de guardar).
+export function enlazarFilasAnuales() {
   const nuevo = document.getElementById('btn-anual-nuevo');
   if (nuevo) nuevo.addEventListener('click', () => abrir());
   document.querySelectorAll('.anual-fila').forEach(fila => {
@@ -152,7 +157,6 @@ function enlazarFilas() {
       if (gasto) abrir(gasto);
     };
     fila.addEventListener('click', abrirFila);
-    fila.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirFila(); } });
   });
 }
 
@@ -165,12 +169,11 @@ export async function repintarAnuales() {
   const html = await renderAnualesHTML();
   if (n !== pintadoN || !cont.isConnected) return;
   cont.innerHTML = html;
-  enlazarFilas();
+  enlazarFilasAnuales();
 }
 
-// Listeners de la hoja y de las filas, tras cada render de Finanzas.
+// Listeners de la hoja (una vez por montaje de Finanzas).
 export function initAnuales() {
-  enlazarFilas();
   const modal = document.getElementById(ID);
   if (!modal) return;
   ['anual-nombre', 'anual-monto', 'anual-dia', 'anual-mes'].forEach(id => {
@@ -211,7 +214,7 @@ export function initAnuales() {
     await cerrar();
     const ok = await ConfirmDialog(
       `Eliminar ${gasto.nombre}`,
-      `Su sobre se archiva con su historial y su saldo; puedes desarchivarlo en Cuentas.`,
+      `Su sobre se archiva con su historial y su saldo; puedes desarchivarlo en Sobres.`,
       { verb: 'Eliminar' }
     );
     if (!ok) return;

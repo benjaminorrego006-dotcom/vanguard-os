@@ -1,0 +1,276 @@
+/* =====================================================================
+   FINANZAS (Órbita, Fase 8) — js/views/finanzas.js y
+   components/gastos-anuales.js
+   ---------------------------------------------------------------------
+   Pestañas Resumen · Movimientos · Sobres · Recurrentes. Movimientos y
+   Recurrentes usan el layout lista + detalle (orbita.css, .o-ld*). Acento
+   del módulo (ámbar → naranjo) vía .o-mod-finanzas; rojo solo para
+   alertas reales (saldo negativo, sobregiro, cobro que no alcanza), siempre
+   con ícono y texto. Las hojas de formulario siguen con MK III dentro de
+   .mk3-finanzas hasta que se migren.
+   ===================================================================== */
+
+.o-fin > #fin-cuerpo > .o-tabs { margin-bottom: var(--o-sp-5); }
+/* Cuatro pestañas: reparten el ancho; en celular, letra más chica para que
+   «Movimientos» y «Recurrentes» quepan sin desplazar la barra. */
+.fin-tabs .o-tab { flex: 1 1 0; min-width: 0; padding: 0 var(--o-sp-2); }
+@media (max-width: 479px) { .fin-tabs .o-tab { font-size: var(--o-fs-xs); padding: 0 var(--o-sp-1); } }
+.o-fin-col { display: grid; gap: var(--o-sp-4); min-width: 0; }
+.o-fin-resumen { display: grid; gap: var(--o-sp-4); min-width: 0; }
+.o-fin-oculto {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.o-fin-seccion { display: grid; gap: var(--o-sp-3); min-width: 0; }
+.o-fin-seccion-cab { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-3); flex-wrap: wrap; }
+.o-fin-seccion-cab .o-rotulo, .o-fin-seccion > .o-rotulo { margin: 0; }
+.o-fin-seccion-cab > div { display: grid; gap: var(--o-sp-1); min-width: 0; flex: 1 1 14rem; }
+.o-fin-pista { margin: 0; font-size: var(--o-fs-sm); color: var(--o-text-2); line-height: var(--o-lh-body); }
+.o-fin-pista:empty { display: none; }
+.o-fin-pista--error { color: var(--o-alert-t); }
+.o-fin-nota { display: flex; justify-content: space-between; gap: var(--o-sp-3); margin: 0; font-size: var(--o-fs-xs); color: var(--o-text-2); }
+
+/* Alertas reales: rojo de texto + ícono (nunca solo color). */
+.o-fin-alerta { color: var(--o-alert-t); }
+.o-fin-aviso { color: var(--o-warn-t); }
+:is(.o-fin-alerta, .o-fin-aviso) svg { width: var(--o-icon-sm); height: var(--o-icon-sm); flex-shrink: 0; }
+
+/* --- Montos ------------------------------------------------------------ */
+.o-fin-monto { flex-shrink: 0; font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold); color: var(--o-text); }
+.o-fin-monto--ingreso { color: var(--o-ok-t); }
+.o-fin-monto--neutro { color: var(--o-text-2); }
+.o-fin-ico--ingreso { background: var(--o-ok-soft); color: var(--o-ok-t); }
+.o-fin-ico--neutro { background: var(--o-surface-2); color: var(--o-text-2); }
+
+/* --- Filas con botón (movimientos y pagos fijos) ----------------------- */
+.o-fin-mov, .o-fin-rec { padding: 0; }
+.o-fin-mov.o-fila--actual, .o-fin-rec.o-fila--actual { border-color: var(--o-mod); background: var(--o-mod-soft); }
+.o-fin-abrir {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--o-sp-3);
+  min-height: calc(var(--o-touch) + var(--o-sp-3)); padding: var(--o-sp-2) var(--o-sp-3); margin: 0;
+  background: none; border: 0; border-radius: var(--o-radius-card);
+  color: var(--o-text); font: inherit; text-align: left;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--o-dur-1) var(--o-ease-out);
+}
+.o-fin-abrir:hover { background: var(--o-surface-2); }
+.o-fin-abrir:active { background: var(--o-surface-3); }
+.o-fin-abrir:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-fila--actual .o-fin-abrir:hover { background: transparent; }
+
+/* --- Resumen: balance -------------------------------------------------- */
+.o-fin-balance { display: grid; gap: var(--o-sp-3); }
+.o-fin-balance .o-rotulo { margin: 0; }
+.o-fin-balance-valor {
+  display: flex; align-items: center; gap: var(--o-sp-2); margin: 0;
+  font-size: var(--o-fs-display); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-display); line-height: var(--o-lh-tight);
+}
+.o-fin-balance-valor .o-num { font-weight: var(--o-fw-bold); }
+.o-fin-balance-valor.o-fin-alerta svg { width: var(--o-icon); height: var(--o-icon); }
+.o-fin-tendencia { display: flex; align-items: center; gap: var(--o-sp-2); margin: 0; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-fin-tendencia svg { width: var(--o-icon-sm); height: var(--o-icon-sm); flex-shrink: 0; color: var(--o-mod-t); }
+.o-fin-balance-pie { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-fin-stat {
+  display: grid; gap: var(--o-sp-1); min-height: var(--o-touch); padding: var(--o-sp-3);
+  background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-radius-control);
+  color: var(--o-text); font: inherit; text-align: left; cursor: pointer;
+  transition: background-color var(--o-dur-1) var(--o-ease-out);
+}
+.o-fin-stat:hover { background: var(--o-surface-2); }
+.o-fin-stat:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-fin-stat .o-num { font-size: var(--o-fs-lg); font-weight: var(--o-fw-semibold); }
+.o-fin-stat .o-rotulo { color: var(--o-text-2); }
+.o-fin-acciones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-fin-acciones .o-btn { min-width: 0; padding: 0 var(--o-sp-1); gap: var(--o-sp-1); font-size: var(--o-fs-sm); }
+.o-fin-acciones .o-btn svg { width: var(--o-icon-sm); height: var(--o-icon-sm); flex-shrink: 0; }
+
+/* --- Resumen: disponible por día y edad del dinero --------------------- */
+.o-fin-pordia, .o-fin-edad { display: flex; align-items: flex-start; gap: var(--o-sp-3); }
+.o-fin-pordia > div, .o-fin-edad > div { display: grid; gap: var(--o-sp-1); min-width: 0; }
+.o-fin-pordia .o-rotulo, .o-fin-edad .o-rotulo { margin: 0; }
+.o-fin-pordia-texto { margin: 0; font-size: var(--o-fs-md); font-weight: var(--o-fw-semibold); }
+.o-fin-pordia-texto .o-num { color: var(--o-mod-t); }
+.o-fin-pordia-sub { margin: 0; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-fin-edad-valor { margin: 0; font-size: var(--o-fs-xl); font-weight: var(--o-fw-bold); }
+
+/* --- Resumen: distribución (dona + leyenda) ---------------------------- */
+.o-fin-dona { position: relative; width: calc(var(--o-anillo-lg) * 1.5); aspect-ratio: 1; margin: 0 auto; }
+.o-fin-dona canvas { width: 100% !important; height: 100% !important; }
+.o-fin-dona-centro {
+  position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: var(--o-sp-1);
+  pointer-events: none;
+}
+.o-fin-dona-centro small { font-size: var(--o-fs-2xs); color: var(--o-text-2); text-transform: uppercase; letter-spacing: var(--o-ls-label); }
+.o-fin-dona-centro b { font-size: var(--o-fs-md); }
+.o-fin-dist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--o-sp-2); }
+.o-fin-dist-fila { display: flex; align-items: center; gap: var(--o-sp-2); min-height: var(--o-sp-7); font-size: var(--o-fs-sm); }
+.o-fin-dist-punto { width: var(--o-sp-3); height: var(--o-sp-3); border-radius: var(--o-radius-check); flex-shrink: 0; }
+.o-fin-dist-nombre { font-weight: var(--o-fw-semibold); }
+.o-fin-dist-monto { margin-left: auto; color: var(--o-text-2); }
+.o-fin-uso { display: inline-flex; align-items: center; gap: var(--o-sp-1); font-size: var(--o-fs-xs); font-weight: var(--o-fw-semibold); }
+.o-fin-uso svg { width: var(--o-icon-sm); height: var(--o-icon-sm); }
+.o-fin-uso--alerta { color: var(--o-alert-t); }
+.o-fin-uso--aviso { color: var(--o-warn-t); }
+
+/* --- Resumen: gráficos ------------------------------------------------- */
+.o-fin-grafico { position: relative; width: 100%; }
+.o-fin-grafico--linea { height: calc(var(--o-sp-10) * 2.5); }
+.o-fin-grafico--barras { height: calc(var(--o-sp-10) * 2); }
+.o-fin-barras { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--o-sp-2); align-items: end; }
+.o-fin-barra { display: grid; gap: var(--o-sp-1); justify-items: center; }
+.o-fin-barra-pista { width: 100%; height: calc(var(--o-sp-10) * 2); display: flex; align-items: flex-end; }
+.o-fin-barra-pista i { display: block; width: 100%; background: var(--o-surface-3); border-radius: var(--o-radius-check); }
+.o-fin-barra--actual .o-fin-barra-pista i { background: var(--o-mod); }
+.o-fin-barra span { font-size: var(--o-fs-2xs); color: var(--o-text-2); text-transform: capitalize; }
+.o-fin-barra--actual span { color: var(--o-mod-t); font-weight: var(--o-fw-semibold); }
+
+/* --- Movimientos: gasto rápido, filtros y fechas ----------------------- */
+.o-fin-rapido { display: flex; gap: var(--o-sp-2); }
+.o-fin-rapido .o-input { flex: 1; min-width: 0; }
+.o-fin-filtros .o-chip { flex: 1 1 0; justify-content: center; }
+.o-fin-fechas { display: flex; align-items: center; gap: var(--o-sp-2); flex-wrap: wrap; }
+.o-fin-fechas .o-input { flex: 1 1 8rem; min-width: 0; }
+.o-fin-fechas > span { color: var(--o-text-2); font-size: var(--o-fs-sm); }
+
+/* --- Detalle (movimiento o pago fijo) ---------------------------------- */
+.o-fin-det-cab { display: flex; align-items: center; gap: var(--o-sp-3); margin-bottom: var(--o-sp-4); }
+.o-fin-det-cab .o-mod-titulo { flex: 1; min-width: 0; font-size: var(--o-fs-xl); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.o-fin-det { display: grid; gap: var(--o-sp-5); }
+.o-fin-det-monto { margin: 0; font-size: var(--o-fs-2xl); font-weight: var(--o-fw-bold); }
+.o-fin-datos { display: grid; gap: var(--o-sp-3); margin: 0; }
+.o-fin-datos > div {
+  display: flex; justify-content: space-between; align-items: baseline; gap: var(--o-sp-3);
+  padding-bottom: var(--o-sp-3); border-bottom: 1px solid var(--o-line);
+}
+.o-fin-datos dt { font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-fin-datos dd { margin: 0; font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold); text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.o-fin-datos dd > span { display: inline-flex; align-items: center; gap: var(--o-sp-1); }
+.o-fin-datos dd svg { width: var(--o-icon-sm); height: var(--o-icon-sm); }
+.o-fin-det-acciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-fin-det-acciones--una { grid-template-columns: minmax(0, 1fr); }
+.o-fin-det-acciones > .o-btn:only-child { grid-column: 1 / -1; }
+.o-btn.o-fin-eliminar { background: transparent; border-color: var(--o-line-strong); color: var(--o-alert-t); }
+.o-fin-aviso-cobro {
+  display: flex; align-items: flex-start; gap: var(--o-sp-2); margin: 0; padding: var(--o-sp-3);
+  background: var(--o-alert-soft); border-radius: var(--o-radius-control); font-size: var(--o-fs-sm); line-height: var(--o-lh-body);
+}
+.o-fin-aviso-cobro svg { margin-top: calc(var(--o-sp-1) / 2); }
+
+/* --- Sobres: gastado del mes y regla 50/30/20 -------------------------- */
+.o-fin-presupuesto { display: flex; align-items: center; gap: var(--o-sp-4); }
+.o-fin-presupuesto-texto { display: grid; gap: var(--o-sp-1); min-width: 0; }
+.o-fin-presupuesto-texto .o-rotulo { margin: 0; }
+.o-fin-presupuesto-valor { margin: 0; font-size: var(--o-fs-2xl); font-weight: var(--o-fw-bold); }
+.o-fin-reglas { display: grid; gap: var(--o-sp-2); }
+.o-fin-regla {
+  display: grid; gap: var(--o-sp-2); width: 100%;
+  color: var(--o-text); font: inherit; text-align: left; cursor: pointer;
+  transition: background-color var(--o-dur-1) var(--o-ease-out);
+}
+.o-fin-regla:hover { background: var(--o-surface-2); }
+.o-fin-regla:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-fin-regla-cab { display: flex; justify-content: space-between; align-items: baseline; gap: var(--o-sp-2); }
+.o-fin-regla-nombre { font-weight: var(--o-fw-semibold); }
+.o-fin-regla-cifras { font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-fin-nota-uso { display: flex; align-items: center; gap: var(--o-sp-1); margin: 0; font-size: var(--o-fs-xs); font-weight: var(--o-fw-semibold); }
+
+/* Medidor (gastado contra disponible). */
+.o-fin-medidor { display: block; height: var(--o-sp-2); background: var(--o-surface-2); border-radius: var(--o-radius-check); overflow: hidden; }
+.o-fin-medidor i { display: block; height: 100%; background: var(--o-mod-grad); border-radius: inherit; }
+.o-fin-medidor i.o-fin-medidor--aviso { background: var(--o-warn); }
+.o-fin-medidor i.o-fin-medidor--alerta { background: var(--o-alert); }
+.o-fin-medidor i.o-fin-medidor--ok { background: var(--o-ok); }
+
+/* --- Sobres: tarjeta de cada sobre ------------------------------------- */
+.o-fin-sobres { display: grid; gap: var(--o-sp-3); }
+@media (min-width: 768px) { .o-fin-sobres { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1280px) { .o-fin-sobres { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.o-fin-sobre { display: grid; gap: var(--o-sp-2); cursor: pointer; align-content: start; }
+.o-fin-sobre-cab { display: flex; align-items: flex-start; gap: var(--o-sp-2); }
+.o-fin-sobre-titulo { flex: 1; min-width: 0; display: grid; gap: var(--o-sp-1); }
+.o-fin-sobre-cat { margin: 0; }
+.o-fin-sobre-nombre { margin: 0; font-size: var(--o-fs-md); font-weight: var(--o-fw-semibold); overflow-wrap: anywhere; }
+.o-fin-sobre-acciones { display: flex; align-items: center; flex-shrink: 0; margin: calc(var(--o-sp-2) * -1) calc(var(--o-sp-2) * -1) 0 0; }
+.o-fin-sobre-acciones .o-btn--icono svg { width: var(--o-icon-sm); height: var(--o-icon-sm); }
+.o-fin-sobre-saldo { display: flex; align-items: center; gap: var(--o-sp-2); margin: 0; font-size: var(--o-fs-xl); font-weight: var(--o-fw-bold); }
+.o-fin-sobre-saldo .o-num { font-weight: var(--o-fw-bold); }
+.o-fin-sobre-cifras { display: flex; align-items: center; gap: var(--o-sp-1); margin: 0; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-fin-sobre-cifras.o-fin-alerta { color: var(--o-alert-t); font-weight: var(--o-fw-semibold); }
+.o-fin-sobre-linea { margin: 0; font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.o-fin-spark { display: flex; align-items: flex-end; gap: var(--o-sp-1); height: var(--o-sp-7); flex-shrink: 0; }
+.o-fin-spark i { display: block; width: var(--o-sp-2); background: var(--o-mod); border-radius: var(--o-radius-check); }
+.o-fin-spark i.o-fin-spark--excedido { background: var(--o-alert); }
+
+/* Menú ⋯ de un sobre (Editar · Archivar). */
+.sobre-menu-wrap { position: relative; }
+.o-fin-menu {
+  position: absolute; right: 0; top: 100%; z-index: 2; min-width: calc(var(--o-sp-10) * 3);
+  display: grid; padding: var(--o-sp-1);
+  /* Opaco: las superficies de Órbita son translúcidas y el menú tapa texto. */
+  background: linear-gradient(var(--o-surface-2), var(--o-surface-2)), var(--o-bg);
+  border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-control);
+  box-shadow: var(--o-shadow-sheet);
+}
+.o-fin-menu[hidden] { display: none; }
+.o-fin-menu button {
+  display: flex; align-items: center; gap: var(--o-sp-2); min-height: var(--o-touch); padding: 0 var(--o-sp-3);
+  background: none; border: 0; border-radius: var(--o-radius-chip);
+  color: var(--o-text); font: inherit; font-size: var(--o-fs-sm); text-align: left; cursor: pointer;
+}
+.o-fin-menu button:hover, .o-fin-menu button:focus-visible { background: var(--o-surface-2); outline: none; }
+.o-fin-menu svg { width: var(--o-icon-sm); height: var(--o-icon-sm); }
+
+/* Archivados. */
+.o-fin-archivados summary {
+  min-height: var(--o-touch); display: flex; align-items: center; cursor: pointer;
+  font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold); color: var(--o-text-2);
+}
+.o-fin-archivados-lista { list-style: none; margin: var(--o-sp-2) 0 0; padding: 0; display: grid; gap: var(--o-sp-2); }
+.o-fin-archivado { display: flex; align-items: center; gap: var(--o-sp-3); }
+
+/* Metas. */
+.o-fin-meta { display: grid; gap: var(--o-sp-2); cursor: pointer; }
+.o-fin-meta-cab { display: flex; align-items: center; gap: var(--o-sp-2); }
+.o-fin-meta-nombre { flex: 1; min-width: 0; margin: 0; font-size: var(--o-fs-base); font-weight: var(--o-fw-semibold); overflow-wrap: anywhere; }
+.o-fin-meta-montos { margin: 0; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-fin-meta-cab .o-btn--icono svg { width: var(--o-icon-sm); height: var(--o-icon-sm); }
+.o-fin-meta-plazo { display: flex; align-items: center; gap: var(--o-sp-1); margin: 0; font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.o-fin-meta-plazo.o-fin-alerta { color: var(--o-alert-t); }
+
+/* --- Recurrentes ------------------------------------------------------- */
+.o-fin-total { display: flex; align-items: baseline; justify-content: space-between; gap: var(--o-sp-3); }
+.o-fin-total .o-rotulo { margin: 0; }
+.o-fin-total-valor { margin: 0; font-size: var(--o-fs-xl); font-weight: var(--o-fw-bold); }
+
+/* Gastos anuales (components/gastos-anuales.js). */
+.o-anual-fila {
+  display: grid; gap: var(--o-sp-2); width: 100%; min-height: var(--o-touch);
+  color: var(--o-text); font: inherit; text-align: left; cursor: pointer;
+  transition: background-color var(--o-dur-1) var(--o-ease-out);
+}
+.o-anual-fila:hover { background: var(--o-surface-2); }
+.o-anual-fila:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-anual-cab { display: flex; justify-content: space-between; align-items: baseline; gap: var(--o-sp-2); }
+.o-anual-nombre { font-weight: var(--o-fw-semibold); overflow-wrap: anywhere; }
+.o-anual-fecha { font-size: var(--o-fs-xs); color: var(--o-text-2); flex-shrink: 0; }
+.o-anual-barra { display: block; height: var(--o-sp-2); background: var(--o-surface-2); border-radius: var(--o-radius-check); overflow: hidden; }
+.o-anual-barra i { display: block; height: 100%; background: var(--o-mod-grad); }
+.o-anual-pie { display: flex; justify-content: space-between; align-items: center; gap: var(--o-sp-2); flex-wrap: wrap; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-anual-pie > .o-num { display: inline-flex; align-items: center; gap: var(--o-sp-1); }
+.o-anual-negativo { color: var(--o-alert-t); }
+.o-anual-negativo svg { width: var(--o-icon-sm); height: var(--o-icon-sm); }
+.o-anual-apartar .o-num { color: var(--o-mod-t); font-weight: var(--o-fw-semibold); }
+
+/* --- PC: Resumen en dos columnas -------------------------------------- */
+@media (min-width: 1024px) {
+  .o-fin-resumen { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .o-fin-resumen > .o-fin-balance, .o-fin-resumen > .o-fin-acciones { grid-column: 1 / -1; }
+}
+
+/* --- Modo sobrio: sin acentos fuera de anillos y estados --------------- */
+html[data-tema="gris"] .o-fin-medidor i:not([class]),
+html[data-tema="gris"] .o-fin-medidor i[class=""],
+html[data-tema="gris"] .o-anual-barra i { background: var(--o-text-2); }
+html[data-tema="gris"] .o-fin-spark i:not(.o-fin-spark--excedido) { background: var(--o-text-3); }
+html[data-tema="gris"] .o-fin-barra--actual .o-fin-barra-pista i { background: var(--o-text-2); }
+html[data-tema="gris"] :is(.o-fin-pordia-texto .o-num, .o-anual-apartar .o-num, .o-fin-tendencia svg) { color: var(--o-text); }
