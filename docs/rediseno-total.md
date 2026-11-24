@@ -1,6 +1,8 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (24-11-2026):** la **Fase 8 (Finanzas) está terminada** (55/55 OK en `verificar.mjs fase-8b`): Resumen, Movimientos, Sobres y Recurrentes en Órbita, con Movimientos y Recurrentes en el layout lista + detalle y las cifras idénticas a la foto de antes. Pendiente aparte: migrar a `oHoja` las hojas de formulario de Finanzas (siguen MK III dentro de `.mk3-finanzas`). Lo siguiente: la **Fase 9 (Entreno)**.
+> **Estado actual (24-11-2026):** la **Fase 8 (Finanzas) está terminada**, hojas incluidas (59/59 OK en `verificar.mjs fase-8b-hojas2`): Resumen, Movimientos, Sobres y Recurrentes en Órbita, con Movimientos y Recurrentes en el layout lista + detalle, las cifras idénticas a la foto de antes y las ocho hojas de formulario en `oHoja`. Lo siguiente: la **Fase 9 (Entreno)**.
+>
+> **Obligatorio antes de fusionar `rediseno-orbita` con `worktree-dashboard-mk3`:** prueba con los datos reales del usuario. Cargar su respaldo (sin copiarlo al repo ni subirlo a git) en un perfil de navegador aislado con `supabase.co` bloqueado, primero en `worktree-dashboard-mk3` y luego en `rediseno-orbita`, y comparar en una tabla las cifras de Finanzas, las rachas de Hábitos y las tareas pendientes. Pendiente desde el 24-11-2026: el respaldo no estaba en la ruta indicada.
 
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
