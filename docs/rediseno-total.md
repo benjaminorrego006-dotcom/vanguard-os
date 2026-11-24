@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (24-11-2026):** la **Fase 8 (Finanzas) está terminada**, hojas incluidas. La **Fase 9 (Entreno)** va por partes: **9a lista** (pestañas Inicio · Rutinas · Progreso) y **9b lista** (lista de rutinas, vistas previas y formularios de rutina en Órbita; `verificar.mjs fase-9b-4` OK, fotos de cifras idénticas a las de antes). Siguen, dentro de la 9b, el buscador de Inicio (commit aparte), y después 9c (historial, progreso completo y Cuerpo), 9d (sesión activa, con la tabla de cifras antes/después) y 9e (hojas de Entreno).
+> **Estado actual (24-11-2026):** la **Fase 8 (Finanzas) está terminada**, hojas incluidas. La **Fase 9 (Entreno)** va por partes: **9a lista** (pestañas Inicio · Rutinas · Progreso) y **9b lista** (lista de rutinas, vistas previas y formularios de rutina en Órbita; `verificar.mjs fase-9b-4` OK, fotos de cifras idénticas a las de antes). El buscador de Inicio también quedó (commit aparte, `verificar.mjs buscador-2`). Siguen 9c (historial, progreso completo y Cuerpo), 9d (sesión activa, con la tabla de cifras antes/después) y 9e (hojas de Entreno).
 >
 > **Obligatorio antes de fusionar `rediseno-orbita` con `worktree-dashboard-mk3`:** prueba con los datos reales del usuario. Cargar su respaldo (sin copiarlo al repo ni subirlo a git) en un perfil de navegador aislado con `supabase.co` bloqueado, primero en `worktree-dashboard-mk3` y luego en `rediseno-orbita`, y comparar en una tabla las cifras de Finanzas, las rachas de Hábitos y las tareas pendientes. Pendiente desde el 24-11-2026: el respaldo no estaba en la ruta indicada.
 
@@ -416,6 +416,13 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Ámbito MK III:** `#ent-rutinas` deja de llevar `.mk3-entreno`; `mostrarSubVista(legado)` lo pone en las sub-pantallas que siguen en MK III (sesión, historial, progreso completo, Cuerpo) y lo quita en las migradas (formularios y vistas previas).
 - **Arreglo (repintado tardío, de la 9a):** un repintado de Entreno por `budget-updated` que empezaba antes de elegir otra pestaña o categoría terminaba después y deshacía la elección; también podía tapar una sub-pantalla recién abierta. Ahora los repintados se numeran y solo se aplica el último; abrir una sub-pantalla invalida los pendientes.
 - **Verificación (`fase-9b-4`):** foto de Rutinas idéntica a la de antes (3 corridas seguidas sin diferencias antes del commit) y la de Inicio sin cambios; 44 px y contraste AA en las tres pestañas, la lista de cada categoría con sus plegables abiertos, el formulario de GYM (con autocompletado y superserie), el de HIIT, la vista previa de plantilla y la rutina generada, en 390 y 1440, color y sobrio.
+
+#### Fase 9b · Buscador de Inicio de Entreno (24-11-2026)
+- **Qué hace** (`js/components/entreno-buscador.js`): filtra al escribir por nombre de rutina y de ejercicio (catálogo y nombres propios de las rutinas), sin distinguir mayúsculas ni tildes; todas las palabras escritas tienen que aparecer. Hasta 8 resultados, primero los que empiezan con lo escrito. Enter abre el primero y Escape limpia.
+- **Rutina:** abre la pestaña Rutinas en su categoría, con la tarjeta resaltada y el foco en «Iniciar sesión» (una rutina no tiene pantalla propia).
+- **Ejercicio:** abre su ficha (sub-pantalla): grupo muscular, si cuenta para Estándares de fuerza, en qué rutinas está (cada una abre la rutina) y su progreso (el mismo detalle de la sesión, que sigue en MK III hasta su migración).
+- **Solo lee:** ningún cambio de datos ni de esquemas.
+- **Verificación (`buscador-2`):** prueba nueva por la interfaz (sin tildes, en mayúsculas, Enter, ficha → rutina, sin resultados, Escape) y huella de toda la base antes y después, idéntica; 44 px y contraste AA de los resultados y la ficha en 390 y 1440, color y sobrio.
 
 ## 9. Riesgos y cómo se controlan
 

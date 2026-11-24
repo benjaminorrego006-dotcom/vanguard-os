@@ -36,6 +36,12 @@
   width: var(--o-icon-sm); height: var(--o-icon-sm); color: var(--o-text-3); pointer-events: none;
 }
 .o-ent-buscar .o-input { padding-inline-start: calc(var(--o-sp-4) + var(--o-icon-sm) + var(--o-sp-3)); }
+/* Resultados del buscador (9b): en el flujo, bajo el campo. */
+.o-ent-busq-zona { display: grid; gap: var(--o-sp-2); }
+.o-ent-busq { display: grid; gap: var(--o-sp-1); padding: var(--o-sp-2) 0; }
+.o-ent-busq[hidden] { display: none; }
+.o-ent-busq-rotulo { margin: var(--o-sp-2) var(--o-sp-4) 0; }
+.o-ent-busq-vacio { margin: 0; padding: var(--o-sp-2) var(--o-sp-4); }
 
 .o-ent-hoy { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-4); }
 .o-ent-hoy-texto { display: grid; gap: var(--o-sp-1); min-width: 0; }
@@ -106,6 +112,16 @@
 .o-ent-rutina-cab .o-btn--icono { flex-shrink: 0; color: var(--o-text-2); }
 .o-ent-rutina > .o-card-texto { margin: 0; }
 .o-ent-rutina > .o-btn { margin-top: var(--o-sp-2); }
+/* La rutina abierta desde el buscador o la ficha de un ejercicio. */
+.o-ent-rutina--resaltada { border-color: var(--o-mod); background: var(--o-mod-soft); }
+
+/* Ficha de un ejercicio (desde el buscador). */
+.o-ent-ficha { display: grid; gap: var(--o-sp-4); }
+.o-ent-ficha-sec { display: grid; gap: var(--o-sp-2); }
+/* Hijos de grilla sin ancho mínimo: el canvas del progreso no empuja la tarjeta. */
+.o-ent-ficha > *, .o-ent-ficha-sec > * { min-width: 0; }
+.o-ent-ficha-legado > .card { margin: 0; }
+.o-ent-ficha-sec > .o-rotulo, .o-ent-ficha-sec > .o-card-texto { margin: 0; }
 
 .o-ent-ejs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--o-sp-1); }
 .o-ent-ej {
@@ -277,7 +293,7 @@
 }
 @media (min-width: 1024px) {
   .o-ent-inicio { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--o-sp-5); }
-  .o-ent-form, .o-ent-preview { max-width: calc(var(--o-sheet-max) * 1.5); }
+  .o-ent-form, .o-ent-preview, .o-ent-ficha { max-width: calc(var(--o-sheet-max) * 1.5); }
 }
 
 /* --- Modo sobrio: el acento del módulo solo en anillos y estados; la

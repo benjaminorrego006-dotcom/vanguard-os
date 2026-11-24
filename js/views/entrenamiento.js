@@ -24,7 +24,8 @@ import { WEEKLY_GOALS } from '../core/trainingConfig.js';
 import { renderProfileForm, setupProfileForm, openProfileForm } from '../components/profile-form.js';
 import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardingForm } from '../components/nivel-onboarding-form.js';
 import { calcularIMC } from '../utils/bodyMetrics.js';
-import { cleanupEjercicioCharts } from '../components/ejercicio-detalle.js';
+import { cleanupEjercicioCharts, initEjercicioDetalleChart } from '../components/ejercicio-detalle.js';
+import { armarIndice, buscar, renderResultados, renderFichaEjercicio, rutinasConEjercicio, FICHA_CHART_ID } from '../components/entreno-buscador.js';
 import { formatFechaCorta, diaKeyDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatNumero } from '../utils/numero.js';
@@ -94,10 +95,13 @@ let entrenarPedido = false;
 export function pedirEntrenarDesdeHoy() { entrenarPedido = true; pestana = 'inicio'; }
 
 let categoriaActiva = null;
-let viewState = 'main'; // 'main', 'rutinas', 'form', 'session', 'progreso', 'historial', 'cuerpo'
+let viewState = 'main'; // 'main', 'rutinas', 'form', 'session', 'progreso', 'historial', 'cuerpo', 'ejercicio'
 let currentViewController = null;
 // Listeners de la lista de rutinas de la pestaña Rutinas (se abortan al repintar).
 let rutinasTabController = null;
+// Rutina que la pestaña Rutinas resalta al pintarse (desde el buscador o
+// la ficha de un ejercicio); se consume una vez.
+let rutinaResaltada = null;
 
 // Instalada como PWA no hay botón atrás del navegador — sin esto, el botón
 // atrás del sistema saldría directo de la app en vez de volver a la
@@ -218,6 +222,7 @@ export function cleanup() {
   cleanupSessionTimer();
   cleanupHiitTimer();
   if (rutinasTabController) { rutinasTabController.abort(); rutinasTabController = null; }
+  rutinaResaltada = null;
 
   window.removeEventListener('popstate', onPopStateEntrenamiento);
   entrenoPopstateEnganchado = false;
@@ -397,11 +402,13 @@ async function panelInicio(d) {
     <div class="o-ent-inicio">
     <div class="o-ent-col">
     ${tarjetaPerfilHtml}
-    <!-- Buscador: por ahora decorativo (filtrar al escribir queda pendiente,
-         igual que antes del rediseño). -->
-    <div class="o-ent-buscar">
-      ${ICO.buscar}
-      <input type="search" id="entreno-buscador" class="o-input" placeholder="Buscar ejercicio o rutina…" aria-label="Buscar ejercicio o rutina" autocomplete="off">
+    <!-- Buscador (components/entreno-buscador.js): rutinas y ejercicios. -->
+    <div class="o-ent-busq-zona">
+      <div class="o-ent-buscar">
+        ${ICO.buscar}
+        <input type="search" id="entreno-buscador" class="o-input" placeholder="Buscar ejercicio o rutina…" aria-label="Buscar ejercicio o rutina" aria-controls="entreno-buscador-res" autocomplete="off" enterkeyhint="search">
+      </div>
+      <div id="entreno-buscador-res" class="o-card o-ent-busq" aria-live="polite" hidden></div>
     </div>
     ${renderSesionEnCurso(borrador)}
     ${hoyTocaHtml}
@@ -848,6 +855,73 @@ mountListeners = () => {
     }
   };
 
+  // Abrir una rutina (buscador o ficha): la pestaña Rutinas en su categoría,
+  // con la rutina resaltada.
+  const abrirRutina = async (id) => {
+    const rutina = (await db.getRutinas()).find(r => r.id === id);
+    if (!rutina) return;
+    rutinaResaltada = rutina.id;
+    if (viewState === 'main') {
+      catRutinas = rutina.categoria;
+      pestana = 'rutinas';
+      refreshFull();
+    } else {
+      goToRutinas(rutina.categoria);
+    }
+  };
+
+  // Ficha de un ejercicio (desde el buscador): catálogo, rutinas que lo
+  // usan y su progreso. Solo lee.
+  const goToEjercicio = async (nombre) => {
+    if (currentViewController) currentViewController.abort();
+    currentViewController = new AbortController();
+    const signal = currentViewController.signal;
+
+    viewState = 'ejercicio';
+    mostrarSubVista(false);
+    try {
+      const [rutinas, historial] = await Promise.all([db.getRutinas(), db.getHistorialEjercicio(nombre)]);
+      if (!vistaVigente() || viewState !== 'ejercicio') return;
+      subContent.innerHTML = renderFichaEjercicio(nombre, { rutinas: rutinasConEjercicio(rutinas, nombre), historial });
+      subContent.querySelectorAll('[data-ficha-rutina]').forEach(btn => {
+        btn.addEventListener('click', () => abrirRutina(btn.dataset.fichaRutina), { signal });
+      });
+      await initEjercicioDetalleChart(FICHA_CHART_ID, historial);
+    } catch (err) {
+      console.error('Error renderizando la ficha del ejercicio:', err);
+      subContent.innerHTML = `<p class="o-alerta" role="alert"><span class="o-alerta-ico">${ICO.alerta}</span><span class="o-alerta-cuerpo"><span class="o-alerta-titulo">Algo falló al cargar esta sección</span><span class="o-alerta-linea">${escapeHtml(err.message)}</span></span></p>`;
+    }
+  };
+
+  // Buscador de Inicio: filtra al escribir; Enter abre el primer resultado
+  // y Escape lo limpia. El índice se arma una vez por pintado.
+  const buscador = document.getElementById('entreno-buscador');
+  const resultados = document.getElementById('entreno-buscador-res');
+  if (buscador && resultados) {
+    let indice = null;
+    const actualizar = async () => {
+      const consulta = buscador.value;
+      if (!consulta.trim()) { resultados.hidden = true; resultados.innerHTML = ''; return; }
+      if (!indice) indice = armarIndice(await db.getRutinas());
+      if (buscador.value !== consulta) return; // llegó otra tecla mientras tanto
+      resultados.innerHTML = renderResultados(buscar(indice, consulta), consulta);
+      resultados.hidden = false;
+      resultados.querySelectorAll('[data-busq-rutina]').forEach(btn => btn.addEventListener('click', () => abrirRutina(btn.dataset.busqRutina)));
+      resultados.querySelectorAll('[data-busq-ejercicio]').forEach(btn => btn.addEventListener('click', () => goToEjercicio(btn.dataset.busqEjercicio)));
+    };
+    buscador.addEventListener('input', actualizar);
+    buscador.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        resultados.querySelector('[data-busq-rutina], [data-busq-ejercicio]')?.click();
+      } else if (e.key === 'Escape' && buscador.value) {
+        e.preventDefault();
+        buscador.value = '';
+        actualizar();
+      }
+    });
+  }
+
   // Estado vacío (sin rutinas): categoría elegida + "Generar mi rutina"
   // (mismo generador que la lista de rutinas; al guardar lleva a esa lista)
   // y "Crear rutina a mano" (formulario de la categoría; en HIIT, el de HIIT).
@@ -941,6 +1015,17 @@ mountListeners = () => {
       () => { categoriaActiva = cat; goToProgreso(cat); },
       () => openGeneradorConfigForm(cat)
     );
+    if (rutinaResaltada) {
+      const id = rutinaResaltada;
+      rutinaResaltada = null;
+      const iniciar = [...document.querySelectorAll('#ent-rutinas .btn-iniciar-sesion')].find(b => b.dataset.id === id);
+      const tarjeta = iniciar?.closest('.o-ent-rutina');
+      if (tarjeta) {
+        tarjeta.classList.add('o-ent-rutina--resaltada');
+        tarjeta.scrollIntoView({ block: 'center' });
+        iniciar.focus({ preventScroll: true });
+      }
+    }
   }
 
   // Volver: a la principal, en la pestaña desde la que se entró.

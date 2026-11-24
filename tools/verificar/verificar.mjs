@@ -1546,10 +1546,97 @@ async function main() {
     afirmar(await pestanaEnt() === 'rutinas' && !(await subVisible()), 'borrar sacó de la pestaña Rutinas');
   });
 
+  await prueba('Entreno › Inicio · el buscador encuentra rutinas y ejercicios (sin tildes ni mayúsculas), abre la rutina o la ficha y no escribe datos', async () => {
+    // Huella de toda la base (cantidad y tamaño por almacén): buscar y abrir solo lee.
+    const huella = () => page.evaluate(() => new Promise((res, rej) => {
+      const r = indexedDB.open('vanguard_os');
+      r.onerror = () => rej(r.error);
+      r.onsuccess = () => {
+        const d = r.result;
+        const almacenes = [...d.objectStoreNames];
+        const tx = d.transaction(almacenes);
+        const out = {};
+        let faltan = almacenes.length;
+        almacenes.forEach((s) => {
+          const q = tx.objectStore(s).getAll();
+          q.onsuccess = () => { out[s] = `${q.result.length}:${JSON.stringify(q.result).length}`; if (--faltan === 0) { d.close(); res(out); } };
+        });
+      };
+    }));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await irA(page, 'entrenamiento');
+    await page.locator('#ent-tab-inicio').click();
+    await page.waitForSelector('#ent-tab-inicio[aria-selected="true"]');
+    const rutina = await page.evaluate(async () => {
+      const { db } = await import('/js/core/db.js');
+      const r = (await db.getRutinas()).find((x) => x.categoria === 'gym');
+      return r ? { id: r.id, nombre: r.nombre, categoria: r.categoria } : null;
+    });
+    afirmar(rutina, 'no hay rutinas de GYM para buscar');
+    const antes = await huella();
+    const buscador = page.locator('#entreno-buscador');
+
+    // Ejercicio sin tildes: «jalon al pecho» encuentra «Jalón al Pecho».
+    await buscador.fill('jalon al pecho');
+    await page.waitForSelector('#entreno-buscador-res:not([hidden]) [data-busq-ejercicio="Jalón al Pecho"]');
+
+    // Rutina en mayúsculas; Enter abre el primer resultado: Rutinas, su categoría y la tarjeta resaltada.
+    await buscador.fill(rutina.nombre.toUpperCase());
+    await page.waitForSelector(`[data-busq-rutina="${rutina.id}"]`);
+    await buscador.press('Enter');
+    await page.waitForSelector(`#ent-tab-rutinas[aria-selected="true"]`);
+    await page.waitForSelector(`[data-rut-cat="${rutina.categoria}"][aria-pressed="true"]`);
+    await page.waitForSelector('.o-ent-rutina--resaltada');
+    const resaltada = await page.evaluate(() => ({
+      nombre: document.querySelector('.o-ent-rutina--resaltada [data-foto="rut-nombre"]')?.textContent.trim(),
+      foco: document.activeElement?.closest('.o-ent-rutina--resaltada') ? document.activeElement.className : null
+    }));
+    afirmar(resaltada.nombre === rutina.nombre, `resaltó «${resaltada.nombre}» en vez de «${rutina.nombre}»`);
+    afirmar(/btn-iniciar-sesion/.test(resaltada.foco || ''), 'el foco no quedó en «Iniciar sesión» de la rutina');
+
+    // Ejercicio: abre su ficha; Volver deja Inicio.
+    await page.locator('#ent-tab-inicio').click();
+    await page.waitForSelector('#ent-tab-inicio[aria-selected="true"]');
+    await buscador.fill('PRESS DE BANCA');
+    await page.locator('[data-busq-ejercicio="Press de Banca"]').click();
+    await page.waitForSelector('[data-foto="ficha-nombre"]');
+    afirmar(await page.locator('[data-foto="ficha-nombre"]').textContent() === 'Press de Banca', 'la ficha no es la de Press de Banca');
+    afirmar(await subVisible(), 'la ficha no se abrió como sub-pantalla');
+    await capturar(page, 'entreno-ficha-ejercicio-390.png');
+    // Desde la ficha, una rutina que lo usa abre Rutinas con esa rutina resaltada.
+    const enRutina = page.locator('[data-ficha-rutina]').first();
+    if (await enRutina.count()) {
+      const id = await enRutina.getAttribute('data-ficha-rutina');
+      await enRutina.click();
+      await page.waitForSelector('#ent-tab-rutinas[aria-selected="true"]');
+      await page.waitForSelector('.o-ent-rutina--resaltada');
+      afirmar(await page.evaluate((x) => !!document.querySelector(`.o-ent-rutina--resaltada .btn-iniciar-sesion[data-id="${x}"]`), id), 'la ficha no abrió la rutina pedida');
+      afirmar(!(await subVisible()), 'la ficha quedó abierta');
+      await page.locator('#ent-tab-inicio').click();
+      await page.waitForSelector('#ent-tab-inicio[aria-selected="true"]');
+    } else {
+      await page.locator('#btn-entrenamiento-volver').click();
+      await page.waitForSelector('#ent-tab-inicio[aria-selected="true"]');
+      afirmar(!(await subVisible()), 'Volver no cerró la ficha');
+    }
+
+    // Sin resultados y Escape.
+    await buscador.fill('zzzz');
+    await page.waitForSelector('#entreno-buscador-res:not([hidden]) .o-ent-busq-vacio');
+    afirmar(/Sin resultados para «zzzz»/.test(await page.locator('#entreno-buscador-res').textContent()), 'falta el aviso de sin resultados');
+    await buscador.press('Escape');
+    await page.waitForSelector('#entreno-buscador-res', { state: 'hidden' });
+    afirmar(await buscador.inputValue() === '', 'Escape no limpió el buscador');
+
+    const despues = await huella();
+    afirmar(JSON.stringify(antes) === JSON.stringify(despues), `la base cambió: ${Object.keys(antes).filter((k) => antes[k] !== despues[k]).join(', ')}`);
+  });
+
   await prueba('Entreno · 44 px y contraste AA en las pestañas, la lista de rutinas, los formularios y las vistas previas (color y sobrio)', async () => {
     const chicosEn = (sel) => page.$$eval(`${sel} :is(button, input, select, summary)`, (bs) => bs.filter((b) => {
       const r = b.getBoundingClientRect();
-      return r.width > 0 && (r.width < 44 || r.height < 44);
+      // El progreso de la ficha sigue en MK III hasta la 9c.
+      return !b.closest('.o-ent-ficha-legado') && r.width > 0 && (r.width < 44 || r.height < 44);
     }).map((b) => `${b.getAttribute('aria-label') || b.textContent.trim() || b.id || b.className} (${Math.round(b.getBoundingClientRect().width)}×${Math.round(b.getBoundingClientRect().height)})`));
     const revisar = async (sel, donde) => {
       await page.waitForTimeout(400);
@@ -1583,6 +1670,23 @@ async function main() {
             await revisar('#entrenamiento-main-view', donde(tab));
             await page.screenshot({ path: path.join(SALIDA, `entreno-${tab}-${tema}-${vp.w}.png`), fullPage: true });
           }
+          // Buscador con resultados y la ficha de un ejercicio (su progreso sigue
+          // en MK III hasta la 9c y queda fuera del contraste).
+          await page.locator('#ent-tab-inicio').click();
+          await page.waitForSelector('#ent-tab-inicio[aria-selected="true"]');
+          await page.locator('#entreno-buscador').fill('press');
+          await page.waitForSelector('#entreno-buscador-res:not([hidden]) [data-busq-ejercicio]');
+          await revisar('#entrenamiento-main-view', donde('buscador'));
+          await page.locator('[data-busq-ejercicio="Press de Banca"]').click();
+          await page.waitForSelector('[data-foto="ficha-nombre"]');
+          await page.waitForTimeout(400);
+          const chicosFicha = await chicosEn('#entrenamiento-sub-view');
+          afirmar(chicosFicha.length === 0, `${donde('ficha')}: objetivos bajo 44 px: ${chicosFicha.slice(0, 3).join(', ')}`);
+          const fallasFicha = await fallasContraste(page, '#entrenamiento-sub-view *:not(.o-ent-ficha-legado, .o-ent-ficha-legado *)');
+          afirmar(fallasFicha.length === 0, `${donde('ficha')}: «${fallasFicha[0]?.texto}» ${fallasFicha[0]?.q}:1`);
+          await page.screenshot({ path: path.join(SALIDA, `entreno-ficha-${tema}-${vp.w}.png`), fullPage: true });
+          await page.locator('#btn-entrenamiento-volver').click();
+          await page.waitForSelector('#ent-tab-inicio[aria-selected="true"]');
           // Rutinas (Fase 9b): cada categoría con sus plegables abiertos.
           for (const cat of ['gym', 'calistenia', 'hiit']) {
             await aRutinas(cat);
