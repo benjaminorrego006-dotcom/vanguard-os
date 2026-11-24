@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (24-11-2026):** la **Fase 8 (Finanzas) está terminada**, hojas incluidas (59/59 OK en `verificar.mjs fase-8b-hojas2`): Resumen, Movimientos, Sobres y Recurrentes en Órbita, con Movimientos y Recurrentes en el layout lista + detalle, las cifras idénticas a la foto de antes y las ocho hojas de formulario en `oHoja`. Lo siguiente: la **Fase 9 (Entreno)**.
+> **Estado actual (24-11-2026):** la **Fase 8 (Finanzas) está terminada**, hojas incluidas. La **Fase 9 (Entreno)** va por partes: **9a lista** (pestañas Inicio · Rutinas · Progreso en Órbita, 63/63 OK en `verificar.mjs fase-9a-5`, cifras idénticas a la foto de antes). Siguen 9b (lista de rutinas, vistas previas y formularios de rutina), 9c (historial, progreso completo y Cuerpo), 9d (sesión activa) y 9e (hojas de Entreno).
 >
 > **Obligatorio antes de fusionar `rediseno-orbita` con `worktree-dashboard-mk3`:** prueba con los datos reales del usuario. Cargar su respaldo (sin copiarlo al repo ni subirlo a git) en un perfil de navegador aislado con `supabase.co` bloqueado, primero en `worktree-dashboard-mk3` y luego en `rediseno-orbita`, y comparar en una tabla las cifras de Finanzas, las rachas de Hábitos y las tareas pendientes. Pendiente desde el 24-11-2026: el respaldo no estaba en la ruta indicada.
 
@@ -396,6 +396,18 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Se quitan** el envoltorio `.mk3-finanzas` y el `<style>` de hojas MK III en Finanzas y en Hoy.
 - **Dos arreglos de la Fase 8:** la hoja de ingreso leía el presupuesto del momento en que se montó (con las hojas montadas una sola vez, el contexto quedaba viejo); ahora lo lee en cada cambio. Y la vista ya no se salta el repintado cuando hay una hoja abierta: las hojas viven fuera de `#fin-cuerpo`, así que lo guardado se ve al cerrar.
 - **Verificación (`fase-8b-hojas2`, 59/59, consola limpia):** de punta a punta por la interfaz, gasto (crear, editar desde su detalle, borrar; el saldo del sobre se revisa en cada paso), sobre (crear, editar, archivar; Atrás cierra la hoja) y pago fijo (crear, borrar desde su detalle). Las ocho hojas: Órbita, 44 px y contraste AA en color y sobrio. La prueba de la hoja de gasto de Hoy pasa a exigir teclas Órbita.
+
+#### Fase 9a · Entreno: Inicio, Rutinas y Progreso (24-11-2026)
+- **Foto de antes** (`tools/verificar/foto-entreno.mjs` → `entreno-antes.json`, tomada con la interfaz MK III en `96352eb`): nivel, «Hoy toca», racha, anillos por categoría, volumen semanal, sesiones, IMC, Cuerpo y sugerencias de nivel, más lo que calcula `db.js`.
+- **Vista** (`js/views/entrenamiento.js` + `css/entreno.css`, en el precache): cabecera «Entreno» con el nivel y el atajo a Configuración; pestañas **Inicio · Rutinas · Progreso**.
+  - **Inicio:** sesión en curso (Retomar / Descartar), «Hoy toca» con Empezar (un solo botón principal: con sesión en curso lo es Retomar), sugerencias de nivel, una tarjeta por categoría con su anillo de la semana (abre Rutinas en esa categoría), volumen semanal, sesiones e IMC. En PC, dos columnas. El buscador sigue decorativo, como antes.
+  - **Rutinas:** categoría (GYM · Calistenia · HIIT) y la lista de rutinas, que sigue en MK III hasta la 9b. Borrar una rutina repinta la lista en la pestaña (`rutinas-lista.js` usa `#ent-rutinas` si existe).
+  - **Progreso:** tarjeta de Cuerpo (Órbita), historial de sesiones y progreso completo.
+- **Navegación sin cambios de fondo:** las sub-pantallas siguen en `#entrenamiento-sub-view` con su entrada de historial; volver (botón o Atrás) repinta la principal en la pestaña de origen. Al salir de Entreno se vuelve a Inicio.
+- **Ámbito MK III:** `app.js` deja de poner `.mk3-entreno` en `#view-root`; las sub-pantallas y las hojas que siguen en MK III van dentro de un contenedor `.mk3-entreno` de la vista. `charts.js` lee los colores de ese contenedor si existe.
+- **Modo sobrio:** la línea del volumen semanal pasa a neutro.
+- **Herramienta de fotos:** `prepararEscenario` (foto-finanzas.mjs, compartida) ahora espera la recarga que Configuración hace sola 800 ms después de cargar la demo; sin eso, con la máquina cargada esa recarga caía en medio de la lectura y la foto fallaba a veces ("Execution context was destroyed").
+- **Verificación (`fase-9a-5`):** foto de las cifras idéntica a la de antes; pestañas, categoría → Rutinas, flechas, Atrás desde el historial y Volver desde el progreso completo vuelven a Progreso; borrar una rutina en la pestaña; 44 px y contraste AA en las tres pestañas, 390 y 1440, color y sobrio.
 
 ## 9. Riesgos y cómo se controlan
 

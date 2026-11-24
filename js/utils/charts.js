@@ -46,8 +46,15 @@ export function ensureChartJs() {
 // gráficos que piden un token semántico (--accent-purple/--accent-teal, no
 // el token base --cy/--am/--vi directo) quedaban con el color del acento
 // de marca o el default viejo sin importar qué módulo estaba montado.
+//
+// Entreno (Fase 9a) lleva su ámbito MK III en un contenedor de la vista
+// (.mk3-entreno), no en #view-root: si existe, se lee de ahí.
+function ambitoGraficos() {
+  return document.querySelector('#view-root .mk3-entreno') || document.getElementById('view-root') || document.documentElement;
+}
+
 export function cssVar(name) {
-  const scope = document.getElementById('view-root') || document.documentElement;
+  const scope = ambitoGraficos();
   return getComputedStyle(scope).getPropertyValue(name).trim();
 }
 
@@ -73,7 +80,7 @@ export function appPalette() {
 // solo — hay que preguntarle a la clase directamente. Devuelve undefined
 // fuera de esos scopes para que Chart.js use su propia fuente por defecto.
 export function chartFontFamily() {
-  const scope = document.getElementById('view-root') || document.documentElement;
+  const scope = ambitoGraficos();
   const classes = scope.classList;
   return (classes.contains('mk3-entreno') || classes.contains('mk3-finanzas') || classes.contains('mk3-tareas'))
     ? "ui-monospace, 'SF Mono', Menlo, Consolas, monospace"

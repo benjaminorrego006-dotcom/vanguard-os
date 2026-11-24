@@ -51,8 +51,14 @@ export async function prepararEscenario(page, base) {
   await page.evaluate(() => { location.hash = 'configuracion'; });
   await page.waitForFunction(() => window.appRouter.currentView === 'configuracion');
   await page.locator('#btn-cfg-demo').click();
+  // Configuración recarga la app sola 800 ms después del aviso
+  // (configuracion.js). Hay que esperar esa recarga: si no, con la máquina
+  // cargada caía en medio de la lectura ("Execution context was destroyed").
+  const recargaDeLaApp = page.waitForEvent('load', { timeout: 30000 });
   await page.locator('#confirm-ok').click();
   await page.waitForSelector('.o-toast:has-text("Datos de demostración cargados")', { timeout: 20000 });
+  await recargaDeLaApp;
+  await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
 
   await page.evaluate(async () => {
     const { db } = await import('/js/core/db.js');

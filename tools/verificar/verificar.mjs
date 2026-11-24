@@ -22,6 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { tomarFoto, leerUiOrbita, compararFotos, ARCHIVO_ANTES } from './foto-finanzas.mjs';
+import { tomarFotoEntreno, leerUiOrbitaEntreno, ARCHIVO_ANTES_ENTRENO } from './foto-entreno.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '..', '..');
@@ -1470,6 +1471,103 @@ async function main() {
       const r = e.getBoundingClientRect(); return r.width >= 44 && r.height >= 44;
     }));
     afirmar(dentro, 'algún ítem del dock mide menos de 44 px');
+  });
+
+  // ---------- Entreno (Órbita, Fase 9a) ----------
+  await prueba('Entreno · cifras de Inicio idénticas a la foto de antes de la Fase 9', async () => {
+    // Contexto propio (datos demo y reloj de foto-entreno.mjs), leído por la interfaz Órbita.
+    const despues = await tomarFotoEntreno(browser, BASE, { leerUi: leerUiOrbitaEntreno, capturas: path.join(SALIDA, 'entreno-foto') });
+    fs.writeFileSync(path.join(SALIDA, 'entreno-despues.json'), JSON.stringify(despues, null, 2) + '\n');
+    afirmar(despues.errores.length === 0, `errores de consola: ${despues.errores[0]}`);
+    const difs = compararFotos(JSON.parse(fs.readFileSync(ARCHIVO_ANTES_ENTRENO, 'utf8')), despues);
+    afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
+  });
+
+  const pestanaEnt = () => page.$eval('[data-ent-tab][aria-selected="true"]', (e) => e.dataset.entTab);
+  const subVisible = () => page.$eval('#entrenamiento-sub-view', (e) => getComputedStyle(e).display !== 'none');
+
+  await prueba('Entreno · pestañas Inicio, Rutinas y Progreso; volver de una sub-pantalla deja la pestaña de origen', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await irA(page, 'entrenamiento');
+    await page.waitForSelector('[data-ent-tab]');
+    afirmar(await page.locator('.o-vista.o-mod-entreno').count() === 1, 'la vista no es Órbita');
+    afirmar(!(await page.evaluate(() => document.getElementById('view-root').classList.contains('mk3-entreno'))), '#view-root conserva .mk3-entreno');
+    afirmar(await pestanaEnt() === 'inicio', 'no arranca en Inicio');
+    // Una categoría de Inicio abre Rutinas en esa categoría.
+    await page.locator('.btn-explorar[data-cat="hiit"]').click();
+    await page.waitForSelector('[data-rut-cat="hiit"][aria-pressed="true"]');
+    afirmar(await pestanaEnt() === 'rutinas', 'la categoría no abrió Rutinas');
+    afirmar(/HIIT/.test(await page.locator('#ent-rutinas').textContent()), 'la lista no es la de HIIT');
+    // Flechas entre pestañas.
+    await page.locator('#ent-tab-rutinas').focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForSelector('#ent-tab-progreso[aria-selected="true"]');
+    // Historial: atrás del sistema vuelve a Progreso.
+    await page.locator('#link-historial-sesiones').click();
+    await page.waitForFunction(() => getComputedStyle(document.getElementById('entrenamiento-sub-view')).display !== 'none');
+    await capturar(page, 'entreno-historial-390.png');
+    await page.goBack();
+    await page.waitForSelector('#ent-tab-progreso[aria-selected="true"]');
+    afirmar(!(await subVisible()), 'atrás no cerró el historial');
+    afirmar((await page.evaluate(() => location.hash)) === '#entrenamiento', 'atrás salió de Entreno');
+    // Progreso completo: el botón Volver vuelve a Progreso.
+    await page.locator('#link-ver-progreso-completo').click();
+    await page.waitForFunction(() => getComputedStyle(document.getElementById('entrenamiento-sub-view')).display !== 'none');
+    await page.locator('#btn-entrenamiento-volver').click();
+    await page.waitForSelector('#ent-tab-progreso[aria-selected="true"]');
+    afirmar(!(await subVisible()), 'Volver no cerró el progreso completo');
+    await page.locator('#ent-tab-inicio').click();
+    await page.waitForSelector('#ent-tab-inicio[aria-selected="true"]');
+  });
+
+  await prueba('Entreno › Rutinas · borrar una rutina repinta la lista en la misma pestaña', async () => {
+    await irA(page, 'entrenamiento');
+    await page.locator('#ent-tab-rutinas').click();
+    await page.locator('[data-rut-cat="gym"]').click();
+    await page.waitForSelector('[data-rut-cat="gym"][aria-pressed="true"]');
+    const antes = await page.locator('#ent-rutinas .btn-eliminar-rutina').count();
+    afirmar(antes > 0, 'no hay rutinas de GYM para borrar');
+    const nombre = (await page.locator('#ent-rutinas .btn-eliminar-rutina').first().getAttribute('aria-label')).replace('Eliminar rutina ', '');
+    await page.locator('#ent-rutinas .btn-eliminar-rutina').first().click();
+    await page.locator(SEL.confirmOk).click();
+    await esperarToast(page, /Rutina eliminada/);
+    await page.waitForFunction((n) => document.querySelectorAll('#ent-rutinas .btn-eliminar-rutina').length === n, antes - 1, { timeout: 8000 });
+    afirmar(!(await page.locator(`#ent-rutinas .btn-eliminar-rutina[aria-label="Eliminar rutina ${nombre}"]`).count()), `«${nombre}» sigue en la lista`);
+    afirmar(await pestanaEnt() === 'rutinas' && !(await subVisible()), 'borrar sacó de la pestaña Rutinas');
+  });
+
+  await prueba('Entreno · 44 px y contraste AA en las tres pestañas (color y sobrio)', async () => {
+    try {
+      for (const tema of ['color', 'gris']) {
+        await page.evaluate((t) => localStorage.setItem('vg-tema', t), tema);
+        for (const vp of [{ w: 390, h: 844 }, { w: 1440, h: 900 }]) {
+          await page.setViewportSize({ width: vp.w, height: vp.h });
+          await page.reload();
+          await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+          await irA(page, 'entrenamiento');
+          for (const tab of ['inicio', 'rutinas', 'progreso']) {
+            await page.locator(`#ent-tab-${tab}`).click();
+            await page.waitForSelector(`#ent-tab-${tab}[aria-selected="true"]`);
+            await page.waitForTimeout(400);
+            // La lista de rutinas (#ent-rutinas) sigue en MK III hasta la Fase 9b.
+            const chicos = await page.$$eval('#entrenamiento-main-view :is(button, input, summary)', (bs) => bs.filter((b) => {
+              const r = b.getBoundingClientRect();
+              return !b.closest('#ent-rutinas') && r.width > 0 && (r.width < 44 || r.height < 44);
+            }).map((b) => `${b.getAttribute('aria-label') || b.textContent.trim() || b.id} (${Math.round(b.getBoundingClientRect().width)}×${Math.round(b.getBoundingClientRect().height)})`));
+            afirmar(chicos.length === 0, `${tema} ${vp.w} ${tab}: objetivos bajo 44 px: ${chicos.slice(0, 3).join(', ')}`);
+            const fallas = await fallasContraste(page, '#entrenamiento-main-view *:not(#ent-rutinas, #ent-rutinas *)');
+            afirmar(fallas.length === 0, `${tema} ${vp.w} ${tab}: «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+            await page.screenshot({ path: path.join(SALIDA, `entreno-${tab}-${tema}-${vp.w}.png`), fullPage: true });
+          }
+        }
+      }
+    } finally {
+      await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.reload();
+      await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+      await irA(page, 'dashboard'); // la prueba siguiente parte en Hoy
+    }
   });
 
   await prueba('Orbe · estando en Hoy abre la captura rápida', async () => {

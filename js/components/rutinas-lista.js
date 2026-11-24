@@ -399,7 +399,9 @@ export function initRutinasListaListeners(categoria, onNewRoutine, onStartSessio
         // 'rutinas', no una de las sub-vistas que sí reconoce) — si el
         // usuario quiere borrar varias rutinas seguidas no tiene que volver
         // a entrar a la categoría cada vez.
-        const subContent = document.getElementById('entrenamiento-sub-content');
+        // En la pestaña Rutinas de Entreno (Fase 9a) la lista vive en
+        // #ent-rutinas; en una sub-pantalla, en #entrenamiento-sub-content.
+        const subContent = document.getElementById('ent-rutinas') || document.getElementById('entrenamiento-sub-content');
         if (subContent) {
           subContent.innerHTML = await renderRutinasLista(categoria);
           initRutinasListaListeners(categoria, onNewRoutine, onStartSession, onPreviewMode, signal, onVerProgreso, onGenerarRutina);

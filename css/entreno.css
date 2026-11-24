@@ -1,0 +1,109 @@
+/* =====================================================================
+   ENTRENO (Órbita, Fase 9) — js/views/entrenamiento.js y la tarjeta de
+   Cuerpo (components/cuerpo.js)
+   ---------------------------------------------------------------------
+   Pestañas Inicio · Rutinas · Progreso. Acento del módulo (turquesa →
+   azul) vía .o-mod-entreno. Las sub-pantallas (lista de rutinas,
+   formularios, sesión, historial, progreso completo, Cuerpo) y las hojas
+   siguen en MK III dentro de .mk3-entreno hasta su parte de la fase.
+   ===================================================================== */
+
+.o-ent .o-tabs { margin-bottom: var(--o-sp-5); }
+.ent-tabs .o-tab { flex: 1 1 0; min-width: 0; }
+.o-ent-panel { min-width: 0; }
+
+/* --- Piezas comunes --- */
+.o-ent-col { display: grid; gap: var(--o-sp-4); min-width: 0; align-content: start; }
+.o-ent-titulo {
+  margin: 0; font-size: var(--o-fs-lg); font-weight: var(--o-fw-bold);
+  letter-spacing: var(--o-ls-title); line-height: var(--o-lh-snug); overflow-wrap: anywhere;
+}
+.o-ent-acciones { display: flex; flex-wrap: wrap; gap: var(--o-sp-2); margin-top: var(--o-sp-2); }
+.o-ent-acciones .o-btn { flex: 1 1 auto; }
+.o-ent-acciones--col { flex-direction: column; }
+:is(.o-ent-encurso, .o-ent-perfil, .o-ent-vacio, .o-ent-cuerpo) { display: grid; gap: var(--o-sp-2); }
+:is(.o-ent-encurso, .o-ent-perfil, .o-ent-vacio, .o-ent-cuerpo) .o-rotulo { margin: 0; }
+.o-ent-dato { margin: 0; font-size: var(--o-fs-xl); font-weight: var(--o-fw-black); line-height: var(--o-lh-tight); }
+
+/* --- Inicio --- */
+.o-ent-inicio { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--o-sp-4); align-items: start; }
+.o-ent-encurso-tiempo { font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold); color: var(--o-text-2); }
+
+.o-ent-buscar { position: relative; }
+.o-ent-buscar svg {
+  position: absolute; inset-inline-start: var(--o-sp-4); top: 50%; transform: translateY(-50%);
+  width: var(--o-icon-sm); height: var(--o-icon-sm); color: var(--o-text-3); pointer-events: none;
+}
+.o-ent-buscar .o-input { padding-inline-start: calc(var(--o-sp-4) + var(--o-icon-sm) + var(--o-sp-3)); }
+
+.o-ent-hoy { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-4); }
+.o-ent-hoy-texto { display: grid; gap: var(--o-sp-1); min-width: 0; }
+.o-ent-hoy-texto .o-rotulo { margin: 0; }
+.o-ent-hoy-acc { display: flex; flex-direction: column; align-items: flex-end; gap: var(--o-sp-3); flex-shrink: 0; }
+
+/* Racha: un logro, en neutro (nunca el rojo de alerta). */
+.o-ent-racha {
+  display: inline-flex; align-items: center; gap: var(--o-sp-1); justify-self: start;
+  padding: var(--o-sp-1) var(--o-sp-3); border: 1px solid var(--o-line); border-radius: var(--o-radius-chip);
+  background: var(--o-surface-2); color: var(--o-text); font-size: var(--o-fs-sm); font-weight: var(--o-fw-bold);
+  white-space: nowrap;
+}
+
+/* Sugerencias de nivel: tarjeta plegable con una fila por rama. */
+.o-ent-sug { padding: 0; }
+.o-ent-sug-cab {
+  display: flex; align-items: center; min-height: var(--o-touch); padding: var(--o-sp-3) var(--o-sp-4);
+  font-size: var(--o-fs-base); font-weight: var(--o-fw-bold); cursor: pointer; border-radius: inherit;
+}
+.o-ent-sug-cab:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-ent-sug-lista { list-style: none; margin: 0; padding: 0; }
+.o-ent-sug-fila { display: grid; gap: var(--o-sp-1); padding: var(--o-sp-4); border-top: 1px solid var(--o-line); }
+.o-ent-sug-fila .o-rotulo { margin: 0; }
+.o-ent-sug-titulo { margin: 0; font-size: var(--o-fs-base); font-weight: var(--o-fw-bold); line-height: var(--o-lh-snug); }
+
+/* Una tarjeta por categoría: anillo de la semana; abre Rutinas. */
+.o-ent-cats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--o-sp-3); }
+.o-ent-cat {
+  display: grid; justify-items: center; align-content: start; gap: var(--o-sp-2);
+  min-height: var(--o-touch); padding: var(--o-sp-4) var(--o-sp-2); text-align: center;
+  font: inherit; color: var(--o-text); cursor: pointer;
+  transition: background-color var(--o-dur-1) var(--o-ease-out);
+}
+.o-ent-cat:hover { background: var(--o-surface-2); }
+.o-ent-cat:active { transform: scale(var(--o-press)); }
+.o-ent-cat:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-ent-cat-nombre { font-size: var(--o-fs-sm); font-weight: var(--o-fw-bold); }
+.o-ent-cat-ultima { font-size: var(--o-fs-xs); color: var(--o-text-2); line-height: var(--o-lh-snug); }
+
+.o-ent-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-sp-3); }
+.o-ent-stats > .o-card { display: grid; align-content: start; gap: var(--o-sp-1); min-width: 0; }
+.o-ent-stats .o-rotulo { margin: 0; }
+.o-ent-volumen { grid-column: 1 / -1; }
+.o-ent-imc-cat { margin: 0; font-size: var(--o-fs-sm); font-weight: var(--o-fw-bold); }
+
+/* --- Rutinas --- */
+.o-ent-rut-cats { margin-bottom: var(--o-sp-4); }
+
+/* --- Progreso --- */
+.o-ent-progreso { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--o-sp-4); align-items: start; }
+.o-ent-cuerpo-peso { margin: 0; font-size: var(--o-fs-base); font-weight: var(--o-fw-bold); }
+.o-ent-cuerpo-peso > .o-num { font-size: var(--o-fs-xl); font-weight: var(--o-fw-black); }
+.o-ent-cuerpo-var { font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold); color: var(--o-text-2); }
+.o-ent-ir { width: 100%; text-align: start; font: inherit; color: var(--o-text); cursor: pointer; }
+.o-ent-ir-flecha { display: grid; place-items: center; flex-shrink: 0; color: var(--o-text-3); }
+.o-ent-ir-flecha svg { width: var(--o-icon-sm); height: var(--o-icon-sm); }
+
+/* --- Sub-pantallas (MK III hasta su parte de la fase) --- */
+.o-ent-sub > #btn-entrenamiento-volver { margin-bottom: var(--o-sp-4); }
+
+/* --- Tablet y PC --- */
+@media (min-width: 768px) {
+  .o-ent-progreso { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .o-ent-inicio { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--o-sp-5); }
+}
+
+/* --- Modo sobrio: el acento del módulo solo en anillos y estados; la
+   línea del volumen semanal pasa a neutro. --- */
+html[data-tema="gris"] .o-ent-volumen { --o-mod: var(--o-text-2); }

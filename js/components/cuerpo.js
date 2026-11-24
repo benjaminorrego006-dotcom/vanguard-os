@@ -87,23 +87,25 @@ export const textoDelta = (delta) => (delta === 0 ? 'sin cambios'
   : `<span class="num">${delta > 0 ? '+' : '−'}${formatNumero(Math.abs(delta))}</span>`);
 
 // --- Tarjeta de la vista principal ---------------------------------------------
+// Tarjeta de Cuerpo en Entreno › Progreso (Órbita, Fase 9). data-foto: lo
+// que lee tools/verificar/foto-entreno.mjs.
 export function renderCuerpoTarjeta(medidas) {
   const v = variacionPeso30(medidas);
   const ultima = medidas[0];
   const cuerpo = v
-    ? `<div class="cuerpo-peso"><span class="num">${formatNumero(v.ultimo.pesoKg)}</span> kg${v.delta !== null ? ` <span class="cuerpo-var">· ${textoVariacion(v.delta)}</span>` : ''}</div>
-       <div class="cuerpo-sub">Último registro: ${escapeHtml(fechaCorta(ultima.fecha))}</div>`
+    ? `<p class="o-ent-cuerpo-peso" data-foto="cuerpo-peso"><span class="o-num">${formatNumero(v.ultimo.pesoKg)}</span> kg${v.delta !== null ? ` <span class="o-ent-cuerpo-var">· ${textoVariacion(v.delta)}</span>` : ''}</p>
+       <p class="o-card-texto" data-foto="cuerpo-sub">Último registro: ${escapeHtml(fechaCorta(ultima.fecha))}</p>`
     : ultima
-      ? `<div class="cuerpo-sub">Sin peso registrado. Último registro: ${escapeHtml(fechaCorta(ultima.fecha))}</div>`
-      : `<div class="cuerpo-sub">Registra tu peso y tus medidas para seguir tu evolución.</div>`;
+      ? `<p class="o-card-texto" data-foto="cuerpo-sub">Sin peso registrado. Último registro: ${escapeHtml(fechaCorta(ultima.fecha))}</p>`
+      : `<p class="o-card-texto" data-foto="cuerpo-sub">Registra tu peso y tus medidas para seguir tu evolución.</p>`;
   return `
-    <section id="entreno-cuerpo" class="card cuerpo-tarjeta" aria-labelledby="cuerpo-titulo">
-      <div class="cuerpo-etq num" id="cuerpo-titulo">CUERPO</div>
+    <section id="entreno-cuerpo" class="o-card o-ent-cuerpo" aria-labelledby="cuerpo-titulo">
+      <h2 class="o-rotulo" id="cuerpo-titulo">Cuerpo</h2>
       ${cuerpo}
-      <div class="cuerpo-acciones">
-        <button type="button" id="btn-cuerpo-registrar" class="cuerpo-btn cuerpo-btn--primario tappable">Registrar medidas</button>
+      <div class="o-ent-acciones">
+        <button type="button" id="btn-cuerpo-registrar" class="o-btn o-btn--secundario">Registrar medidas</button>
         <!-- Siempre: la galería de fotos (F4) vive en el historial, también sin medidas. -->
-        <button type="button" id="btn-cuerpo-historial" class="cuerpo-btn tappable">Historial y fotos</button>
+        <button type="button" id="btn-cuerpo-historial" class="o-btn o-btn--fantasma">Historial y fotos</button>
       </div>
     </section>`;
 }

@@ -78,7 +78,7 @@ export async function leerUiOrbitaEntreno(page) {
   await ir(page, 'entrenamiento');
   await page.waitForSelector('[data-foto="nivel"]');
   await esperarSugerencias(page, '#sugerencias-nivel');
-  return page.evaluate(() => {
+  const inicio = await page.evaluate(() => {
     const t = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : null);
     const f = (k, raiz = document) => raiz.querySelector(`[data-foto="${k}"]`);
     const hoy = f('hoy-toca');
@@ -89,7 +89,7 @@ export async function leerUiOrbitaEntreno(page) {
       racha: Number(f('racha')?.dataset.valor || 0),
       categorias: Object.fromEntries(['gym', 'calistenia', 'hiit'].map((c) => {
         const el = document.querySelector(`[data-foto="cat"][data-cat="${c}"]`);
-        return [c, { anillo: t(f('cat-anillo', el)), ultima: t(f('cat-ultima', el)) }];
+        return [c, { anillo: t(el.querySelector('.o-anillo-centro')), ultima: t(f('cat-ultima', el)) }];
       })),
       volumen: {
         actual: t(vol.querySelector('span')),
@@ -98,16 +98,28 @@ export async function leerUiOrbitaEntreno(page) {
       },
       sesionesSemana: t(f('sesiones')),
       imc: { valor: t(f('imc-valor')), categoria: t(f('imc-cat')) },
-      cuerpo: { peso: t(document.querySelector('#entreno-cuerpo .cuerpo-peso')), sub: t(document.querySelector('#entreno-cuerpo .cuerpo-sub')) },
       sugerencias: {
         titulo: t(document.querySelector('#sugerencias-nivel summary')),
         filas: [...document.querySelectorAll('.sugerencia-nivel')].map((x) => ({ rama: x.dataset.rama, texto: [...x.querySelectorAll('[data-foto^="sug-"]')].map(t) }))
       },
       tarjetaPerfil: !!document.getElementById('entreno-tarjeta-perfil'),
-      sesionEnCurso: !!document.getElementById('entreno-sesion-en-curso'),
+      sesionEnCurso: !!document.getElementById('entreno-sesion-en-curso')
+    };
+  });
+  // Cuerpo y los enlaces al historial y al progreso viven en la pestaña Progreso.
+  await page.locator('[data-ent-tab="progreso"]').click();
+  await page.waitForSelector('#entreno-cuerpo');
+  const { cuerpo, enlaces } = await page.evaluate(() => {
+    const t = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : null);
+    return {
+      cuerpo: { peso: t(document.querySelector('[data-foto="cuerpo-peso"]')), sub: t(document.querySelector('[data-foto="cuerpo-sub"]')) },
       enlaces: { historial: !!document.getElementById('link-historial-sesiones'), progreso: !!document.getElementById('link-ver-progreso-completo') }
     };
   });
+  await page.locator('[data-ent-tab="inicio"]').click();
+  const { sugerencias, tarjetaPerfil, sesionEnCurso, ...resto } = inicio;
+  // Mismo orden de claves que la foto MK III.
+  return { ...resto, cuerpo, sugerencias, tarjetaPerfil, sesionEnCurso, enlaces };
 }
 
 // Lo que calcula db.js (no depende de la interfaz).
