@@ -372,6 +372,34 @@ async function main() {
     }
   });
 
+  // El ✓ del check marcado (.o-check) se ve encima de su caja: se fotografía
+  // el ícono y se cuentan los píxeles oscuros (tinta sobre el degradado).
+  // Sin el arreglo, la caja transformada lo tapaba y no quedaba ninguno.
+  await prueba('Check · el ✓ se ve al marcar (hoja «Hábitos de hoy»)', async () => {
+    await irA(page, 'dashboard');
+    await page.locator(SEL.qaHabito).click();
+    await page.waitForFunction((s) => document.querySelector(s)?.classList.contains('open'), SEL.hoyHabitosHoja);
+    try {
+    const check = page.locator(`${SEL.hoyHabitosHoja} .o-check[aria-pressed="true"]`).first();
+    await check.waitFor();
+    await page.waitForTimeout(500); // termina la animación de la caja
+    const png = await check.locator('svg').screenshot();
+    const oscuros = await page.evaluate(async (b64) => {
+      const img = new Image(); img.src = `data:image/png;base64,${b64}`; await img.decode();
+      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+      const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+      const d = ctx.getImageData(0, 0, c.width, c.height).data;
+      let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 128) n++;
+      return n;
+    }, png.toString('base64'));
+    // Sin el ✓, la foto del ícono es solo degradado (rojo alto en cada píxel).
+    afirmar(oscuros >= 10, `el ✓ no se ve (${oscuros} píxeles de tinta)`);
+    } finally {
+      await page.goBack();
+      await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.hoyHabitosHoja);
+    }
+  });
+
   await prueba('Acción 3b · botón Gasto abre el formulario', async () => {
     await irA(page, 'dashboard');
     await page.locator(SEL.qaGasto).click();

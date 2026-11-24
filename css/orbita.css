@@ -148,7 +148,10 @@ textarea.o-input { min-height: calc(var(--o-touch) * 2); padding: var(--o-sp-3) 
   border-radius: var(--o-radius-check); border: 2px solid var(--o-line-strong); background: transparent;
   transition: background-color var(--o-dur-2) var(--o-ease-out), border-color var(--o-dur-2) var(--o-ease-out), transform var(--o-dur-3) var(--o-ease-spring);
 }
-.o-check svg { grid-area: 1 / 1; width: var(--o-icon-sm); height: var(--o-icon-sm); opacity: 0; transition: opacity var(--o-dur-1) var(--o-ease-out); }
+/* El ícono va posicionado: la caja (::before) lleva transform al marcarse,
+   y un elemento transformado se pinta encima del contenido sin posicionar
+   (tapaba el ✓). */
+.o-check svg { position: relative; grid-area: 1 / 1; width: var(--o-icon-sm); height: var(--o-icon-sm); opacity: 0; transition: opacity var(--o-dur-1) var(--o-ease-out); }
 .o-check[aria-pressed="true"]::before, .o-check[aria-checked="true"]::before {
   border-color: transparent; background: var(--o-mod-grad, var(--o-text)); transform: scale(var(--o-pop));
 }
