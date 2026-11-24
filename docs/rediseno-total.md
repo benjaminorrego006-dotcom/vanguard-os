@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (24-11-2026):** la **Fase 6 (Hábitos) está terminada** (41/41 OK en `verificar.mjs fase-6`), con el arreglo previo del check de Órbita en su propio commit. Lo siguiente: la **Fase 7 (Plan)**.
+> **Estado actual (24-11-2026):** la **Fase 6 (Hábitos) está terminada** (41/41 OK en `verificar.mjs fase-6`), con el arreglo previo del check de Órbita en su propio commit. Después se agregó el layout **lista + detalle** (≥ 1024 px), usado en Hábitos (43/43 OK). Lo siguiente: la **Fase 7 (Plan)**, con el mismo layout para Tareas.
 
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
@@ -345,8 +345,16 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Hojas de Órbita:** formulario de hábito (`habito-form.js`: frecuencia con chips, días, meta, recordatorio) y progreso de cantidad; `.modal-overlay` con `id`, atrás las cierra.
 - **Hoy:** el chip 🔥 abre Hábitos › Logros y el chip de Hábitos de la órbita, Hábitos › Hoy (`pedirPestanaHabitos`).
 - **Limpieza:** CSS muerto del reactor, del «Análisis» plegable y del hexágono de insignias (`components.css`, `layout.css`).
-- **Diseño adaptable:** celular en una columna; tablet y PC con el resumen, la racha o la dona a la izquierda y la lista o las tarjetas a la derecha. La lista y el detalle lado a lado en PC no se hizo: el detalle sigue siendo sub-pantalla.
+- **Diseño adaptable:** celular en una columna; tablet y PC con el resumen, la racha o la dona a la izquierda y la lista o las tarjetas a la derecha. La lista y el detalle lado a lado en PC llegaron después (ver «Lista + detalle»).
 - **Verificación:** pruebas nuevas (pestañas con sus gráficos y el tamaño de la dona; chip de racha → Logros; crear con «algunos días», marcar, detalle con atrás, editar y eliminar; cantidad con su hoja y atrás; botones de 44 px y contraste AA en las 3 pestañas y el detalle, en color y sobrio, a 390, 768 y 1440). La ayuda de contraste mide el texto sobre un degradado de módulo contra cada parada. ESLint `no-undef` limpio. `CACHE_NAME` → `v353`. **41/41 OK y 0 errores de consola.**
+
+#### Lista + detalle (24-11-2026, antes de la Fase 7)
+- **Componente reutilizable** `js/components/lista-detalle.js` (en el precache) + `.o-ld*` en `orbita.css`: `oListaDetalle()` (plantilla de dos columnas), `oListaDetalleCab()` (título + cerrar) y `crearListaDetalle({ clave, alCambiar })`, que lleva el elemento abierto.
+  - **Bajo 1024 px** el detalle es sub-pantalla: abrirlo empuja `{ [clave]: true }` y el atrás del sistema (o «Volver») vuelve a la lista.
+  - **Desde 1024 px** la lista va a la izquierda y el detalle a la derecha (fijo al bajar), con un aviso «Elige un…» cuando no hay nada abierto. Abrir, cambiar de elemento y cerrar no tocan el historial ni el hash.
+  - Al cruzar el corte con el detalle abierto (girar la tablet, achicar la ventana) se empuja la entrada que falta para que el atrás siga volviendo a la lista.
+- **Hábitos** lo usa en la pestaña Hoy: la fila abierta queda marcada (`aria-current`) y el detalle es el mismo en las dos formas (`cuerpoDetalle`). «Eliminar» sin relleno para mantener AA sobre la tarjeta del panel.
+- **Verificación:** pruebas nuevas en 390 (sub-pantalla, atrás y «Volver» con su entrada de historial) y 1440 (dos columnas, la fila marcada, cambiar de hábito, marcar desde el detalle, cerrar sin tocar historial ni ruta, y pasar a 390 con el detalle abierto). El historial se mide contando `pushState` y `back` (con `history.length` no se puede: un `pushState` tras retroceder borra las entradas siguientes). La prueba del orbe ahora espera a que el mazo de Hoy esté visible (una corrida falló por tocarlo antes de tiempo). `CACHE_NAME` → `v354`. **43/43 OK y 0 errores de consola.**
 
 ## 9. Riesgos y cómo se controlan
 

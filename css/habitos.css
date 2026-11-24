@@ -101,7 +101,7 @@
 .o-hab-ayuda { margin: var(--o-sp-3) 0 0; font-size: var(--o-fs-xs); color: var(--o-text-2); line-height: var(--o-lh-body); }
 .o-hab-total { margin: 0; font-size: var(--o-fs-sm); color: var(--o-text-2); }
 .o-hab-det-acciones { display: grid; grid-template-columns: 1fr 1fr; gap: var(--o-sp-3); }
-.o-hab-eliminar { color: var(--o-alert-t); }
+.o-hab-eliminar { background: transparent; color: var(--o-alert-t); }
 
 /* --- Tarjetas comunes --- */
 .o-hab-card-rotulo { margin-bottom: var(--o-sp-3); }
@@ -188,4 +188,13 @@
   .o-hab-panel { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); }
   .o-hab-panel.o-hab-panel--detalle { grid-template-columns: minmax(0, 1fr); }
   .o-hab-insignias { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* --- Lista + detalle (≥ 1024 px): la lista va en una columna a la
+   izquierda y el detalle del hábito elegido a la derecha. --- */
+.o-hab-fila.o-fila--actual { border-color: var(--o-mod); background: var(--o-mod-soft); }
+@media (min-width: 1024px) {
+  .o-ld .o-hab-panel { grid-template-columns: minmax(0, 1fr); }
+  .o-ld .o-hab-panel > .o-hab-col:first-child { position: static; }
+  .o-ld-detalle .o-hab-panel.o-hab-panel--detalle { max-width: none; }
 }

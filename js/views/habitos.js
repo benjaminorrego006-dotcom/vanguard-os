@@ -21,6 +21,7 @@ import { abrirHojaDia } from '../components/dia-hoja.js';
 import { habitoDiaAplicable, habitoCumplidoEnFecha } from '../utils/habito-dias.js';
 import { oIcono, oAnillo, oVacio, oHoja, abrirHoja, cerrarHoja, montarHoja } from '../components/orbita.js';
 import { esperarSalidaDeModal } from '../core/history.js';
+import { oListaDetalle, oListaDetalleCab, crearListaDetalle } from '../components/lista-detalle.js';
 
 // Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
 // un repintado que termina después de cambiar de vista no escribe encima.
@@ -37,12 +38,11 @@ let pestana = 'hoy';
 export function pedirPestanaHabitos(tab) {
   if (PESTANAS.some(p => p.id === tab)) pestana = tab;
 }
-// Sub-pantalla de detalle: empuja una entrada de historial al entrar
-// (instalada como PWA no hay botón atrás del navegador; sin esto el atrás
-// del sistema saldría de la app en vez de volver a la lista).
-let vista = 'lista';
-let habitoDetalleId = null;
-let popstateEnganchado = false;
+// Detalle de un hábito con el layout lista + detalle (components/
+// lista-detalle.js): en celular es sub-pantalla con su entrada de historial
+// (el atrás del sistema vuelve a la lista); desde 1024 px va a la derecha de
+// la lista y abrirlo o cerrarlo no toca el historial.
+const ld = crearListaDetalle({ clave: 'habitoDetalle', alCambiar: () => repintar() });
 // 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
 // cambio remoto: sin este listener un hábito marcado en otro dispositivo no
 // se ve hasta salir y volver. Se engancha una sola vez (mountListeners se
@@ -161,9 +161,10 @@ function renderFila(h, hoyIso) {
   } else {
     accion = `<button type="button" class="o-check day-toggle-hoy" data-id="${escapeHtml(h.id)}" data-fecha="${hoyIso}" aria-pressed="${hecho}" aria-label="${hecho ? 'Desmarcar' : 'Marcar'} ${nombre} hoy">${oIcono('check')}</button>`;
   }
+  const actual = ld.id === h.id;
   return `
-    <li class="o-fila o-hab-fila${hecho ? ' o-fila--hecha' : ''}" data-id="${escapeHtml(h.id)}">
-      <button type="button" class="o-hab-abrir habito-row" data-id="${escapeHtml(h.id)}" aria-label="${nombre}: ${escapeHtml(textoRacha(racha, esSemanal(h)).toLowerCase())}${resumenSemanaTexto(h)}. Ver detalle">
+    <li class="o-fila o-hab-fila${hecho ? ' o-fila--hecha' : ''}${actual ? ' o-fila--actual' : ''}" data-id="${escapeHtml(h.id)}">
+      <button type="button" class="o-hab-abrir habito-row" data-id="${escapeHtml(h.id)}"${actual ? ' aria-current="true"' : ''} aria-label="${nombre}: ${escapeHtml(textoRacha(racha, esSemanal(h)).toLowerCase())}${resumenSemanaTexto(h)}. Ver detalle">
         <span class="o-fila-texto"><b>${nombre}</b><small>${racha.actual > 0 ? ICO_FUEGO : ''}${escapeHtml(textoRacha(racha, esSemanal(h)))}</small></span>
         ${renderSemanaFila(h, hoyIso)}
       </button>
@@ -171,7 +172,8 @@ function renderFila(h, hoyIso) {
     </li>`;
 }
 
-function renderPanelHoy(habitos, hoyIso) {
+// detalle: HTML del detalle abierto en PC (o '' si no hay ninguno).
+function renderPanelHoy(habitos, hoyIso, detalle = '') {
   const nuevo = '<button type="button" class="o-btn o-btn--secundario" data-nuevo-habito>Nuevo hábito</button>';
   if (habitos.length === 0) {
     return `<div class="o-card">${oVacio({ icono: 'check', titulo: 'Sin hábitos todavía', texto: 'Agrega el primero y empieza a marcar días.' })}<div class="o-hab-vacio-accion">${nuevo}</div></div>`;
@@ -195,7 +197,7 @@ function renderPanelHoy(habitos, hoyIso) {
     valor: hechos, max: tocan.length || 1, centro: tocan.length ? `${hechos}/${tocan.length}` : '—',
     etiqueta: tocan.length ? `Hábitos de hoy: ${hechos} de ${tocan.length}` : 'Hoy no te toca ningún hábito'
   });
-  return `
+  const lista = `
     <div class="o-hab-panel">
       <div class="o-hab-col">
         <div class="o-card o-card--destacada o-hab-resumen">
@@ -207,6 +209,10 @@ function renderPanelHoy(habitos, hoyIso) {
         <ul class="o-lista" aria-label="Tus hábitos">${habitos.map(h => renderFila(h, hoyIso)).join('')}</ul>
       </div>
     </div>`;
+  return oListaDetalle({
+    id: 'hab-ld', lista, detalle, abierto: !!detalle, etiqueta: 'Detalle del hábito',
+    vacio: `<div class="o-card o-ld-vacio">${oVacio({ icono: 'info', titulo: 'Elige un hábito', texto: 'Su semana, su racha y sus acciones aparecen aquí.' })}</div>`
+  });
 }
 
 // --- Pestaña Análisis -----------------------------------------------------
@@ -413,21 +419,14 @@ function renderFranja(h, hoyIso) {
   }).join('');
 }
 
-async function renderDetalle(id) {
-  await cargarDiasSemana();
-  const habitos = await db.getHabitos();
-  const h = habitos.find(x => x.id === id);
-  if (!h) { vista = 'lista'; habitoDetalleId = null; return renderModulo(); }
+// Contenido del detalle, igual en la sub-pantalla (celular) y en la
+// columna derecha (PC); solo cambia la cabecera.
+async function cuerpoDetalle(h) {
   const hoyIso = hoyKey();
-  const racha = await db.getRachaHabito(id);
+  const racha = await db.getRachaHabito(h.id);
   const total = Object.keys(h.marcas || {}).length;
   const unidad = esSemanal(h) ? ['semana', 'semanas'] : ['día', 'días'];
   return `
-    <div class="o-vista o-habitos o-mod-habitos">
-      <header class="o-hab-det-cab">
-        <button type="button" id="btn-volver-habito" class="o-btn o-btn--secundario o-btn--icono" aria-label="Volver a Hábitos">${ICO_VOLVER}</button>
-        <h1 class="o-mod-titulo">${escapeHtml(h.nombre)}</h1>
-      </header>
       <ul class="o-chips o-hab-det-chips" aria-label="Configuración del hábito">
         <li class="o-chip">${escapeHtml(labelFrecuencia(h))}</li>
         ${h.meta ? `<li class="o-chip">Meta: <span class="o-num">${escapeHtml(String(h.meta.cantidad))}</span> ${escapeHtml(h.meta.unidad || '')}</li>` : ''}
@@ -452,7 +451,21 @@ async function renderDetalle(id) {
             <button type="button" id="btn-eliminar-habito-detalle" class="o-btn o-btn--secundario o-hab-eliminar">Eliminar</button>
           </div>
         </div>
-      </div>
+      </div>`;
+}
+
+// Sub-pantalla (celular): ocupa toda la vista, con «Volver».
+async function renderDetalle(id) {
+  await cargarDiasSemana();
+  const h = (await db.getHabitos()).find(x => x.id === id);
+  if (!h) { ld.olvidar(); return renderModulo(); }
+  return `
+    <div class="o-vista o-habitos o-mod-habitos">
+      <header class="o-hab-det-cab">
+        <button type="button" id="btn-volver-habito" class="o-btn o-btn--secundario o-btn--icono" aria-label="Volver a Hábitos">${ICO_VOLVER}</button>
+        <h1 class="o-mod-titulo">${escapeHtml(h.nombre)}</h1>
+      </header>
+      ${await cuerpoDetalle(h)}
       ${renderHabitoForm()}
       ${renderProgresoHoja()}
     </div>`;
@@ -468,7 +481,16 @@ async function renderModulo() {
   let panel;
   if (pestana === 'analisis') panel = await renderPanelAnalisis(habitos, hoyIso);
   else if (pestana === 'logros') panel = await renderPanelLogros(habitos);
-  else panel = renderPanelHoy(habitos, hoyIso);
+  else {
+    // PC: el detalle abierto va a la derecha de la lista.
+    let detalle = '';
+    if (ld.abierto) {
+      const h = habitos.find(x => x.id === ld.id);
+      if (h) detalle = `<div class="o-card">${oListaDetalleCab({ titulo: h.nombre, cerrarId: 'btn-cerrar-habito', cerrarEtiqueta: `Cerrar el detalle de ${h.nombre}` })}${await cuerpoDetalle(h)}</div>`;
+      else ld.olvidar();
+    }
+    panel = renderPanelHoy(habitos, hoyIso, detalle);
+  }
 
   const tocan = habitos.filter(h => esDiaAplicable(h, hoyIso) && !esSemanal(h));
   const hechos = tocan.filter(h => estaCumplido(h, hoyIso)).length;
@@ -495,7 +517,7 @@ async function renderModulo() {
 }
 
 export async function render() {
-  if (vista === 'detalle' && habitoDetalleId) return renderDetalle(habitoDetalleId);
+  if (ld.subpantalla) return renderDetalle(ld.id);
   return renderModulo();
 }
 
@@ -515,7 +537,7 @@ function paletaDona(el) {
 }
 
 async function montarGraficos() {
-  if (vista !== 'lista' || pestana !== 'analisis') return;
+  if (ld.subpantalla || pestana !== 'analisis') return;
   const lienzo = document.getElementById('habitos-donut');
   if (lienzo && donaEntradas.length > 0) {
     const color = paletaDona(lienzo);
@@ -578,24 +600,13 @@ async function onSyncActualizado() {
   await repintar();
 }
 
-function onPopStateHabitos(e) {
-  if (vista === 'detalle' && (!e.state || !e.state.habitoDetalle)) {
-    vista = 'lista';
-    habitoDetalleId = null;
-    repintar();
-  }
-}
-
 export function mountListeners() {
   vistaVigente = guardiaVista('habitos');
   if (!syncEnganchado) {
     syncEnganchado = true;
     window.addEventListener('budget-updated', onSyncActualizado);
   }
-  if (!popstateEnganchado) {
-    popstateEnganchado = true;
-    window.addEventListener('popstate', onPopStateHabitos);
-  }
+  ld.enganchar();
 
   setupHabitoForm(repintar);
   montarHoja('progreso-modal');
@@ -616,21 +627,16 @@ export function mountListeners() {
     });
   });
 
+  // Abrir: en celular, sub-pantalla arriba de todo; en PC, la columna derecha.
   const abrirDetalle = (id) => {
-    vista = 'detalle'; habitoDetalleId = id;
-    history.pushState({ habitoDetalle: true }, '');
-    repintar().then(() => window.scrollTo(0, 0));
+    ld.abrir(id).then(() => { if (ld.subpantalla) window.scrollTo(0, 0); });
   };
-  const volverALista = () => {
-    vista = 'lista'; habitoDetalleId = null;
-    // Sacar la entrada que empujó abrirDetalle para no dejar un "atrás" fantasma.
-    if (history.state && history.state.habitoDetalle) history.back();
-    repintar();
-  };
+  const volverALista = () => ld.cerrar();
 
   document.getElementById('btn-new-habito')?.addEventListener('click', () => openHabitoForm());
   document.querySelectorAll('[data-nuevo-habito]').forEach(b => b.addEventListener('click', () => openHabitoForm()));
   document.getElementById('btn-volver-habito')?.addEventListener('click', volverALista);
+  document.getElementById('btn-cerrar-habito')?.addEventListener('click', volverALista);
   document.querySelectorAll('.habito-row').forEach(row => {
     row.addEventListener('click', () => abrirDetalle(row.getAttribute('data-id')));
   });
@@ -721,12 +727,12 @@ export function mountListeners() {
   });
 
   document.getElementById('btn-editar-habito-detalle')?.addEventListener('click', async () => {
-    const h = (await db.getHabitos()).find(x => x.id === habitoDetalleId);
+    const h = (await db.getHabitos()).find(x => x.id === ld.id);
     if (h) openHabitoForm(h);
   });
 
   document.getElementById('btn-eliminar-habito-detalle')?.addEventListener('click', async () => {
-    const h = (await db.getHabitos()).find(x => x.id === habitoDetalleId);
+    const h = (await db.getHabitos()).find(x => x.id === ld.id);
     const dias = h ? Object.keys(h.marcas || {}).length : 0;
     const ok = await ConfirmDialog(
       `Eliminar hábito${h ? ' ' + h.nombre : ''}`,
@@ -734,7 +740,7 @@ export function mountListeners() {
       { verb: 'Eliminar' }
     );
     if (!ok) return;
-    await db.eliminarHabito(habitoDetalleId);
+    await db.eliminarHabito(ld.id);
     Toast('Hábito eliminado', 'success');
     volverALista();
   });
@@ -744,12 +750,8 @@ export function mountListeners() {
 // abierto (con su entrada de historial), se suelta esa entrada y la próxima
 // entrada a Hábitos parte en la lista.
 export function cleanup() {
-  window.removeEventListener('popstate', onPopStateHabitos);
-  popstateEnganchado = false;
   window.removeEventListener('budget-updated', onSyncActualizado);
   syncEnganchado = false;
-  if (vista === 'detalle' && history.state && history.state.habitoDetalle) history.back();
-  vista = 'lista';
-  habitoDetalleId = null;
+  ld.soltar();
   soltarGraficos();
 }

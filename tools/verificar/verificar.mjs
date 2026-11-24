@@ -99,6 +99,11 @@ const SEL = {
   habEditar: '#btn-editar-habito-detalle',
   habEliminar: '#btn-eliminar-habito-detalle',
   habDetalleChips: '.o-hab-det-chips',
+  habCerrar: '#btn-cerrar-habito',  // cerrar el detalle en PC (lista + detalle)
+  habLd: '#hab-ld',
+  habLdLista: '#hab-ld > .o-ld-lista',
+  habLdDetalle: '#hab-ld > .o-ld-detalle',
+  ldTitulo: '#hab-ld .o-ld-titulo',
   progresoModal: '#progreso-modal',
   progresoInput: '#progreso-cantidad',
   progresoGuardar: '#btn-save-progreso',
@@ -587,6 +592,95 @@ async function main() {
     afirmar((await page.evaluate(() => location.hash)) === '#habitos', 'eliminar salió de Hábitos');
   });
 
+  // ---------- Lista + detalle (components/lista-detalle.js) ----------
+  // history.length no sirve (un pushState tras retroceder borra las entradas
+  // siguientes): se cuentan las llamadas a pushState y back.
+  const espiarHistorial = () => page.evaluate(() => {
+    if (window.__espia) return;
+    window.__espia = { push: 0, back: 0 };
+    const p = history.pushState.bind(history); const b = history.back.bind(history);
+    history.pushState = (...a) => { window.__espia.push++; return p(...a); };
+    history.back = () => { window.__espia.back++; return b(); };
+  });
+  const historial = () => page.evaluate(() => ({ push: window.__espia.push, back: window.__espia.back, hash: location.hash, vista: window.appRouter.currentView, detalle: !!(history.state && history.state.habitoDetalle) }));
+  // Parte con el detalle cerrado (por si una prueba anterior lo dejó abierto).
+  const sinDetalle = async () => {
+    if (await page.$(SEL.habVolver)) await page.locator(SEL.habVolver).click();
+    if (await page.$(SEL.habCerrar)) await page.locator(SEL.habCerrar).click();
+    await page.waitForSelector(SEL.habPanel);
+  };
+
+  await prueba('Lista + detalle · 390: el detalle es sub-pantalla y atrás vuelve a la lista', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await irA(page, 'habitos');
+    await sinDetalle();
+    await espiarHistorial();
+    const antes = await historial();
+    await page.locator(SEL.habFila(HABITO_PENDIENTE)).click();
+    await page.waitForSelector(SEL.habVolver);
+    afirmar(!(await page.$('.o-habitos .habito-row')), 'la lista sigue en pantalla junto al detalle');
+    afirmar(!(await page.$(SEL.habCerrar)), 'en celular aparece el cierre de PC');
+    const abierto = await historial();
+    afirmar(abierto.push === antes.push + 1 && abierto.detalle && abierto.hash === '#habitos', `abrir no empujó una entrada (${JSON.stringify(abierto)})`);
+    await page.goBack();
+    await page.waitForSelector(SEL.habFila(HABITO_PENDIENTE));
+    const tras = await historial();
+    afirmar(tras.vista === 'habitos' && !tras.detalle, 'atrás salió de Hábitos');
+    // «Volver» de la cabecera hace lo mismo y no deja una entrada fantasma.
+    await page.locator(SEL.habFila(HABITO_PENDIENTE)).click();
+    await page.locator(SEL.habVolver).click();
+    await page.waitForSelector(SEL.habFila(HABITO_PENDIENTE));
+    const fin = await historial();
+    afirmar(fin.push === tras.push + 1 && fin.back === tras.back + 1 && !fin.detalle, `«Volver» dejó el historial descuadrado (${JSON.stringify(fin)})`);
+  });
+
+  await prueba('Lista + detalle · 1440: lista y detalle juntos; abrir, cambiar y cerrar no cambian de ruta', async () => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    try {
+      await irA(page, 'habitos');
+      await sinDetalle();
+      await espiarHistorial();
+      await page.waitForSelector(`${SEL.habLdDetalle} .o-ld-vacio`, { state: 'visible' });
+      const antes = await historial();
+      await page.locator(SEL.habFila(HABITO_PENDIENTE)).click();
+      await page.waitForFunction(([s, n]) => document.querySelector(s)?.textContent.trim() === n, [SEL.ldTitulo, HABITO_PENDIENTE], { timeout: 8000 });
+      // Las dos columnas visibles, el detalle a la derecha de la lista.
+      const caja = await page.evaluate(([l, d]) => {
+        const a = document.querySelector(l).getBoundingClientRect(); const b = document.querySelector(d).getBoundingClientRect();
+        return { lista: a.width > 0 && a.height > 0, detalle: b.width > 0 && b.height > 0, derecha: b.left >= a.right };
+      }, [SEL.habLdLista, SEL.habLdDetalle]);
+      afirmar(caja.lista && caja.detalle && caja.derecha, `columnas: ${JSON.stringify(caja)}`);
+      afirmar(await page.locator(SEL.habFila(HABITO_PENDIENTE)).getAttribute('aria-current') === 'true', 'la fila abierta no queda marcada');
+      let ahora = await historial();
+      afirmar(ahora.push === antes.push && ahora.back === antes.back && ahora.hash === antes.hash, `abrir tocó el historial (${JSON.stringify(ahora)})`);
+      // Cambiar a otro hábito: el detalle cambia sin historial.
+      await page.locator(SEL.habFila('Gimnasio')).click();
+      await page.waitForFunction((s) => document.querySelector(s)?.textContent.trim() === 'Gimnasio', SEL.ldTitulo, { timeout: 8000 });
+      // Marcar desde la franja del detalle repinta sin cerrarlo.
+      await page.locator(`${SEL.habLdDetalle} .day-toggle[aria-label^="Marcar Gimnasio el lunes"]`).click();
+      await page.waitForSelector(`${SEL.habLdDetalle} .day-toggle[aria-label^="Desmarcar Gimnasio el lunes"]`, { timeout: 8000 });
+      await page.locator(`${SEL.habLdDetalle} .day-toggle[aria-label^="Desmarcar Gimnasio el lunes"]`).click();
+      await page.waitForSelector(`${SEL.habLdDetalle} .day-toggle[aria-label^="Marcar Gimnasio el lunes"]`, { timeout: 8000 });
+      await page.screenshot({ path: path.join(SALIDA, 'lista-detalle-1440.png') });
+      // Cerrar: vuelve el aviso «Elige un hábito», misma ruta y mismo historial.
+      await page.locator(SEL.habCerrar).click();
+      await page.waitForSelector(`${SEL.habLdDetalle} .o-ld-vacio`, { state: 'visible' });
+      ahora = await historial();
+      afirmar(ahora.push === antes.push && ahora.back === antes.back && ahora.hash === '#habitos' && ahora.vista === 'habitos', `cerrar cambió la ruta o el historial (${JSON.stringify(ahora)})`);
+      // Pasar de PC a celular con el detalle abierto: queda como sub-pantalla
+      // y el atrás vuelve a la lista sin salir de Hábitos.
+      await page.locator(SEL.habFila(HABITO_PENDIENTE)).click();
+      await page.waitForSelector(SEL.habCerrar);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForSelector(SEL.habVolver, { timeout: 8000 });
+      await page.goBack();
+      await page.waitForSelector(SEL.habFila(HABITO_PENDIENTE));
+      afirmar((await historial()).vista === 'habitos', 'el atrás tras achicar la ventana salió de Hábitos');
+    } finally {
+      await page.setViewportSize({ width: 390, height: 844 });
+    }
+  });
+
   await prueba('Hábitos · un hábito con cantidad registra su progreso y cumple la meta', async () => {
     await irA(page, 'habitos');
     await page.locator(SEL.habCantidad('Leer')).click();
@@ -630,13 +724,18 @@ async function main() {
           }
           await page.locator(SEL.habTab('hoy')).click();
           await pestanaActiva('hoy');
+          // Detalle: sub-pantalla bajo 1024 px (atrás vuelve); en PC, a la
+          // derecha de la lista (se cierra con su botón).
+          const ancho = vp.width >= 1024;
           await page.locator(SEL.habFila(HABITO_PENDIENTE)).click();
-          await page.waitForSelector(SEL.habVolver);
+          await page.waitForSelector(ancho ? SEL.habCerrar : SEL.habVolver);
           await page.waitForTimeout(300);
           await revisar(`${tema} ${vp.nombre} detalle`);
           await page.screenshot({ path: path.join(SALIDA, `habitos-detalle-${tema}-${vp.nombre}.png`), fullPage: true });
-          await page.goBack();
+          if (ancho) await page.locator(SEL.habCerrar).click();
+          else await page.goBack();
           await page.waitForSelector(SEL.habPanel);
+          await page.waitForSelector(SEL.habCerrar, { state: 'detached' });
         }
       }
       // Hoja del formulario en 390.
@@ -717,6 +816,7 @@ async function main() {
   await prueba('Orbe · estando en Hoy abre la captura rápida', async () => {
     // Hoy se pinta de forma asíncrona: esperar a que exista su hoja de captura.
     await page.waitForSelector(SEL.hoyCaptura, { state: 'attached' });
+    await page.waitForSelector(SEL.hoyMision, { state: 'visible' }); // listeners de Hoy montados
     await page.locator(SEL.orbe).click();
     await page.waitForFunction((s) => document.activeElement?.matches(s), SEL.capturaInput);
     afirmar((await page.evaluate(() => location.hash)) === '#dashboard', 'el orbe cambió de vista');

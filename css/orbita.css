@@ -409,6 +409,29 @@ html[data-tema="gris"] .o-mision { background-image: none; }
 .o-toast--saliendo { opacity: 0; transform: translateY(var(--o-move)); }
 @keyframes o-toast-entrar { from { opacity: 0; transform: translateY(var(--o-move)) scale(var(--o-press)); } }
 
+/* ---------------------------------------------------------------------
+   Lista + detalle (js/components/lista-detalle.js). Bajo 1024 px se ve
+   una de las dos columnas (el detalle es sub-pantalla); desde 1024 px,
+   las dos juntas, con el detalle fijo al bajar.
+   --------------------------------------------------------------------- */
+.o-ld { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--o-sp-5); align-items: start; }
+.o-ld > .o-ld-detalle { display: none; min-width: 0; }
+.o-ld--abierto > .o-ld-lista { display: none; }
+.o-ld--abierto > .o-ld-detalle { display: block; }
+.o-ld-lista { min-width: 0; }
+.o-ld-cab { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-3); margin-bottom: var(--o-sp-4); }
+.o-ld-titulo {
+  margin: 0; min-width: 0; font-size: var(--o-fs-xl); font-weight: var(--o-fw-black);
+  letter-spacing: var(--o-ls-title); line-height: var(--o-lh-tight);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.o-ld-vacio { border-style: dashed; }
+@media (min-width: 1024px) {
+  .o-ld { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: var(--o-sp-6); }
+  .o-ld > .o-ld-lista, .o-ld > .o-ld-detalle { display: block; }
+  .o-ld > .o-ld-detalle { position: sticky; top: var(--o-sp-4); }
+}
+
 /* --- Campo de fecha dd-mm-aaaa (js/utils/campo-fecha.js) ---
    El ícono va de fondo; !important porque varias plantillas MK III fijan
    background en línea (el atajo background borra la imagen). */
