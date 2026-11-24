@@ -90,8 +90,14 @@ todavía no se migran siguen con MK III (tokens sin prefijo y ámbitos
 - **Alertas:** el rojo (`--o-alert`, texto `--o-alert-t`) es solo para
   alertas reales (un saldo negativo, un cobro que no alcanza). Toda alerta
   lleva **ícono y texto**, nunca solo color.
-- **Formas y profundidad:** radios `--o-r-*` (píldora en el dock y los
-  botones principales). Vidrio con `backdrop-filter` solo en el dock y las
+- **Formas y profundidad («Esquina Vanguard», 24 nov 2026):** radios
+  `--o-radius-*`, redondeados salvo la esquina superior derecha, casi
+  recta: tarjetas, listas y paneles `card` (18/4); botones, campos y
+  pestañas `control` (12/3); `chip` (10/3); `check` (7/2); hoja inferior
+  `sheet` (24/6 arriba). Círculo solo en anillos, orbe y avatares; píldora
+  solo en el dock y los avisos. Sin chaflán (`clip-path`) en ningún lado.
+  Las vistas MK III pasan por el puente al final de `css/variables.css`
+  (sus tokens apuntan a los de Órbita). Vidrio con `backdrop-filter` solo en el dock y las
   hojas. Sombra de color (`--o-glow-*`) solo en el botón principal de cada
   pantalla. Las luces de fondo (`--o-ambient`) son gradientes sin `filter`.
 - **Tipografía:** Sora (`--o-font`) para títulos y texto; Geist Mono

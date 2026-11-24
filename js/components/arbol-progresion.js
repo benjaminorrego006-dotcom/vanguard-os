@@ -8,8 +8,8 @@
 // modalidades (ej. el camino a Front Lever pasa por Dominadas de gym).
 //
 // Vive dentro de la ruta Entreno, así que hereda el theming MK III de
-// html.mk3-entreno en components.css sin CSS propio: .card ya sale con
-// chaflán (clip-path, sin border-radius), sin box-shadow y en monoespaciada;
+// html.mk3-entreno en components.css sin CSS propio: .card ya sale con el
+// radio de tarjeta de Órbita, sin box-shadow y en monoespaciada;
 // var(--accent-teal) ya está redefinida a var(--cy) en ese contexto. No hay
 // nada de esto que declarar acá, solo respetarlo (no usar border-radius,
 // box-shadow ni otra tipografía inline que lo pise).

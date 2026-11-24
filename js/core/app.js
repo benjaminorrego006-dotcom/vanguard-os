@@ -11,6 +11,7 @@ import { initFoco } from '../components/foco.js';
 import { marcarNavegacion } from './vista-activa.js';
 import { refrescarSuscripcion } from './push.js';
 import { initRecordatorios } from './recordatorios.js';
+import { initCamposFecha } from '../utils/campo-fecha.js';
 
 // Anotaciones ya no es una vista propia: vive en Plan (#tareas/notas). Su
 // hash viejo redirige (resolveViewFromHash) y navigate('anotaciones') es un
@@ -314,6 +315,7 @@ class Router {
     initModalHistory();
     initSheetDragToDismiss();
     initModalAccessibility();
+    initCamposFecha(); // fechas dd-mm-aaaa (es-CL) en todos los formularios
     this.initPerfil();
     this.initOrbe();
     // Foco de tareas: registra uno que venció con la app cerrada y sigue el

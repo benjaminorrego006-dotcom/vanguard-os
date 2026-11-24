@@ -34,7 +34,7 @@ function renderDots() {
   return `
     <div style="display: flex; gap: 6px; justify-content: center; margin-bottom: 20px;">
       ${Array.from({ length: TOTAL_PASOS }, (_, i) => `
-        <div style="width: 8px; height: 8px; background: ${i + 1 === pasoActual ? 'var(--accent-teal)' : 'var(--surface-border)'}; clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);"></div>
+        <div style="width: 8px; height: 8px; background: ${i + 1 === pasoActual ? 'var(--accent-teal)' : 'var(--surface-border)'}; border-radius: var(--o-radius-check);"></div>
       `).join('')}
     </div>
   `;

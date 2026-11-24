@@ -395,8 +395,21 @@ html[data-tema="gris"] .mk3-anotaciones { --accent-notas: #8E8E94; }
   --o-dialog-max: 360px;    /* ancho máximo de un diálogo */
   --o-text-max: 34ch;       /* largo de línea de un texto de apoyo centrado */
 
-  /* --- Radios --- */
-  --o-r-xs: 8px; --o-r-sm: 12px; --o-r-md: 18px; --o-r-lg: 22px; --o-r-xl: 26px; --o-r-pill: 999px;
+  /* --- Radios: «Esquina Vanguard» (decisión del 24-11-2026). Valores de
+     4 esquinas (sup-izq, sup-der, inf-der, inf-izq): todo redondeado salvo
+     la esquina superior derecha, casi recta. Círculo solo en anillos, orbe
+     y avatares; píldora solo en el dock y los avisos. --- */
+  --o-radius-card: 18px 4px 18px 18px;    /* tarjetas, listas, filas y paneles */
+  --o-radius-control: 12px 3px 12px 12px; /* botones, campos y pestañas */
+  --o-radius-chip: 10px 3px 10px 10px;
+  --o-radius-check: 7px 2px 7px 7px;
+  --o-radius-sheet: 24px 6px 0 0;         /* hoja inferior (pegada abajo) */
+  --o-radius-circle: 50%;
+  --o-radius-pill: 999px;
+
+  /* Ícono del campo de fecha (js/utils/campo-fecha.js): un fondo no acepta
+     currentColor, así que el trazo lleva --o-text-2 escrito (y su par gris). */
+  --o-ico-calendario: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A9A3C9' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
 
   /* --- Elevación: vidrio + sombra. La sombra de color va solo en el
      botón principal de cada pantalla (--o-glow-*). --- */
@@ -455,6 +468,7 @@ html[data-tema="gris"] {
   --o-ink: #0B0B0D;
   --o-grad-titulo: linear-gradient(180deg, #FFFFFF, #FFFFFF);
   --o-ambient: none;
+  --o-ico-calendario: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A8A8B0' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
   --o-glow-hab: none; --o-glow-plan: none; --o-glow-ent: none; --o-glow-fin: none;
 }
 
@@ -475,4 +489,51 @@ html[data-tema="gris"] :is(.o-mod-habitos, .o-mod-plan, .o-mod-entreno, .o-mod-f
   --o-mod-soft: var(--o-surface-2);
   --o-mod-wash: var(--o-surface-1);
   --o-mod-glow: none;
+}
+
+/* =====================================================================
+   PUENTE MK III → ÓRBITA (24-11-2026)
+   ---------------------------------------------------------------------
+   Las vistas que todavía no se rediseñan (Hábitos, Plan, Entreno,
+   Finanzas, Configuración) siguen con sus plantillas MK III, pero sus
+   tokens de fondo, panel, línea y texto apuntan a los de Órbita: los
+   paneles verde azulado pasan a las superficies de Órbita sin tocar
+   estructura ni lógica. Los textos de acento (--X-t) pasan a la versión
+   de texto de Órbita, que cumple AA sobre esas superficies (los de MK III
+   estaban calculados contra --panel). Va al final para ganarle al tema
+   Gris de arriba; se borra en la limpieza final junto con MK III.
+   ===================================================================== */
+:root, html[data-tema="gris"] {
+  --bg-base: var(--o-bg);
+  --surface-1: var(--o-surface-1);
+  --surface-2: var(--o-surface-2);
+  --surface-border: var(--o-line);
+  --glass-border: var(--o-line);
+  --text-primary: var(--o-text);
+  --text-secondary: var(--o-text-2);
+  --text-disabled: var(--o-text-3);
+
+  --bg: var(--o-bg);
+  --panel: var(--o-surface-1);
+  --line: var(--o-line);
+  --div: var(--o-line);
+  --t1: var(--o-text); --t2: var(--o-text-2); --t3: var(--o-text-3); --t4: var(--o-text-3); --t5: var(--o-text-3);
+
+  --cy-t: var(--o-ent-t); --am-t: var(--o-fin-t); --vi-t: var(--o-plan-t); --rd-t: var(--o-alert-t);
+  --am2-t: var(--o-fin-t);
+  --state-high-t: var(--o-alert-t);
+
+  /* Tintes de panel de cada acento: oscuros (*p, *s, *d) a superficies
+     neutras; los de fondo de estado activo (*b) al tinte suave del módulo
+     de Órbita (Entreno, Finanzas y Plan). */
+  --cyp: var(--o-surface-1); --amp: var(--o-surface-1); --vip: var(--o-surface-1);
+  --vid: var(--o-surface-2); --vis: var(--o-surface-3);
+  --cyb: color-mix(in srgb, var(--o-ent) 16%, transparent);
+  --amb: color-mix(in srgb, var(--o-fin) 16%, transparent);
+  --vib: color-mix(in srgb, var(--o-plan) 22%, transparent);
+  --rdb: var(--o-alert-soft);
+}
+/* Modo sobrio: los tintes de estado activo también pasan a neutros. */
+html[data-tema="gris"] {
+  --cyb: var(--o-surface-2); --amb: var(--o-surface-2); --vib: var(--o-surface-2);
 }

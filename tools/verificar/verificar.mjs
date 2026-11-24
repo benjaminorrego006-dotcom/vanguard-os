@@ -87,6 +87,9 @@ const SEL = {
   gastoModal: '#gasto-modal',
   finTab: (tab) => `.fin-tab[data-tab="${tab}"]`,
   movimientos: '#history-list-content',
+  fechaDesde: '#history-date-from',
+  limpiarFechas: '#btn-clear-date-filter',
+  finTitulo: '#view-root h1',
   // Entreno
   sesionActiva: '#sesion-barra, #hiit-container' // GYM/Calistenia o temporizador HIIT
 };
@@ -238,6 +241,46 @@ async function main() {
     await irA(page, 'finanzas');
     afirmar(await page.locator(SEL.finTab('movimientos')).evaluate((e) => e.classList.contains('active')), 'Movimientos no quedó activa');
     await page.waitForFunction((s) => /almuerzo/i.test(document.querySelector(s)?.textContent || ''), SEL.movimientos, { timeout: 8000 });
+  });
+
+  await prueba('Fechas · el filtro de Movimientos se escribe dd-mm-aaaa y filtra', async () => {
+    // Sigue en Finanzas › Movimientos (prueba anterior). Datos demo: «Almuerzo» el 23 nov, «Metro» el 22.
+    const campo = page.locator(SEL.fechaDesde);
+    afirmar((await campo.getAttribute('placeholder')) === 'dd-mm-aaaa', 'el campo no muestra dd-mm-aaaa');
+    await campo.click({ position: { x: 10, y: 10 } });
+    await page.keyboard.type('23112026');
+    afirmar((await campo.evaluate((e) => Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').get.call(e))) === '23-11-2026', 'el texto no quedó 23-11-2026');
+    await page.keyboard.press('Tab'); // change
+    await page.waitForFunction((s) => !/Metro/.test(document.querySelector(s)?.textContent || ''), SEL.movimientos, { timeout: 8000 });
+    afirmar(/Almuerzo/.test(await page.locator(SEL.movimientos).textContent()), 'el filtro dejó fuera el 23 nov');
+    await page.locator(SEL.limpiarFechas).click();
+    await page.waitForFunction((s) => /Metro/.test(document.querySelector(s)?.textContent || ''), SEL.movimientos, { timeout: 8000 });
+    afirmar((await campo.inputValue()) === '', 'Limpiar no vació el campo');
+  });
+
+  await prueba('Finanzas · el título no lleva franja de fondo', async () => {
+    const fondo = await page.locator(SEL.finTitulo).evaluate((h) => {
+      for (let e = h; e && e.id !== 'view-root'; e = e.parentElement) {
+        const c = getComputedStyle(e);
+        if (c.position === 'sticky' || c.backgroundColor !== 'rgba(0, 0, 0, 0)') return `${c.position} ${c.backgroundColor}`;
+      }
+      return '';
+    });
+    afirmar(fondo === '', `cabecera con fondo propio: ${fondo}`);
+  });
+
+  await prueba('Bordes · «Esquina Vanguard» sin chaflán en Hábitos, Plan, Entreno y Finanzas', async () => {
+    for (const vista of ['habitos', 'tareas', 'entrenamiento', 'finanzas']) {
+      await irA(page, vista);
+      const r = await page.evaluate(() => {
+        const todos = [...document.querySelectorAll('#view-root *')];
+        const chaflan = todos.filter((e) => getComputedStyle(e).clipPath.startsWith('polygon') && !e.closest('.mk3-hex'));
+        const tarjeta = document.querySelector('#view-root .card');
+        return { chaflan: chaflan.map((e) => e.className || e.tagName).slice(0, 3), esquina: tarjeta ? getComputedStyle(tarjeta).borderTopRightRadius : null, otra: tarjeta ? getComputedStyle(tarjeta).borderTopLeftRadius : null };
+      });
+      afirmar(r.chaflan.length === 0, `${vista}: quedan chaflanes (${r.chaflan.join(', ')})`);
+      if (r.esquina !== null) afirmar(r.esquina === '4px' && r.otra === '18px', `${vista}: tarjeta con ${r.otra}/${r.esquina}`);
+    }
   });
 
   await prueba('Acción 3b · botón Gasto abre el formulario', async () => {

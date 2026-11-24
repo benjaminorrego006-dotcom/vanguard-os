@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (24-11-2026):** la **Fase 5 (Hoy) está terminada** (29/29 OK en `verificar.mjs fase-5`). Pendiente de decidir: el ítem activo del riel en modo sobrio casi no se lee (viene de la Fase 3). Lo siguiente: la **Fase 6**.
+> **Estado actual (24-11-2026):** la **Fase 5 (Hoy) está terminada**, y después se unificaron los bordes de toda la app («Esquina Vanguard», 32/32 OK en `verificar.mjs esquina`). Pendientes de decidir: (1) el ítem activo del riel en modo sobrio casi no se lee (Fase 3); (2) la hoja de gasto abierta desde Hoy sale sin el estilo de su teclado y sus chips (Fase 5: ese CSS vive en el `<style>` de Finanzas); (3) los números del mapa de calor de Finanzas no llegan a 4,5:1. Lo siguiente: la **Fase 6**.
 
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
@@ -322,6 +322,13 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Gasto y Tarea** se abren sin salir de Hoy (formularios MK III dentro de su ámbito `.mk3-*` hasta su fase). Salen las filas heroicas y la «última nota» (§ 4).
 - Todo se deriva en memoria; las mutaciones son las mismas funciones de `db.js` (cada una con su `logEvent`). `CACHE_NAME` → `v347`, `css/hoy.css` en el precache.
 - **Verificación:** pruebas de Hoy actualizadas y nuevas (órbita → Laboratorio, «Después» en el mazo, hábito desde la agenda sin cerrarla, botón Hábito, orbe → captura con atrás). Capturas en 390/768/1440 en los dos modos. ESLint `no-undef` limpio. **29/29 OK y 0 errores de consola.**
+
+#### Bordes «Esquina Vanguard» y puente MK III (24-11-2026, antes de la Fase 6)
+- **Decisión del usuario (opción B):** todo redondeado salvo la esquina superior derecha, casi recta. Tokens `--o-radius-card` (18/4: tarjetas, listas, paneles), `-control` (12/3: botones, campos, pestañas), `-chip` (10/3), `-check` (7/2), `-sheet` (24/6 arriba, hoja inferior), `-circle` (anillos, orbe, avatares) y `-pill` (dock y avisos). Reemplazan a `--o-r-*` en `orbita.css`, `hoy.css`, `layout.css` y la página de tokens. Los botones de Hoy que eran píldora pasan a `control`.
+- **Puente para las vistas MK III** (Hábitos, Plan, Entreno, Finanzas, Configuración, Laboratorio, Ritual): sin ningún chaflán (`clip-path`) y con los radios de Órbita (la regla común de `components.css` con `:is()` reemplaza las de cada scope; hojas y modales MK III con fondo sólido de hoja). Los tokens de MK III (`--panel`, `--line`, `--t1`…, los tintes de panel `--cyp`/`--vis`/`--cyb`… y los textos de acento `--X-t`) apuntan a los de Órbita en un bloque al final de `variables.css`, también en modo sobrio. Estructura y lógica intactas. Los hexágonos de insignias quedan (no son chaflán).
+- **Finanzas:** la cabecera ya no es `sticky` con fondo propio (era la franja negra detrás del título).
+- **Fechas dd-mm-aaaa:** `js/utils/campo-fecha.js` convierte cada `input type="date"` en un campo que se ve `dd-mm-aaaa` (es-CL, sin depender del idioma del navegador) y cuyo `.value` sigue siendo `YYYY-MM-DD`; el calendario nativo se abre con el ícono, con un toque en pantallas táctiles o con Alt+↓.
+- **Verificación:** pruebas nuevas (filtro de fechas de Movimientos escrito por teclado, título de Finanzas sin franja, sin chaflán y con 18/4 px en las tarjetas de Hábitos, Plan, Entreno y Finanzas). Auditoría de contraste AA del texto de Hoy, Hábitos, Plan, Entreno y Finanzas en los dos modos: sin fallas salvo los números del mapa de calor de Finanzas (problema previo, pendiente). Capturas en 390/768/1440 en los dos modos. ESLint limpio. **32/32 OK y 0 errores de consola.** `CACHE_NAME` → `v348`.
 
 ## 9. Riesgos y cómo se controlan
 

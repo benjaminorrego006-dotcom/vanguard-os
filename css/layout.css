@@ -37,7 +37,7 @@ body {
 }
 #btn-perfil {
   width: var(--o-touch); height: var(--o-touch); display: grid; place-items: center;
-  border-radius: var(--o-r-pill); background: var(--o-surface-1); border: 1px solid var(--o-line);
+  border-radius: var(--o-radius-circle); background: var(--o-surface-1); border: 1px solid var(--o-line);
   color: var(--o-text); cursor: pointer;
 }
 #btn-perfil:focus-visible { outline: none; box-shadow: var(--o-focus); }
@@ -48,14 +48,14 @@ body {
 .o-perfil-item {
   display: flex; align-items: center; gap: var(--o-sp-3);
   min-height: calc(var(--o-touch) + var(--o-sp-4)); padding: var(--o-sp-2) var(--o-sp-3);
-  border-radius: var(--o-r-md); background: var(--o-surface-1); border: 1px solid var(--o-line);
+  border-radius: var(--o-radius-card); background: var(--o-surface-1); border: 1px solid var(--o-line);
   color: var(--o-text); text-decoration: none;
 }
 .o-perfil-item.active { background: var(--o-surface-2); border-color: var(--o-line-strong); }
 .o-perfil-item:focus-visible { outline: none; box-shadow: var(--o-focus); }
 .o-perfil-ico {
   width: var(--o-touch); height: var(--o-touch); flex-shrink: 0; display: grid; place-items: center;
-  border-radius: var(--o-r-sm); background: var(--o-surface-2); color: var(--o-text-2);
+  border-radius: var(--o-radius-control); background: var(--o-surface-2); color: var(--o-text-2);
 }
 .o-perfil-texto { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .o-perfil-texto b { font-size: var(--o-fs-base); font-weight: var(--o-fw-semibold); }
@@ -105,7 +105,7 @@ body {
   height: var(--o-dock-h); padding: 0 var(--o-sp-2);
   display: flex; justify-content: space-around; align-items: center;
   background: var(--o-dock-bg);
-  border: 1px solid var(--o-line-strong); border-radius: var(--o-r-pill);
+  border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-pill);
   backdrop-filter: blur(var(--o-blur)) saturate(140%);
   -webkit-backdrop-filter: blur(var(--o-blur)) saturate(140%);
   box-shadow: var(--o-shadow-dock);
@@ -118,7 +118,7 @@ body {
   flex: 0 0 auto; position: relative;
   width: var(--o-dock-item); height: var(--o-dock-item);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--o-sp-1);
-  border-radius: var(--o-r-pill);
+  border-radius: var(--o-radius-pill);
   color: var(--o-text-3); text-decoration: none;
   font-family: var(--o-font);
   -webkit-tap-highlight-color: transparent;
@@ -136,10 +136,10 @@ body {
 .nav-item:focus-visible { outline: none; box-shadow: var(--o-focus); }
 /* Orbe de Hoy: anillo con los 4 colores alrededor del ícono. */
 .nav-orbe { width: auto; height: auto; }
-.nav-orbe .icon { padding: 3px; border-radius: var(--o-r-pill); background: var(--o-grad-orbe); }
+.nav-orbe .icon { padding: 3px; border-radius: var(--o-radius-circle); background: var(--o-grad-orbe); }
 .nav-orbe .icon svg {
   box-sizing: content-box; padding: var(--o-sp-3);
-  border-radius: var(--o-r-pill); background: var(--o-sheet); color: var(--o-text);
+  border-radius: var(--o-radius-circle); background: var(--o-sheet); color: var(--o-text);
 }
 .nav-orbe.active { background-color: transparent; }
 .nav-orbe.active .icon { box-shadow: 0 0 0 var(--o-sp-1) var(--o-surface-1); }
@@ -172,7 +172,7 @@ body {
 
   .nav-item {
     width: 100%; height: auto; min-height: calc(var(--o-touch) + var(--o-sp-5));
-    border-radius: var(--o-r-md); padding: var(--o-sp-2) 0;
+    border-radius: var(--o-radius-control); padding: var(--o-sp-2) 0;
   }
   .nav-item:hover { background-color: var(--o-surface-1); }
   .nav-item.active { background-color: var(--o-mod-soft); }
@@ -323,10 +323,10 @@ body:has(.modal-overlay.open) #toast-container {
   flex-shrink: 0; min-height: 44px; padding: 0 18px;
   background: var(--cy); border: none; color: var(--bg);
   font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px) !important;
+  border-radius: var(--o-radius-control);
 }
 .sesion-barra-salir:focus-visible { outline: 2px solid var(--cy); outline-offset: 2px; }
-.sesion-barra-finalizar:focus-visible { filter: drop-shadow(0 0 0 var(--t1)) drop-shadow(0 0 2px var(--t1)); }
+.sesion-barra-finalizar:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
 /* Rótulo sobre el nombre de cada ejercicio: posición en la rutina y grupo. */
 .sesion-ej-rotulo { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px; }
 
@@ -445,7 +445,7 @@ body:has(.modal-overlay.open) #toast-container {
 .sesion-principal {
   width: 100%; min-height: 52px; padding: 0 14px; background: var(--cy); border: none; color: var(--bg);
   font: inherit; font-size: 15px; font-weight: 800; cursor: pointer;
-  clip-path: polygon(var(--chaflan) 0, 100% 0, 100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%, 0 100%, 0 var(--chaflan)) !important;
+  border-radius: var(--o-radius-control);
 }
 .sesion-principal--ss { background: var(--am); }
 .sesion-principal:focus-visible, .sesion-editor-btn:focus-visible, .sesion-rpe-chip:focus-visible, .btn-ej-menu:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
@@ -611,12 +611,6 @@ html.entreno-sesion-activa #view-root > div { padding-bottom: 0 !important; }
 .sesion-hud-ultimo--ahora { font-weight: 700; }
 .sesion-descanso-ayuda { margin: 2px 0 6px; padding: 6px 10px; border: 1px dashed var(--line); font-size: 12px; line-height: 1.35; color: var(--text-secondary); }
 .sesion-descanso-ayuda[hidden] { display: none; }
-/* Chaflán del botón principal fijo y de "Guardar sesión" (.sesion-principal):
-   la regla general de MK III quita el clip-path a todo botón de Entreno que no
-   sea .btn-primary; el id de la vista le gana en especificidad. */
-#view-root .sesion-principal {
-  clip-path: polygon(var(--chaflan) 0, 100% 0, 100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%, 0 100%, 0 var(--chaflan)) !important;
-}
 .sesion-hud-meta.sesion-hud-meta--sin-lugar, .sesion-hud-var.sesion-hud-meta--sin-lugar { display: none; }
 
 /* --- Semana · Tablero de día (docs/REDISENO-SEMANA.md) ------------------
@@ -819,16 +813,10 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .plan-menu-foco:focus-visible { outline: 2px solid var(--t1); outline-offset: -2px; }
 
 /* Laboratorio: las tarjetas (.card, incluidas las metas de goal-card.js)
-   van con el chaflán MK III de dos esquinas opuestas, sin radio. El
-   .card global trae --radius-lg y algunas un radio inline: el !important
-   les gana a ambos. Los círculos y anillos no son .card. */
+   con el radio de tarjeta de Órbita. Algunas traen un radio inline: el
+   !important le gana. Los círculos y anillos no son .card. */
 .lab-mk3 .card {
-  border-radius: 0 !important;
-  clip-path: polygon(
-    var(--chaflan) 0, 100% 0,
-    100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%,
-    0 100%, 0 var(--chaflan)
-  );
+  border-radius: var(--o-radius-card) !important;
 }
 
 /* Entreno › Cuerpo (docs/FASE6-MEDIDAS.md): tarjeta, historial y hoja de
@@ -856,7 +844,7 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .cuerpo-fila-acciones { display: flex; gap: 8px; margin-top: 8px; }
 .cuerpo-hoja h3 { margin: 0 0 14px; font-size: 18px; font-weight: 800; color: var(--text-primary); }
 .cuerpo-campo { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
-.cuerpo-campo input, .cuerpo-campo textarea { width: 100%; box-sizing: border-box; min-height: 44px; padding: 10px 12px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: 0; color: var(--text-primary); font: inherit; font-size: 16px; }
+.cuerpo-campo input, .cuerpo-campo textarea { width: 100%; box-sizing: border-box; min-height: 44px; padding: 10px 12px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: var(--o-radius-control); color: var(--text-primary); font: inherit; font-size: 16px; }
 .cuerpo-campo input[inputmode="decimal"] { font-family: var(--font-mono); }
 .cuerpo-campo input:focus-visible, .cuerpo-campo textarea:focus-visible { outline: 2px solid var(--cy); outline-offset: -1px; }
 .cuerpo-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
@@ -903,7 +891,7 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .foto-hoja .cuerpo-sub { margin: 8px 0 12px; }
 .foto-comparar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
 .foto-comparar-col { min-width: 0; }
-.foto-comparar select { width: 100%; min-height: 44px; padding: 0 8px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: 0; color: var(--text-primary); font: inherit; font-size: 14px; }
+.foto-comparar select { width: 100%; min-height: 44px; padding: 0 8px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: var(--o-radius-control); color: var(--text-primary); font: inherit; font-size: 14px; }
 .foto-comparar .foto-grande img { max-height: 45vh; }
 .fotos-pend { display: flex; flex-wrap: wrap; gap: 6px; }
 .foto-pend { position: relative; width: 64px; height: 80px; border: 1px solid var(--line); overflow: hidden; }
@@ -919,7 +907,7 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .cfg-rec-textos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .cfg-rec-nombre { font-size: 14px; font-weight: 600; color: var(--text-primary); }
 .cfg-rec-cuando { font-size: 12px; color: var(--text-secondary); line-height: 1.35; }
-.cfg-rec-hora { flex-shrink: 0; min-height: 40px; padding: 0 8px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: 0; color: var(--text-primary); font-size: 15px; }
+.cfg-rec-hora { flex-shrink: 0; min-height: 40px; padding: 0 8px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: var(--o-radius-control); color: var(--text-primary); font-size: 15px; }
 .cfg-rec-hora:disabled { opacity: 0.45; }
 .cfg-rec-nota { margin: 10px 0 0; font-size: 12px; color: var(--text-secondary); }
 
@@ -941,7 +929,7 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 /* Días (docs/PLAN-PENDIENTES-OCT.md, A3): hoja "Día", descanso planificado
    (rayado neutro) y punto de nota en mapas de actividad, franjas de Hábitos
    y la tira de 7 días de la racha. Sin radio salvo el punto (círculo). */
-#dia-modal .modal-content { border-radius: 0; }
+#dia-modal .modal-content { border-radius: var(--o-radius-sheet); }
 .dia-etq { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--vi-t); margin-bottom: 4px; }
 .dia-hoja h3 { margin: 0 0 16px; font-size: 18px; font-weight: 800; color: var(--text-primary); }
 .dia-hoy { color: var(--vi-t); font-weight: 700; }
@@ -954,7 +942,7 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .dia-interruptor--off .dia-interruptor-titulo { color: var(--text-secondary); }
 .dia-campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .dia-campo-cab { display: flex; justify-content: space-between; gap: 8px; }
-.dia-campo textarea { width: 100%; box-sizing: border-box; min-height: 76px; padding: 10px 12px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: 0; color: var(--text-primary); font: inherit; font-size: 16px; resize: vertical; }
+.dia-campo textarea { width: 100%; box-sizing: border-box; min-height: 76px; padding: 10px 12px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: var(--o-radius-control); color: var(--text-primary); font: inherit; font-size: 16px; resize: vertical; }
 .dia-campo textarea:focus-visible, .dia-interruptor input:focus-visible { outline: 2px solid var(--vi); outline-offset: -1px; }
 .dia-error { margin: 0 0 10px; padding: 8px 10px; border: 1px solid var(--rd); color: var(--rd-t); font-size: 13px; }
 .dia-acciones { display: flex; gap: 8px; }
@@ -1001,11 +989,11 @@ button.plan-item-texto { background: none; border: none; font: inherit; font-siz
 .anual-btn--primario { flex: 1; background: var(--am); border-color: var(--am); color: var(--bg); }
 .anual-btn:disabled { opacity: 0.5; cursor: default; }
 .anual-btn:focus-visible, .anual-eliminar:focus-visible { outline: 2px solid var(--t1); outline-offset: 2px; }
-#anual-modal .modal-content { border-radius: 0; }
+#anual-modal .modal-content { border-radius: var(--o-radius-sheet); }
 .anual-etq { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--am-t); margin-bottom: 4px; }
 .anual-hoja h3 { margin: 0 0 14px; font-size: 18px; font-weight: 800; color: var(--text-primary); }
 .anual-campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
-.anual-campo input, .anual-campo select { width: 100%; box-sizing: border-box; min-height: 44px; padding: 10px 12px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: 0; color: var(--text-primary); font: inherit; font-size: 16px; }
+.anual-campo input, .anual-campo select { width: 100%; box-sizing: border-box; min-height: 44px; padding: 10px 12px; background: var(--bg-base); border: 1px solid var(--surface-border); border-radius: var(--o-radius-control); color: var(--text-primary); font: inherit; font-size: 16px; }
 #anual-monto { font-family: var(--font-mono); }
 .anual-campo input:focus-visible, .anual-campo select:focus-visible { outline: 2px solid var(--am); outline-offset: -1px; }
 .anual-campos { display: grid; grid-template-columns: 1fr 2fr; gap: 0 12px; }

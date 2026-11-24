@@ -19,32 +19,32 @@
   h2 { font-family: var(--o-font-num); font-size: var(--o-fs-2xs); font-weight: var(--o-fw-semibold); letter-spacing: var(--o-ls-label); text-transform: uppercase; color: var(--o-text-2); margin-bottom: var(--o-sp-3); }
   p.sub { color: var(--o-text-2); margin-top: var(--o-sp-2); }
   .grid { display: grid; gap: var(--o-sp-3); grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-  .sw { border-radius: var(--o-r-md); background: var(--o-surface-1); border: 1px solid var(--o-line); overflow: hidden; }
+  .sw { border-radius: var(--o-radius-card); background: var(--o-surface-1); border: 1px solid var(--o-line); overflow: hidden; }
   .sw i { display: block; height: var(--o-sp-9); }
   .sw div { padding: var(--o-sp-2) var(--o-sp-3); font-family: var(--o-font-num); font-size: var(--o-fs-xs); color: var(--o-text-2); }
   .sw b { display: block; font-family: var(--o-font); font-size: var(--o-fs-sm); color: var(--o-text); }
   .surfaces { display: grid; gap: var(--o-sp-3); grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-  .surf { border-radius: var(--o-r-md); padding: var(--o-sp-4); border: 1px solid var(--o-line); }
+  .surf { border-radius: var(--o-radius-card); padding: var(--o-sp-4); border: 1px solid var(--o-line); }
   .surf span { display: block; }
   .t1 { color: var(--o-text); } .t2 { color: var(--o-text-2); } .t3 { color: var(--o-text-3); }
   .num { font-family: var(--o-font-num); }
   .type > * + * { margin-top: var(--o-sp-3); }
   .mods { display: grid; gap: var(--o-sp-4); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  .mision { border-radius: var(--o-r-xl); background: var(--o-mod-wash); border: 1px solid var(--o-line-strong); padding: var(--o-sp-4); display: grid; gap: var(--o-sp-3); }
+  .mision { border-radius: var(--o-radius-card); background: var(--o-mod-wash); border: 1px solid var(--o-line-strong); padding: var(--o-sp-4); display: grid; gap: var(--o-sp-3); }
   .mision small { font-family: var(--o-font-num); font-size: var(--o-fs-2xs); letter-spacing: var(--o-ls-label); color: var(--o-mod-t); text-transform: uppercase; }
   .mision h3 { font-size: var(--o-fs-lg); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-title); }
   .fila { display: flex; align-items: center; gap: var(--o-sp-3); flex-wrap: wrap; }
-  .btn { min-height: var(--o-btn-h); padding: 0 var(--o-sp-5); border: 0; border-radius: var(--o-r-pill); background: var(--o-mod-grad); color: var(--o-ink); font: var(--o-fw-bold) var(--o-fs-base) var(--o-font); box-shadow: var(--o-mod-glow); cursor: pointer; transition: transform var(--o-dur-1) var(--o-ease-spring); }
+  .btn { min-height: var(--o-btn-h); padding: 0 var(--o-sp-5); border: 0; border-radius: var(--o-radius-control); background: var(--o-mod-grad); color: var(--o-ink); font: var(--o-fw-bold) var(--o-fs-base) var(--o-font); box-shadow: var(--o-mod-glow); cursor: pointer; transition: transform var(--o-dur-1) var(--o-ease-spring); }
   .btn:active { transform: scale(0.96); }
   .btn:focus-visible { outline: none; box-shadow: var(--o-focus); }
-  .chip { display: inline-flex; align-items: center; gap: var(--o-sp-2); min-height: var(--o-touch); padding: 0 var(--o-sp-3); border-radius: var(--o-r-pill); background: var(--o-surface-1); border: 1px solid var(--o-line); font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold); }
-  .chip i { width: var(--o-sp-2); height: var(--o-sp-2); border-radius: var(--o-r-pill); background: var(--o-mod); }
+  .chip { display: inline-flex; align-items: center; gap: var(--o-sp-2); min-height: var(--o-touch); padding: 0 var(--o-sp-3); border-radius: var(--o-radius-chip); background: var(--o-surface-1); border: 1px solid var(--o-line); font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold); }
+  .chip i { width: var(--o-sp-2); height: var(--o-sp-2); border-radius: var(--o-radius-circle); background: var(--o-mod); }
   .chip span { font-family: var(--o-font-num); color: var(--o-text-2); font-weight: var(--o-fw-regular); }
-  .quick { width: var(--o-quick); height: var(--o-quick); border-radius: var(--o-r-lg); background: var(--o-mod-soft); display: grid; place-items: center; color: var(--o-mod-t); font-family: var(--o-font-num); font-weight: var(--o-fw-semibold); }
+  .quick { width: var(--o-quick); height: var(--o-quick); border-radius: var(--o-radius-control); background: var(--o-mod-soft); display: grid; place-items: center; color: var(--o-mod-t); font-family: var(--o-font-num); font-weight: var(--o-fw-semibold); }
   .ring { width: 120px; height: 120px; }
   .ring circle { fill: none; stroke-width: var(--o-ring-w); stroke-linecap: round; }
   .alertas { display: grid; gap: var(--o-sp-3); }
-  .alerta { display: flex; gap: var(--o-sp-3); align-items: center; padding: var(--o-sp-3) var(--o-sp-4); border-radius: var(--o-r-md); }
+  .alerta { display: flex; gap: var(--o-sp-3); align-items: center; padding: var(--o-sp-3) var(--o-sp-4); border-radius: var(--o-radius-card); }
   .alerta svg { flex-shrink: 0; }
   .a-alert { background: var(--o-alert-soft); border: 1px solid var(--o-alert); color: var(--o-alert-t); }
   .a-warn { background: var(--o-warn-soft); border: 1px solid var(--o-warn); color: var(--o-warn-t); }
@@ -52,10 +52,10 @@
   .a-info { background: var(--o-info-soft); border: 1px solid var(--o-info); color: var(--o-info-t); }
   .radios { display: flex; gap: var(--o-sp-3); flex-wrap: wrap; }
   .radios div { width: 88px; height: 64px; background: var(--o-surface-2); border: 1px solid var(--o-line-strong); display: grid; place-items: center; font-family: var(--o-font-num); font-size: var(--o-fs-xs); color: var(--o-text-2); }
-  .dock { height: var(--o-dock-h); max-width: 360px; border-radius: var(--o-r-pill); background: var(--o-dock-bg); border: 1px solid var(--o-line-strong); backdrop-filter: blur(var(--o-blur)); -webkit-backdrop-filter: blur(var(--o-blur)); box-shadow: var(--o-shadow-dock); display: flex; align-items: center; justify-content: space-around; }
-  .dock span { width: var(--o-dock-item); height: var(--o-dock-item); border-radius: var(--o-r-pill); background: var(--o-surface-1); }
+  .dock { height: var(--o-dock-h); max-width: 360px; border-radius: var(--o-radius-pill); background: var(--o-dock-bg); border: 1px solid var(--o-line-strong); backdrop-filter: blur(var(--o-blur)); -webkit-backdrop-filter: blur(var(--o-blur)); box-shadow: var(--o-shadow-dock); display: flex; align-items: center; justify-content: space-around; }
+  .dock span { width: var(--o-dock-item); height: var(--o-dock-item); border-radius: var(--o-radius-pill); background: var(--o-surface-1); }
   .dock .orbe { width: var(--o-orbe); height: var(--o-orbe); background: var(--o-grad-orbe); padding: 3px; }
-  .dock .orbe::after { content: ''; display: block; width: 100%; height: 100%; border-radius: var(--o-r-pill); background: var(--o-sheet); }
+  .dock .orbe::after { content: ''; display: block; width: 100%; height: 100%; border-radius: var(--o-radius-circle); background: var(--o-sheet); }
   .puntaje { font-size: var(--o-fs-display); font-weight: var(--o-fw-black); letter-spacing: var(--o-ls-display); line-height: 1; background: var(--o-grad-titulo); -webkit-background-clip: text; background-clip: text; color: transparent; }
   @media (min-width: 768px) { body { padding-inline: var(--o-sp-6); } }
   @media (min-width: 1280px) { body { padding-inline: var(--o-sp-7); } }
@@ -130,7 +130,7 @@
   <section>
     <h2>Radios y dock</h2>
     <div class="radios">
-      <div style="border-radius: var(--o-r-xs)">xs 8</div><div style="border-radius: var(--o-r-sm)">sm 12</div><div style="border-radius: var(--o-r-md)">md 18</div><div style="border-radius: var(--o-r-lg)">lg 22</div><div style="border-radius: var(--o-r-xl)">xl 26</div><div style="border-radius: var(--o-r-pill)">pill</div>
+      <div style="border-radius: var(--o-radius-card)">card</div><div style="border-radius: var(--o-radius-control)">control</div><div style="border-radius: var(--o-radius-chip)">chip</div><div style="border-radius: var(--o-radius-check)">check</div><div style="border-radius: var(--o-radius-sheet)">sheet</div><div style="border-radius: var(--o-radius-circle)">circle</div><div style="border-radius: var(--o-radius-pill)">pill</div>
     </div>
     <div class="dock" style="margin-top: var(--o-sp-5)"><span></span><span></span><span class="orbe"></span><span></span><span></span></div>
   </section>

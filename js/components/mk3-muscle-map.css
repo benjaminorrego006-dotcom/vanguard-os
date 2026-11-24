@@ -2,7 +2,7 @@
  * mk3-muscle-map.css
  * -----------------------------------------------------------------
  * Estilos del mapa muscular, siguiendo el sistema de diseño MK III:
- * - Chaflanes via clip-path (nunca border-radius)
+ * - Radios de Orbita («Esquina Vanguard»; antes chaflan via clip-path)
  * - Tipografia monoespaciada para numeros/datos, sans-serif para copy
  * - Ambar intenso (--accent-muscular) para la fatiga entrenada, nunca
  *   rojo (reservado a alertas reales) ni el cian general de Entreno
@@ -43,10 +43,7 @@
   gap: 0.75rem;
   padding: 1rem;
   background: var(--mm-bg);
-  /* chaflan MK III en vez de border-radius */
-  clip-path: polygon(
-    12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px
-  );
+  border-radius: var(--o-radius-card);
 }
 
 .mk3-muscle-map__svg {
@@ -157,7 +154,7 @@
   border: 1px solid var(--mm-stroke);
   padding: 0.4rem 0.9rem;
   cursor: pointer;
-  clip-path: polygon(8px 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  border-radius: var(--o-radius-control);
 }
 
 .mk3-muscle-map-controles button[aria-pressed="true"] {

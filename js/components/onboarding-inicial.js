@@ -18,13 +18,11 @@ import { exportAllData } from '../utils/backup.js';
 const TOTAL_PASOS = 3;
 let paso = 1;
 
-// Mismo par de tamaños de chaflán que ya usa el resto de Vanguard MK III
-// (ver html.mk3-* .card / .btn-primary en components.css) — acá se aplican
-// inline porque este modal puede aparecer con cualquier vista de fondo
-// (normalmente Inicio, pero no depende de su scope mk3-dashboard para
-// verse bien).
-const CHAFLAN_CARD = 'clip-path: polygon(0 9px, 9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%);';
-const CHAFLAN_BTN = 'clip-path: polygon(0 7px, 7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%);';
+// Radios de tarjeta y de control de Órbita («Esquina Vanguard»; antes
+// chaflán) — acá se aplican inline porque este modal puede aparecer con
+// cualquier vista de fondo, sin depender de un scope mk3-*.
+const CHAFLAN_CARD = 'border-radius: var(--o-radius-card);';
+const CHAFLAN_BTN = 'border-radius: var(--o-radius-control);';
 const MONO = 'font-family: var(--font-mono-mk3);';
 // MK III reserva la monoespaciada para números y rótulos: los párrafos van en sans.
 const SANS = 'font-family: var(--font-body);';

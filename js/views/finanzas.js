@@ -1375,11 +1375,11 @@ export async function render() {
     <style>${modalCSS}</style>
     <div style="max-width: 480px; margin: 0 auto; width: 100%; box-sizing: border-box; padding: 0 20px; font-family: 'Inter', sans-serif;">
 
-      <!-- Header -->
-      <div style="position: sticky; top: 0; z-index: 100; padding: 20px 4px 16px 4px; background: var(--bg-base); margin: 0 -4px 12px -4px;">
+      <!-- Header (sin sticky: su fondo propio dejaba una franja oscura sobre el fondo de Órbita) -->
+      <div style="padding: 20px 4px 16px 4px; margin: 0 -4px 12px -4px;">
         <div class="flex-between">
           <h1 style="font-size: 30px; font-weight: 800; margin: 0; letter-spacing: -0.5px; color: var(--text-primary);">Finanzas</h1>
-          <div style="background: var(--surface-2); border: 1px solid var(--surface-border); padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+          <div style="background: var(--surface-2); border: 1px solid var(--surface-border); border-radius: var(--o-radius-chip); padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
             <span>${formatMonth(currentMonth)}</span>
           </div>

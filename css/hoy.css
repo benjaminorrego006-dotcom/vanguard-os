@@ -34,13 +34,13 @@
 .o-hoy-cab-chips .o-chip { padding: 0 var(--o-sp-3); color: var(--o-text); }
 .o-hoy-cab-chips .escudo-vida { color: var(--o-hab-t); }
 .o-hoy-cab-chips .chip-vidas--vacio .escudo-vida { color: var(--o-text-3); }
-.o-dia-punto { width: var(--o-sp-1); height: var(--o-sp-1); border-radius: var(--o-r-pill); background: var(--o-text-2); }
+.o-dia-punto { width: var(--o-sp-1); height: var(--o-sp-1); border-radius: var(--o-radius-circle); background: var(--o-text-2); }
 .o-dia--descanso { border-color: var(--o-line-strong); }
 
 /* Línea de Foco en curso (components/foco.js): mismo botón, en Órbita. */
 .o-hoy .hoy-foco {
   margin: 0; min-height: var(--o-touch); gap: var(--o-sp-2); padding: var(--o-sp-2) var(--o-sp-4);
-  background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-r-pill);
+  background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-radius-control);
   color: var(--o-text); font-family: var(--o-font); font-size: var(--o-fs-sm);
 }
 .o-hoy .hoy-foco-etq { font-family: var(--o-font-num); font-size: var(--o-fs-2xs); letter-spacing: var(--o-ls-label); color: var(--o-plan-t); }
@@ -51,7 +51,7 @@
 .o-orbita {
   position: relative; display: grid; place-items: center; justify-self: center;
   width: 100%; max-width: var(--o-orbita); aspect-ratio: 1; padding: 0;
-  background: none; border: 0; border-radius: var(--o-r-pill); color: var(--o-text);
+  background: none; border: 0; border-radius: var(--o-radius-circle); color: var(--o-text);
   cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .o-orbita:focus-visible { outline: none; box-shadow: var(--o-focus); }
@@ -78,7 +78,7 @@
 }
 .o-accion-ico {
   width: 100%; max-width: var(--o-quick); aspect-ratio: 1; display: grid; place-items: center;
-  border-radius: var(--o-r-md); background: var(--o-mod-wash); border: 1px solid var(--o-line);
+  border-radius: var(--o-radius-control); background: var(--o-mod-wash); border: 1px solid var(--o-line);
   color: var(--o-mod-t);
   transition: transform var(--o-dur-1) var(--o-ease-spring);
 }
@@ -92,7 +92,7 @@ html[data-tema="gris"] .o-accion-ico { color: var(--o-text); }
 .o-franja {
   display: flex; align-items: center; gap: var(--o-sp-3); width: 100%;
   min-height: calc(var(--o-touch) + var(--o-sp-4)); padding: var(--o-sp-2) var(--o-sp-4);
-  background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-r-lg);
+  background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-radius-card);
   color: var(--o-text); font-family: var(--o-font); text-align: left;
   cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
@@ -152,7 +152,7 @@ html[data-tema="gris"] .o-accion-ico { color: var(--o-text); }
   }
   .o-hoy #hoy-agenda-hoja .o-hoja {
     max-width: none; max-height: none; overflow: visible; padding: var(--o-sp-4);
-    background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-r-xl);
+    background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-radius-card);
     box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; animation: none;
   }
   .o-hoy #hoy-agenda-hoja .o-hoja-titulo { font-size: var(--o-fs-lg); }

@@ -1,7 +1,7 @@
 /* Tarjetas — profundidad por borde, no por sombra (lenguaje visual 2026) */
 .card {
   background-color: var(--surface-1);
-  border-radius: var(--radius-lg); /* Bordes más redondeados tipo Apple */
+  border-radius: var(--o-radius-card); /* Esquina Vanguard (Órbita) */
   border: 1px solid var(--surface-border); /* Borde sutil = la "profundidad" */
   padding: var(--space-4);
   margin-bottom: var(--space-3);
@@ -34,7 +34,7 @@
 .list-row {
   background: var(--bg-base);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--o-radius-card);
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 .list-row:hover, .list-row:active { border-color: var(--surface-border); }
@@ -53,7 +53,7 @@
   align-items: center;
   justify-content: center;
   padding: 10px 16px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--o-radius-control);
   font-family: inherit;
   font-weight: 600;
   font-size: 14px;
@@ -69,7 +69,7 @@
 
 .btn-filled { background-color: var(--accent-primary); color: #000; }
 .btn-outlined { background-color: transparent; border: 1px solid var(--text-disabled); color: var(--text-primary); }
-.btn-pill { border-radius: 20px; padding: 6px 16px; font-size: 12px; }
+.btn-pill { border-radius: var(--o-radius-chip); padding: 6px 16px; font-size: 12px; }
 
 /* Botón primario tipo iOS: relleno, esquinas grandes, glow sutil del color */
 .btn-primary {
@@ -77,7 +77,7 @@
   color: #000;
   padding: 16px;
   border: none;
-  border-radius: 14px;
+  border-radius: var(--o-radius-control);
   font-weight: 700;
   font-size: 16px;
   cursor: pointer;
@@ -95,7 +95,7 @@
      + 1px de borde = sus 16px sin borde. */
   width: 100%; padding: 15px; margin-top: 10px; font-size: 16px; font-weight: 700;
   background: var(--surface-2); color: var(--text-primary);
-  border: 1px solid var(--surface-border); border-radius: 0; cursor: pointer;
+  border: 1px solid var(--surface-border); border-radius: var(--o-radius-control); cursor: pointer;
 }
 .btn-secundario.peligro { background: transparent; color: var(--state-high-t); border-color: var(--state-high); }
 .btn-secundario:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -105,12 +105,12 @@
   display: flex; gap: 4px;
   background: var(--surface-2);
   padding: 4px;
-  border-radius: 0; /* MK III: pestañas rectas */
+  border-radius: var(--o-radius-control);
 }
 .segmented-control button {
   flex: 1 0 auto;
   padding: 10px 14px;
-  border-radius: 0;
+  border-radius: var(--o-radius-control);
   border: none;
   font-weight: 600;
   font-size: 13px;
@@ -163,7 +163,7 @@ input[type="number"] {
 .badge {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--o-radius-chip);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -227,7 +227,7 @@ input[type="number"] {
   background: var(--surface-1);
   background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0) 30%);
   width: 100%; max-width: 500px;
-  border-radius: 0;
+  border-radius: var(--o-radius-sheet);
   border: 1px solid var(--glass-border); border-bottom: none;
   padding: 14px 24px calc(28px + env(safe-area-inset-bottom)) 24px;
   transform: translateY(100%); opacity: 0;
@@ -245,16 +245,30 @@ input[type="number"] {
   .modal-content { border-bottom: 1px solid var(--glass-border); transform: scale(0.95) translateY(20px); padding: 30px 24px; }
   .modal-content::before { display: none; }
 }
-/* MK III: modales, hojas y diálogos rectos en todas las vistas, también en
-   las que no tienen scope mk3-* (Laboratorio, Ritual…) y en lo que va
-   adentro (inputs, chips, filas, botones con radio inline). El !important
-   le gana a los radios inline de las plantillas viejas. Los círculos y
-   anillos quedan: icon-chip, avatares, el punto de nota y todo lo que
-   lleva 50% inline. Los overlays de Órbita (.o-ui, css/orbita.css)
-   quedan fuera: tienen sus propios radios. */
-.modal-overlay:not(.o-ui) .modal-content,
-.modal-overlay:not(.o-ui) *:not(.icon-chip):not(.avatar):not(.avatar-circle):not(.dia-punto):not([style*="50%"]) {
-  border-radius: 0 !important;
+/* Puente MK III → Órbita («Esquina Vanguard»): modales y hojas MK III de
+   todas las vistas, también las que no tienen scope mk3-* (Laboratorio,
+   Ritual…). Fondo sólido de hoja (--surface-1 ahora es translúcido) y los
+   radios de Órbita: hoja inferior en celular, tarjeta centrada desde
+   640 px. Adentro, los controles y las tarjetas toman su radio, y lo que
+   traía un radio inline (chips, íconos, barras) pasa al de chip. El
+   !important le gana a los radios inline de las plantillas viejas. Los
+   círculos quedan: icon-chip, avatares, el punto de nota y todo lo que
+   lleva 50% inline. Los overlays de Órbita (.o-ui) quedan fuera. */
+.modal-overlay:not(.o-ui) .modal-content {
+  border-radius: var(--o-radius-sheet) !important;
+  background-color: var(--o-sheet) !important;
+}
+@media (min-width: 640px) {
+  .modal-overlay:not(.o-ui) .modal-content { border-radius: var(--o-radius-card) !important; }
+}
+.modal-overlay:not(.o-ui) .modal-content [style*="border-radius"]:not(.icon-chip):not(.avatar):not(.avatar-circle):not(.dia-punto):not([style*="50%"]) {
+  border-radius: var(--o-radius-chip) !important;
+}
+.modal-overlay:not(.o-ui) .modal-content :is(button, input, select, textarea):not(.icon-chip):not([style*="50%"]):not([class^="o-"]):not([class*=" o-"]) {
+  border-radius: var(--o-radius-control) !important;
+}
+.modal-overlay:not(.o-ui) .modal-content :is(.card, .list-row) {
+  border-radius: var(--o-radius-card) !important;
 }
 
 /* Sin esto, Chrome/Android dibuja el texto e ícono de type="date" con su
@@ -298,7 +312,7 @@ input[type="date"] { color-scheme: dark; }
    clase sin !important.
    ============================================================ */
 .mk3-entreno {
-  --bg-base: var(--bg);
+  --bg-base: var(--o-surface-1); /* puente Órbita: relleno de filas y campos */
   --surface-1: var(--panel);
   --surface-2: var(--line);
   --surface-border: var(--line);
@@ -313,7 +327,7 @@ input[type="date"] { color-scheme: dark; }
 }
 
 .mk3-finanzas {
-  --bg-base: var(--bg);
+  --bg-base: var(--o-surface-1); /* puente Órbita: relleno de filas y campos */
   --surface-1: var(--panel);
   --surface-2: var(--line);
   --surface-border: var(--line);
@@ -328,7 +342,7 @@ input[type="date"] { color-scheme: dark; }
 }
 
 .mk3-tareas {
-  --bg-base: var(--bg);
+  --bg-base: var(--o-surface-1); /* puente Órbita: relleno de filas y campos */
   --surface-1: var(--panel);
   --surface-2: var(--line);
   --surface-border: var(--line);
@@ -349,7 +363,7 @@ input[type="date"] { color-scheme: dark; }
    (reactor, filas heroicas, insignias). Sí hereda superficies/texto/
    tipografía/geometría como las demás. */
 .mk3-dashboard {
-  --bg-base: var(--bg);
+  --bg-base: var(--o-surface-1); /* puente Órbita: relleno de filas y campos */
   --surface-1: var(--panel);
   --surface-2: var(--line);
   --surface-border: var(--line);
@@ -379,100 +393,55 @@ input[type="date"] { color-scheme: dark; }
   font-variant-numeric: tabular-nums;
 }
 
-/* Geometría — el chaflán marca jerarquía, no decora: antes lo llevaba
-   parejo CUALQUIER .card/.list-row/.modal-content/botón/input, así que
-   dejaba de significar nada. Ahora solo lo llevan la tarjeta principal de
-   cada pantalla (.card-hero: el reactor de Inicio, el balance de
-   Finanzas, completadas/pendientes de Tareas, la racha de Hábitos, "Hoy
-   toca" de Entreno), el
-   botón de acción primaria (.btn-primary) y el FAB (.mk3-fab) — el resto
-   queda recto (sin border-radius, sin clip-path). :not([style*="50%"])
-   sigue protegiendo los círculos genuinos que no son FAB (icon-chip,
-   avatares, el +/- del timer de descanso). */
-.mk3-entreno .card:not(.card-hero), .mk3-entreno .list-row, .mk3-entreno .modal-content,
-.mk3-entreno button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab):not(.progreso-cat),
-.mk3-entreno input, .mk3-entreno select, .mk3-entreno textarea,
-.mk3-finanzas .card:not(.card-hero), .mk3-finanzas .list-row, .mk3-finanzas .modal-content,
-.mk3-finanzas button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
-.mk3-finanzas input, .mk3-finanzas select, .mk3-finanzas textarea,
-.mk3-tareas .card:not(.card-hero), .mk3-tareas .list-row, .mk3-tareas .modal-content,
-.mk3-tareas button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
-.mk3-tareas input, .mk3-tareas select, .mk3-tareas textarea,
-.mk3-dashboard .card:not(.card-hero), .mk3-dashboard .list-row, .mk3-dashboard .modal-content,
-.mk3-dashboard button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
-.mk3-dashboard input, .mk3-dashboard select, .mk3-dashboard textarea {
-  border-radius: 0 !important;
+/* Geometría — puente MK III → Órbita («Esquina Vanguard», 24-11-2026):
+   sin chaflán (clip-path) en ningún lado. Tarjetas, filas y paneles
+   (incluida la tarjeta principal .card-hero) llevan el radio de tarjeta;
+   botones (también .btn-primary y el FAB), campos y pestañas, el de
+   control. El !important les gana a los radios inline de las plantillas
+   viejas. :not([style*="50%"]) protege los círculos genuinos (icon-chip,
+   avatares, el +/- del timer de descanso). Aplica a todos los scopes
+   MK III que siguen vivos hasta su fase. */
+:is(.mk3-entreno, .mk3-finanzas, .mk3-tareas, .mk3-dashboard, .mk3-ritual, .mk3-planificador, .mk3-anotaciones) :is(.card, .list-row, .chaflan) {
+  border-radius: var(--o-radius-card) !important;
   clip-path: none !important;
 }
-
-/* Chaflán en dos esquinas OPUESTAS (sup-izquierda / inf-derecha), no en
-   las cuatro — corte más discreto que el octógono anterior. */
-.chaflan {
-  clip-path: polygon(
-    var(--chaflan) 0, 100% 0,
-    100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%,
-    0 100%, 0 var(--chaflan)
-  );
+:is(.mk3-entreno, .mk3-finanzas, .mk3-tareas, .mk3-dashboard, .mk3-ritual, .mk3-planificador, .mk3-anotaciones) :is(button, input, select, textarea):not(.icon-chip):not([style*="50%"]):not([class^="o-"]):not([class*=" o-"]) {
+  border-radius: var(--o-radius-control) !important;
+  clip-path: none !important;
 }
-.mk3-entreno .card-hero, .mk3-entreno .btn-primary, .mk3-entreno .mk3-fab,
-.mk3-finanzas .card-hero, .mk3-finanzas .btn-primary, .mk3-finanzas .mk3-fab,
-.mk3-tareas .card-hero, .mk3-tareas .btn-primary, .mk3-tareas .mk3-fab,
-.mk3-dashboard .card-hero, .mk3-dashboard .btn-primary, .mk3-dashboard .mk3-fab {
-  border-radius: 0 !important;
-  clip-path: polygon(
-    var(--chaflan) 0, 100% 0,
-    100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%,
-    0 100%, 0 var(--chaflan)
-  ) !important;
-}
+.chaflan { border-radius: var(--o-radius-card); }
 
-/* clip-path recorta su propio anillo de foco (outline/box-shadow no se ven
-   más allá del polígono) — .btn-primary y .mk3-fab son los únicos
-   controles enfocables con chaflán, así que el foco se dibuja con un
-   filtro drop-shadow: a diferencia de outline/box-shadow, un filtro se
-   compone DESPUÉS del recorte y no queda contenido por él. */
-.mk3-entreno .btn-primary:focus-visible, .mk3-entreno .mk3-fab:focus-visible,
-.mk3-finanzas .btn-primary:focus-visible, .mk3-finanzas .mk3-fab:focus-visible,
-.mk3-tareas .btn-primary:focus-visible, .mk3-tareas .mk3-fab:focus-visible,
-.mk3-dashboard .btn-primary:focus-visible, .mk3-dashboard .mk3-fab:focus-visible {
-  outline: none;
-  filter: drop-shadow(0 0 1.5px var(--accent-primary)) drop-shadow(0 0 4px var(--accent-primary));
+/* Foco visible de los botones principales (antes un drop-shadow, porque el
+   chaflán recortaba el outline; sin chaflán vuelve el outline). */
+:is(.mk3-entreno, .mk3-finanzas, .mk3-tareas, .mk3-dashboard, .mk3-ritual, .mk3-planificador, .mk3-anotaciones) :is(.btn-primary, .mk3-fab):focus-visible {
+  outline: 2px solid var(--o-text);
+  outline-offset: 2px;
 }
 
 /* Selector de categoría de Progreso (Entreno: GYM/Calistenia/HIIT, más
-   "Todos" en Tendencia). Antes llevaba border-radius: 10px inline, fuera
-   del lenguaje MK III; ahora el mismo chaflán de dos esquinas opuestas que
-   .card-hero, y la opción activa en el cian de Entreno (--cy sobre --cyb).
-   Excluido de la regla "recto" de arriba con :not(.progreso-cat). */
+   "Todos" en Tendencia): radio de control de Órbita y la opción activa en
+   el cian de Entreno (--cy sobre --cyb). */
 .mk3-entreno .progreso-cat {
   flex: 1;
   padding: 9px 6px;
   border: 1px solid var(--surface-border);
-  border-radius: 0;
+  border-radius: var(--o-radius-control);
   background: transparent;
   color: var(--text-secondary);
   font-family: inherit;
   font-weight: 700;
   font-size: 12px;
   cursor: pointer;
-  clip-path: polygon(
-    var(--chaflan) 0, 100% 0,
-    100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%,
-    0 100%, 0 var(--chaflan)
-  );
 }
 .mk3-entreno .progreso-cat.active {
   border-color: var(--cy);
   background: var(--cyb);
   color: var(--cy-t);
 }
-/* clip-path recorta el outline y también buena parte del drop-shadow (en
-   la práctica queda solo el brillo interior), así que el foco suma el
-   borde cian para que se distinga bien de una opción inactiva. */
 .mk3-entreno .progreso-cat:focus-visible {
-  outline: none;
+  outline: 2px solid var(--o-text);
+  outline-offset: 2px;
   border-color: var(--cy);
-  filter: drop-shadow(0 0 1.5px var(--cy)) drop-shadow(0 0 4px var(--cy));
 }
 
 /* Vida extra de la racha global (escudos). Acento de Hábitos (--vi): las
@@ -532,7 +501,7 @@ input[type="date"] { color-scheme: dark; }
   justify-content: center;
   box-sizing: border-box;
   border: 1px solid var(--surface-border);
-  border-radius: 0;
+  border-radius: var(--o-radius-check);
   color: var(--vi-t);
 }
 .racha-dia--activo .racha-dia-marca {
@@ -549,11 +518,11 @@ input[type="date"] { color-scheme: dark; }
   opacity: 0.45;
 }
 
-/* Selector de módulos del Laboratorio (MK III): chaflán en dos esquinas
-   opuestas, sin border-radius ni sombras. El acento del módulo llega por
+/* Selector de módulos del Laboratorio: radio de control de Órbita, sin
+   sombras. El acento del módulo llega por
    --lab-acento / --lab-acento-suave (inline). Si no caben los 5 botones, la
    fila hace scroll horizontal con snap y sin barra visible. El foco va con
-   un outline hacia adentro: el clip-path recortaría uno por fuera. */
+   un outline hacia adentro (la fila recorta lo que sale por fuera). */
 .lab-modulos {
   position: relative;
   display: flex;
@@ -569,7 +538,7 @@ input[type="date"] { color-scheme: dark; }
   scroll-snap-align: start;
   padding: 10px 12px;
   border: 1px solid var(--surface-border);
-  border-radius: 0;
+  border-radius: var(--o-radius-control);
   background: transparent;
   color: var(--text-secondary);
   font-family: inherit;
@@ -579,7 +548,6 @@ input[type="date"] { color-scheme: dark; }
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
-  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
 }
 .lab-modulo-btn[aria-pressed="true"] {
   border-color: var(--lab-acento);
@@ -605,7 +573,7 @@ input[type="date"] { color-scheme: dark; }
   flex-shrink: 0;
   background: transparent;
   border: 1px solid var(--surface-border);
-  border-radius: 0;
+  border-radius: var(--o-radius-control);
   color: var(--text-primary);
   font-size: 20px;
   line-height: 1;
@@ -652,7 +620,7 @@ input[type="date"] { color-scheme: dark; }
   background: var(--surface-1);
   border: 1px solid var(--surface-border);
   border-left: 2px solid var(--surface-border);
-  border-radius: 0;
+  border-radius: var(--o-radius-card);
   box-shadow: none;
   padding: 14px 16px;
   color: var(--text-primary);
@@ -741,13 +709,13 @@ button.semana-bloque { cursor: pointer; }
    jerarquía principal (ver la regla "recto" de arriba). Antes eran
    border-radius inline (14px el contenedor de pestañas, 18px/8px la
    tarjeta y la nota de Tendencia) o el 4px global de .badge. */
-.mk3-entreno .badge { border-radius: 0; }
+.mk3-entreno .badge { border-radius: var(--o-radius-chip); }
 .mk3-entreno .progreso-tabs {
   display: flex;
   gap: 6px;
   background: var(--surface-1);
   border: 1px solid var(--surface-border);
-  border-radius: 0;
+  border-radius: var(--o-radius-control);
   padding: 5px;
   margin-bottom: 22px;
   overflow-x: auto;
@@ -757,7 +725,7 @@ button.semana-bloque { cursor: pointer; }
   margin-top: 12px;
   padding: 10px;
   background: var(--surface-2);
-  border-radius: 0;
+  border-radius: var(--o-radius-card);
   font-size: 11px;
   color: var(--text-secondary);
   line-height: 1.4;
@@ -792,13 +760,11 @@ button.semana-bloque { cursor: pointer; }
 }
 .modal-overlay.open .sheet-content { transform: translateY(0); opacity: 1; }
 
-/* Chaflán solo en la esquina superior izquierda: la hoja está pegada al
-   borde de abajo (las esquinas de abajo no existen visualmente) y la
-   superior derecha queda recta a propósito — acá no hay una "esquina
-   opuesta" que tenga sentido cortar, como sí la había en .card-hero. */
-.mk3-entreno .sheet-content, .mk3-finanzas .sheet-content,
-.mk3-tareas .sheet-content, .mk3-dashboard .sheet-content {
-  clip-path: polygon(var(--chaflan) 0, 100% 0, 100% 100%, 0 100%, 0 var(--chaflan));
+/* Hoja inferior con el radio de Órbita y fondo sólido (--surface-1 ahora
+   es translúcido; puente MK III → Órbita). */
+.sheet-content {
+  border-radius: var(--o-radius-sheet) !important;
+  background-color: var(--o-sheet) !important;
 }
 
 /* Etiquetas de categoría/sección: todas las que ya se escribieron con
@@ -824,7 +790,7 @@ button.semana-bloque { cursor: pointer; }
    que Entreno/Finanzas/Tareas no comparten color entre ellas.
    ============================================================ */
 .mk3-ritual {
-  --bg-base: var(--bg);
+  --bg-base: var(--o-surface-1); /* puente Órbita: relleno de filas y campos */
   --surface-1: var(--panel);
   --surface-2: var(--line);
   --surface-border: var(--line);
@@ -840,7 +806,7 @@ button.semana-bloque { cursor: pointer; }
 }
 
 .mk3-planificador {
-  --bg-base: var(--bg);
+  --bg-base: var(--o-surface-1); /* puente Órbita: relleno de filas y campos */
   --surface-1: var(--panel);
   --surface-2: var(--line);
   --surface-border: var(--line);
@@ -855,7 +821,7 @@ button.semana-bloque { cursor: pointer; }
 }
 
 .mk3-anotaciones {
-  --bg-base: var(--bg);
+  --bg-base: var(--o-surface-1); /* puente Órbita: relleno de filas y campos */
   --surface-1: var(--panel);
   --surface-2: var(--line);
   --surface-border: var(--line);
@@ -875,39 +841,8 @@ button.semana-bloque { cursor: pointer; }
   box-shadow: none !important;
 }
 
-/* Geometría — mismo criterio que el resto de MK III: la tarjeta
-   principal (.card-hero) y el botón primario llevan chaflán; el resto
-   (tarjetas normales, list-row, inputs, botones genéricos) queda recto. */
-.mk3-ritual .card:not(.card-hero), .mk3-ritual .list-row, .mk3-ritual .modal-content,
-.mk3-ritual button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
-.mk3-ritual input, .mk3-ritual select, .mk3-ritual textarea,
-.mk3-planificador .card:not(.card-hero), .mk3-planificador .list-row, .mk3-planificador .modal-content,
-.mk3-planificador button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
-.mk3-planificador input, .mk3-planificador select, .mk3-planificador textarea,
-.mk3-anotaciones .card:not(.card-hero), .mk3-anotaciones .list-row, .mk3-anotaciones .modal-content,
-.mk3-anotaciones button:not(.icon-chip):not([style*="50%"]):not(.btn-primary):not(.mk3-fab),
-.mk3-anotaciones input, .mk3-anotaciones select, .mk3-anotaciones textarea {
-  border-radius: 0 !important;
-  clip-path: none !important;
-}
-
-.mk3-ritual .card-hero, .mk3-ritual .btn-primary, .mk3-ritual .mk3-fab,
-.mk3-planificador .card-hero, .mk3-planificador .btn-primary, .mk3-planificador .mk3-fab,
-.mk3-anotaciones .card-hero, .mk3-anotaciones .btn-primary, .mk3-anotaciones .mk3-fab {
-  border-radius: 0 !important;
-  clip-path: polygon(
-    var(--chaflan) 0, 100% 0,
-    100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%,
-    0 100%, 0 var(--chaflan)
-  ) !important;
-}
-
-.mk3-ritual .btn-primary:focus-visible, .mk3-ritual .mk3-fab:focus-visible,
-.mk3-planificador .btn-primary:focus-visible, .mk3-planificador .mk3-fab:focus-visible,
-.mk3-anotaciones .btn-primary:focus-visible, .mk3-anotaciones .mk3-fab:focus-visible {
-  outline: none;
-  filter: drop-shadow(0 0 1.5px var(--accent-primary)) drop-shadow(0 0 4px var(--accent-primary));
-}
+/* Geometría de estos tres scopes: la regla común de arriba (sin chaflán,
+   radios de Órbita). */
 
 .mk3-ritual [style*="text-transform: uppercase"],
 .mk3-planificador [style*="text-transform: uppercase"],
