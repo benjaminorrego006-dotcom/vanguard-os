@@ -356,6 +356,27 @@ async function main() {
   });
 
   // ---------- Componentes Órbita (muestra fuera de la app) ----------
+  // El botón «Diálogo destructivo» de la muestra avisa «Cancelado» cuando
+  // ConfirmDialog resuelve false: así se ve por la UI que la promesa no
+  // quedó colgada.
+  await prueba('Diálogo · atrás, Escape y tocar fuera cuentan como Cancelar', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(BASE + SEL.muestra);
+    await page.waitForSelector(SEL.muestraMision);
+    const cerrarCon = { atrás: () => page.goBack(), Escape: () => page.keyboard.press('Escape'), 'tocar fuera': () => page.mouse.click(8, 8) };
+    for (const [como, cerrar] of Object.entries(cerrarCon)) {
+      await page.evaluate((s) => { document.querySelector(s).innerHTML = ''; }, SEL.toast);
+      await page.locator('#d-confirmar').click();
+      await page.waitForFunction((s) => document.querySelector(s)?.classList.contains('open'), SEL.confirmModal);
+      await page.waitForTimeout(300);
+      await cerrar();
+      await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.confirmModal, { timeout: 4000 });
+      await page.waitForFunction(() => /Cancelado/.test(document.querySelector('#toast-container')?.textContent || ''), null, { timeout: 4000 })
+        .catch(() => { throw new Error(`cerrar con ${como} no resolvió la promesa como Cancelar`); });
+      afirmar(!/Sobre eliminado/.test(await page.locator(SEL.toast).textContent()), `cerrar con ${como} ejecutó la acción`);
+    }
+  });
+
   for (const modo of ['color', 'sobrio']) {
     await prueba(`Componentes · muestra en modo ${modo} (hoja, diálogo, avisos, mazo)`, async () => {
       const url = BASE + SEL.muestra + (modo === 'sobrio' ? '?modo=sobrio' : '');

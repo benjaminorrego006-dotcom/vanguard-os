@@ -189,7 +189,22 @@ export function ConfirmDialog(title = 'Confirmar', message = '', { verb = 'Confi
     newOk.classList.toggle('o-btn--alerta', danger);
     newOk.classList.toggle('o-btn--primario', !danger);
 
+    // El botón atrás y Escape cierran el diálogo por history.js (sacan
+    // "open" sin pasar por estos botones): eso cuenta como Cancelar, igual
+    // que tocar fuera. Sin esto la promesa quedaba sin resolver.
+    let resuelto = false;
+    const vigia = new MutationObserver(() => {
+      if (resuelto || modal.classList.contains('open')) return;
+      resuelto = true;
+      vigia.disconnect();
+      resolve(false);
+    });
+    modal.onclick = (e) => { if (e.target === modal) closeModal(false); };
+
     const closeModal = (result) => {
+      if (resuelto) return;
+      resuelto = true;
+      vigia.disconnect();
       modal.classList.add('o-saliendo');
       setTimeout(() => {
         modal.classList.remove('open', 'o-saliendo');
@@ -204,6 +219,7 @@ export function ConfirmDialog(title = 'Confirmar', message = '', { verb = 'Confi
     modal.classList.remove('o-saliendo');
     modal.classList.add('open');
     modal.style.display = 'flex';
+    vigia.observe(modal, { attributes: true, attributeFilter: ['class'] });
     newCancel.focus({ preventScroll: true });
   });
 }

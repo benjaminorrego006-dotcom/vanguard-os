@@ -313,7 +313,7 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Muestra fuera de la app:** `docs/rediseno/componentes-orbita.html` (`?modo=sobrio`), con los mismos CSS y JS de la app.
 - **Contraste:** texto de acento sobre el tinte del módulo ≥ 4.75:1; tinta sobre el rojo de alerta, 5.5:1.
 - **Verificación:** nuevas pruebas de la muestra en los dos modos (capturas en 390/768/1440; hoja con atrás, diálogo, los cuatro avisos y el mazo con botones y deslizando) y del aviso con ícono en la app. ESLint `no-undef` limpio. **25/25 OK y 0 errores de consola.**
-- **Pendiente detectado (sin cambiar, ya existía):** si el diálogo de confirmación se cierra con el botón atrás o con Escape, la promesa de `ConfirmDialog` no se resuelve. Quien espera la respuesta queda colgado sin error visible.
+- **Bug previo del diálogo, corregido en un commit aparte (24-11-2026):** cerrar el diálogo de confirmación con el botón atrás, con Escape o tocando fuera dejaba sin resolver la promesa de `ConfirmDialog`. Ahora cuenta como «Cancelar» (`false`), con su prueba en `verificar.mjs` (26/26 OK).
 
 ## 9. Riesgos y cómo se controlan
 
