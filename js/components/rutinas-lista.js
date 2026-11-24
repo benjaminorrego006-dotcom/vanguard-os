@@ -3,11 +3,18 @@ import { PLANTILLAS } from '../core/plantillas.js';
 import { getEjercicioPorId, agruparPorGrupoMuscular, grupoMuscularParaMapa } from '../core/ejercicios-catalogo.js';
 import { RAMA_LABELS } from '../core/progresiones.js';
 import { esDescansoActivo, renderDescansoActivoCard } from './descanso-activo.js';
-import { Toast, ConfirmDialog, EmptyState } from '../utils/states.js';
+import { Toast, ConfirmDialog } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatDiaSemana } from '../utils/fecha.js';
+import { oIcono, oVacio } from './orbita.js';
 import { MuscleMap, calcularFatigaPorGrupo, expandirIntensidadPorMusculo } from './mk3-muscle-map.js';
 import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
+
+// Lista de rutinas de una categoría (pestaña Rutinas de Entreno), vista
+// previa de plantilla y de rutina generada. Órbita desde la Fase 9b
+// (estilos en css/entreno.css); los ids y clases que leen los listeners
+// son los de siempre. data-foto marca lo que compara
+// tools/verificar/foto-rutinas.mjs.
 
 // Escala de dificultad para ordenar "Plantillas sugeridas" de menor a mayor.
 // 'Todos los niveles' se trata como accesible para principiantes (rango 1).
@@ -29,13 +36,15 @@ const setsResumen = (series) => {
   return ` — ${series.length}×${reps}`;
 };
 
+const ICO_BORRAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+const ICO_IR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg>';
+
 // Ejercicios con el mismo grupoId (2+, no solo pares) se agrupan en un
-// solo bracket con borde ámbar + un chip "SUPERSERIE" — mismo id de grupo
-// asignado al guardar en rutina-form.js, y mismo campo que ya leía (sin
-// que nada lo escribiera nunca) rutina-session.js. Recorre en orden y
-// arma "corridas" de ejercicios consecutivos que comparten grupo;
-// cualquier ejercicio sin grupoId (o que rompe la corrida) sale como
-// línea suelta, igual que antes.
+// solo bloque con el rótulo "Superserie" — mismo id de grupo asignado al
+// guardar en rutina-form.js, y mismo campo que lee rutina-session.js.
+// Recorre en orden y arma "corridas" de ejercicios consecutivos que
+// comparten grupo; cualquier ejercicio sin grupoId (o que rompe la
+// corrida) sale como línea suelta.
 function renderEjerciciosRutina(ejercicios) {
   let html = '';
   let i = 0;
@@ -49,24 +58,30 @@ function renderEjerciciosRutina(ejercicios) {
         j++;
       }
       html += `
-        <div class="sup-bracket" style="display: flex; gap: 8px; align-items: stretch; margin-top: 8px; padding-left: 10px; border-left: 2px solid var(--state-medium);">
-          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--text-secondary);">
-            ${grupo.map(g => `<div>${escapeHtml(g.nombre)}${setsResumen(g.series)}</div>`).join('')}
-          </div>
-        </div>
-        <div style="margin-top: 4px;"><span class="badge badge--medium">SUPERSERIE</span></div>
-      `;
+        <li class="o-ent-sup" data-foto="rut-sup">
+          <span class="o-ent-sup-rotulo">Superserie</span>
+          <ul class="o-ent-ejs">
+            ${grupo.map(g => `<li class="o-ent-ej" data-foto="rut-linea">${escapeHtml(g.nombre)}${setsResumen(g.series)}</li>`).join('')}
+          </ul>
+        </li>`;
       i = j;
     } else {
-      html += `<div class="exline" style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-secondary); margin-top: 8px;"><span style="width: 3px; height: 3px; border-radius: 50%; background: var(--text-disabled); flex-shrink: 0;"></span> ${escapeHtml(ej.nombre)}${setsResumen(ej.series)}</div>`;
+      html += `<li class="o-ent-ej" data-foto="rut-linea">${escapeHtml(ej.nombre)}${setsResumen(ej.series)}</li>`;
       i++;
     }
   }
-  return html;
+  return html ? `<ul class="o-ent-ejs">${html}</ul>` : '';
 }
 
-const warningSvg = `<svg class="o-ico-alerta" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px; flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
-const infoSvg = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+// Aviso (ámbar, con ícono y texto): no es una alerta roja.
+const aviso = (titulo, linea, foto) => `
+  <div class="o-alerta o-alerta--aviso" data-foto="${foto}">
+    <span class="o-alerta-ico">${oIcono('alerta')}</span>
+    <span class="o-alerta-cuerpo">
+      <span class="o-alerta-titulo">${titulo}</span>
+      ${linea ? `<span class="o-alerta-linea">${linea}</span>` : ''}
+    </span>
+  </div>`;
 
 export async function renderRutinasLista(categoria) {
   const rutinas = await db.getRutinas(categoria);
@@ -76,14 +91,12 @@ export async function renderRutinasLista(categoria) {
   const catName = catNames[categoria] || categoria;
 
   let html = `
-    <div style="margin-bottom: 24px;">
-      <h2 style="font-size: 26px; font-weight: 800; margin: 0 0 16px 0; color: var(--text-primary); letter-spacing: -0.4px;">${catName}</h2>
-      <button id="btn-nueva-rutina" class="tappable" style="width: 100%; padding: 14px; background: var(--accent-teal); border: none; color: #000; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px;">
-        + Nueva rutina
-      </button>
-      <button id="btn-generar-rutina" class="tappable" style="width: 100%; padding: 14px; background: var(--surface-2); border: 1px dashed var(--surface-border); color: var(--text-primary); font-size: 15px; font-weight: 700; cursor: pointer;">
-        Generar rutina
-      </button>
+    <div class="o-ent-rut-cab">
+      <h2 class="o-ent-titulo" data-foto="rut-titulo">${catName}</h2>
+      <div class="o-ent-acciones">
+        <button id="btn-nueva-rutina" type="button" class="o-btn o-btn--primario">Nueva rutina</button>
+        <button id="btn-generar-rutina" type="button" class="o-btn o-btn--secundario">Generar rutina</button>
+      </div>
     </div>
   `;
 
@@ -95,47 +108,30 @@ export async function renderRutinasLista(categoria) {
     const pie = balance.piernas || 0;
     const total = emp + tra + pie || 1;
 
-    const wEmp = (emp / total) * 100;
-    const wTra = (tra / total) * 100;
-    const wPie = (pie / total) * 100;
+    const fila = (label, valor) => `
+      <li class="o-ent-barra">
+        <span class="o-ent-barra-nombre">${label}</span>
+        <span class="o-ent-barra-pista"><span class="o-ent-barra-relleno" style="--o-ent-ancho: ${(valor / total) * 100}%"></span></span>
+        <span class="o-num o-ent-barra-valor" data-foto="bal-valor">${valor}</span>
+      </li>`;
 
     let warningHtml = '';
     if (emp > 0 && tra < emp * 0.7) {
-      warningHtml = `<div style="font-size: 11px; color: var(--state-medium-t); font-weight: 600; margin-top: 8px; display: flex; align-items: center;">${warningSvg}Tu tracción está quedando atrás esta semana.</div>`;
+      warningHtml = `<p class="o-ent-nota-aviso" data-foto="bal-aviso">${oIcono('alerta')}<span>Tu tracción está quedando atrás esta semana.</span></p>`;
     }
 
     balanceHtml = `
-      <div class="card" style="padding: 18px; margin-bottom: 24px;">
-        <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Balance semanal (7 días)</h3>
-
-        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 60px; color: var(--text-secondary);">Empuje</div>
-            <div style="flex: 1; height: 8px; background: var(--surface-2); overflow: hidden;">
-              <div style="height: 100%; width: ${wEmp}%; background: var(--cy2);"></div>
-            </div>
-            <div style="width: 24px; text-align: right; color: var(--text-primary);">${emp}</div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 60px; color: var(--text-secondary);">Tracción</div>
-            <div style="flex: 1; height: 8px; background: var(--surface-2); overflow: hidden;">
-              <div style="height: 100%; width: ${wTra}%; background: var(--accent-teal);"></div>
-            </div>
-            <div style="width: 24px; text-align: right; color: var(--text-primary);">${tra}</div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 60px; color: var(--text-secondary);">Piernas</div>
-            <div style="flex: 1; height: 8px; background: var(--surface-2); overflow: hidden;">
-              <div style="height: 100%; width: ${wPie}%; background: var(--cy3);"></div>
-            </div>
-            <div style="width: 24px; text-align: right; color: var(--text-primary);">${pie}</div>
-          </div>
-        </div>
+      <section class="o-card o-ent-balance" data-foto="balance">
+        <h3 class="o-rotulo">Balance semanal (7 días)</h3>
+        <ul class="o-ent-barras">
+          ${fila('Empuje', emp)}
+          ${fila('Tracción', tra)}
+          ${fila('Piernas', pie)}
+        </ul>
         ${warningHtml}
-      </div>
+      </section>
     `;
   }
-
 
   let muscleMapHtml = '';
   if (categoria === 'gym' || categoria === 'calistenia') {
@@ -143,41 +139,28 @@ export async function renderRutinasLista(categoria) {
     // Plegable debajo de las rutinas (docs/PLAN-REVISION-OCT.md, 2.3): ocupaba
     // la primera pantalla. Abierto de entrada solo si todavía no hay rutinas.
     muscleMapHtml = `
-      <details class="card rutinas-mapa" ${rutinas.length === 0 ? 'open' : ''} style="padding: 18px; margin-bottom: 24px;">
-        <summary class="tappable" style="cursor: pointer; font-size: 14px; font-weight: 700; color: var(--text-primary); padding: 4px 0;">Mapa muscular · fatiga actual</summary>
-        <div style="display: flex; flex-direction: column; align-items: center; margin-top: 12px;">
-          <div class="mk3-muscle-map-controles" id="${mapPrefix}-muscle-map-controles" style="align-self: flex-end; margin-bottom: 12px;">
-            <button type="button" data-vista="frente" aria-pressed="true">Frente</button>
-            <button type="button" data-vista="espalda" aria-pressed="false">Espalda</button>
+      <details class="o-card o-ent-plegable rutinas-mapa" ${rutinas.length === 0 ? 'open' : ''}>
+        <summary class="o-ent-plegable-cab">Mapa muscular · fatiga actual</summary>
+        <div class="o-ent-mapa">
+          <div class="o-chips o-ent-mapa-vistas" id="${mapPrefix}-muscle-map-controles" role="group" aria-label="Vista del mapa">
+            <button type="button" class="o-chip" data-vista="frente" aria-pressed="true">Frente</button>
+            <button type="button" class="o-chip" data-vista="espalda" aria-pressed="false">Espalda</button>
           </div>
           <div id="${mapPrefix}-muscle-map"></div>
-          <div class="mk3-muscle-map-leyenda" id="${mapPrefix}-muscle-map-leyenda"></div>
-          <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary); align-self: flex-start;">${infoSvg}Qué tan fatigado está cada grupo ahora mismo. Se recupera solo en 48h sin entrenarlo.</div>
+          <div class="o-ent-mapa-leyenda" id="${mapPrefix}-muscle-map-leyenda" aria-live="polite"></div>
+          <p class="o-campo-ayuda o-ent-con-ico">${oIcono('info')}<span>Qué tan fatigado está cada grupo ahora mismo. Se recupera solo en 48h sin entrenarlo.</span></p>
         </div>
       </details>
     `;
   }
 
-  let deloadHtml = '';
   if (categoria === 'gym' || categoria === 'calistenia') {
     const necesitaDeload = await db.detectarNecesidadDeload(categoria);
     if (necesitaDeload) {
-      deloadHtml = `
-        <div class="card" style="background: color-mix(in srgb, var(--fondo-aviso) 8%, transparent); border-color: color-mix(in srgb, var(--fondo-aviso) 30%, transparent); padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
-          <div class="icon-chip" style="width: 32px; height: 32px; background: color-mix(in srgb, var(--fondo-aviso) 18%, transparent); color: var(--state-medium-t); flex-shrink: 0;">
-            ${warningSvg}
-          </div>
-          <div>
-            <div style="font-size: 13px; font-weight: 700; color: var(--state-medium-t);">Considera una semana de descarga</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Tu volumen ha subido 3+ semanas seguidas. Bajar la intensidad esta semana ayuda a evitar el sobreentrenamiento.</div>
-          </div>
-        </div>
-      `;
+      html += aviso('Considera una semana de descarga', 'Tu volumen ha subido 3+ semanas seguidas. Bajar la intensidad esta semana ayuda a evitar el sobreentrenamiento.', 'descarga');
     }
   }
-  html += deloadHtml;
 
-  let heatmapHtml = '';
   if (categoria === 'hiit') {
     const todasSesiones = await db.getSesiones();
     const hitIds = rutinas.map(r => r.id);
@@ -198,127 +181,107 @@ export async function renderRutinasLista(categoria) {
       });
 
       const dayName = formatDiaSemana(d);
-      const color = hasSession ? 'var(--accent-teal)' : 'var(--surface-2)';
-      const border = hasSession ? 'none' : '1px solid var(--surface-border)';
-
       boxes += `
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <div style="width: 24px; height: 24px; background: ${color}; border: ${border};"></div>
-          <span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase;">${dayName}</span>
-        </div>
+        <li class="o-ent-dia" data-foto="dia" data-hecho="${hasSession}">
+          <span class="o-ent-dia-caja" aria-hidden="true"></span>
+          <span class="o-num o-ent-dia-nombre">${dayName}</span>
+          <span class="o-ent-sr">${hasSession ? 'con sesión' : 'sin sesión'}</span>
+        </li>
       `;
     }
 
-    heatmapHtml = `
-      <div class="card" style="padding: 18px; margin-bottom: 24px;">
-        <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Constancia HIIT (7 días)</h3>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          ${boxes}
-        </div>
-      </div>
+    html += `
+      <section class="o-card o-ent-constancia">
+        <h3 class="o-rotulo">Constancia HIIT (7 días)</h3>
+        <ul class="o-ent-dias">${boxes}</ul>
+      </section>
     `;
   }
 
-  html += heatmapHtml;
-
   // Mis rutinas: primero (2.3), con el balance y el mapa más abajo.
-  html += `<h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Mis rutinas</h3>`;
+  html += `<h3 class="o-rotulo o-ent-seccion">Mis rutinas</h3>`;
 
   if (rutinas.length === 0) {
-    html += EmptyState("Sin rutinas personalizadas", "Crea la primera o usa una plantilla sugerida");
+    html += oVacio({ titulo: 'Sin rutinas personalizadas', texto: 'Crea la primera o usa una plantilla sugerida' });
   } else {
-    html += `<div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">`;
+    html += `<ul class="o-ent-rut-lista">`;
     rutinas.forEach(r => {
       const eCount = r.ejercicios ? r.ejercicios.length : 0;
       const ejerciciosHtml = esDescansoActivo(r, r.categoria)
-        ? `<p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0 0 16px 0;">Descanso activo</p>`
+        ? `<p class="o-card-texto" data-foto="rut-detalle">Descanso activo</p>`
         : r.hiitSettings
-        ? `<p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0 0 16px 0;">Configuración HIIT</p>`
-        : `<div style="margin-bottom: 16px;"><p style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin: 0;">${eCount} ejercicio${eCount === 1 ? '' : 's'}</p>${renderEjerciciosRutina(r.ejercicios || [])}</div>`;
+        ? `<p class="o-card-texto" data-foto="rut-detalle">Configuración HIIT</p>`
+        : `<p class="o-card-texto" data-foto="rut-detalle">${eCount} ejercicio${eCount === 1 ? '' : 's'}</p>${renderEjerciciosRutina(r.ejercicios || [])}`;
       html += `
-        <div class="card" style="padding: 20px;">
-          <div class="flex-between" style="margin-bottom: 12px;">
-            <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: var(--text-primary);">${escapeHtml(r.nombre)}</h3>
-            <button class="btn-eliminar-rutina" data-id="${r.id}" aria-label="Eliminar rutina ${escapeHtml(r.nombre)}" style="background: transparent; border: none; color: var(--text-disabled); cursor: pointer;" title="Eliminar">
-              <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
+        <li class="o-card o-ent-rutina" data-foto="rutina">
+          <div class="o-ent-rutina-cab">
+            <h3 class="o-card-titulo" data-foto="rut-nombre">${escapeHtml(r.nombre)}</h3>
+            <button type="button" class="btn-eliminar-rutina o-btn o-btn--fantasma o-btn--icono" data-id="${r.id}" aria-label="Eliminar rutina ${escapeHtml(r.nombre)}" title="Eliminar">${ICO_BORRAR}</button>
           </div>
           ${ejerciciosHtml}
-          <button class="btn-iniciar-sesion btn-primary tappable" data-id="${r.id}" style="background: var(--accent-teal); color: #000; padding: 12px; font-size: 14px;">
-            Iniciar sesión
-          </button>
-        </div>
+          <button type="button" class="btn-iniciar-sesion o-btn o-btn--secundario o-btn--bloque" data-id="${r.id}">Iniciar sesión</button>
+        </li>
       `;
     });
-    html += `</div>`;
+    html += `</ul>`;
   }
 
-  // Plantillas sugeridas: colapsado por default (<details> nativo, sin JS
+  // Plantillas sugeridas: plegado por defecto (<details> nativo, sin JS
   // propio) — es contenido de descubrimiento, no la razón principal de
   // estar en esta pantalla (esa es "Mis rutinas", arriba).
   if (plantillas.length > 0) {
     html += `
-      <details style="margin-bottom: 24px;">
-        <summary class="tappable" style="cursor: pointer; font-size: 14px; font-weight: 700; color: var(--text-primary); padding: 4px 0;">Plantillas sugeridas (${plantillas.length})</summary>
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+      <details class="o-card o-ent-plegable o-ent-plantillas">
+        <summary class="o-ent-plegable-cab">Plantillas sugeridas (<span class="o-num">${plantillas.length}</span>)</summary>
+        <ul class="o-lista o-ent-plantillas-lista">
+          ${plantillas.map(p => `
+            <li><button type="button" class="o-fila o-ent-ir btn-preview-plantilla" data-id="${p.id}" data-foto="plantilla">
+              <span class="o-fila-texto"><b data-foto="plant-nombre">${p.nombre}</b><small data-foto="plant-resumen">${p.resumen}</small></span>
+              <span class="o-ent-nivel" data-foto="plant-nivel">${p.nivel}</span>
+              <span class="o-ent-ir-flecha">${ICO_IR}</span>
+            </button></li>`).join('')}
+        </ul>
+      </details>
     `;
-    plantillas.forEach(p => {
-      html += `
-        <div class="card tappable btn-preview-plantilla" data-id="${p.id}" style="background: var(--surface-2); padding: 14px 16px; cursor: pointer; position: relative;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-            <h4 style="font-size: 15px; font-weight: 600; margin: 0; color: var(--text-primary);">${p.nombre}</h4>
-            <span style="background: var(--surface-1); color: var(--text-secondary); font-size: 10px; font-weight: 600; padding: 2px 6px; text-transform: uppercase;">${p.nivel}</span>
-          </div>
-          <p style="color: var(--text-secondary); font-size: 12.5px; margin: 0;">${p.resumen}</p>
-        </div>
-      `;
-    });
-    html += `</div></details>`;
   }
 
   html += balanceHtml + muscleMapHtml;
 
-  // Progreso detallado (árbol, estándares, tendencia) ya no vive dentro de
-  // cada categoría — se consolidó en su propia pantalla para no repetir la
-  // misma estructura de 3 pestañas de análisis dentro de GYM/Calistenia/HIIT
-  // por separado (ver views/entrenamiento.js > goToProgreso).
+  // Progreso detallado (árbol, estándares, tendencia) vive en su propia
+  // pantalla (ver views/entrenamiento.js > goToProgreso).
   html += `
-    <a id="link-ver-progreso-categoria" href="#" style="display: block; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent-teal-t); text-decoration: none; padding: 8px 0 4px 0;">Ver tu progreso en ${catName} →</a>
+    <a id="link-ver-progreso-categoria" href="#" class="o-btn o-btn--fantasma o-btn--bloque o-ent-enlace" data-foto="rut-enlace">Ver tu progreso en ${catName} →</a>
   `;
 
-  return html;
+  return `<div class="o-ent-rut">${html}</div>`;
 }
+
+// Encabezado de un grupo muscular dentro de una vista previa.
+const grupoHeaderHtml = (label) => `<p class="o-rotulo o-ent-prev-grupo" data-foto="prev-grupo">${label}</p>`;
 
 export function renderPlantillaPreview(plantilla) {
   let html = `
-    <div class="card" style="padding: 22px;">
-      <div style="margin-bottom: 24px;">
-        <h2 style="font-size: 22px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-primary); letter-spacing: -0.3px;">${plantilla.nombre}</h2>
-        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin: 0;">${plantilla.descripcion}</p>
-      </div>
+    <article class="o-card o-ent-preview">
+      <header class="o-ent-preview-cab">
+        <h2 class="o-ent-titulo" data-foto="prev-titulo">${plantilla.nombre}</h2>
+        <p class="o-card-texto" data-foto="prev-desc">${plantilla.descripcion}</p>
+      </header>
   `;
 
   plantilla.rutinas.forEach(rut => {
     html += `
-      <div style="background: var(--surface-2); padding: 16px; border: 1px solid var(--surface-border); margin-bottom: 16px;">
-        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 12px 0; color: var(--text-primary);">${rut.nombre}</h4>
-    `;
-
-    const grupoHeaderHtml = (label) => `
-      <div style="display: flex; align-items: center; gap: 7px; margin: 10px 0 2px 0;">
-        <div style="width: 3px; height: 13px; background: var(--accent-teal);"></div>
-        <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent-teal-t);">${label}</span>
-      </div>
+      <section class="o-ent-prev-rut" data-foto="prev-rut">
+        <h3 class="o-ent-prev-nombre" data-foto="prev-nombre">${rut.nombre}</h3>
     `;
 
     if (rut.ejercicioIds) {
       const grupos = agruparPorGrupoMuscular(rut.ejercicioIds, id => getEjercicioPorId(id)?.grupoMuscular);
       grupos.forEach(seccion => {
         html += grupoHeaderHtml(seccion.label);
-        html += `<ol style="margin: 0; padding-left: 20px; color: var(--text-primary); font-size: 14px; display: flex; flex-direction: column; gap: 8px;">`;
+        html += `<ol class="o-ent-prev-ejs">`;
         seccion.items.forEach(id => {
           const nombre = getEjercicioPorId(id)?.nombre || id;
-          html += `<li>${nombre}</li>`;
+          html += `<li data-foto="prev-ej">${nombre}</li>`;
         });
         html += `</ol>`;
       });
@@ -326,25 +289,23 @@ export function renderPlantillaPreview(plantilla) {
       const grupos = agruparPorGrupoMuscular(rut.ejercicios, ej => getEjercicioPorId(ej.ejercicioId)?.grupoMuscular);
       grupos.forEach(seccion => {
         html += grupoHeaderHtml(seccion.label);
-        html += `<div style="display: flex; flex-direction: column; gap: 8px;">`;
+        html += `<ul class="o-ent-prev-ejs o-ent-prev-ejs--series">`;
         seccion.items.forEach(ej => {
           const nombre = getEjercicioPorId(ej.ejercicioId)?.nombre || ej.ejercicioId;
           const totalSeries = ej.series.length;
           const repStr = ej.series[0].reps;
-          html += `<div style="font-size: 14px; color: var(--text-primary);">• <b>${nombre}</b> <span style="color: var(--text-secondary);">— ${totalSeries} serie${totalSeries === 1 ? '' : 's'} x ${repStr} reps</span></div>`;
+          html += `<li data-foto="prev-ej" data-bala><b>${nombre}</b> <span class="o-ent-prev-series">— ${totalSeries} serie${totalSeries === 1 ? '' : 's'} x ${repStr} reps</span></li>`;
         });
-        html += `</div>`;
+        html += `</ul>`;
       });
     }
 
-    html += `</div>`;
+    html += `</section>`;
   });
 
   html += `
-      <button id="btn-usar-plantilla" class="btn-primary tappable" style="background: var(--accent-teal); margin-top: 8px;">
-        Usar esta rutina
-      </button>
-    </div>
+      <button id="btn-usar-plantilla" type="button" class="o-btn o-btn--primario o-btn--bloque">Usar esta rutina</button>
+    </article>
   `;
   return html;
 }
@@ -394,11 +355,9 @@ export function initRutinasListaListeners(categoria, onNewRoutine, onStartSessio
       if (confirmed) {
         await db.eliminarRutina(id);
         Toast("Rutina eliminada", "success");
-        // Re-renderiza esta misma pantalla de categoría en vez de "volver"
-        // (que cae al Home de Entreno porque viewState en ese momento es
-        // 'rutinas', no una de las sub-vistas que sí reconoce) — si el
-        // usuario quiere borrar varias rutinas seguidas no tiene que volver
-        // a entrar a la categoría cada vez.
+        // Re-renderiza esta misma lista en vez de "volver": si el usuario
+        // quiere borrar varias rutinas seguidas no tiene que volver a
+        // entrar a la categoría cada vez.
         // En la pestaña Rutinas de Entreno (Fase 9a) la lista vive en
         // #ent-rutinas; en una sub-pantalla, en #entrenamiento-sub-content.
         const subContent = document.getElementById('ent-rutinas') || document.getElementById('entrenamiento-sub-content');
@@ -509,16 +468,15 @@ export function initPlantillaPreviewListeners(categoria, plantilla, onSuccess, s
   }, { signal });
 }
 
-// Preview del plan generado (Etapa 4a) — mismo patrón visual que
+// Vista previa del plan generado (Etapa 4a) — mismo patrón que
 // renderPlantillaPreview, pero cada ejercicio muestra su `motivo` (por qué
 // se eligió, no solo qué) y los `avisos` de patrones que no se pudieron
 // cubrir quedan arriba de todo, nunca ocultos. "Usar esta rutina" guarda
-// con el mismo db.crearRutina() que usa una plantilla fija — de ahí en
-// adelante es una rutina común: se edita, se borra, se re-genera después.
+// con el mismo db.crearRutina() que usa una plantilla fija.
 //
 // Los avisos de cobertura ("no llenó", "no se pudo incluir") salen agrupados
 // en UN bloque arriba, con los patrones únicos; cada día solo lleva un
-// indicador "n/cupo" si le faltan ejercicios. Acento de alerta solo si algún
+// indicador "n/cupo" si le faltan ejercicios. Tono de aviso solo si algún
 // patrón quedó fuera del plan entero ('faltante'); si solo faltaron espacios
 // extra, tono neutro.
 export function renderGeneradorPreview(plan, categoria) {
@@ -527,66 +485,64 @@ export function renderGeneradorPreview(plan, categoria) {
   const patronesAviso = [...new Set([...etiquetas('faltante'), ...etiquetas('incompleto')])];
   const hayFaltante = faltantes.some(f => f.tipo === 'faltante');
   const volumen = plan.avisosVolumen || [];
-  const colorBorde = hayFaltante ? 'var(--state-medium)' : 'var(--surface-border)';
   const avisosHtml = patronesAviso.length === 0 ? '' : `
-    <div id="generador-avisos" class="chaflan" style="padding: 14px 16px; margin-bottom: 20px; background: var(--surface-2); border: 1px solid ${colorBorde}; ${hayFaltante ? 'border-left: 3px solid var(--state-medium);' : ''}">
-      <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: flex-start; gap: 6px; line-height: 1.5;">
-        ${hayFaltante ? warningSvg : ''}<span>Con el equipo que declaraste, algunos días tienen menos ejercicios en: <b style="color: var(--text-primary);">${patronesAviso.join(', ')}</b>.</span>
-      </div>
-      <button type="button" id="btn-generador-agregar-equipo" class="tappable" style="margin-top: 10px; padding: 0; background: none; border: none; color: var(--accent-teal-t); font-size: 12px; font-weight: 700; cursor: pointer; min-height: 32px;">Agregar equipo →</button>
+    <div id="generador-avisos" class="o-alerta${hayFaltante ? ' o-alerta--aviso' : ' o-ent-cobertura'}">
+      ${hayFaltante ? `<span class="o-alerta-ico">${oIcono('alerta')}</span>` : ''}
+      <span class="o-alerta-cuerpo">
+        <span class="o-alerta-linea" data-foto="gen-aviso">Con el equipo que declaraste, algunos días tienen menos ejercicios en: <b>${patronesAviso.join(', ')}</b>.</span>
+        <button type="button" id="btn-generador-agregar-equipo" class="o-btn o-btn--fantasma o-ent-btn-inline">Agregar equipo</button>
+      </span>
     </div>
   `;
   // El aviso de volumen semanal es otra cosa (no depende del equipo): va
   // aparte, como nota suelta, para que "sin bloque" signifique que no hay
   // problema de cobertura.
   const volumenHtml = volumen.length === 0 ? '' : `
-    <div id="generador-volumen" style="margin-bottom: 20px;">
-      ${volumen.map(a => `<div style="font-size: 11px; color: var(--text-disabled); margin-bottom: 4px;">${a}</div>`).join('')}
+    <div id="generador-volumen" class="o-ent-gen-volumen">
+      ${volumen.map(a => `<p class="o-campo-ayuda">${a}</p>`).join('')}
     </div>
   `;
 
   const diasHtml = plan.dias.map(dia => {
-    if (esDescansoActivo(dia, categoria)) return `<div style="margin-bottom: 16px;">${renderDescansoActivoCard({ nombre: dia.nombre })}</div>`;
+    if (esDescansoActivo(dia, categoria)) return renderDescansoActivoCard({ nombre: dia.nombre });
     const faltan = categoria !== 'hiit' && dia.cupo && dia.ejercicios.length > 0 && dia.ejercicios.length < dia.cupo;
-    const indicador = faltan ? `<span title="Este día tiene menos ejercicios de los previstos" style="font-size: 11px; font-weight: 700; color: var(--text-disabled); font-variant-numeric: tabular-nums;">${dia.ejercicios.length}/${dia.cupo}</span>` : '';
+    const indicador = faltan ? `<span class="o-num o-ent-gen-cupo" title="Este día tiene menos ejercicios de los previstos" data-foto="gen-cupo">${dia.ejercicios.length}/${dia.cupo}</span>` : '';
     const items = categoria === 'hiit'
       ? dia.motivos.map(m => `
-          <div style="margin-bottom: 10px;">
-            <div style="font-size: 14px; color: var(--text-primary); font-weight: 700;">${m.nombre}</div>
-            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${m.motivo}</div>
-          </div>
+          <li class="o-ent-gen-ej" data-foto="gen-ej">
+            <b>${m.nombre}</b>
+            <small>${m.motivo}</small>
+          </li>
         `).join('')
       : dia.ejercicios.map(ej => `
-          <div style="margin-bottom: 10px;">
-            <div style="font-size: 14px; color: var(--text-primary);">• <b>${ej.nombre}</b> <span style="color: var(--text-secondary);">— ${ej.series.length} serie${ej.series.length === 1 ? '' : 's'} x ${ej.series[0].reps}</span></div>
-            <div style="font-size: 11px; color: var(--text-secondary); margin: 2px 0 0 14px;">${ej.motivo}</div>
-          </div>
+          <li class="o-ent-gen-ej" data-foto="gen-ej" data-bala>
+            <span><b>${ej.nombre}</b> <span class="o-ent-prev-series">— ${ej.series.length} serie${ej.series.length === 1 ? '' : 's'} x ${ej.series[0].reps}</span></span>
+            <small>${ej.motivo}</small>
+          </li>
         `).join('');
 
     return `
-      <div style="background: var(--surface-2); padding: 16px; border: 1px solid var(--surface-border); margin-bottom: 16px;">
-        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 0 12px 0;">
-          <h4 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text-primary);">${dia.nombre}</h4>
+      <section class="o-ent-prev-rut" data-foto="gen-dia">
+        <div class="o-ent-prev-rut-cab">
+          <h3 class="o-ent-prev-nombre" data-foto="gen-nombre">${dia.nombre}</h3>
           ${indicador}
         </div>
-        ${items || `<div style="font-size: 12px; color: var(--text-secondary);">Sin ejercicios disponibles para este día.</div>`}
-      </div>
+        ${items ? `<ul class="o-ent-gen-ejs">${items}</ul>` : `<p class="o-campo-ayuda">Sin ejercicios disponibles para este día.</p>`}
+      </section>
     `;
   }).join('');
 
   return `
-    <div class="card" style="padding: 22px;">
-      <div style="margin-bottom: 24px;">
-        <h2 style="font-size: 22px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-primary); letter-spacing: -0.3px;">Tu rutina generada</h2>
-        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin: 0;">Según tu progreso actual en cada patrón de movimiento y el equipo que declaraste. Puedes editarla después como cualquier otra rutina.</p>
-      </div>
+    <article class="o-card o-ent-preview">
+      <header class="o-ent-preview-cab">
+        <h2 class="o-ent-titulo">Tu rutina generada</h2>
+        <p class="o-card-texto">Según tu progreso actual en cada patrón de movimiento y el equipo que declaraste. Puedes editarla después como cualquier otra rutina.</p>
+      </header>
       ${avisosHtml}
       ${volumenHtml}
       ${diasHtml}
-      <button id="btn-usar-generado" class="btn-primary tappable" style="background: var(--accent-teal); margin-top: 8px;">
-        Usar esta rutina
-      </button>
-    </div>
+      <button id="btn-usar-generado" type="button" class="o-btn o-btn--primario o-btn--bloque">Usar esta rutina</button>
+    </article>
   `;
 }
 

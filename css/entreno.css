@@ -3,9 +3,10 @@
    Cuerpo (components/cuerpo.js)
    ---------------------------------------------------------------------
    Pestañas Inicio · Rutinas · Progreso. Acento del módulo (turquesa →
-   azul) vía .o-mod-entreno. Las sub-pantallas (lista de rutinas,
-   formularios, sesión, historial, progreso completo, Cuerpo) y las hojas
-   siguen en MK III dentro de .mk3-entreno hasta su parte de la fase.
+   azul) vía .o-mod-entreno. Desde la 9b también la lista de rutinas, las
+   vistas previas (plantilla y rutina generada) y los formularios de
+   rutina. La sesión, el historial, el progreso completo, Cuerpo y las
+   hojas siguen en MK III dentro de .mk3-entreno hasta su parte de la fase.
    ===================================================================== */
 
 .o-ent .o-tabs { margin-bottom: var(--o-sp-5); }
@@ -93,15 +94,190 @@
 .o-ent-ir-flecha { display: grid; place-items: center; flex-shrink: 0; color: var(--o-text-3); }
 .o-ent-ir-flecha svg { width: var(--o-icon-sm); height: var(--o-icon-sm); }
 
+/* --- Rutinas (Fase 9b): lista de una categoría --- */
+.o-ent-rut { display: grid; gap: var(--o-sp-4); min-width: 0; }
+.o-ent-rut-cab { display: grid; gap: var(--o-sp-3); }
+.o-ent-rut-cab .o-ent-acciones { margin-top: 0; }
+.o-ent-seccion { margin: var(--o-sp-2) 0 0; }
+.o-ent-rut-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--o-sp-3); }
+.o-ent-rutina { display: grid; gap: var(--o-sp-2); align-content: start; }
+.o-ent-rutina-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--o-sp-2); }
+.o-ent-rutina-cab .o-card-titulo { padding-top: var(--o-sp-2); overflow-wrap: anywhere; }
+.o-ent-rutina-cab .o-btn--icono { flex-shrink: 0; color: var(--o-text-2); }
+.o-ent-rutina > .o-card-texto { margin: 0; }
+.o-ent-rutina > .o-btn { margin-top: var(--o-sp-2); }
+
+.o-ent-ejs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--o-sp-1); }
+.o-ent-ej {
+  display: flex; align-items: baseline; gap: var(--o-sp-2);
+  font-size: var(--o-fs-sm); color: var(--o-text-2); line-height: var(--o-lh-snug);
+}
+.o-ent-ej::before {
+  content: ""; flex-shrink: 0; width: var(--o-sp-1); height: var(--o-sp-1);
+  border-radius: var(--o-radius-circle); background: var(--o-text-3); transform: translateY(calc(var(--o-sp-1) * -1));
+}
+/* Superserie: borde del módulo a la izquierda y su rótulo. */
+.o-ent-sup {
+  display: grid; gap: var(--o-sp-1); margin: var(--o-sp-1) 0; padding-inline-start: var(--o-sp-3);
+  border-inline-start: 2px solid var(--o-mod);
+}
+.o-ent-sup-rotulo {
+  font-family: var(--o-font-num); font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold);
+  letter-spacing: var(--o-ls-label); text-transform: uppercase; color: var(--o-mod-t);
+}
+
+/* Plegables (plantillas y mapa muscular). */
+.o-ent-plegable { padding: 0; }
+.o-ent-plegable-cab {
+  display: flex; align-items: center; min-height: var(--o-touch); padding: var(--o-sp-3) var(--o-sp-4);
+  font-size: var(--o-fs-base); font-weight: var(--o-fw-bold); cursor: pointer; border-radius: inherit;
+}
+.o-ent-plegable-cab:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-ent-plantillas-lista { border-top: 1px solid var(--o-line); }
+.o-ent-nivel {
+  flex-shrink: 0; padding: var(--o-sp-1) var(--o-sp-2); border: 1px solid var(--o-line); border-radius: var(--o-radius-chip);
+  font-family: var(--o-font-num); font-size: var(--o-fs-2xs); letter-spacing: var(--o-ls-label);
+  text-transform: uppercase; color: var(--o-text-2); white-space: nowrap;
+}
+
+.o-ent-mapa { display: grid; justify-items: center; gap: var(--o-sp-3); padding: 0 var(--o-sp-4) var(--o-sp-4); }
+.o-ent-mapa-vistas { justify-self: end; }
+.o-ent-mapa-leyenda { min-height: var(--o-sp-5); font-family: var(--o-font-num); font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.o-ent-con-ico { display: flex; align-items: flex-start; gap: var(--o-sp-2); justify-self: start; }
+.o-ent-con-ico svg { width: var(--o-icon-sm); height: var(--o-icon-sm); flex-shrink: 0; margin-top: var(--o-sp-1); }
+
+/* Balance de calistenia: barras con el ancho calculado (--o-ent-ancho). */
+.o-ent-balance { display: grid; gap: var(--o-sp-3); }
+.o-ent-balance .o-rotulo { margin: 0; }
+.o-ent-barras { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--o-sp-2); }
+.o-ent-barra {
+  display: grid; grid-template-columns: calc(var(--o-touch) * 1.5) minmax(0, 1fr) auto;
+  align-items: center; gap: var(--o-sp-3); font-size: var(--o-fs-sm);
+}
+.o-ent-barra-nombre { color: var(--o-text-2); }
+.o-ent-barra-pista { height: var(--o-sp-2); border-radius: var(--o-radius-check); background: var(--o-surface-2); overflow: hidden; }
+.o-ent-barra-relleno { display: block; height: 100%; width: var(--o-ent-ancho, 0%); background: var(--o-mod-grad); border-radius: inherit; }
+.o-ent-barra-valor { text-align: end; }
+.o-ent-nota-aviso {
+  display: flex; align-items: flex-start; gap: var(--o-sp-2); margin: 0;
+  font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold); color: var(--o-warn-t);
+}
+.o-ent-nota-aviso svg { width: var(--o-icon-sm); height: var(--o-icon-sm); flex-shrink: 0; margin-top: var(--o-sp-1); }
+
+/* Constancia HIIT: siete días; el día con sesión va relleno y lo dice en texto oculto. */
+.o-ent-constancia { display: grid; gap: var(--o-sp-3); }
+.o-ent-constancia .o-rotulo { margin: 0; }
+.o-ent-dias { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-ent-dia { display: grid; justify-items: center; gap: var(--o-sp-1); }
+.o-ent-dia-caja { width: var(--o-sp-6); height: var(--o-sp-6); border-radius: var(--o-radius-check); border: 1px solid var(--o-line); background: var(--o-surface-2); }
+.o-ent-dia[data-hecho="true"] .o-ent-dia-caja { border-color: transparent; background: var(--o-mod-grad); }
+.o-ent-dia-nombre { font-size: var(--o-fs-2xs); color: var(--o-text-2); text-transform: uppercase; }
+.o-ent-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.o-ent-enlace { color: var(--o-mod-t); }
+
+/* --- Vistas previas (plantilla y rutina generada) --- */
+.o-ent-preview { display: grid; gap: var(--o-sp-4); }
+.o-ent-preview-cab { display: grid; gap: var(--o-sp-2); }
+.o-ent-preview-cab .o-card-texto { margin: 0; }
+.o-ent-prev-rut {
+  display: grid; gap: var(--o-sp-2); padding: var(--o-sp-4);
+  border: 1px solid var(--o-line); border-radius: var(--o-radius-card); background: var(--o-surface-2);
+}
+.o-ent-prev-rut-cab { display: flex; align-items: baseline; justify-content: space-between; gap: var(--o-sp-2); }
+.o-ent-prev-nombre { margin: 0; font-size: var(--o-fs-base); font-weight: var(--o-fw-bold); line-height: var(--o-lh-snug); }
+.o-ent-prev-grupo { margin: var(--o-sp-2) 0 0; }
+.o-ent-prev-ejs { margin: 0; padding-inline-start: var(--o-sp-5); display: grid; gap: var(--o-sp-2); font-size: var(--o-fs-sm); line-height: var(--o-lh-snug); }
+.o-ent-prev-ejs--series { list-style: disc; }
+.o-ent-prev-series { color: var(--o-text-2); }
+.o-ent-gen-cupo { font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.o-ent-gen-ejs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--o-sp-3); }
+.o-ent-gen-ej { display: grid; gap: var(--o-sp-1); font-size: var(--o-fs-sm); line-height: var(--o-lh-snug); }
+.o-ent-gen-ej small { font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.o-ent-gen-volumen { display: grid; gap: var(--o-sp-1); }
+.o-ent-gen-volumen .o-campo-ayuda { font-size: var(--o-fs-xs); }
+/* Cobertura sin patrones faltantes: el mismo bloque, en neutro. */
+.o-ent-cobertura { background: var(--o-surface-2); border-color: var(--o-line); }
+.o-ent-btn-inline { justify-self: start; padding-inline: 0; color: var(--o-mod-t); }
+
+.o-ent-descanso { display: grid; gap: var(--o-sp-2); }
+.o-ent-descanso .o-card-texto { margin: 0; }
+.o-ent-descanso-dia { font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.o-ent-descanso-lista { margin: 0; padding-inline-start: var(--o-sp-5); display: grid; gap: var(--o-sp-2); font-size: var(--o-fs-sm); }
+.o-ent-descanso-lista li::marker { color: var(--o-mod-t); }
+.o-ent-descanso > .o-btn { margin-top: var(--o-sp-2); }
+
+/* --- Formularios de rutina (GYM/Calistenia y HIIT) --- */
+.o-ent-form { display: grid; gap: var(--o-sp-4); }
+.o-ent-form-ejs { display: grid; gap: var(--o-sp-3); }
+.o-ent-nota {
+  margin: 0; padding: var(--o-sp-3) var(--o-sp-4); border-inline-start: 2px solid var(--o-mod);
+  border-radius: var(--o-radius-chip); background: var(--o-mod-soft);
+  font-size: var(--o-fs-sm); color: var(--o-text-2); line-height: var(--o-lh-snug);
+}
+.o-ent-nota b { color: var(--o-text); }
+.o-ent-ej-bloque {
+  display: grid; gap: var(--o-sp-3); padding: var(--o-sp-4);
+  border: 1px solid var(--o-line); border-radius: var(--o-radius-card); background: var(--o-surface-2);
+}
+.o-ent-ej-bloque-cab { display: flex; align-items: flex-start; gap: var(--o-sp-2); }
+.o-ent-ej-bloque .o-campo-etiqueta { margin: 0; }
+.o-ent-ac-wrap { flex: 1; min-width: 0; display: grid; gap: var(--o-sp-1); }
+.o-ent-ac-wrap .ej-nombre { font-weight: var(--o-fw-bold); }
+/* El primer ejercicio no tiene uno anterior con quien agruparse. */
+.o-ent-form-ejs > .ejercicio-block:first-child .btn-agrupar-sup { display: none; }
+.o-ent-series { display: grid; gap: var(--o-sp-2); }
+.o-ent-serie {
+  display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--o-touch) * 1.5) calc(var(--o-touch) * 1.5) var(--o-touch);
+  gap: var(--o-sp-2); align-items: center;
+}
+.o-ent-serie .o-input { padding-inline: var(--o-sp-2); }
+.btn-agrupar-sup[aria-pressed="true"] { background: var(--o-mod-soft); border-color: var(--o-mod); color: var(--o-mod-t); }
+.o-ent-ico-sm { width: var(--o-icon-sm); height: var(--o-icon-sm); flex-shrink: 0; }
+
+/* Autocompletado: en el flujo, bajo el campo (sin capa flotante). */
+.o-ent-ac { display: grid; border: 1px solid var(--o-line); border-radius: var(--o-radius-control); background: var(--o-surface-1); overflow: hidden; }
+.o-ent-ac[hidden] { display: none; }
+.o-ent-ac-item {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-2);
+  min-height: var(--o-touch); padding: var(--o-sp-2) var(--o-sp-3); cursor: pointer;
+  font-size: var(--o-fs-sm); border-bottom: 1px solid var(--o-line);
+}
+.o-ent-ac-item:last-child { border-bottom: 0; }
+.o-ent-ac-item:hover { background: var(--o-surface-2); }
+.o-ent-ac-nombre { min-width: 0; font-weight: var(--o-fw-semibold); }
+.o-ent-ac-grupo { font-weight: var(--o-fw-regular); color: var(--o-text); } /* el peso lo distingue del nombre; en gris no llegaba a AA sobre la fila resaltada */
+.o-ent-ac-estandar {
+  flex-shrink: 0; padding: 0 var(--o-sp-2); border-radius: var(--o-radius-chip); background: var(--o-mod-soft);
+  font-family: var(--o-font-num); font-size: var(--o-fs-2xs); letter-spacing: var(--o-ls-label);
+  text-transform: uppercase; color: var(--o-mod-t);
+}
+.o-ent-ac-libre { font-style: italic; color: var(--o-text); }
+
+.o-ent-modos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-ent-modos .o-chip { justify-content: center; }
+.o-ent-hiit-ajustes { display: grid; gap: var(--o-sp-3); padding: var(--o-sp-4); border-radius: var(--o-radius-card); background: var(--o-surface-2); }
+.o-ent-campos { display: grid; gap: var(--o-sp-3); }
+.o-ent-campos--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.o-ent-num-centro { text-align: center; }
+.o-ent-preset { margin: 0; text-align: center; font-size: var(--o-fs-sm); color: var(--o-text-2); line-height: var(--o-lh-snug); }
+.o-ent-hiit-ejs { display: grid; gap: var(--o-sp-2); }
+.o-ent-hiit-ejs:empty { display: none; }
+.o-ent-hiit-ej { display: flex; gap: var(--o-sp-2); }
+
 /* --- Sub-pantallas (MK III hasta su parte de la fase) --- */
 .o-ent-sub > #btn-entrenamiento-volver { margin-bottom: var(--o-sp-4); }
 
 /* --- Tablet y PC --- */
 @media (min-width: 768px) {
   .o-ent-progreso { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .o-ent-rut-cab { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .o-ent-rut-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .o-ent-modos { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (min-width: 1024px) {
   .o-ent-inicio { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--o-sp-5); }
+  .o-ent-form, .o-ent-preview { max-width: calc(var(--o-sheet-max) * 1.5); }
 }
 
 /* --- Modo sobrio: el acento del módulo solo en anillos y estados; la

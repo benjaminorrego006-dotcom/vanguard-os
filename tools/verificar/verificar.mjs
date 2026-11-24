@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { tomarFoto, leerUiOrbita, compararFotos, ARCHIVO_ANTES } from './foto-finanzas.mjs';
 import { tomarFotoEntreno, leerUiOrbitaEntreno, ARCHIVO_ANTES_ENTRENO } from './foto-entreno.mjs';
+import { tomarFotoRutinas, UI_ORBITA as UI_ORBITA_RUTINAS, ARCHIVO_ANTES_RUTINAS } from './foto-rutinas.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '..', '..');
@@ -1483,6 +1484,15 @@ async function main() {
     afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
   });
 
+  await prueba('Entreno › Rutinas · lista, vistas previas y lo que guardan los formularios, idénticos a la foto de antes de la Fase 9b', async () => {
+    // Contexto propio (datos demo, reloj y semilla de foto-rutinas.mjs), leído por la interfaz Órbita.
+    const despues = await tomarFotoRutinas(browser, BASE, { ui: UI_ORBITA_RUTINAS });
+    fs.writeFileSync(path.join(SALIDA, 'rutinas-despues.json'), JSON.stringify(despues, null, 2) + '\n');
+    afirmar(despues.errores.length === 0, `errores de consola: ${despues.errores[0]}`);
+    const difs = compararFotos(JSON.parse(fs.readFileSync(ARCHIVO_ANTES_RUTINAS, 'utf8')), despues);
+    afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
+  });
+
   const pestanaEnt = () => page.$eval('[data-ent-tab][aria-selected="true"]', (e) => e.dataset.entTab);
   const subVisible = () => page.$eval('#entrenamiento-sub-view', (e) => getComputedStyle(e).display !== 'none');
 
@@ -1536,11 +1546,33 @@ async function main() {
     afirmar(await pestanaEnt() === 'rutinas' && !(await subVisible()), 'borrar sacó de la pestaña Rutinas');
   });
 
-  await prueba('Entreno · 44 px y contraste AA en las tres pestañas (color y sobrio)', async () => {
+  await prueba('Entreno · 44 px y contraste AA en las pestañas, la lista de rutinas, los formularios y las vistas previas (color y sobrio)', async () => {
+    const chicosEn = (sel) => page.$$eval(`${sel} :is(button, input, select, summary)`, (bs) => bs.filter((b) => {
+      const r = b.getBoundingClientRect();
+      return r.width > 0 && (r.width < 44 || r.height < 44);
+    }).map((b) => `${b.getAttribute('aria-label') || b.textContent.trim() || b.id || b.className} (${Math.round(b.getBoundingClientRect().width)}×${Math.round(b.getBoundingClientRect().height)})`));
+    const revisar = async (sel, donde) => {
+      await page.waitForTimeout(400);
+      const chicos = await chicosEn(sel);
+      afirmar(chicos.length === 0, `${donde}: objetivos bajo 44 px: ${chicos.slice(0, 3).join(', ')}`);
+      const fallas = await fallasContraste(page, `${sel} *`);
+      afirmar(fallas.length === 0, `${donde}: «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+    };
+    const subAbierta = () => page.waitForFunction(() => getComputedStyle(document.getElementById('entrenamiento-sub-view')).display !== 'none');
+    const aRutinas = async (cat) => {
+      await page.locator('#ent-tab-rutinas').click();
+      await page.waitForSelector('#ent-tab-rutinas[aria-selected="true"]');
+      if (await page.locator(`[data-rut-cat="${cat}"][aria-pressed="false"]`).count()) {
+        await page.locator(`[data-rut-cat="${cat}"]`).click();
+        await page.waitForSelector(`[data-rut-cat="${cat}"][aria-pressed="true"]`);
+      }
+      await page.waitForSelector('#ent-rutinas #btn-nueva-rutina');
+    };
     try {
       for (const tema of ['color', 'gris']) {
         await page.evaluate((t) => localStorage.setItem('vg-tema', t), tema);
         for (const vp of [{ w: 390, h: 844 }, { w: 1440, h: 900 }]) {
+          const donde = (x) => `${tema} ${vp.w} ${x}`;
           await page.setViewportSize({ width: vp.w, height: vp.h });
           await page.reload();
           await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
@@ -1548,17 +1580,51 @@ async function main() {
           for (const tab of ['inicio', 'rutinas', 'progreso']) {
             await page.locator(`#ent-tab-${tab}`).click();
             await page.waitForSelector(`#ent-tab-${tab}[aria-selected="true"]`);
-            await page.waitForTimeout(400);
-            // La lista de rutinas (#ent-rutinas) sigue en MK III hasta la Fase 9b.
-            const chicos = await page.$$eval('#entrenamiento-main-view :is(button, input, summary)', (bs) => bs.filter((b) => {
-              const r = b.getBoundingClientRect();
-              return !b.closest('#ent-rutinas') && r.width > 0 && (r.width < 44 || r.height < 44);
-            }).map((b) => `${b.getAttribute('aria-label') || b.textContent.trim() || b.id} (${Math.round(b.getBoundingClientRect().width)}×${Math.round(b.getBoundingClientRect().height)})`));
-            afirmar(chicos.length === 0, `${tema} ${vp.w} ${tab}: objetivos bajo 44 px: ${chicos.slice(0, 3).join(', ')}`);
-            const fallas = await fallasContraste(page, '#entrenamiento-main-view *:not(#ent-rutinas, #ent-rutinas *)');
-            afirmar(fallas.length === 0, `${tema} ${vp.w} ${tab}: «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+            await revisar('#entrenamiento-main-view', donde(tab));
             await page.screenshot({ path: path.join(SALIDA, `entreno-${tab}-${tema}-${vp.w}.png`), fullPage: true });
           }
+          // Rutinas (Fase 9b): cada categoría con sus plegables abiertos.
+          for (const cat of ['gym', 'calistenia', 'hiit']) {
+            await aRutinas(cat);
+            const cerrados = page.locator('#ent-rutinas details:not([open]) > summary');
+            while (await cerrados.count()) await cerrados.first().click();
+            await revisar('#ent-rutinas', donde(`rutinas ${cat}`));
+            await page.screenshot({ path: path.join(SALIDA, `entreno-rutinas-${cat}-${tema}-${vp.w}.png`), fullPage: true });
+          }
+          // Formulario de GYM, con el autocompletado abierto y una superserie.
+          await aRutinas('gym');
+          await page.locator('#btn-nueva-rutina').click();
+          await subAbierta();
+          await page.locator('#btn-add-ejercicio').click();
+          await page.locator('.ejercicio-block').nth(1).locator('.btn-agrupar-sup').click();
+          await page.locator('.ej-nombre').first().fill('press');
+          await page.waitForSelector('.ej-nombre-ac:not([hidden]) .ac-item');
+          await revisar('#entrenamiento-sub-view', donde('formulario GYM'));
+          await page.screenshot({ path: path.join(SALIDA, `entreno-form-gym-${tema}-${vp.w}.png`), fullPage: true });
+          await page.locator('#btn-entrenamiento-volver').click();
+          // Formulario HIIT (modo EMOM y un ejercicio).
+          await aRutinas('hiit');
+          await page.locator('#btn-nueva-rutina').click();
+          await subAbierta();
+          await page.locator('[data-mode="emom"]').click();
+          await page.locator('#btn-hiit-rf-add-ejercicio').click();
+          await revisar('#entrenamiento-sub-view', donde('formulario HIIT'));
+          await page.locator('#btn-entrenamiento-volver').click();
+          // Vista previa de plantilla y rutina generada.
+          await aRutinas('calistenia');
+          await page.locator('#ent-rutinas .o-ent-plantillas > summary').click();
+          await page.locator('.btn-preview-plantilla').first().click();
+          await page.waitForSelector('#btn-usar-plantilla');
+          await revisar('#entrenamiento-sub-view', donde('vista previa de plantilla'));
+          await page.locator('#btn-entrenamiento-volver').click();
+          await aRutinas('gym');
+          await page.locator('#btn-generar-rutina').click();
+          await page.locator('#btn-generar-plan').click();
+          await page.waitForSelector('#btn-usar-generado');
+          await revisar('#entrenamiento-sub-view', donde('rutina generada'));
+          await page.screenshot({ path: path.join(SALIDA, `entreno-generada-${tema}-${vp.w}.png`), fullPage: true });
+          await page.locator('#btn-entrenamiento-volver').click();
+          await page.waitForSelector('#ent-tab-rutinas[aria-selected="true"]');
         }
       }
     } finally {

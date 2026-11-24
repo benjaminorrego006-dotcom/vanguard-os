@@ -19,24 +19,26 @@ export function esDescansoActivo(dia, categoria) {
   return categoria !== 'hiit' && !!dia && (dia.ejercicios || []).length === 0 && /movilidad/i.test(dia.nombre || '');
 }
 
+// Órbita (Fase 9b): la usa la vista previa de la rutina generada y, en la
+// sesión, la pantalla de un día de descanso activo.
 export function renderDescansoActivoCard({ nombre, conBoton = false } = {}) {
   return `
-    <div class="chaflan descanso-activo-card" style="background: var(--surface-2); border: 1px solid var(--surface-border); padding: 16px;">
-      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
-        <h4 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text-primary);">Descanso activo</h4>
-        ${nombre ? `<span style="font-size: 11px; color: var(--text-disabled);">${escapeHtml(nombre)}</span>` : ''}
+    <section class="o-card descanso-activo-card o-ent-descanso" data-foto="gen-dia">
+      <div class="o-ent-prev-rut-cab">
+        <h3 class="o-ent-prev-nombre" data-foto="gen-nombre">Descanso activo</h3>
+        ${nombre ? `<span class="o-ent-descanso-dia">${escapeHtml(nombre)}</span>` : ''}
       </div>
-      <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px 0;">Hoy no toca fuerza: la semana ya quedó cubierta.</p>
-      <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;">
-        ${SUGERENCIAS.map(s => `<li style="font-size: 13px; color: var(--text-primary); display: flex; gap: 8px;"><span aria-hidden="true" style="color: var(--accent-teal-t);">•</span><span>${s}</span></li>`).join('')}
+      <p class="o-card-texto">Hoy no toca fuerza: la semana ya quedó cubierta.</p>
+      <ul class="o-ent-descanso-lista">
+        ${SUGERENCIAS.map(s => `<li>${s}</li>`).join('')}
       </ul>
-      ${conBoton ? `<button type="button" id="btn-descanso-activo-hecho" class="btn-primary tappable" style="background: var(--accent-teal); color: #000; margin-top: 16px; padding: 12px; font-size: 14px;">Marcar como hecho</button>` : ''}
-    </div>
+      ${conBoton ? `<button type="button" id="btn-descanso-activo-hecho" class="o-btn o-btn--primario o-btn--bloque">Marcar como hecho</button>` : ''}
+    </section>
   `;
 }
 
 export function renderDescansoActivoSesion(rutina) {
-  return `<div style="padding: 4px 0;">${renderDescansoActivoCard({ nombre: rutina.nombre, conBoton: true })}</div>`;
+  return `<div class="o-mod-entreno o-ent-descanso-sesion">${renderDescansoActivoCard({ nombre: rutina.nombre, conBoton: true })}</div>`;
 }
 
 export function initDescansoActivoListeners(rutina, onSuccess, signal) {

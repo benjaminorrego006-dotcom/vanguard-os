@@ -1,0 +1,801 @@
+{
+  "listas": {
+    "gym": {
+      "titulo": "GYM (Pesas)",
+      "rutinas": [
+        {
+          "nombre": "Push",
+          "detalle": "5 ejercicios",
+          "lineas": [
+            "Press Declinado — 3×10",
+            "Press Militar (de pie) — 3×6-8",
+            "Press Inclinado con Mancuernas — 3×10",
+            "Pull-Over con Mancuerna — 3×12",
+            "Elevaciones Laterales — 3×12"
+          ],
+          "superseries": 0
+        },
+        {
+          "nombre": "Pull",
+          "detalle": "5 ejercicios",
+          "lineas": [
+            "Remo con Barra — 3×8",
+            "Jalón al Pecho Agarre Cerrado — 3×10",
+            "Remo en Máquina — 3×10",
+            "Curl en Polea Baja — 3×12",
+            "Pull-Over en Polea Alta — 3×12"
+          ],
+          "superseries": 0
+        },
+        {
+          "nombre": "Legs",
+          "detalle": "5 ejercicios",
+          "lineas": [
+            "Prensa de Piernas — 3×12",
+            "Peso Muerto Rumano — 3×10",
+            "Woodchopper — 3×12",
+            "Elevación de Talones a Una Pierna con Mancuerna — 3×15",
+            "Curl Femoral Sentado — 3×12"
+          ],
+          "superseries": 0
+        }
+      ],
+      "plantillas": [
+        {
+          "nombre": "Pecho — Introducción",
+          "nivel": "Principiante",
+          "resumen": "Fundamentos del grupo"
+        }
+      ],
+      "balance": null,
+      "descarga": false,
+      "constancia": null,
+      "mapa": true,
+      "enlace": "Ver tu progreso en GYM (Pesas) →",
+      "fatiga": {}
+    },
+    "calistenia": {
+      "titulo": "Calistenia",
+      "rutinas": [],
+      "plantillas": [
+        {
+          "nombre": "Pecho — Primeros Pasos",
+          "nivel": "Principiante",
+          "resumen": "Fundamentos del grupo"
+        }
+      ],
+      "balance": {
+        "valores": [
+          "0",
+          "0",
+          "0"
+        ],
+        "aviso": null
+      },
+      "descarga": false,
+      "constancia": null,
+      "mapa": true,
+      "enlace": "Ver tu progreso en Calistenia →",
+      "fatiga": {}
+    },
+    "hiit": {
+      "titulo": "HIIT/Cardio",
+      "rutinas": [
+        {
+          "nombre": "Tabata express",
+          "detalle": "Configuración HIIT",
+          "lineas": [],
+          "superseries": 0
+        }
+      ],
+      "plantillas": [
+        {
+          "nombre": "Tabata Básica",
+          "nivel": "Principiante",
+          "resumen": "Potencia anaeróbica (4 min)"
+        }
+      ],
+      "balance": null,
+      "descarga": false,
+      "constancia": [
+        {
+          "dia": "M",
+          "hecho": false
+        },
+        {
+          "dia": "M",
+          "hecho": false
+        },
+        {
+          "dia": "J",
+          "hecho": false
+        },
+        {
+          "dia": "V",
+          "hecho": false
+        },
+        {
+          "dia": "S",
+          "hecho": false
+        },
+        {
+          "dia": "D",
+          "hecho": false
+        },
+        {
+          "dia": "L",
+          "hecho": false
+        }
+      ],
+      "mapa": false,
+      "enlace": "Ver tu progreso en HIIT/Cardio →"
+    }
+  },
+  "plantillas": {
+    "gym": {
+      "titulo": "Pecho — Introducción",
+      "descripcion": "Sesión de pecho nivel principiante — fundamentos del grupo.",
+      "rutinas": [
+        {
+          "nombre": "Pecho — Introducción",
+          "grupos": [
+            "Pecho",
+            "Core"
+          ],
+          "ejercicios": [
+            "• Press de Banca con Mancuernas — 3 series x 12 reps",
+            "• Flexiones (Push-up) — 3 series x 15 reps",
+            "• Aperturas con Mancuernas — 3 series x 12 reps",
+            "• Abdominales — 2 series x 15 reps",
+            "• Elevaciones de Piernas — 2 series x 12 reps"
+          ]
+        }
+      ]
+    },
+    "calistenia": {
+      "titulo": "Pecho — Primeros Pasos",
+      "descripcion": "Sesión de pecho nivel principiante — fundamentos del grupo.",
+      "rutinas": [
+        {
+          "nombre": "Pecho — Primeros Pasos",
+          "grupos": [
+            "Pecho",
+            "Core"
+          ],
+          "ejercicios": [
+            "• Flexiones en Pared — 3 series x 15 reps",
+            "• Flexiones Inclinadas — 3 series x 12 reps",
+            "• Flexiones con Rodillas — 3 series x 10 reps",
+            "• Plancha (Plank) — 3 series x 30s reps",
+            "• Plancha Lateral — 2 series x 20s/lado reps"
+          ]
+        }
+      ]
+    },
+    "hiit": {
+      "titulo": "Tabata Básica",
+      "descripcion": "Protocolo Tabata con 4 ejercicios de peso corporal, 2 rondas cada uno.",
+      "rutinas": [
+        {
+          "nombre": "Tabata Básica",
+          "grupos": [
+            "Cardio"
+          ],
+          "ejercicios": [
+            "Jumping Jacks",
+            "Escaladores (Mountain Climbers)",
+            "Caminata Rápida",
+            "Rodillas Altas"
+          ]
+        }
+      ]
+    }
+  },
+  "generada": {
+    "avisos": null,
+    "volumen": [
+      "Empuje Vertical queda con pocas series esta semana (6) — el rango recomendado es 10-20 series/semana.",
+      "Tracción Vertical queda con pocas series esta semana (6) — el rango recomendado es 10-20 series/semana.",
+      "Rodilla queda con pocas series esta semana (6) — el rango recomendado es 10-20 series/semana.",
+      "Cadera queda con pocas series esta semana (6) — el rango recomendado es 10-20 series/semana.",
+      "Core queda con pocas series esta semana (3) — el rango recomendado es 10-20 series/semana."
+    ],
+    "dias": [
+      {
+        "nombre": "Push",
+        "indicador": null,
+        "items": [
+          "• Flexiones Declinadas — 3 series x 10 Tu nivel en Empuje Horizontal es intermedio — es tu próximo paso pendiente en el árbol de progresión.",
+          "• Push Press — 3 series x 5 Tu nivel en Empuje Vertical es avanzado, según Estándares de fuerza (Avanzado).",
+          "• Press Declinado con Mancuernas — 3 series x 10 Suma volumen a Empuje Horizontal junto al ejercicio principal de hoy para ese patrón.",
+          "• Patada de Tríceps — 3 series x 12 Suma volumen a Empuje Horizontal junto al ejercicio principal de hoy para ese patrón.",
+          "• Elevaciones Laterales — 3 series x 12 Suma volumen a Empuje Vertical junto al ejercicio principal de hoy para ese patrón."
+        ],
+        "descanso": false
+      },
+      {
+        "nombre": "Pull",
+        "indicador": null,
+        "items": [
+          "• Remo Pendlay — 3 series x 6 Tu nivel en Tracción Horizontal es avanzado — es tu próximo paso pendiente en el árbol de progresión.",
+          "• Dominadas — 3 series x 8 Tu nivel en Tracción Vertical es intermedio — es tu próximo paso pendiente en el árbol de progresión.",
+          "• Remo en Polea Baja Sentado — 3 series x 10 Suma volumen a Tracción Horizontal junto al ejercicio principal de hoy para ese patrón.",
+          "• Curl en Banco Scott (Predicador) — 3 series x 10 Suma volumen a Tracción Horizontal junto al ejercicio principal de hoy para ese patrón.",
+          "• Encogimientos de Hombros con Mancuernas — 3 series x 12 Suma volumen a Tracción Vertical junto al ejercicio principal de hoy para ese patrón."
+        ],
+        "descanso": false
+      },
+      {
+        "nombre": "Legs",
+        "indicador": null,
+        "items": [
+          "• Sentadilla Frontal — 3 series x 8 Tu nivel en Rodilla es intermedio — este ejercicio está a tu nivel. Tu próximo paso pendiente en el árbol es Sentadilla con Salto.",
+          "• Puente de Glúteo a una Pierna — 3 series x 12 Tu nivel en Cadera es intermedio, según Estándares de fuerza (Intermedio).",
+          "• Farmer's Walk — 3 series x 30s Todavía no registraste nada en Core — usamos el nivel que declaraste al empezar. En cuanto entrenes este patrón, tu historial real va a mandar.",
+          "• Elevación de Talones Sentado — 3 series x 15 Suma volumen a Rodilla junto al ejercicio principal de hoy para ese patrón.",
+          "• Máquina de Aductores — 3 series x 15 Suma volumen a Cadera junto al ejercicio principal de hoy para ese patrón."
+        ],
+        "descanso": false
+      }
+    ]
+  },
+  "guardado": {
+    "plantillaGym": [
+      {
+        "nombre": "Pecho — Introducción",
+        "categoria": "gym",
+        "hiitSettings": null,
+        "ejercicios": [
+          {
+            "nombre": "Press de Banca con Mancuernas",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Flexiones (Push-up)",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "15",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "15",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "15",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Aperturas con Mancuernas",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Abdominales",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "15",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "15",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Elevaciones de Piernas",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          }
+        ]
+      }
+    ],
+    "generadaGym": [
+      {
+        "nombre": "Push",
+        "categoria": "gym",
+        "hiitSettings": null,
+        "ejercicios": [
+          {
+            "nombre": "Flexiones Declinadas",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Push Press",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "5",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "5",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "5",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Press Declinado con Mancuernas",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Patada de Tríceps",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Elevaciones Laterales",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          }
+        ]
+      },
+      {
+        "nombre": "Pull",
+        "categoria": "gym",
+        "hiitSettings": null,
+        "ejercicios": [
+          {
+            "nombre": "Remo Pendlay",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "6",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "6",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "6",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Dominadas",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "8",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "8",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "8",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Remo en Polea Baja Sentado",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Curl en Banco Scott (Predicador)",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Encogimientos de Hombros con Mancuernas",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          }
+        ]
+      },
+      {
+        "nombre": "Legs",
+        "categoria": "gym",
+        "hiitSettings": null,
+        "ejercicios": [
+          {
+            "nombre": "Sentadilla Frontal",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "8",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "8",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "8",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Puente de Glúteo a una Pierna",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "12",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Farmer's Walk",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "30s",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "30s",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "30s",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Elevación de Talones Sentado",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "15",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "15",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "15",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          },
+          {
+            "nombre": "Máquina de Aductores",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "15",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "15",
+                "peso": 0
+              },
+              {
+                "tipo": "normal",
+                "reps": "15",
+                "peso": 0
+              }
+            ],
+            "grupo": null
+          }
+        ]
+      }
+    ],
+    "formGym": [
+      {
+        "nombre": "Foto fuerza",
+        "categoria": "gym",
+        "hiitSettings": null,
+        "ejercicios": [
+          {
+            "nombre": "Press de Banca",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "8",
+                "peso": 60
+              },
+              {
+                "tipo": "fallo",
+                "reps": "6",
+                "peso": 70
+              }
+            ],
+            "grupo": 1
+          },
+          {
+            "nombre": "Remo libre",
+            "series": [
+              {
+                "tipo": "normal",
+                "reps": "10",
+                "peso": 50
+              }
+            ],
+            "grupo": 1
+          },
+          {
+            "nombre": "Curl libre",
+            "series": [
+              {
+                "tipo": "dropset",
+                "reps": "12",
+                "peso": 0
+              }
+            ],
+            "grupo": 1
+          }
+        ]
+      }
+    ],
+    "formHiit": [
+      {
+        "nombre": "Foto libre",
+        "categoria": "hiit",
+        "hiitSettings": {
+          "mode": "free",
+          "workSecs": 40,
+          "restSecs": 20,
+          "totalRounds": 6
+        },
+        "ejercicios": [
+          {
+            "nombre": "Burpees",
+            "series": [],
+            "grupo": null
+          }
+        ]
+      },
+      {
+        "nombre": "Foto emom",
+        "categoria": "hiit",
+        "hiitSettings": {
+          "mode": "emom",
+          "emomTotalMins": 12,
+          "emomIntervalSecs": 45,
+          "totalRounds": 16,
+          "workSecs": 45,
+          "restSecs": 0
+        },
+        "ejercicios": [
+          {
+            "nombre": "Saltos",
+            "series": [],
+            "grupo": null
+          },
+          {
+            "nombre": "Sentadillas",
+            "series": [],
+            "grupo": null
+          }
+        ]
+      }
+    ]
+  },
+  "listaGymDespues": {
+    "nombre": "Foto fuerza",
+    "detalle": "3 ejercicios",
+    "lineas": [
+      "Press de Banca — 2×8",
+      "Remo libre — 1×10",
+      "Curl libre — 1×12"
+    ],
+    "superseries": 1
+  },
+  "listaHiitDespues": [
+    {
+      "nombre": "Foto libre",
+      "detalle": "Configuración HIIT",
+      "lineas": [],
+      "superseries": 0
+    },
+    {
+      "nombre": "Foto emom",
+      "detalle": "Configuración HIIT",
+      "lineas": [],
+      "superseries": 0
+    }
+  ],
+  "errores": []
+}

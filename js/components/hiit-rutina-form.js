@@ -1,5 +1,9 @@
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
+import { oIcono } from './orbita.js';
+
+// Formulario "Crear rutina HIIT". Órbita desde la Fase 9b (css/entreno.css);
+// los ids y clases que lee el guardado son los de siempre.
 
 // Estado local del formulario — mismo patrón de modos que hiit-timer.js
 // (Libre/Tabata/EMOM/AMRAP) para que crear una rutina HIIT se sienta como
@@ -16,39 +20,37 @@ let formState = {
 
 export function renderHiitRutinaForm() {
   return `
-    <div class="card" style="padding: 22px;">
-      <h2 style="font-size: 20px; font-weight: 800; margin: 0 0 20px 0; color: var(--text-primary); letter-spacing: -0.3px;">Crear rutina HIIT</h2>
+    <section class="o-card o-ent-form">
+      <h2 class="o-ent-titulo">Crear rutina HIIT</h2>
 
-      <div class="input-group">
+      <div class="o-campo">
         <label for="hiit-rf-nombre">Nombre de la rutina</label>
-        <input type="text" id="hiit-rf-nombre" placeholder="Ej. Tabata Explosivo" autocomplete="off">
+        <input type="text" id="hiit-rf-nombre" class="o-input" placeholder="Ej. Tabata Explosivo" autocomplete="off">
       </div>
 
-      <div style="margin-bottom: 16px;">
-        <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Modo</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <button type="button" class="hiit-rf-mode-btn" data-mode="free" style="padding: 13px; background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--accent-teal); font-weight: 700; cursor: pointer;">Libre</button>
-          <button type="button" class="hiit-rf-mode-btn" data-mode="tabata" style="padding: 13px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">Tabata</button>
-          <button type="button" class="hiit-rf-mode-btn" data-mode="emom" style="padding: 13px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">EMOM</button>
-          <button type="button" class="hiit-rf-mode-btn" data-mode="amrap" style="padding: 13px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid transparent; font-weight: 700; cursor: pointer;">AMRAP</button>
+      <div class="o-campo">
+        <span class="o-campo-etiqueta" id="hiit-rf-modo-etiqueta">Modo</span>
+        <div class="o-ent-modos" role="group" aria-labelledby="hiit-rf-modo-etiqueta">
+          <button type="button" class="hiit-rf-mode-btn o-chip" data-mode="free" aria-pressed="true">Libre</button>
+          <button type="button" class="hiit-rf-mode-btn o-chip" data-mode="tabata" aria-pressed="false">Tabata</button>
+          <button type="button" class="hiit-rf-mode-btn o-chip" data-mode="emom" aria-pressed="false">EMOM</button>
+          <button type="button" class="hiit-rf-mode-btn o-chip" data-mode="amrap" aria-pressed="false">AMRAP</button>
         </div>
       </div>
 
-      <div id="hiit-rf-settings" style="background: var(--surface-2); padding: 16px; margin-bottom: 20px;">
+      <div id="hiit-rf-settings" class="o-ent-hiit-ajustes">
         <!-- Se llena según el modo -->
       </div>
 
-      <div class="input-group">
-        <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Ejercicios del circuito (opcional)</div>
-        <div style="font-size: 11px; color: var(--text-secondary); margin: -4px 0 10px 0; line-height: 1.4;">Se usan para mostrar "Siguiente: ..." durante los descansos. Déjalo vacío si es solo un temporizador.</div>
-        <div id="hiit-rf-ejercicios-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
-        <button id="btn-hiit-rf-add-ejercicio" type="button" style="background: transparent; color: var(--text-secondary); border: 1px dashed var(--surface-border); padding: 8px; cursor: pointer; width: 100%; font-size: 13px;">+ Agregar ejercicio</button>
+      <div class="o-campo">
+        <span class="o-campo-etiqueta">Ejercicios del circuito (opcional)</span>
+        <p class="o-campo-ayuda">Se usan para mostrar "Siguiente: ..." durante los descansos. Déjalo vacío si es solo un temporizador.</p>
+        <div id="hiit-rf-ejercicios-container" class="o-ent-hiit-ejs"></div>
+        <button id="btn-hiit-rf-add-ejercicio" type="button" class="o-btn o-btn--secundario o-btn--bloque">Agregar ejercicio</button>
       </div>
 
-      <button id="btn-guardar-hiit-rutina" class="btn-primary tappable" style="background: var(--accent-teal);">
-        Guardar rutina
-      </button>
-    </div>
+      <button id="btn-guardar-hiit-rutina" type="button" class="o-btn o-btn--primario o-btn--bloque">Guardar rutina</button>
+    </section>
   `;
 }
 
@@ -60,9 +62,7 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
 
   const syncModeBtns = () => {
     document.querySelectorAll('.hiit-rf-mode-btn').forEach(b => {
-      const active = b.getAttribute('data-mode') === formState.mode;
-      b.style.color = active ? 'var(--text-primary)' : 'var(--text-secondary)';
-      b.style.borderColor = active ? 'var(--accent-teal)' : 'transparent';
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === formState.mode));
     });
   };
 
@@ -91,41 +91,41 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
   const renderSettingsForm = () => {
     if (formState.mode === 'free') {
       settingsEl.innerHTML = `
-        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-          <div style="flex: 1;">
-            <label for="hiit-rf-s-work" style="font-size: 11px; color: var(--text-secondary);">Trabajo (seg)</label>
-            <input type="number" inputmode="numeric" id="hiit-rf-s-work" value="${formState.workSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
+        <div class="o-ent-campos o-ent-campos--2">
+          <div class="o-campo">
+            <label for="hiit-rf-s-work">Trabajo (seg)</label>
+            <input type="number" inputmode="numeric" id="hiit-rf-s-work" class="o-input o-num o-ent-num-centro" value="${formState.workSecs}">
           </div>
-          <div style="flex: 1;">
-            <label for="hiit-rf-s-rest" style="font-size: 11px; color: var(--text-secondary);">Descanso (seg)</label>
-            <input type="number" inputmode="numeric" id="hiit-rf-s-rest" value="${formState.restSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
+          <div class="o-campo">
+            <label for="hiit-rf-s-rest">Descanso (seg)</label>
+            <input type="number" inputmode="numeric" id="hiit-rf-s-rest" class="o-input o-num o-ent-num-centro" value="${formState.restSecs}">
           </div>
         </div>
-        <div>
-          <label for="hiit-rf-s-rounds" style="font-size: 11px; color: var(--text-secondary);">Rondas totales</label>
-          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-rounds" value="${formState.totalRounds}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
+        <div class="o-campo">
+          <label for="hiit-rf-s-rounds">Rondas totales</label>
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-rounds" class="o-input o-num o-ent-num-centro" value="${formState.totalRounds}">
         </div>
       `;
     } else if (formState.mode === 'tabata') {
-      settingsEl.innerHTML = `<div style="text-align: center; color: var(--text-secondary); font-size: 14px;">Preset fijo:<br>20s Trabajo / 10s Descanso<br>8 Rondas (4 mins)</div>`;
+      settingsEl.innerHTML = `<p class="o-ent-preset">Preset fijo:<br><span class="o-num">20s</span> Trabajo / <span class="o-num">10s</span> Descanso<br><span class="o-num">8</span> Rondas (<span class="o-num">4</span> mins)</p>`;
     } else if (formState.mode === 'emom') {
       settingsEl.innerHTML = `
-        <div style="display: flex; gap: 8px;">
-          <div style="flex: 1;">
-            <label for="hiit-rf-s-emom-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo total (min)</label>
-            <input type="number" inputmode="numeric" id="hiit-rf-s-emom-mins" value="${formState.emomTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
+        <div class="o-ent-campos o-ent-campos--2">
+          <div class="o-campo">
+            <label for="hiit-rf-s-emom-mins">Tiempo total (min)</label>
+            <input type="number" inputmode="numeric" id="hiit-rf-s-emom-mins" class="o-input o-num o-ent-num-centro" value="${formState.emomTotalMins}">
           </div>
-          <div style="flex: 1;">
-            <label for="hiit-rf-s-emom-sec" style="font-size: 11px; color: var(--text-secondary);">Intervalo (seg)</label>
-            <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-emom-sec" value="${formState.emomIntervalSecs}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
+          <div class="o-campo">
+            <label for="hiit-rf-s-emom-sec">Intervalo (seg)</label>
+            <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-emom-sec" class="o-input o-num o-ent-num-centro" value="${formState.emomIntervalSecs}">
           </div>
         </div>
       `;
     } else if (formState.mode === 'amrap') {
       settingsEl.innerHTML = `
-        <div>
-          <label for="hiit-rf-s-amrap-mins" style="font-size: 11px; color: var(--text-secondary);">Tiempo total (min)</label>
-          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-amrap-mins" value="${formState.amrapTotalMins}" style="width:100%; box-sizing:border-box; background:var(--surface-1); border:1px solid var(--surface-border); padding:10px 8px; color:var(--text-primary); text-align:center;">
+        <div class="o-campo">
+          <label for="hiit-rf-s-amrap-mins">Tiempo total (min)</label>
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="hiit-rf-s-amrap-mins" class="o-input o-num o-ent-num-centro" value="${formState.amrapTotalMins}">
         </div>
       `;
     }
@@ -145,11 +145,10 @@ export function initHiitRutinaFormListeners(onSuccess, signal) {
 
   const addEjercicioRow = () => {
     const div = document.createElement('div');
-    div.style.display = 'flex';
-    div.style.gap = '8px';
+    div.className = 'o-ent-hiit-ej';
     div.innerHTML = `
-      <input type="text" class="hiit-rf-ej-nombre" placeholder="Ej. Burpees" style="flex: 1; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px; font-size: 16px;">
-      <button class="tappable btn-remove-hiit-ej" type="button" style="background: transparent; border: none; color: var(--text-disabled);">✕</button>
+      <input type="text" class="hiit-rf-ej-nombre o-input" placeholder="Ej. Burpees" aria-label="Ejercicio del circuito">
+      <button type="button" class="btn-remove-hiit-ej o-btn o-btn--fantasma o-btn--icono" aria-label="Quitar ejercicio">${oIcono('cerrar')}</button>
     `;
     div.querySelector('.btn-remove-hiit-ej').addEventListener('click', () => div.remove(), { signal });
     ejerciciosContainer.appendChild(div);

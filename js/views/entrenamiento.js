@@ -118,11 +118,17 @@ let entrenoRespondiendoAPopstate = false;
 // progreso, forzar un remount ahí se lo llevaría puesto. Se engancha una
 // sola vez, igual que entrenoPopstateEnganchado arriba.
 let entrenoSyncEnganchado = false;
+// Repintados de la vista entera (aviso de cambios, pestaña, categoría): se
+// numeran y solo se aplica el último pedido. Sin esto, un repintado por
+// 'budget-updated' que empezó antes de elegir otra pestaña o categoría
+// terminaba después y la deshacía.
+let repintadoN = 0;
 async function onSyncActualizadoEntreno() {
   if (viewState !== 'main' || hayModalAbierto()) return;
   const root = document.getElementById('view-root');
+  const n = ++repintadoN;
   const htmlVista = await render();
-  if (!vistaVigente()) return;
+  if (!vistaVigente() || n !== repintadoN) return;
   root.innerHTML = htmlVista;
   mountListeners();
 }
@@ -424,8 +430,7 @@ async function panelInicio(d) {
 }
 
 // --- Pestaña Rutinas ---------------------------------------------------------
-// La lista de rutinas (rutinas-lista.js) sigue en MK III hasta la Fase 9b:
-// va dentro de .mk3-entreno.
+// La lista de rutinas (rutinas-lista.js) es Órbita desde la Fase 9b.
 async function panelRutinas() {
   let lista;
   try {
@@ -438,7 +443,7 @@ async function panelRutinas() {
     <div class="o-chips o-ent-rut-cats" role="group" aria-label="Categoría">
       ${CATS.map(cat => `<button type="button" class="o-chip" data-rut-cat="${cat}" aria-pressed="${cat === catRutinas}">${CAT_NOMBRES[cat]}</button>`).join('')}
     </div>
-    <div id="ent-rutinas" class="mk3-entreno o-ent-legado">${lista}</div>`;
+    <div id="ent-rutinas" class="o-ent-rutinas">${lista}</div>`;
 }
 
 // --- Pestaña Progreso --------------------------------------------------------
@@ -493,8 +498,10 @@ export async function render() {
         <section id="ent-panel" class="o-ent-panel" role="tabpanel" aria-labelledby="ent-tab-${pestana}">${panel}</section>
       </div>
 
-      <!-- Sub-pantallas (lista de rutinas, formularios, sesión, historial,
-           progreso completo, Cuerpo): MK III hasta su parte de la fase. -->
+      <!-- Sub-pantallas. Formularios de rutina y vistas previas: Órbita
+           (Fase 9b). Sesión, historial, progreso completo y Cuerpo: MK III
+           hasta su parte de la fase (mostrarSubVista pone o quita
+           .mk3-entreno). -->
       <div id="entrenamiento-sub-view" class="o-ent-sub" style="display: none;">
         <button id="btn-entrenamiento-volver" type="button" class="o-btn o-btn--secundario o-btn--icono" aria-label="Volver">${ICO.volver}</button>
         <div id="entrenamiento-sub-content" class="mk3-entreno"></div>
@@ -532,8 +539,9 @@ mountListeners = () => {
 
   const refreshFull = async () => {
     const root = document.getElementById('view-root');
+    const n = ++repintadoN;
     const htmlVista = await render();
-    if (!vistaVigente()) return;
+    if (!vistaVigente() || n !== repintadoN) return;
     root.innerHTML = htmlVista;
     mountListeners();
   };
@@ -653,8 +661,13 @@ mountListeners = () => {
 
   // Toda sub-vista (sesión, progreso, historial, formularios) se pinta en
   // #entrenamiento-sub-view: este es el único lugar que la muestra y oculta
-  // la principal.
-  const mostrarSubVista = () => {
+  // la principal. `legado`: la sub-vista sigue en MK III y va dentro del
+  // ámbito .mk3-entreno; las ya migradas a Órbita, sin él.
+  const mostrarSubVista = (legado = true) => {
+    // Un repintado de la principal que siga en curso ya no debe aplicarse:
+    // taparía la sub-vista recién abierta.
+    repintadoN++;
+    subContent.classList.toggle('mk3-entreno', legado);
     empujarHistorialSiHaceFalta();
     modoSesion(false);
     mainView.style.display = 'none';
@@ -775,7 +788,7 @@ mountListeners = () => {
 
     categoriaActiva = cat;
     viewState = 'preview';
-    mostrarSubVista();
+    mostrarSubVista(false);
 
     try {
       subContent.innerHTML = renderPlantillaPreview(plantilla);
@@ -795,7 +808,7 @@ mountListeners = () => {
 
     categoriaActiva = cat;
     viewState = 'generador-preview';
-    mostrarSubVista();
+    mostrarSubVista(false);
 
     try {
       subContent.innerHTML = renderGeneradorPreview(plan, cat);
@@ -815,7 +828,7 @@ mountListeners = () => {
 
     categoriaActiva = cat;
     viewState = 'form';
-    mostrarSubVista();
+    mostrarSubVista(false);
 
     try {
       if (cat === 'hiit') {
@@ -907,7 +920,7 @@ mountListeners = () => {
     btn.addEventListener('click', (e) => goToRutinas(e.currentTarget.getAttribute('data-cat')));
   });
 
-  // Pestaña Rutinas: categoría y lista (rutinas-lista.js, sin cambios).
+  // Pestaña Rutinas: categoría y lista (rutinas-lista.js).
   if (rutinasTabController) { rutinasTabController.abort(); rutinasTabController = null; }
   if (pestana === 'rutinas' && document.getElementById('ent-rutinas')) {
     document.querySelectorAll('[data-rut-cat]').forEach(btn => {
