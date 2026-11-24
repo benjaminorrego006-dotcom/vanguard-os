@@ -131,3 +131,19 @@ Además: el arrastre **no usa `createdAt`** (difiere entre dispositivos); el
 punto de partida sale de las transacciones. Un sobre existe desde su
 `sobre_creado` o su primer movimiento propio, lo que ocurra antes, así ningún
 gasto se ignora.
+
+## graphify
+
+El grafo de conocimiento del proyecto vive en `graphify-out/` (nodos centrales,
+comunidades y relaciones entre archivos).
+
+- Para preguntas sobre el código, si existe `graphify-out/graph.json`, partir
+  con `graphify query "<pregunta>"`. Para relaciones, `graphify path "<A>" "<B>"`;
+  para un concepto puntual, `graphify explain "<concepto>"`. Devuelven un
+  subgrafo acotado, más chico que `GRAPH_REPORT.md` o que un grep.
+- Si existe `graphify-out/wiki/index.md`, usarlo para navegar en vez de
+  recorrer el código a mano.
+- Leer `graphify-out/GRAPH_REPORT.md` solo para revisiones amplias de
+  arquitectura o cuando query/path/explain no alcanzan.
+- Después de modificar código, correr `graphify update .` (solo AST, sin costo
+  de API) para mantener el grafo al día.
