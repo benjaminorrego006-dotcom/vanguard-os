@@ -17,11 +17,10 @@
 //
 // La vista se arma en dos partes: el cuerpo (#fin-cuerpo: cabecera,
 // pestañas y panel, o la sub-pantalla de un detalle), que se repinta, y las
-// hojas de formulario, que se montan una vez y quedan fuera del repintado
-// (así un cambio que llega mientras una hoja está abierta no la destruye).
-// Las hojas siguen con su estilo MK III dentro de .mk3-finanzas, igual que
-// la hoja de gasto de Hoy, hasta que se migren.
-import { Toast, ConfirmDialog, hayModalAbierto } from '../utils/states.js';
+// hojas de formulario (Órbita, oHoja; Fase 8b), que se montan una vez y
+// quedan fuera del repintado (así un cambio que llega mientras una hoja
+// está abierta no la destruye).
+import { Toast, ConfirmDialog } from '../utils/states.js';
 import { db, esMovimientoEntreSobres } from '../core/db.js';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { renderActivityHeatmap, initActivityHeatmapListeners } from '../components/activity-heatmap.js';
@@ -749,7 +748,6 @@ async function panelSobres() {
       <div class="o-fin-reglas" id="presupuesto-legend-container">${reglaHtml()}</div>
       <section class="o-fin-seccion" aria-labelledby="fin-sobres-titulo">
         <h2 class="o-rotulo" id="fin-sobres-titulo">Sobres</h2>
-        <div class="mk3-finanzas">${renderEnvelopeForm()}</div>
         <div id="envelopes-list-container" class="o-fin-col">${await sobresHtml()}</div>
       </section>
       ${metasHtml()}
@@ -877,32 +875,14 @@ async function renderCuerpo() {
     <section id="fin-panel" class="o-fin-panel" role="tabpanel" aria-labelledby="fin-tab-${activeFinTab}">${panel}</section>`;
 }
 
-// Estilos de las hojas MK III de Finanzas (hasta que se migren a Órbita).
-const modalCSS = `
-  .input-group { margin-bottom: 20px; }
-  .input-group label { display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
-  .input-group input, .input-group select {
-    width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary);
-    padding: 14px 16px; font-size: 16px; box-sizing: border-box; outline: none;
-    font-family: inherit; transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-  .input-group input:focus, .input-group select:focus {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--fondo-indigo) 18%, transparent);
-  }
-  .tab-btn { flex: 1; padding: 12px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; }
-  .cat-item { cursor: pointer; padding: 4px; transition: background 0.2s; }
-  .cat-item.active { background: rgba(255,255,255,0.1); }
-`;
-
 export async function render() {
   const cuerpo = await renderCuerpo();
   return `
     <div class="o-vista o-fin o-mod-finanzas">
       <div id="fin-cuerpo">${cuerpo}</div>
-      <div class="mk3-finanzas o-fin-hojas">
-        <style>${modalCSS}</style>
+      <div class="o-fin-hojas">
         ${renderGoalForm()}
+        ${renderEnvelopeForm()}
         ${renderIngresoForm()}
         ${renderGastoForm()}
         ${renderAhorroForm()}
@@ -927,13 +907,12 @@ async function repintar() {
 }
 
 // 'budget-updated': lo dispara db.js en cada cambio (también los que llegan
-// por sync de otro dispositivo). No pisa una hoja abierta, el formulario de
-// sobre a medio escribir ni el gasto rápido; tampoco una acción propia en
-// curso (esa repinta sola al terminar).
+// por sync de otro dispositivo). Repinta aunque haya una hoja abierta: las
+// hojas viven fuera de #fin-cuerpo, así que lo que se guarda en una hoja se
+// ve apenas se cierra. No pisa el gasto rápido a medio escribir ni una
+// acción propia en curso (esa repinta sola al terminar).
 async function onBudgetUpdated() {
-  if (ocupado || hayModalAbierto() || (history.state && history.state.modalId)) return;
-  const formSobre = document.getElementById('envelope-modal');
-  if (formSobre && formSobre.style.display !== 'none') return;
+  if (ocupado) return;
   const rapido = document.getElementById('quick-gasto-input');
   if (rapido && (document.activeElement === rapido || rapido.value.trim())) return;
   await repintar();
@@ -965,6 +944,7 @@ export function mountListeners() {
   initAhorroForm(db, getB, repintar);
   initTransferForm(db, getB, repintar);
   initRecurringForm(db, getB, repintar);
+  initEnvelopeForm(db, repintar);
   initGoalForm(repintar);
   initAnuales();
   window.removeEventListener('budget-updated', onBudgetUpdated);
@@ -1117,7 +1097,6 @@ function montarMovimientos() {
 }
 
 function montarSobres() {
-  initEnvelopeForm(db, repintar);
   document.getElementById('btn-open-settings')?.addEventListener('click', () => window.appRouter.navigate('configuracion'));
   document.querySelectorAll('.legend-item').forEach(item => item.addEventListener('click', () => {
     irAMovimientos(item.dataset.cat === 'Ahorro' ? 'Ahorro' : 'Gasto');

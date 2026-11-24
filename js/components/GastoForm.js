@@ -1,84 +1,72 @@
+// js/components/GastoForm.js
+// Hoja «Registrar gasto» (Órbita, oHoja #gasto-modal): la misma en Finanzas
+// y en Hoy. Cifra con teclado, sobre en chips (con lo que le queda), montos
+// recientes del sobre, descripción y fecha. La lógica es la de siempre;
+// solo cambió el marcado (Fase 8b).
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
 import { escapeHtml } from '../utils/escape.js';
 import { compararFechas, claveDiaDe } from '../utils/fecha.js';
+import { oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
+import { montoHtml, contextoHtml, pintarContexto, confirmacionHtml, guardandoHtml } from './fin-hoja.js';
+
+const ID = 'gasto-modal';
 
 export function renderGastoForm() {
-  return `
-    <div id="gasto-modal" class="modal-overlay sheet-overlay">
-      <div class="sheet-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); position: relative;">
-        <div id="gasto-confirm-overlay" style="display:none; position:absolute; inset:0; z-index:5; background: var(--surface-1); border-radius: inherit; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
-          <div style="width: 64px; height: 64px; border-radius: 50%; background: color-mix(in srgb, var(--fondo-alerta) 15%, transparent); display: flex; align-items: center; justify-content: center; animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
-            <svg width="30" height="30" fill="none" stroke="var(--state-high)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          </div>
-          <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">Gasto registrado</div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-          <button class="btn-close-modal" style="width: 40px; height: 40px; flex-shrink: 0; background: var(--surface-2); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-            <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-          </button>
-          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--state-high-t);">Registrar gasto</h2>
-        </div>
-
-        <input type="hidden" id="gasto-tx-id">
-        
-        <!-- Big Amount Display -->
-        <div style="text-align: center; font-size: 40px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary); min-height: 48px;" id="gasto-numpad-display">
-          $0
-        </div>
-        
-        <!-- Live Context Display -->
-        <div id="gasto-context-display" style="text-align: center; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 16px; min-height: 16px;">Selecciona un sobre</div>
-
-        <!-- Chips Row (Envelopes) -->
-        <div id="gasto-chip-container" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 8px; white-space: nowrap;">
-        </div>
-
-        <!-- Description -->
-        <input type="text" id="gasto-label" placeholder="Descripción (opcional, ej. Supermercado)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; font-size: 16px; box-sizing: border-box; margin-bottom: 12px; outline: none;">
-
-        <!-- Fecha (default hoy) -->
-        <input type="date" id="gasto-fecha" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; font-size: 16px; box-sizing: border-box; margin-bottom: 16px; outline: none; font-family: inherit;">
-
-        <!-- Recent Amounts Shortcut -->
-        <div id="gasto-recent-amounts-container" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 24px; min-height: 32px; white-space: nowrap; padding-bottom: 4px;"></div>
-
-        ${renderNumericKeypad()}
-
-        <button id="btn-submit-gasto" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--state-high); color: #000; opacity: 0.5; pointer-events: none;">Guardar gasto</button>
+  return oHoja({
+    id: ID, titulo: 'Registrar gasto', modulo: 'finanzas',
+    cuerpo: `
+      ${confirmacionHtml('gasto', 'Gasto registrado')}
+      ${montoHtml('gasto')}
+      ${contextoHtml('gasto', 'Selecciona un sobre')}
+      <div class="o-campo">
+        <span class="o-campo-etiqueta" id="gasto-sobre-etq">Sobre</span>
+        <div id="gasto-chip-container" class="o-chips o-fin-hoja-chips" role="group" aria-labelledby="gasto-sobre-etq"></div>
       </div>
-    </div>
-  `;
+      <div class="o-campo">
+        <label for="gasto-label">Descripción</label>
+        <input type="text" id="gasto-label" class="o-input" placeholder="Opcional, ej. Supermercado" autocomplete="off">
+      </div>
+      <div class="o-campo">
+        <label for="gasto-fecha">Fecha</label>
+        <input type="date" id="gasto-fecha" class="o-input">
+      </div>
+      <div id="gasto-recent-amounts-container" class="o-chips o-fin-hoja-chips" role="group" aria-label="Montos recientes de este sobre"></div>
+      ${renderNumericKeypad({ orbita: true })}
+      <!-- Al final: abrirHoja enfoca el primer control del cuerpo. -->
+      <input type="hidden" id="gasto-tx-id">`,
+    pie: '<button type="button" id="btn-submit-gasto" class="o-btn o-btn--primario o-btn--bloque" disabled>Guardar gasto</button>'
+  });
 }
 
 export function initGastoForm(db, getBudgetFn, refreshCallback) {
-  const modal = document.getElementById('gasto-modal');
+  const modal = document.getElementById(ID);
   if (!modal) return;
-  
+
   let currentAmountStr = '';
   let selectedCategory = 'Needs';
   let selectedEnvelopeId = null;
-  
+
   const display = document.getElementById('gasto-numpad-display');
   const context = document.getElementById('gasto-context-display');
   const btnSubmit = document.getElementById('btn-submit-gasto');
   const chipContainer = document.getElementById('gasto-chip-container');
   const recentAmtsContainer = document.getElementById('gasto-recent-amounts-container');
   let b = getBudgetFn(); // Current budget
-  
+
   const vibrate = () => { if(navigator.vibrate) navigator.vibrate(10); };
 
   const renderRecentAmounts = () => {
-    b = getBudgetFn(); 
+    b = getBudgetFn();
     const recentTx = (b.breakdown || [])
       .filter(t => t.type === 'Gasto' && t.envelopeId === selectedEnvelopeId)
       .sort((x, y) => compararFechas(y.date, x.date));
     const recentAmounts = recentTx.map(t => t.amount);
     const distinct = [...new Set(recentAmounts)].slice(0, 3);
-    
+
     if (distinct.length > 0) {
-      recentAmtsContainer.innerHTML = distinct.map(amt => `<div class="chip tappable" style="background: var(--surface-2); color: var(--text-secondary); padding: 6px 16px; font-size: 13px; font-weight: 600; border: 1px solid transparent;" data-amt="${amt}">${formatCompactCurrency(amt)}</div>`).join('');
-      recentAmtsContainer.querySelectorAll('.chip').forEach(c => c.addEventListener('click', (e) => {
+      recentAmtsContainer.innerHTML = distinct.map(amt => `<button type="button" class="o-chip o-num" data-amt="${amt}" aria-label="Usar ${formatCurrency(amt)}">${formatCompactCurrency(amt)}</button>`).join('');
+      recentAmtsContainer.querySelectorAll('.o-chip').forEach(c => c.addEventListener('click', (e) => {
         vibrate();
         currentAmountStr = e.currentTarget.getAttribute('data-amt');
         updateUI();
@@ -89,18 +77,8 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
   };
 
   const syncChips = () => {
-    chipContainer.querySelectorAll('.chip').forEach(ch => {
-      if(ch.getAttribute('data-id') === selectedEnvelopeId) {
-        ch.classList.add('active');
-        ch.style.background = ch.getAttribute('data-cat') === 'Needs' ? 'var(--state-high)' : 'var(--accent-blue)';
-        ch.style.color = '#000';
-        ch.style.borderColor = 'transparent';
-      } else {
-        ch.classList.remove('active');
-        ch.style.background = 'transparent';
-        ch.style.color = 'var(--text-primary)';
-        ch.style.borderColor = 'var(--surface-border)';
-      }
+    chipContainer.querySelectorAll('.o-chip').forEach(ch => {
+      ch.setAttribute('aria-pressed', String(ch.getAttribute('data-id') === selectedEnvelopeId));
     });
   };
 
@@ -108,37 +86,28 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
     b = getBudgetFn();
     const num = parseFloat(currentAmountStr || '0');
     display.innerText = formatCurrency(num);
-    
+
     const env = b.envelopes.find(e => e.id === selectedEnvelopeId);
     if (env) {
       const rem = env.balance - num;
       // Sin monto todavía no hay nada que exceder: si el sobre ya está bajo
       // cero, se dice eso; "Excederías…" solo con un monto mayor a 0.
       if (num <= 0 && env.balance < 0) {
-        context.style.color = 'var(--state-high-t)';
-        context.innerText = `${env.name} ya está en negativo (${formatCurrency(Math.abs(env.balance))} bajo cero)`;
+        pintarContexto(context, `${env.name} ya está en negativo (${formatCurrency(Math.abs(env.balance))} bajo cero)`, true);
       } else if (rem < 0) {
-        context.style.color = 'var(--state-high-t)';
         // Si ya estaba bajo cero, "Excederías en $X" sumaba la deuda previa
         // al monto: se dice dónde quedaría (Revisión oct 5.2).
-        context.innerText = env.balance < 0
+        pintarContexto(context, env.balance < 0
           ? `El sobre quedaría en ${formatCurrency(rem)}`
-          : `Excederías tu sobre de ${env.name} en ${formatCurrency(Math.abs(rem))}`;
+          : `Excederías tu sobre de ${env.name} en ${formatCurrency(Math.abs(rem))}`, true);
       } else {
-        context.style.color = 'var(--text-secondary)';
-        context.innerText = `Quedan ${formatCurrency(rem)} en este sobre`;
+        pintarContexto(context, `Quedan ${formatCurrency(rem)} en este sobre`);
       }
     } else {
-      context.innerText = 'Selecciona un sobre';
+      pintarContexto(context, 'Selecciona un sobre');
     }
-    
-    if (num > 0 && selectedEnvelopeId) {
-      btnSubmit.style.opacity = '1';
-      btnSubmit.style.pointerEvents = 'auto';
-    } else {
-      btnSubmit.style.opacity = '0.5';
-      btnSubmit.style.pointerEvents = 'none';
-    }
+
+    btnSubmit.disabled = !(num > 0 && selectedEnvelopeId);
   };
 
   const onKeyPress = (val) => {
@@ -148,12 +117,12 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
     }
     updateUI();
   };
-  
+
   const onBackspace = () => {
     currentAmountStr = currentAmountStr.slice(0, -1);
     updateUI();
   };
-  
+
   const onLongBackspace = () => {
     currentAmountStr = '';
     updateUI();
@@ -170,7 +139,7 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
 
     if (amount > 0 && selectedEnvelopeId) {
       const originalText = btnSubmit.innerHTML;
-      btnSubmit.innerHTML = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+      btnSubmit.innerHTML = guardandoHtml();
 
       setTimeout(async () => {
         const payload = { type: 'Gasto', category: selectedCategory, label, amount, goalId: null, envelopeId: selectedEnvelopeId };
@@ -190,36 +159,28 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
         // Confirmación visual (check + mensaje) antes de volver a la vista normal
         const overlay = document.getElementById('gasto-confirm-overlay');
         if (!overlay) return;
-        overlay.style.display = 'flex';
+        overlay.hidden = false;
         setTimeout(() => {
           if (!modal.isConnected) return;
-          overlay.style.display = 'none';
-          modal.style.display = 'none';
-          modal.classList.remove('open');
+          overlay.hidden = true;
+          cerrarHoja(ID);
         }, 900);
 
       }, 500);
     }
   });
 
-  // Close logic
-  modal.querySelector('.btn-close-modal').addEventListener('click', () => {
-    modal.style.display = 'none';
-    modal.classList.remove('open');
-  });
+  // Cerrar: botón de la cabecera y toque en el fondo.
+  montarHoja(ID);
 
   modal.openForm = (tx = null) => {
     b = getBudgetFn(); // Refresh data
-    
+
     // Render Chips based on Envelopes
     if (b.envelopes.length > 0) {
-      chipContainer.innerHTML = b.envelopes.map(env => `
-        <div class="chip tappable" data-id="${env.id}" data-cat="${env.category}" style="background: transparent; color: var(--text-primary); border-color: var(--surface-border);">
-          ${escapeHtml(env.name)}
-        </div>
-      `).join('');
-      
-      chipContainer.querySelectorAll('.chip').forEach(c => {
+      chipContainer.innerHTML = b.envelopes.map(env => `<button type="button" class="o-chip" data-id="${escapeHtml(env.id)}" data-cat="${escapeHtml(env.category)}" aria-pressed="false">${escapeHtml(env.name)}</button>`).join('');
+
+      chipContainer.querySelectorAll('.o-chip').forEach(c => {
         c.addEventListener('click', (e) => {
           vibrate();
           selectedEnvelopeId = e.currentTarget.getAttribute('data-id');
@@ -230,7 +191,7 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
         });
       });
     } else {
-      chipContainer.innerHTML = `<div style="font-size:12px; color:var(--text-disabled);">No hay sobres creados</div>`;
+      chipContainer.innerHTML = '<p class="o-campo-ayuda">No hay sobres creados</p>';
     }
 
     if(tx) {
@@ -261,11 +222,10 @@ export function initGastoForm(db, getBudgetFn, refreshCallback) {
         selectedCategory = 'Needs';
       }
     }
-    
+
     syncChips();
     renderRecentAmounts();
     updateUI();
-    modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('open'), 10);
+    abrirHoja(ID);
   };
 }

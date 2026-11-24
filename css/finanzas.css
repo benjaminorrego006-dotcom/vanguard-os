@@ -274,3 +274,68 @@ html[data-tema="gris"] .o-anual-barra i { background: var(--o-text-2); }
 html[data-tema="gris"] .o-fin-spark i:not(.o-fin-spark--excedido) { background: var(--o-text-3); }
 html[data-tema="gris"] .o-fin-barra--actual .o-fin-barra-pista i { background: var(--o-text-2); }
 html[data-tema="gris"] :is(.o-fin-pordia-texto .o-num, .o-anual-apartar .o-num, .o-fin-tendencia svg) { color: var(--o-text); }
+
+/* =====================================================================
+   HOJAS DE FINANZAS (Órbita, Fase 8b) — components/fin-hoja.js,
+   GastoForm, IngresoForm, AhorroForm, TransferForm, RecurringForm,
+   EnvelopeForm, goal-form y la hoja de gastos-anuales. Cada una es un
+   oHoja() (orbita.css); acá van solo sus piezas propias.
+   ===================================================================== */
+.o-fin-hoja-monto {
+  margin: 0; text-align: center;
+  font-size: var(--o-fs-display); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-display); line-height: var(--o-lh-tight);
+}
+.o-fin-hoja-contexto {
+  display: flex; align-items: center; justify-content: center; gap: var(--o-sp-1);
+  min-height: var(--o-sp-5); margin: calc(var(--o-sp-2) * -1) 0 0; text-align: center;
+  font-size: var(--o-fs-sm); color: var(--o-text-2);
+}
+.o-fin-hoja-contexto.o-fin-alerta { color: var(--o-alert-t); font-weight: var(--o-fw-semibold); }
+.o-fin-hoja-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.o-fin-hoja-chips::-webkit-scrollbar { display: none; }
+.o-fin-hoja-chips:empty { display: none; }
+.o-fin-hoja-par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-sp-3); }
+.o-fin-hoja-par--1-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+.o-fin-hoja-par > .o-campo[hidden] { display: none; }
+.o-hoja .o-campo[hidden] { display: none; }
+
+/* Confirmación «registrado» sobre la hoja. */
+.o-fin-hoja-ok {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--o-sp-3);
+  background: var(--o-sheet); border-radius: inherit;
+}
+.o-fin-hoja-ok[hidden] { display: none; }
+.o-fin-hoja-ok p { margin: 0; font-size: var(--o-fs-md); font-weight: var(--o-fw-semibold); }
+.o-fin-hoja-ok-ico {
+  display: grid; place-items: center; width: var(--o-anillo); aspect-ratio: 1;
+  border-radius: var(--o-radius-circle); background: var(--o-ok-soft); color: var(--o-ok-t);
+  animation: o-fin-ok var(--o-dur-3) var(--o-ease-spring);
+}
+.o-fin-hoja-ok-ico svg { width: var(--o-icon); height: var(--o-icon); }
+@keyframes o-fin-ok { from { transform: scale(var(--o-press)); opacity: 0; } }
+
+/* Teclado numérico (variante Órbita de NumericKeypad). */
+.o-numpad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-numpad-btn {
+  display: grid; place-items: center; min-height: calc(var(--o-touch) + var(--o-sp-2)); padding: 0;
+  background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-radius-control);
+  color: var(--o-text); font-family: var(--o-font-num); font-size: var(--o-fs-xl); font-weight: var(--o-fw-regular);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--o-dur-1) var(--o-ease-out);
+}
+.o-numpad-btn:hover { background: var(--o-surface-2); }
+.o-numpad-btn:active { background: var(--o-surface-3); }
+.o-numpad-btn:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-numpad-btn[data-val="del"] { color: var(--o-text-2); }
+.o-numpad-btn svg { width: var(--o-icon); height: var(--o-icon); }
+
+/* Íconos de meta (goal-form). */
+.o-meta-iconos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-meta-iconos .o-chip { justify-content: center; padding: 0; }
+.o-meta-iconos .o-chip svg { width: var(--o-icon); height: var(--o-icon); }
+
+/* Vista previa del gasto anual. */
+.o-anual-preview { margin: 0; font-size: var(--o-fs-sm); color: var(--o-text-2); line-height: var(--o-lh-body); }
+.o-anual-preview strong { color: var(--o-mod-t); }
+html[data-tema="gris"] .o-anual-preview strong { color: var(--o-text); }

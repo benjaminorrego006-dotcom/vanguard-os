@@ -1,71 +1,61 @@
+// js/components/AhorroForm.js
+// Hoja «Aportar a meta» (Órbita, oHoja #ahorro-modal): cifra con teclado,
+// meta en chips (con cómo quedaría) y descripción. Lógica de siempre
+// (Fase 8b).
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
-import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
+import { formatCurrency } from '../utils/currency.js';
 import { Toast } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
+import { oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
+import { montoHtml, contextoHtml, pintarContexto, guardandoHtml } from './fin-hoja.js';
+
+const ID = 'ahorro-modal';
 
 export function renderAhorroForm() {
-  return `
-    <div id="ahorro-modal" class="modal-overlay sheet-overlay">
-      <div class="sheet-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom));">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-          <button class="btn-close-modal" style="width: 40px; height: 40px; flex-shrink: 0; background: var(--surface-2); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-            <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-          </button>
-          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Aportar a meta</h2>
-        </div>
-        
-        <input type="hidden" id="ahorro-tx-id">
-        
-        <!-- Big Amount Display -->
-        <div style="text-align: center; font-size: 40px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary); min-height: 48px;" id="ahorro-numpad-display">
-          $0
-        </div>
-        
-        <!-- Live Context Display -->
-        <div id="ahorro-context-display" style="text-align: center; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 16px; min-height: 16px;"></div>
-
-        <!-- Chips Row (Goals) -->
-        <div id="ahorro-chip-container" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 8px; white-space: nowrap;">
-        </div>
-
-        <!-- Description -->
-        <input type="text" id="ahorro-label" placeholder="Descripción (opcional)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; font-size: 16px; box-sizing: border-box; margin-bottom: 24px; outline: none;">
-
-        ${renderNumericKeypad()}
-
-        <button id="btn-submit-ahorro" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--accent-purple); color: #000; opacity: 0.5; pointer-events: none;">Guardar ahorro</button>
+  return oHoja({
+    id: ID, titulo: 'Aportar a meta', modulo: 'finanzas',
+    cuerpo: `
+      ${montoHtml('ahorro')}
+      ${contextoHtml('ahorro')}
+      <div class="o-campo">
+        <span class="o-campo-etiqueta" id="ahorro-meta-etq">Meta</span>
+        <div id="ahorro-chip-container" class="o-chips o-fin-hoja-chips" role="group" aria-labelledby="ahorro-meta-etq"></div>
       </div>
-    </div>
-  `;
+      <div class="o-campo">
+        <label for="ahorro-label">Descripción</label>
+        <input type="text" id="ahorro-label" class="o-input" placeholder="Opcional" autocomplete="off">
+      </div>
+      ${renderNumericKeypad({ orbita: true })}
+      <input type="hidden" id="ahorro-tx-id">`,
+    pie: '<button type="button" id="btn-submit-ahorro" class="o-btn o-btn--primario o-btn--bloque" disabled>Guardar ahorro</button>'
+  });
 }
 
 export function initAhorroForm(db, getBudgetFn, refreshCallback) {
-  const modal = document.getElementById('ahorro-modal');
+  const modal = document.getElementById(ID);
   if (!modal) return;
-  
+
   let currentAmountStr = '';
   let selectedGoalId = null;
-  
+
   const display = document.getElementById('ahorro-numpad-display');
   const context = document.getElementById('ahorro-context-display');
   const btnSubmit = document.getElementById('btn-submit-ahorro');
   const chipContainer = document.getElementById('ahorro-chip-container');
   let b = getBudgetFn();
-  
+
   const vibrate = () => { if(navigator.vibrate) navigator.vibrate(10); };
 
   const renderGoals = () => {
     b = getBudgetFn();
     if (b.goals.length === 0) {
-      chipContainer.innerHTML = `<div class="chip active" style="background: var(--accent-purple); color: #000;">Sin metas</div>`;
+      chipContainer.innerHTML = '<p class="o-campo-ayuda">Sin metas: el ahorro queda sin meta.</p>';
       selectedGoalId = null;
     } else {
       if (!selectedGoalId || !b.goals.find(g => g.id === selectedGoalId)) selectedGoalId = b.goals[0].id;
-      chipContainer.innerHTML = b.goals.map(g => `
-        <div class="chip tappable ${selectedGoalId === g.id ? 'active' : ''}" data-goal-id="${g.id}" style="${selectedGoalId === g.id ? 'background: var(--accent-purple); color: #000; border-color: transparent;' : 'background: transparent; color: var(--text-secondary); border-color: var(--surface-border);'}">${escapeHtml(g.name)}</div>
-      `).join('');
-      
-      chipContainer.querySelectorAll('.chip').forEach(c => {
+      chipContainer.innerHTML = b.goals.map(g => `<button type="button" class="o-chip" data-goal-id="${escapeHtml(g.id)}" aria-pressed="${selectedGoalId === g.id}">${escapeHtml(g.name)}</button>`).join('');
+
+      chipContainer.querySelectorAll('.o-chip').forEach(c => {
         c.addEventListener('click', (e) => {
           vibrate();
           selectedGoalId = e.currentTarget.getAttribute('data-goal-id');
@@ -79,23 +69,17 @@ export function initAhorroForm(db, getBudgetFn, refreshCallback) {
   const updateUI = () => {
     const num = parseFloat(currentAmountStr || '0');
     display.innerText = formatCurrency(num);
-    
+
     if (selectedGoalId) {
       const goal = b.goals.find(g => g.id === selectedGoalId);
       if (goal) {
-        context.innerText = `Meta ${goal.name}: ${formatCurrency(goal.currentAmount + num)} / ${formatCurrency(goal.targetAmount)}`;
+        pintarContexto(context, `Meta ${goal.name}: ${formatCurrency(goal.currentAmount + num)} / ${formatCurrency(goal.targetAmount)}`);
       }
     } else {
-      context.innerText = '';
+      pintarContexto(context, '');
     }
-    
-    if (num > 0) {
-      btnSubmit.style.opacity = '1';
-      btnSubmit.style.pointerEvents = 'auto';
-    } else {
-      btnSubmit.style.opacity = '0.5';
-      btnSubmit.style.pointerEvents = 'none';
-    }
+
+    btnSubmit.disabled = !(num > 0);
   };
 
   const onKeyPress = (val) => {
@@ -105,12 +89,12 @@ export function initAhorroForm(db, getBudgetFn, refreshCallback) {
     }
     updateUI();
   };
-  
+
   const onBackspace = () => {
     currentAmountStr = currentAmountStr.slice(0, -1);
     updateUI();
   };
-  
+
   const onLongBackspace = () => {
     currentAmountStr = '';
     updateUI();
@@ -123,11 +107,11 @@ export function initAhorroForm(db, getBudgetFn, refreshCallback) {
     const id = document.getElementById('ahorro-tx-id').value;
     const amount = parseFloat(currentAmountStr);
     let label = document.getElementById('ahorro-label').value.trim();
-    
+
     if (amount > 0) {
       const originalText = btnSubmit.innerHTML;
-      btnSubmit.innerHTML = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-      
+      btnSubmit.innerHTML = guardandoHtml();
+
       setTimeout(async () => {
         let res;
         if (id) {
@@ -143,18 +127,14 @@ export function initAhorroForm(db, getBudgetFn, refreshCallback) {
         Toast("Ahorro guardado", "success");
         if (!modal.isConnected) return; // vista cambiada mientras se guardaba
         btnSubmit.innerHTML = originalText;
-        modal.style.display = 'none';
-        modal.classList.remove('open');
+        cerrarHoja(ID);
 
       }, 500);
     }
   });
 
-  // Close logic
-  modal.querySelector('.btn-close-modal').addEventListener('click', () => {
-    modal.style.display = 'none';
-    modal.classList.remove('open');
-  });
+  // Cerrar: botón de la cabecera y toque en el fondo.
+  montarHoja(ID);
 
   modal.openForm = (tx = null, defaultGoalId = null) => {
     if(tx) {
@@ -168,10 +148,9 @@ export function initAhorroForm(db, getBudgetFn, refreshCallback) {
       document.getElementById('ahorro-label').value = '';
       if(defaultGoalId) selectedGoalId = defaultGoalId;
     }
-    
+
     renderGoals();
     updateUI();
-    modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('open'), 10);
+    abrirHoja(ID);
   };
 }

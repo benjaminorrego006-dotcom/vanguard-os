@@ -644,7 +644,8 @@ export async function render() {
       <!-- Formularios MK III que Hoy abre sin salir (se migran en su fase):
            su ámbito les da el mismo aspecto que en su módulo. -->
       <div class="mk3-tareas">${renderTaskForm()}</div>
-      <div class="mk3-finanzas">${renderGastoForm()}</div>
+      <!-- Hoja de gasto de Finanzas (Órbita desde la Fase 8b). -->
+      ${renderGastoForm()}
     </div>
   `;
 }

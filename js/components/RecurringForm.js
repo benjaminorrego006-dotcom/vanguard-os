@@ -1,64 +1,56 @@
-import { Toast, ConfirmDialog } from '../utils/states.js';
+// js/components/RecurringForm.js
+// Hoja «Nuevo pago fijo» (Órbita, oHoja #recurring-modal): cifra con
+// teclado, descripción, día del mes y sobre del que se descuenta. Atrás la
+// cierra (history.js). finanzas.js la abre con
+// `document.getElementById('recurring-modal').openForm()`. Lógica de
+// siempre (Fase 8b).
+import { Toast } from '../utils/states.js';
 import { formatCurrency } from '../utils/currency.js';
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
 import { escapeHtml } from '../utils/escape.js';
+import { oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
+import { montoHtml, contextoHtml, guardandoHtml } from './fin-hoja.js';
 
-// Hoja .modal-overlay (docs/PLAN-REVISION-OCT.md, 4.2), como Gasto y
-// Transferir: antes era un panel dentro de la pestaña Recurrentes, Atrás
-// salía de Finanzas y la barra tapaba el formulario. `recurring-modal`
-// conserva su id: finanzas.js sigue llamando a
-// `document.getElementById('recurring-modal').openForm()` para abrirla.
+const ID = 'recurring-modal';
+
 export function renderRecurringForm() {
-  return `
-    <div id="recurring-modal" class="modal-overlay sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-recurring-title">
-      <div class="sheet-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom));">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-        <button class="btn-close-modal" aria-label="Cerrar" style="width: 40px; height: 40px; flex-shrink: 0; background: var(--surface-2); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-          <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-        </button>
-        <h2 id="modal-recurring-title" style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Nuevo pago fijo</h2>
-      </div>
-
-      <form id="recurring-form">
-        <div style="text-align: center; font-size: 40px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary); min-height: 48px;" id="recurring-numpad-display">
-          $0
+  return oHoja({
+    id: ID, titulo: 'Nuevo pago fijo', modulo: 'finanzas',
+    cuerpo: `
+      <form id="recurring-form" class="o-hoja-cuerpo">
+        ${montoHtml('recurring')}
+        ${contextoHtml('recurring', 'Monto del cargo automático')}
+        <div class="o-campo">
+          <label for="recurring-label">Descripción</label>
+          <input type="text" id="recurring-label" class="o-input" placeholder="Ej. Netflix, Spotify" autocomplete="off" required>
         </div>
-        <div style="text-align: center; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 16px; min-height: 16px;">Monto del cargo automático</div>
-
-        <input type="text" id="recurring-label" placeholder="Descripción (ej. Netflix, Spotify)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; font-size: 16px; box-sizing: border-box; margin-bottom: 16px; outline: none;" required>
-
-        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-          <div style="flex: 1;">
-            <label for="recurring-day" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Día del mes</label>
-            <select id="recurring-day" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 16px; outline: none; appearance: none;" required>
+        <div class="o-fin-hoja-par o-fin-hoja-par--1-2">
+          <div class="o-campo">
+            <label for="recurring-day">Día del mes</label>
+            <select id="recurring-day" class="o-input" required>
               ${Array.from({length: 28}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('')}
             </select>
           </div>
-          <div style="flex: 2;">
-            <label for="recurring-envelope" style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Descontar de</label>
-            <select id="recurring-envelope" style="width: 100%; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 16px; outline: none; appearance: none;" required>
-            </select>
+          <div class="o-campo">
+            <label for="recurring-envelope">Descontar de</label>
+            <select id="recurring-envelope" class="o-input" required></select>
           </div>
         </div>
-
-        ${renderNumericKeypad()}
-
-        <button id="btn-submit-recurring" type="submit" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--text-primary); color: var(--bg-base); opacity: 0.5; pointer-events: none;">Guardar pago fijo</button>
-      </form>
-      </div>
-    </div>
-  `;
+        ${renderNumericKeypad({ orbita: true })}
+      </form>`,
+    pie: '<button id="btn-submit-recurring" type="submit" form="recurring-form" class="o-btn o-btn--primario o-btn--bloque" disabled>Guardar pago fijo</button>'
+  });
 }
 
 export function initRecurringForm(db, getBudgetFn, refreshCallback) {
-  const modal = document.getElementById('recurring-modal');
+  const modal = document.getElementById(ID);
   if (!modal) return;
-  
+
   const form = document.getElementById('recurring-form');
   const display = document.getElementById('recurring-numpad-display');
   const btnSubmit = document.getElementById('btn-submit-recurring');
   const selectEnv = document.getElementById('recurring-envelope');
-  
+
   let currentAmountStr = '';
   let b = getBudgetFn();
 
@@ -66,14 +58,7 @@ export function initRecurringForm(db, getBudgetFn, refreshCallback) {
     const num = parseFloat(currentAmountStr || '0');
     display.innerText = formatCurrency(num);
     const label = document.getElementById('recurring-label').value.trim();
-    
-    if (num > 0 && label && selectEnv.value) {
-      btnSubmit.style.opacity = '1';
-      btnSubmit.style.pointerEvents = 'auto';
-    } else {
-      btnSubmit.style.opacity = '0.5';
-      btnSubmit.style.pointerEvents = 'none';
-    }
+    btnSubmit.disabled = !(num > 0 && label && selectEnv.value);
   };
 
   const onKeyPress = (val) => {
@@ -83,19 +68,19 @@ export function initRecurringForm(db, getBudgetFn, refreshCallback) {
     }
     updateUI();
   };
-  
+
   const onBackspace = () => {
     currentAmountStr = currentAmountStr.slice(0, -1);
     updateUI();
   };
-  
+
   const onLongBackspace = () => {
     currentAmountStr = '';
     updateUI();
   };
 
   initNumericKeypad(modal, onKeyPress, onBackspace, onLongBackspace);
-  
+
   document.getElementById('recurring-label').addEventListener('input', updateUI);
   selectEnv.addEventListener('change', updateUI);
 
@@ -105,39 +90,35 @@ export function initRecurringForm(db, getBudgetFn, refreshCallback) {
     const label = document.getElementById('recurring-label').value.trim();
     const envelopeId = selectEnv.value;
     const dayOfMonth = parseInt(document.getElementById('recurring-day').value, 10);
-    
+
     if (amount > 0 && label && envelopeId && dayOfMonth) {
       const originalText = btnSubmit.innerHTML;
-      btnSubmit.innerHTML = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-      
+      btnSubmit.innerHTML = guardandoHtml();
+
       setTimeout(async () => {
         await db.createRecurring({ label, amount, envelopeId, dayOfMonth });
         Toast("Gasto fijo configurado", "success");
         if (!modal.isConnected) return; // vista cambiada mientras se guardaba
         btnSubmit.innerHTML = originalText;
-        modal.style.display = 'none';
-        modal.classList.remove('open');
+        cerrarHoja(ID);
 
       }, 500);
     }
   });
 
-  modal.querySelector('.btn-close-modal').addEventListener('click', () => {
-    modal.style.display = 'none';
-    modal.classList.remove('open');
-  });
+  // Cerrar: botón de la cabecera y toque en el fondo.
+  montarHoja(ID);
 
   modal.openForm = () => {
-    b = getBudgetFn(); 
+    b = getBudgetFn();
     currentAmountStr = '';
     document.getElementById('recurring-label').value = '';
     document.getElementById('recurring-day').value = '15';
-    
-    selectEnv.innerHTML = b.envelopes.map(env => `<option value="${env.id}">${escapeHtml(env.name)}</option>`).join('');
+
+    selectEnv.innerHTML = b.envelopes.map(env => `<option value="${escapeHtml(env.id)}">${escapeHtml(env.name)}</option>`).join('');
     if (b.envelopes.length > 0) selectEnv.value = b.envelopes[0].id;
-    
+
     updateUI();
-    modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('open'), 10);
+    abrirHoja(ID);
   };
 }

@@ -137,7 +137,7 @@ const SEL = {
   // Finanzas
   gastoModal: '#gasto-modal',
   gastoTecla: (v) => `#gasto-modal .numpad-btn[data-val="${v}"]`,
-  gastoChip: '#gasto-chip-container .chip',
+  gastoChip: '#gasto-chip-container .o-chip',
   gastoLabel: '#gasto-label',
   gastoGuardar: '#btn-submit-gasto',
   finTab: (tab) => `.fin-tab[data-tab="${tab}"]`,
@@ -221,7 +221,8 @@ async function fallasContraste(page, selector) {
     const lum = (c) => { const t = [c.r, c.g, c.b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * t[0] + 0.7152 * t[1] + 0.0722 * t[2]; };
     const sonda = document.createElement('span'); sonda.style.color = 'var(--o-bg)'; document.body.appendChild(sonda);
     const base = rgba(getComputedStyle(sonda).color); sonda.remove();
-    return els.filter((el) => el.textContent.trim() && el.getBoundingClientRect().width > 0).map((el) => {
+    // Un control deshabilitado no entra (WCAG 1.4.3 lo exime).
+    return els.filter((el) => el.textContent.trim() && el.getBoundingClientRect().width > 0 && !el.closest(':disabled')).map((el) => {
       const capas = []; let op = 1; let paradas = null;
       for (let e = el; e; e = e.parentElement) {
         const c = getComputedStyle(e); op *= Number(c.opacity);
@@ -489,12 +490,13 @@ async function main() {
     // Teclado: las 12 teclas con objetivo táctil ≥ 44 px y sin el aspecto nativo del navegador.
     const teclas = await page.$$eval('#gasto-modal .numpad-btn', (bs) => bs.map((b) => {
       const c = getComputedStyle(b); const r = b.getBoundingClientRect();
-      return { alto: r.height, fondo: c.backgroundColor, borde: c.borderTopStyle, letra: parseFloat(c.fontSize) };
+      return { alto: r.height, radio: c.borderTopLeftRadius, fuente: c.fontFamily, letra: parseFloat(c.fontSize) };
     }));
     afirmar(teclas.length === 12, `teclas: ${teclas.length}`);
     for (const t of teclas) {
       afirmar(t.alto >= 44, `tecla de ${t.alto} px de alto`);
-      afirmar(t.fondo === 'rgba(0, 0, 0, 0)' && t.borde === 'none', `tecla con aspecto nativo (${t.fondo}, borde ${t.borde})`);
+      // Tecla de Órbita (Fase 8b): caja con radio y cifra en Geist Mono.
+      afirmar(t.radio !== '0px' && /Geist Mono/.test(t.fuente), `tecla sin estilo Órbita (radio ${t.radio}, fuente ${t.fuente})`);
       afirmar(t.letra >= 20, `tecla con letra de ${t.letra} px`);
     }
     // Chips de sobre: caja táctil con relleno y radio; el elegido toma fondo.
@@ -1227,6 +1229,164 @@ async function main() {
     await page.waitForSelector(SEL.finRecLd);
     afirmar(!(await page.$(SEL.finRec('App de música'))), 'el pago fijo sigue en la lista');
     afirmar((await histFin('recDetalle')).vista === 'finanzas', 'eliminar salió de Finanzas');
+  });
+
+  // --- Hojas de Finanzas (Órbita, Fase 8b): crear, editar y borrar de punta a punta ---
+  const saldoSobre = (nombre) => page.locator(`${SEL.finSobre(nombre)} .o-fin-sobre-saldo .o-num`).textContent().then((t) => t.trim());
+  const aPesos = (t) => Number(t.replace(/[^\d-]/g, ''));
+  const teclear = async (digitos) => { for (const v of digitos) await page.locator(SEL.gastoTecla(v)).click(); };
+
+  await prueba('Finanzas · hoja de gasto: crear, editar y borrar, con el saldo del sobre en cada paso', async () => {
+    await irA(page, 'finanzas');
+    await page.locator(SEL.finTab('sobres')).click();
+    const inicial = aPesos(await saldoSobre('Salidas'));
+    // Crear.
+    await page.locator('#btn-fab-gasto').click();
+    await abierta(SEL.gastoModal);
+    afirmar(await page.locator(`${SEL.gastoModal}.o-ui .o-hoja`).count() === 1, 'la hoja de gasto no es una hoja de Órbita');
+    await page.locator(`${SEL.gastoChip}:text-is("Salidas")`).click();
+    await teclear(['1', '5', '0', '0']);
+    afirmar((await page.locator('#gasto-numpad-display').textContent()).trim() === '$1.500', 'la cifra no muestra $1.500');
+    await page.locator(SEL.gastoLabel).fill('Prueba E2E gasto');
+    await page.locator(SEL.gastoGuardar).click();
+    await cerrada(SEL.gastoModal);
+    await page.waitForFunction((v) => {
+      const c = [...document.querySelectorAll('.env-row')].find((e) => e.querySelector('.o-fin-sobre-nombre')?.textContent.trim() === 'Salidas');
+      return c && Number(c.querySelector('.o-fin-sobre-saldo .o-num').textContent.replace(/[^\d-]/g, '')) === v;
+    }, inicial - 1500, { timeout: 8000 });
+    // Editar desde su detalle.
+    await page.locator(SEL.finTab('movimientos')).click();
+    await page.locator(SEL.finMov('Prueba E2E gasto')).click();
+    await page.locator('#btn-editar-mov').click();
+    await abierta(SEL.gastoModal);
+    afirmar((await page.locator('#gasto-numpad-display').textContent()).trim() === '$1.500', 'editar no precargó el monto');
+    afirmar(await page.locator(`${SEL.gastoChip}:text-is("Salidas")`).getAttribute('aria-pressed') === 'true', 'editar no precargó el sobre');
+    await teclear(['del', 'del', 'del', 'del', '2', '5', '0', '0']);
+    await page.locator(SEL.gastoLabel).fill('Prueba E2E gasto editado');
+    await page.locator(SEL.gastoGuardar).click();
+    await cerrada(SEL.gastoModal);
+    await page.waitForFunction(() => /Prueba E2E gasto editado/.test(document.getElementById('view-root').textContent), null, { timeout: 8000 });
+    afirmar(/-\$2\.500/.test(await page.locator('#fin-mov-monto').textContent()), 'el detalle no muestra el monto editado');
+    await page.goBack(); // sub-pantalla (390)
+    await page.waitForSelector(SEL.movimientos);
+    await page.locator(SEL.finTab('sobres')).click();
+    afirmar(aPesos(await saldoSobre('Salidas')) === inicial - 2500, 'el saldo de Salidas no refleja la edición');
+    // Borrar.
+    await page.locator(SEL.finTab('movimientos')).click();
+    await page.locator(SEL.finMov('Prueba E2E gasto editado')).click();
+    await page.locator(SEL.finMovEliminar).click();
+    await page.locator(SEL.confirmOk).click();
+    await esperarToast(page, /Movimiento eliminado/);
+    await page.waitForSelector(SEL.movimientos);
+    await page.locator(SEL.finTab('sobres')).click();
+    afirmar(aPesos(await saldoSobre('Salidas')) === inicial, 'borrar no devolvió el saldo de Salidas');
+  });
+
+  await prueba('Finanzas · hoja de sobre: crear, editar y archivar (con atrás que cierra la hoja)', async () => {
+    await irA(page, 'finanzas');
+    await page.locator(SEL.finTab('sobres')).click();
+    // Atrás cierra la hoja sin salir de Finanzas.
+    await page.locator('.btn-add-envelope').click();
+    await abierta('#envelope-modal');
+    await page.goBack();
+    await cerrada('#envelope-modal');
+    afirmar((await page.evaluate(() => location.hash)) === '#finanzas', 'atrás salió de Finanzas');
+    // Crear.
+    await page.locator('.btn-add-envelope').click();
+    await abierta('#envelope-modal');
+    afirmar((await page.locator('#envelope-modal-titulo').textContent()) === 'Nuevo sobre', 'título de la hoja nueva');
+    await page.locator('#envelope-name').fill('Prueba sobre');
+    await page.locator('#envelope-category').selectOption('Wants');
+    await page.locator('#envelope-amount').fill('5000');
+    afirmar((await page.locator('#envelope-amount').inputValue()) === '5.000', 'el monto no se formateó con miles');
+    await page.locator('#envelope-guardar').click();
+    await esperarToast(page, /Sobre guardado/);
+    await cerrada('#envelope-modal');
+    await page.waitForSelector(SEL.finSobre('Prueba sobre'));
+    afirmar(await saldoSobre('Prueba sobre') === '$5.000', 'el sobre nuevo no tiene $5.000');
+    // Editar (menú ⋯ › Editar).
+    await page.locator(`${SEL.finSobre('Prueba sobre')} .sobre-menu-btn`).click();
+    await page.locator(`${SEL.finSobre('Prueba sobre')} .edit-env`).click();
+    await abierta('#envelope-modal');
+    afirmar((await page.locator('#envelope-modal-titulo').textContent()) === 'Editar sobre', 'título de la hoja de edición');
+    afirmar((await page.locator('#envelope-name').inputValue()) === 'Prueba sobre' && (await page.locator('#envelope-amount').inputValue()) === '5.000', 'editar no precargó el sobre');
+    await page.locator('#envelope-amount').fill('8000');
+    await page.locator('#envelope-guardar').click();
+    await esperarToast(page, /Sobre guardado/);
+    await cerrada('#envelope-modal');
+    await page.waitForFunction(() => [...document.querySelectorAll('.env-row')].some((e) => e.querySelector('.o-fin-sobre-nombre')?.textContent.trim() === 'Prueba sobre' && e.querySelector('.o-fin-sobre-saldo .o-num').textContent.trim() === '$8.000'), null, { timeout: 8000 });
+    // Borrar = archivar (CLAUDE.md, regla 6): sale de la lista y queda en Archivados.
+    await page.locator(`${SEL.finSobre('Prueba sobre')} .sobre-menu-btn`).click();
+    await page.locator(`${SEL.finSobre('Prueba sobre')} .archive-env`).click();
+    await page.locator(SEL.confirmOk).click();
+    await page.locator(SEL.finSobre('Prueba sobre')).waitFor({ state: 'detached', timeout: 8000 });
+    afirmar(await page.locator('.o-fin-archivado-nombre:text-is("Prueba sobre")').count() === 1, 'el sobre no quedó en Archivados');
+  });
+
+  await prueba('Finanzas · hoja de pago fijo: crear y borrar desde su detalle', async () => {
+    await irA(page, 'finanzas');
+    await page.locator(SEL.finTab('recurrentes')).click();
+    await page.locator('#btn-add-recurring').click();
+    await abierta('#recurring-modal');
+    afirmar(await page.locator('#btn-submit-recurring').isDisabled(), 'Guardar habilitado sin datos');
+    for (const v of ['9', '9', '0', '0']) await page.locator(`#recurring-modal .numpad-btn[data-val="${v}"]`).click();
+    await page.locator('#recurring-label').fill('Prueba fijo');
+    await page.locator('#recurring-day').selectOption('10');
+    await page.locator('#recurring-envelope').selectOption({ label: 'Servicios' });
+    await page.locator('#btn-submit-recurring').click();
+    await esperarToast(page, /Gasto fijo configurado/);
+    await cerrada('#recurring-modal');
+    await page.waitForSelector(SEL.finRec('Prueba fijo'));
+    const fila = (await page.locator(SEL.finRec('Prueba fijo')).textContent()).replace(/\s+/g, ' ');
+    afirmar(/Día 10 · Servicios/.test(fila) && /\$9\.900/.test(fila), `fila del pago fijo: ${fila}`);
+    await page.locator(SEL.finRec('Prueba fijo')).click();
+    await page.locator(SEL.finRecEliminar).click();
+    await page.locator(SEL.confirmOk).click();
+    await esperarToast(page, /Pago fijo eliminado/);
+    await page.waitForSelector(SEL.finRecLd);
+    afirmar(!(await page.$(SEL.finRec('Prueba fijo'))), 'el pago fijo sigue en la lista');
+  });
+
+  await prueba('Finanzas · las ocho hojas: Órbita, 44 px y contraste AA (color y sobrio)', async () => {
+    const hojas = [
+      ['#gasto-modal', () => page.locator('#btn-fab-gasto').click()],
+      ['#ingreso-modal', async () => { await page.locator(SEL.finTab('resumen')).click(); await page.locator('#btn-fab-ingreso').click(); }],
+      ['#ahorro-modal', async () => { await page.locator(SEL.finTab('resumen')).click(); await page.locator('#btn-fab-ahorro').click(); }],
+      ['#transfer-modal', async () => { await page.locator(SEL.finTab('resumen')).click(); await page.locator('#btn-fab-transferir').click(); }],
+      ['#recurring-modal', async () => { await page.locator(SEL.finTab('recurrentes')).click(); await page.locator('#btn-add-recurring').click(); }],
+      ['#anual-modal', async () => { await page.locator(SEL.finTab('recurrentes')).click(); await page.locator('#btn-anual-nuevo').click(); }],
+      ['#envelope-modal', async () => { await page.locator(SEL.finTab('sobres')).click(); await page.locator('.btn-add-envelope').click(); }],
+      ['#goal-modal', async () => { await page.locator(SEL.finTab('sobres')).click(); await page.locator('#btn-add-goal').click(); }]
+    ];
+    try {
+      for (const tema of ['color', 'gris']) {
+        await page.evaluate((t) => localStorage.setItem('vg-tema', t), tema);
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.reload();
+        await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+        await irA(page, 'finanzas');
+        for (const [id, abrir] of hojas) {
+          await abrir();
+          await abierta(id);
+          await page.waitForTimeout(450);
+          afirmar(await page.locator(`${id}.o-ui .o-hoja`).count() === 1, `${id} no es una hoja de Órbita`);
+          const chicos = await page.$$eval(`${id} :is(button, input, select)`, (bs) => bs.filter((b) => {
+            const r = b.getBoundingClientRect();
+            return b.type !== 'hidden' && r.width > 0 && (r.width < 44 || r.height < 44);
+          }).map((b) => `${b.getAttribute('aria-label') || b.textContent.trim() || b.id} (${Math.round(b.getBoundingClientRect().width)}×${Math.round(b.getBoundingClientRect().height)})`));
+          afirmar(chicos.length === 0, `${tema} ${id}: objetivos bajo 44 px: ${chicos.slice(0, 3).join(', ')}`);
+          const fallas = await fallasContraste(page, `${id} *`);
+          afirmar(fallas.length === 0, `${tema} ${id}: «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+          await page.screenshot({ path: path.join(SALIDA, `finanzas-hoja-${id.slice(1)}-${tema}-390.png`) });
+          await page.goBack();
+          await cerrada(id);
+        }
+      }
+    } finally {
+      await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
+      await page.reload();
+      await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+    }
   });
 
   await prueba('Finanzas · objetivos táctiles de 44 px y contraste AA en las cuatro pestañas y los detalles (color y sobrio)', async () => {

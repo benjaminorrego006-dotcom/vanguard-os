@@ -1,77 +1,65 @@
+// js/components/TransferForm.js
+// Hoja «Transferir fondos» (Órbita, oHoja #transfer-modal): cifra con
+// teclado, sobre de origen y de destino (misma categoría). Si el origen no
+// tiene fondos, aviso con ícono y texto. Lógica de siempre (Fase 8b).
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
 import { formatCurrency } from '../utils/currency.js';
 import { Toast } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
+import { oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
+import { montoHtml, contextoHtml, pintarContexto, guardandoHtml } from './fin-hoja.js';
+
+const ID = 'transfer-modal';
 
 export function renderTransferForm() {
-  return `
-    <div id="transfer-modal" class="modal-overlay sheet-overlay">
-      <div class="sheet-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom));">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-          <button class="btn-close-modal" style="width: 40px; height: 40px; flex-shrink: 0; background: var(--surface-2); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-            <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-          </button>
-          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Transferir fondos</h2>
+  return oHoja({
+    id: ID, titulo: 'Transferir fondos', modulo: 'finanzas',
+    cuerpo: `
+      ${montoHtml('transfer')}
+      ${contextoHtml('transfer', 'Mueve dinero entre tus sobres')}
+      <div class="o-fin-hoja-par">
+        <div class="o-campo">
+          <label for="transfer-from-select">Desde</label>
+          <select id="transfer-from-select" class="o-input"></select>
         </div>
-        
-        <div style="text-align: center; font-size: 40px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary); min-height: 48px;" id="transfer-numpad-display">
-          $0
+        <div class="o-campo">
+          <label for="transfer-to-select">Hacia</label>
+          <select id="transfer-to-select" class="o-input"></select>
         </div>
-        
-        <div id="transfer-context-display" style="text-align: center; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 16px; min-height: 16px;">Mueve dinero entre tus sobres</div>
-
-        <div style="display: flex; gap: 8px; margin-bottom: 24px; align-items: center;">
-           <select id="transfer-from-select" style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 16px; outline: none; appearance: none;">
-           </select>
-           <svg width="24" height="24" fill="none" stroke="var(--text-secondary)" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-           <select id="transfer-to-select" style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font-size: 16px; outline: none; appearance: none;">
-           </select>
-        </div>
-
-        ${renderNumericKeypad()}
-
-        <button id="btn-submit-transfer" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--accent-purple); color: #000; opacity: 0.5; pointer-events: none;">Confirmar transferencia</button>
       </div>
-    </div>
-  `;
+      ${renderNumericKeypad({ orbita: true })}`,
+    pie: '<button type="button" id="btn-submit-transfer" class="o-btn o-btn--primario o-btn--bloque" disabled>Confirmar transferencia</button>'
+  });
 }
 
 export function initTransferForm(db, getBudgetFn, refreshCallback) {
-  const modal = document.getElementById('transfer-modal');
+  const modal = document.getElementById(ID);
   if (!modal) return;
-  
+
   let currentAmountStr = '';
-  
+
   const display = document.getElementById('transfer-numpad-display');
   const context = document.getElementById('transfer-context-display');
   const btnSubmit = document.getElementById('btn-submit-transfer');
   const selectFrom = document.getElementById('transfer-from-select');
   const selectTo = document.getElementById('transfer-to-select');
-  
-  let b = getBudgetFn(); 
-  
+
+  let b = getBudgetFn();
+
   const updateUI = () => {
     b = getBudgetFn();
     const num = parseFloat(currentAmountStr || '0');
     display.innerText = formatCurrency(num);
-    
+
     const envFrom = b.envelopes.find(e => e.id === selectFrom.value);
-    
+
     if (envFrom && num > envFrom.balance) {
-      context.style.color = 'var(--state-high-t)';
-      context.innerText = `No tienes suficientes fondos en ${envFrom.name} (Max: ${formatCurrency(envFrom.balance)})`;
+      pintarContexto(context, `No tienes suficientes fondos en ${envFrom.name} (Max: ${formatCurrency(envFrom.balance)})`, true);
     } else {
-      context.style.color = 'var(--text-secondary)';
-      context.innerText = 'Mueve dinero entre tus sobres';
+      pintarContexto(context, 'Mueve dinero entre tus sobres');
     }
-    
-    if (num > 0 && selectFrom.value && selectTo.value && selectFrom.value !== selectTo.value && envFrom && num <= envFrom.balance) {
-      btnSubmit.style.opacity = '1';
-      btnSubmit.style.pointerEvents = 'auto';
-    } else {
-      btnSubmit.style.opacity = '0.5';
-      btnSubmit.style.pointerEvents = 'none';
-    }
+
+    btnSubmit.disabled = !(num > 0 && selectFrom.value && selectTo.value && selectFrom.value !== selectTo.value && envFrom && num <= envFrom.balance);
   };
 
   const onKeyPress = (val) => {
@@ -81,25 +69,25 @@ export function initTransferForm(db, getBudgetFn, refreshCallback) {
     }
     updateUI();
   };
-  
+
   const onBackspace = () => {
     currentAmountStr = currentAmountStr.slice(0, -1);
     updateUI();
   };
-  
+
   const onLongBackspace = () => {
     currentAmountStr = '';
     updateUI();
   };
 
   initNumericKeypad(modal, onKeyPress, onBackspace, onLongBackspace);
-  
+
   selectFrom.addEventListener('change', () => {
     // Filtrar selectTo por misma categoría
     const envFrom = b.envelopes.find(e => e.id === selectFrom.value);
     if (envFrom) {
       const sameCatEnvs = b.envelopes.filter(e => e.category === envFrom.category);
-      selectTo.innerHTML = sameCatEnvs.map(env => `<option value="${env.id}">${escapeHtml(env.name)} (${formatCurrency(env.balance)})</option>`).join('');
+      selectTo.innerHTML = sameCatEnvs.map(env => `<option value="${escapeHtml(env.id)}">${escapeHtml(env.name)} (${formatCurrency(env.balance)})</option>`).join('');
       if (sameCatEnvs.length > 1) {
         const other = sameCatEnvs.find(e => e.id !== envFrom.id);
         if (other) selectTo.value = other.id;
@@ -114,11 +102,11 @@ export function initTransferForm(db, getBudgetFn, refreshCallback) {
     const amount = parseFloat(currentAmountStr);
     const fromId = selectFrom.value;
     const toId = selectTo.value;
-    
+
     if (amount > 0 && fromId && toId && fromId !== toId) {
       const originalText = btnSubmit.innerHTML;
-      btnSubmit.innerHTML = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-      
+      btnSubmit.innerHTML = guardandoHtml();
+
       setTimeout(async () => {
         b = getBudgetFn();
         await db.transferEnvelopeFunds(fromId, toId, amount);
@@ -126,31 +114,28 @@ export function initTransferForm(db, getBudgetFn, refreshCallback) {
         Toast("Transferencia completada", "success");
         if (!modal.isConnected) return; // vista cambiada mientras se guardaba
         btnSubmit.innerHTML = originalText;
-        modal.style.display = 'none';
-        modal.classList.remove('open');
-        
+        cerrarHoja(ID);
+
       }, 500);
     }
   });
 
-  modal.querySelector('.btn-close-modal').addEventListener('click', () => {
-    modal.style.display = 'none';
-    modal.classList.remove('open');
-  });
+  // Cerrar: botón de la cabecera y toque en el fondo.
+  montarHoja(ID);
 
   modal.openForm = (preselectFromId = null) => {
-    b = getBudgetFn(); 
+    b = getBudgetFn();
     currentAmountStr = '';
-    
+
     // Renderizar initial
     if (b.envelopes.length > 0) {
       const defaultId = preselectFromId || b.envelopes[0].id;
       const defaultEnv = b.envelopes.find(e => e.id === defaultId);
-      selectFrom.innerHTML = b.envelopes.map(env => `<option value="${env.id}">${escapeHtml(env.name)} (${formatCurrency(env.balance)})</option>`).join('');
+      selectFrom.innerHTML = b.envelopes.map(env => `<option value="${escapeHtml(env.id)}">${escapeHtml(env.name)} (${formatCurrency(env.balance)})</option>`).join('');
       selectFrom.value = defaultId;
-      
+
       const sameCatEnvs = b.envelopes.filter(e => e.category === defaultEnv.category);
-      selectTo.innerHTML = sameCatEnvs.map(env => `<option value="${env.id}">${escapeHtml(env.name)} (${formatCurrency(env.balance)})</option>`).join('');
+      selectTo.innerHTML = sameCatEnvs.map(env => `<option value="${escapeHtml(env.id)}">${escapeHtml(env.name)} (${formatCurrency(env.balance)})</option>`).join('');
     }
     if (selectTo.options.length > 1) {
        for(let i=0; i<selectTo.options.length; i++){
@@ -160,9 +145,8 @@ export function initTransferForm(db, getBudgetFn, refreshCallback) {
          }
        }
     }
-    
+
     updateUI();
-    modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('open'), 10);
+    abrirHoja(ID);
   };
 }

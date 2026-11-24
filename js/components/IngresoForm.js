@@ -1,71 +1,46 @@
+// js/components/IngresoForm.js
+// Hoja «Registrar ingreso» (Órbita, oHoja #ingreso-modal): cifra con
+// teclado, nuevo balance del mes y descripción. Lógica de siempre (Fase 8b).
 import { renderNumericKeypad, initNumericKeypad } from './NumericKeypad.js';
-import { formatCurrency, formatCompactCurrency } from '../utils/currency.js';
+import { formatCurrency } from '../utils/currency.js';
+import { oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
+import { montoHtml, contextoHtml, pintarContexto, confirmacionHtml, guardandoHtml } from './fin-hoja.js';
+
+const ID = 'ingreso-modal';
 
 export function renderIngresoForm() {
-  return `
-    <div id="ingreso-modal" class="modal-overlay sheet-overlay">
-      <div class="sheet-content" style="padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); position: relative;">
-        <div id="ingreso-confirm-overlay" style="display:none; position:absolute; inset:0; z-index:5; background: var(--surface-1); border-radius: inherit; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
-          <div style="width: 64px; height: 64px; border-radius: 50%; background: color-mix(in srgb, var(--fondo-exito) 15%, transparent); display: flex; align-items: center; justify-content: center; animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
-            <svg width="30" height="30" fill="none" stroke="var(--state-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          </div>
-          <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">Ingreso registrado</div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-          <button class="btn-close-modal" style="width: 40px; height: 40px; flex-shrink: 0; background: var(--surface-2); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-            <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-          </button>
-          <h2 style="font-size: 20px; font-weight: 700; margin: 0; color: var(--state-success-t);">Registrar ingreso</h2>
-        </div>
-
-        <input type="hidden" id="ingreso-tx-id">
-        
-        <!-- Big Amount Display -->
-        <div style="text-align: center; font-size: 40px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary); min-height: 48px;" id="ingreso-numpad-display">
-          $0
-        </div>
-        
-        <!-- Live Context Display -->
-        <div id="ingreso-context-display" style="text-align: center; font-size: 13px; font-weight: 500; color: var(--state-success-t); margin-bottom: 16px; min-height: 16px;">Nuevo balance: -</div>
-
-        <!-- Chips Row -->
-        <div style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 8px; white-space: nowrap;">
-           <div class="chip active" style="background: var(--state-success); color: #000;">Salario</div>
-        </div>
-
-        <!-- Description -->
-        <input type="text" id="ingreso-label" placeholder="Descripción (opcional, ej. Salario)" style="width: 100%; background: var(--surface-2); border: none; color: var(--text-primary); padding: 16px; font-size: 16px; box-sizing: border-box; margin-bottom: 24px; outline: none;">
-
-        ${renderNumericKeypad()}
-
-        <button id="btn-submit-ingreso" class="tappable" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 700; border: none; background: var(--state-success); color: #000; opacity: 0.5; pointer-events: none;">Guardar ingreso</button>
+  return oHoja({
+    id: ID, titulo: 'Registrar ingreso', modulo: 'finanzas',
+    cuerpo: `
+      ${confirmacionHtml('ingreso', 'Ingreso registrado')}
+      ${montoHtml('ingreso')}
+      ${contextoHtml('ingreso', 'Nuevo balance: -')}
+      <div class="o-campo">
+        <label for="ingreso-label">Descripción</label>
+        <input type="text" id="ingreso-label" class="o-input" placeholder="Opcional, ej. Salario" autocomplete="off">
       </div>
-    </div>
-  `;
+      ${renderNumericKeypad({ orbita: true })}
+      <input type="hidden" id="ingreso-tx-id">`,
+    pie: '<button type="button" id="btn-submit-ingreso" class="o-btn o-btn--primario o-btn--bloque" disabled>Guardar ingreso</button>'
+  });
 }
 
 export function initIngresoForm(db, getBudgetFn, refreshCallback) {
-  const modal = document.getElementById('ingreso-modal');
+  const modal = document.getElementById(ID);
   if (!modal) return;
-  
+
   let currentAmountStr = '';
   const display = document.getElementById('ingreso-numpad-display');
   const context = document.getElementById('ingreso-context-display');
   const btnSubmit = document.getElementById('btn-submit-ingreso');
-  const b = getBudgetFn(); // Current budget
-  
+
   const updateUI = () => {
+    // Presupuesto vigente (la hoja vive mientras la vista se repinta).
+    const b = getBudgetFn();
     const num = parseFloat(currentAmountStr || '0');
     display.innerText = formatCurrency(num);
-    context.innerText = `Nuevo balance: ${formatCurrency(b.remaining + num)}`;
-    
-    if (num > 0) {
-      btnSubmit.style.opacity = '1';
-      btnSubmit.style.pointerEvents = 'auto';
-    } else {
-      btnSubmit.style.opacity = '0.5';
-      btnSubmit.style.pointerEvents = 'none';
-    }
+    pintarContexto(context, `Nuevo balance: ${formatCurrency(b.remaining + num)}`);
+    btnSubmit.disabled = !(num > 0);
   };
 
   const onKeyPress = (val) => {
@@ -75,12 +50,12 @@ export function initIngresoForm(db, getBudgetFn, refreshCallback) {
     }
     updateUI();
   };
-  
+
   const onBackspace = () => {
     currentAmountStr = currentAmountStr.slice(0, -1);
     updateUI();
   };
-  
+
   const onLongBackspace = () => {
     currentAmountStr = '';
     updateUI();
@@ -93,10 +68,10 @@ export function initIngresoForm(db, getBudgetFn, refreshCallback) {
     const id = document.getElementById('ingreso-tx-id').value;
     const amount = parseFloat(currentAmountStr);
     let label = document.getElementById('ingreso-label').value.trim();
-    
+
     if (amount > 0) {
       const originalText = btnSubmit.innerHTML;
-      btnSubmit.innerHTML = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+      btnSubmit.innerHTML = guardandoHtml();
 
       setTimeout(async () => {
         let res;
@@ -110,23 +85,19 @@ export function initIngresoForm(db, getBudgetFn, refreshCallback) {
         // Confirmación visual (check + mensaje) antes de volver a la vista normal
         const overlay = document.getElementById('ingreso-confirm-overlay');
         if (!overlay) return;
-        overlay.style.display = 'flex';
+        overlay.hidden = false;
         setTimeout(() => {
           if (!modal.isConnected) return;
-          overlay.style.display = 'none';
-          modal.style.display = 'none';
-          modal.classList.remove('open');
+          overlay.hidden = true;
+          cerrarHoja(ID);
         }, 900);
 
       }, 500);
     }
   });
 
-  // Close logic
-  modal.querySelector('.btn-close-modal').addEventListener('click', () => {
-    modal.style.display = 'none';
-    modal.classList.remove('open');
-  });
+  // Cerrar: botón de la cabecera y toque en el fondo.
+  montarHoja(ID);
 
   // Expose an open method
   modal.openForm = (tx = null) => {
@@ -140,7 +111,6 @@ export function initIngresoForm(db, getBudgetFn, refreshCallback) {
       document.getElementById('ingreso-label').value = '';
     }
     updateUI();
-    modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('open'), 10);
+    abrirHoja(ID);
   };
 }

@@ -1,4 +1,13 @@
+// js/components/EnvelopeForm.js
+// Hoja «Nuevo sobre» / «Editar sobre» (Órbita, oHoja #envelope-modal).
+// Antes era un panel dentro de Cuentas; ahora es una hoja como las demás
+// (Atrás la cierra). finanzas.js la abre con
+// `document.getElementById('envelope-modal').openForm(env)`. Lógica de
+// siempre (Fase 8b), incluido el tope por categoría de la regla 50/30/20.
 import { Toast } from '../utils/states.js';
+import { oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
+
+const ID = 'envelope-modal';
 
 // Máscara de miles: un <input type="number"> trata el punto como separador
 // DECIMAL, así que "120.000" se guardaba como 120. envelope-amount es
@@ -13,43 +22,29 @@ const milesToInt = (str) => {
   return digits ? parseInt(digits, 10) : 0;
 };
 
-// REDISEÑO-FINANZAS: panel inline (no modal a pantalla completa) — igual
-// que el resto del módulo, se muestra/oculta con display:block/none dentro
-// del flujo normal de la tab Cuentas. `envelope-modal` conserva su id
-// aunque ya no sea un overlay: finanzas.js sigue llamando a
-// `document.getElementById('envelope-modal').openForm(...)` para abrirlo.
 export function renderEnvelopeForm() {
-  return `
-    <div id="envelope-modal" class="card" style="display: none; padding: 20px; margin-bottom: 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <p class="fin-eyebrow" id="modal-envelope-title" style="margin: 0;">Nuevo sobre</p>
-        <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; line-height: 1;">&times;</button>
-      </div>
-
-      <form id="envelope-form">
-        <input type="hidden" id="envelope-id">
-
-        <div class="input-group">
+  return oHoja({
+    id: ID, titulo: 'Nuevo sobre', modulo: 'finanzas',
+    cuerpo: `
+      <form id="envelope-form" class="o-hoja-cuerpo">
+        <div class="o-campo">
           <label for="envelope-name">Nombre del sobre</label>
-          <input type="text" id="envelope-name" placeholder="Ej. Supermercado, Netflix..." required>
+          <input type="text" id="envelope-name" class="o-input" placeholder="Ej. Supermercado, Netflix..." autocomplete="off" required>
         </div>
-
-        <div class="input-group">
+        <div class="o-campo">
           <label for="envelope-category">Categoría 50/30/20</label>
-          <select id="envelope-category" required>
+          <select id="envelope-category" class="o-input" required>
             <option value="Needs">Necesidad (50%)</option>
             <option value="Wants">Deseo (30%)</option>
           </select>
         </div>
-
-        <div class="input-group">
+        <div class="o-campo">
           <label for="envelope-amount">Monto asignado (opcional)</label>
-          <input type="text" inputmode="numeric" id="envelope-amount" placeholder="0">
+          <input type="text" inputmode="numeric" id="envelope-amount" class="o-input o-input--monto" placeholder="0" autocomplete="off">
         </div>
-
-        <div class="input-group">
-          <label for="envelope-icon">Icono</label>
-          <select id="envelope-icon">
+        <div class="o-campo">
+          <label for="envelope-icon">Ícono</label>
+          <select id="envelope-icon" class="o-input">
             <option value="home">Hogar / Supermercado</option>
             <option value="car">Transporte / Auto</option>
             <option value="laptop">Tecnología / Suscripciones</option>
@@ -58,17 +53,16 @@ export function renderEnvelopeForm() {
             <option value="education">Educación</option>
           </select>
         </div>
-
-        <button type="submit" class="btn-primary" style="background: var(--text-primary); color: var(--bg-base);">Guardar sobre</button>
-      </form>
-    </div>
-  `;
+        <input type="hidden" id="envelope-id">
+      </form>`,
+    pie: '<button type="button" class="o-btn o-btn--secundario" data-hoja-cerrar>Cancelar</button><button type="submit" form="envelope-form" id="envelope-guardar" class="o-btn o-btn--primario">Guardar sobre</button>'
+  });
 }
 
 export function initEnvelopeForm(db, refreshCallback) {
-  const modal = document.getElementById('envelope-modal');
+  const modal = document.getElementById(ID);
   if (!modal) return;
-  
+
   const form = document.getElementById('envelope-form');
   const amountInput = document.getElementById('envelope-amount');
 
@@ -83,7 +77,7 @@ export function initEnvelopeForm(db, refreshCallback) {
     const category = document.getElementById('envelope-category').value;
     const icon = document.getElementById('envelope-icon').value;
     const assignedAmount = milesToInt(amountInput.value);
-    
+
     // Validar monto contra límite de la categoría 50/30/20
     const budget = await db.getBudget();
     const categoryBudget = category === 'Needs' ? budget.budgetTarget.needs : budget.budgetTarget.wants;
@@ -93,13 +87,13 @@ export function initEnvelopeForm(db, refreshCallback) {
         otherEnvelopesSum += e.assignedAmount;
       }
     });
-    
+
     const available = categoryBudget - otherEnvelopesSum;
     if (assignedAmount > available) {
       Toast(`Monto excede lo disponible en ${category === 'Needs' ? 'Necesidades' : 'Deseos'} (${available})`, 'error');
       return;
     }
-    
+
     if (name) {
       if (id) {
         await db.updateEnvelope(id, { name, category, icon, assignedAmount });
@@ -109,13 +103,12 @@ export function initEnvelopeForm(db, refreshCallback) {
 
       Toast("Sobre guardado", "success");
       if (!modal.isConnected) return; // vista cambiada mientras se guardaba
-      modal.style.display = 'none';
+      cerrarHoja(ID);
     }
   });
 
-  modal.querySelector('.btn-close-modal').addEventListener('click', () => {
-    modal.style.display = 'none';
-  });
+  // Cerrar: cabecera, Cancelar y toque en el fondo.
+  montarHoja(ID);
 
   modal.openForm = (env = null) => {
     if (env) {
@@ -124,17 +117,16 @@ export function initEnvelopeForm(db, refreshCallback) {
       document.getElementById('envelope-category').value = env.category;
       amountInput.value = digitsToMiles(env.assignedAmount || 0);
       document.getElementById('envelope-icon').value = env.icon;
-      document.getElementById('modal-envelope-title').innerText = 'Editar sobre';
+      document.getElementById(`${ID}-titulo`).innerText = 'Editar sobre';
     } else {
       document.getElementById('envelope-id').value = '';
       document.getElementById('envelope-name').value = '';
       document.getElementById('envelope-category').value = 'Needs';
       document.getElementById('envelope-amount').value = '';
       document.getElementById('envelope-icon').value = 'home';
-      document.getElementById('modal-envelope-title').innerText = 'Nuevo sobre';
+      document.getElementById(`${ID}-titulo`).innerText = 'Nuevo sobre';
     }
-    
-    modal.style.display = 'block';
-    modal.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    abrirHoja(ID);
   };
 }

@@ -386,6 +386,15 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Cálculo sin cambios:** cada cifra sale de `db.getBudget` y `calcularSaldosConArrastre` (`db.js` no se tocó) y todo monto pasa por `formatCurrency` / `formatCompactCurrency`.
 - **Verificación:** prueba nueva que toma la foto con la interfaz Órbita y la compara campo a campo con la de antes (**0 diferencias**; los movimientos del mismo día se comparan como conjunto, porque su orden depende de ids aleatorios y cambia entre corridas también sin tocar nada); lista + detalle de Movimientos y Recurrentes en 390 y 1440 contando `pushState`/`back`; alertas con ícono y texto en el detalle, el cobro y la tarjeta de sobre; eliminar un movimiento y un pago fijo desde el detalle; objetivos de 44 px y contraste AA en las cuatro pestañas y los dos detalles, en color y sobrio a 390, 768 y 1440. ESLint `no-undef` limpio. `CACHE_NAME` → `v358`. **55/55 OK y 0 errores de consola.**
 
+#### Fase 8b · Hojas de Finanzas (24-11-2026)
+- **Las ocho hojas pasan a Órbita** (`oHoja` con `.o-mod-finanzas`, Atrás las cierra): gasto, ingreso, ahorro (aporte a meta), transferencia, pago fijo, sobre, meta y gasto anual. Piezas comunes en `js/components/fin-hoja.js` (cifra, línea de contexto, confirmación «registrado») y teclado Órbita en `NumericKeypad.js` (`renderNumericKeypad({ orbita: true })`; el de bloqueo sigue igual). Estilos al final de `css/finanzas.css`.
+- **Lógica sin cambios:** mismos ids, mismas llamadas a `db` y mismos avisos. `parseQuickGasto` idéntico (44 líneas comparadas con `HEAD`). Los avisos de la línea de contexto («Excederías…», «quedaría en…», «ya está en negativo», «No tienes suficientes fondos…») llevan ícono y texto.
+- **Sobre:** deja de ser un panel dentro de la pestaña y es una hoja más, montada una vez junto a las otras (`initEnvelopeForm` pasa a `mountListeners`).
+- **Meta:** el color de la hoja sigue al dominio de la meta (Finanzas o Entreno), porque Entreno y Laboratorio también la abren.
+- **Se quitan** el envoltorio `.mk3-finanzas` y el `<style>` de hojas MK III en Finanzas y en Hoy.
+- **Dos arreglos de la Fase 8:** la hoja de ingreso leía el presupuesto del momento en que se montó (con las hojas montadas una sola vez, el contexto quedaba viejo); ahora lo lee en cada cambio. Y la vista ya no se salta el repintado cuando hay una hoja abierta: las hojas viven fuera de `#fin-cuerpo`, así que lo guardado se ve al cerrar.
+- **Verificación (`fase-8b-hojas2`, 59/59, consola limpia):** de punta a punta por la interfaz, gasto (crear, editar desde su detalle, borrar; el saldo del sobre se revisa en cada paso), sobre (crear, editar, archivar; Atrás cierra la hoja) y pago fijo (crear, borrar desde su detalle). Las ocho hojas: Órbita, 44 px y contraste AA en color y sobrio. La prueba de la hoja de gasto de Hoy pasa a exigir teclas Órbita.
+
 ## 9. Riesgos y cómo se controlan
 
 | Riesgo | Mitigación |

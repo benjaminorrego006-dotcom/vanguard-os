@@ -1,10 +1,13 @@
 // js/components/goal-form.js
-// Modal reutilizable para crear/editar una meta (dinero en Finanzas, o
-// sesiones/km/personalizado en Entreno) y modal chico para abonar
-// progreso manual a metas que no son de dinero ni de auto-track.
+// Hoja reutilizable para crear/editar una meta (dinero en Finanzas, o
+// sesiones/km/personalizado en Entreno) y hoja chica para abonar progreso
+// manual a metas que no son de dinero ni de auto-track. Órbita (oHoja,
+// Fase 8b): el color del módulo sale del dominio de la meta (Finanzas o
+// Entreno). Lógica de siempre.
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
 import { GOAL_ICONS, GOAL_ICON_LABELS, GOAL_ICONS_ENTRENO, GOAL_ICON_LABELS_ENTRENO, getGoalSVG } from './goal-card.js';
+import { oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
 
 const TIPOS_ENTRENO = [
   { value: 'sesiones', label: 'Cantidad de sesiones', unidadDefault: 'sesiones' },
@@ -27,90 +30,77 @@ const milesToInt = (str) => {
 };
 
 export function renderGoalForm() {
-  return `
-    <div id="goal-modal" class="modal-overlay">
-      <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-          <h2 id="modal-goal-title" style="font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary);">Nueva meta</h2>
-          <button class="btn-close-modal" style="background: transparent; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">&times;</button>
+  const hoja = oHoja({
+    id: 'goal-modal', titulo: 'Nueva meta', modulo: 'finanzas',
+    cuerpo: `
+      <form id="goal-form" class="o-hoja-cuerpo">
+        <div class="o-campo">
+          <label for="goal-name">Nombre de la meta</label>
+          <input type="text" id="goal-name" class="o-input" placeholder="Ej. Fondo de emergencia" required autocomplete="off">
         </div>
-        <form id="goal-form">
-          <input type="hidden" id="goal-id">
-          <input type="hidden" id="goal-dominio" value="finanzas">
-          <div class="input-group">
-            <label for="goal-name">Nombre de la meta</label>
-            <input type="text" id="goal-name" placeholder="Ej. Fondo de emergencia" required autocomplete="off">
-          </div>
-          <!-- El placeholder de arriba y el set de íconos de abajo cambian
-               según el dominio (finanzas/entreno) — ver applyDominioUI(). -->
-          <input type="hidden" id="goal-icon" value="shield">
-
-          <div class="input-group" id="goal-tipo-container" style="display: none;">
-            <label for="goal-tipo">Tipo de meta</label>
-            <select id="goal-tipo">
-              ${TIPOS_ENTRENO.map(t => `<option value="${t.value}">${t.label}</option>`).join('')}
-            </select>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <div class="input-group">
-              <label id="goal-target-label" for="goal-target">Monto objetivo</label>
-              <input type="text" inputmode="numeric" id="goal-target" placeholder="0" required autocomplete="off">
-            </div>
-            <div class="input-group" id="goal-unidad-container" style="display: none;">
-              <label for="goal-unidad">Unidad</label>
-              <input type="text" id="goal-unidad" placeholder="ej. km, sesiones" autocomplete="off">
-            </div>
-          </div>
-
-          <div class="input-group" id="goal-initial-container">
-            <label id="goal-initial-label" for="goal-initial">Monto inicial (opcional)</label>
-            <input type="text" inputmode="numeric" id="goal-initial" placeholder="0" autocomplete="off" value="0">
-          </div>
-          <div class="input-group">
-            <label for="goal-deadline">Fecha límite (opcional)</label>
-            <input type="date" id="goal-deadline" autocomplete="off">
-          </div>
-          <div class="input-group">
-            <label>Ícono</label>
-            <div id="goal-icon-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;"></div>
-          </div>
-          <button type="submit" class="btn-primary" style="background: var(--accent-purple);">Guardar meta</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- Modal chico para abonar progreso manual (metas sin auto-track y que no son de dinero) -->
-    <div id="goal-contribute-modal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 400px;">
-        <h2 id="goal-contribute-title" style="margin-top: 0; font-size: 18px; font-weight: 700;">Agregar progreso</h2>
-        <div class="input-group">
-          <label id="goal-contribute-label" for="goal-contribute-amount">Cantidad</label>
-          <input type="text" inputmode="numeric" id="goal-contribute-amount" placeholder="0" autocomplete="off">
+        <!-- El placeholder de arriba y el set de íconos de abajo cambian
+             según el dominio (finanzas/entreno) — ver applyTipoUI(). -->
+        <div class="o-campo" id="goal-tipo-container" hidden>
+          <label for="goal-tipo">Tipo de meta</label>
+          <select id="goal-tipo" class="o-input">
+            ${TIPOS_ENTRENO.map(t => `<option value="${t.value}">${t.label}</option>`).join('')}
+          </select>
         </div>
-        <div style="display: flex; gap: 12px; margin-top: 20px;">
-          <button id="btn-cancel-goal-contribute" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Cancelar</button>
-          <button id="btn-save-goal-contribute" class="btn-primary" style="background: var(--accent-purple); color: #000; flex: 1;">Guardar</button>
+        <div class="o-fin-hoja-par">
+          <div class="o-campo">
+            <label id="goal-target-label" for="goal-target">Monto objetivo</label>
+            <input type="text" inputmode="numeric" id="goal-target" class="o-input o-input--monto" placeholder="0" required autocomplete="off">
+          </div>
+          <div class="o-campo" id="goal-unidad-container" hidden>
+            <label for="goal-unidad">Unidad</label>
+            <input type="text" id="goal-unidad" class="o-input" placeholder="ej. km, sesiones" autocomplete="off">
+          </div>
         </div>
-      </div>
-    </div>
-  `;
+        <div class="o-campo" id="goal-initial-container">
+          <label id="goal-initial-label" for="goal-initial">Monto inicial (opcional)</label>
+          <input type="text" inputmode="numeric" id="goal-initial" class="o-input o-input--monto" placeholder="0" autocomplete="off" value="0">
+        </div>
+        <div class="o-campo">
+          <label for="goal-deadline">Fecha límite (opcional)</label>
+          <input type="date" id="goal-deadline" class="o-input" autocomplete="off">
+        </div>
+        <div class="o-campo">
+          <span class="o-campo-etiqueta" id="goal-icon-etq">Ícono</span>
+          <div id="goal-icon-grid" class="o-meta-iconos" role="group" aria-labelledby="goal-icon-etq"></div>
+        </div>
+        <input type="hidden" id="goal-id">
+        <input type="hidden" id="goal-dominio" value="finanzas">
+        <input type="hidden" id="goal-icon" value="shield">
+      </form>`,
+    pie: '<button type="button" class="o-btn o-btn--secundario" data-hoja-cerrar>Cancelar</button><button type="submit" form="goal-form" class="o-btn o-btn--primario">Guardar meta</button>'
+  });
+  // Hoja chica para abonar progreso manual (metas sin auto-track y que no son de dinero).
+  const abonar = oHoja({
+    id: 'goal-contribute-modal', titulo: 'Agregar progreso', modulo: 'entreno',
+    cuerpo: `
+      <div class="o-campo">
+        <label id="goal-contribute-label" for="goal-contribute-amount">Cantidad</label>
+        <input type="text" inputmode="numeric" id="goal-contribute-amount" class="o-input o-input--monto" placeholder="0" autocomplete="off">
+      </div>`,
+    pie: '<button type="button" id="btn-cancel-goal-contribute" class="o-btn o-btn--secundario">Cancelar</button><button type="button" id="btn-save-goal-contribute" class="o-btn o-btn--primario">Guardar</button>'
+  });
+  return hoja + abonar;
 }
+
+// Color del módulo según el dominio de la meta.
+const ponerModulo = (id, dominio) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('o-mod-entreno', dominio === 'entreno');
+  el.classList.toggle('o-mod-finanzas', dominio !== 'entreno');
+};
 
 export function initGoalForm(refreshCallback) {
   const modal = document.getElementById('goal-modal');
   if (!modal) return;
 
-  const openModal = (id) => {
-    document.getElementById(id).style.display = 'flex';
-    setTimeout(() => document.getElementById(id).classList.add('open'), 10);
-  };
-  const closeModal = (id) => {
-    document.getElementById(id).classList.remove('open');
-    setTimeout(() => { const el = document.getElementById(id); if (el) el.style.display = 'none'; }, 300);
-  };
-
-  modal.querySelector('.btn-close-modal').addEventListener('click', () => closeModal('goal-modal'));
+  montarHoja('goal-modal');
+  montarHoja('goal-contribute-modal');
 
   const tipoSelect = document.getElementById('goal-tipo');
   const targetInput = document.getElementById('goal-target');
@@ -129,10 +119,8 @@ export function initGoalForm(refreshCallback) {
     const dominio = document.getElementById('goal-dominio').value;
     const set = dominio === 'entreno' ? GOAL_ICONS_ENTRENO : GOAL_ICONS;
     const labels = dominio === 'entreno' ? GOAL_ICON_LABELS_ENTRENO : GOAL_ICON_LABELS;
-    const accent = dominio === 'entreno' ? 'var(--accent-teal)' : 'var(--accent-purple)';
     iconGrid.innerHTML = set.map(icon => `
-      <button type="button" class="goal-icon-opt tappable" data-icon="${icon}" title="${labels[icon]}"
-        style="aspect-ratio: 1; background: var(--surface-2); border: 1px solid ${icon === iconInput.value ? accent : 'var(--surface-border)'}; display: flex; align-items: center; justify-content: center; color: ${icon === iconInput.value ? accent : 'var(--text-secondary)'}; cursor: pointer;">
+      <button type="button" class="o-chip goal-icon-opt" data-icon="${icon}" title="${labels[icon]}" aria-label="${labels[icon]}" aria-pressed="${icon === iconInput.value}">
         ${getGoalSVG(icon, 'currentColor')}
       </button>
     `).join('');
@@ -147,13 +135,13 @@ export function initGoalForm(refreshCallback) {
   const applyTipoUI = () => {
     const dominio = document.getElementById('goal-dominio').value;
     const esEntreno = dominio === 'entreno';
-    document.getElementById('goal-tipo-container').style.display = esEntreno ? 'block' : 'none';
-    document.getElementById('goal-unidad-container').style.display = esEntreno ? 'block' : 'none';
+    document.getElementById('goal-tipo-container').hidden = !esEntreno;
+    document.getElementById('goal-unidad-container').hidden = !esEntreno;
     document.getElementById('goal-target-label').textContent = esEntreno ? 'Cantidad objetivo' : 'Monto objetivo';
     document.getElementById('goal-initial-label').textContent = esEntreno ? 'Progreso inicial (opcional)' : 'Monto inicial (opcional)';
     if (nameInput) nameInput.placeholder = esEntreno ? 'Ej. Levantar 100kg en sentadilla' : 'Ej. Fondo de emergencia';
     const esSesiones = esEntreno && tipoSelect.value === 'sesiones';
-    document.getElementById('goal-initial-container').style.display = esSesiones ? 'none' : 'block';
+    document.getElementById('goal-initial-container').hidden = esSesiones;
     // Entreno admite decimales (ej. "5.5" km) y no se enmascara con puntos
     // de miles — solo dinero pasa por digitsToMiles().
     targetInput.setAttribute('inputmode', esEntreno ? 'decimal' : 'numeric');
@@ -215,11 +203,11 @@ export function initGoalForm(refreshCallback) {
 
     Toast(id ? 'Meta actualizada' : 'Meta creada', 'success');
     if (!modal.isConnected) return; // vista cambiada mientras se guardaba
-    closeModal('goal-modal');
+    cerrarHoja('goal-modal');
     if (refreshCallback) refreshCallback();
   });
 
-  // --- Modal de abonar progreso manual ---
+  // --- Hoja de abonar progreso manual ---
   const contributeModal = document.getElementById('goal-contribute-modal');
   const contributeInput = document.getElementById('goal-contribute-amount');
   let contributeGoalId = null;
@@ -230,31 +218,26 @@ export function initGoalForm(refreshCallback) {
     contributeInput.value = digitsToMiles(contributeInput.value);
   });
 
-  document.getElementById('btn-cancel-goal-contribute').addEventListener('click', () => closeModal('goal-contribute-modal'));
+  document.getElementById('btn-cancel-goal-contribute').addEventListener('click', () => cerrarHoja('goal-contribute-modal'));
   document.getElementById('btn-save-goal-contribute').addEventListener('click', async () => {
     const amount = contributeDominio === 'entreno' ? (parseFloat(contributeInput.value) || 0) : milesToInt(contributeInput.value);
     if (!amount || amount <= 0 || !contributeGoalId) return;
     await db.contributeToGoal(contributeGoalId, amount);
     Toast('Progreso agregado', 'success');
     if (!contributeModal.isConnected) return; // vista cambiada mientras se guardaba
-    closeModal('goal-contribute-modal');
+    cerrarHoja('goal-contribute-modal');
     if (refreshCallback) refreshCallback();
   });
-
-  // Morado para metas de Finanzas, cian (exclusivo de Entreno) para metas
-  // de Entreno — mismo criterio que goal-card.js.
-  const accentFor = (dominio) => dominio === 'entreno' ? 'var(--accent-teal)' : 'var(--accent-purple)';
 
   window.__openGoalContribute = (goal) => {
     contributeGoalId = goal.id;
     contributeDominio = goal.dominio || 'finanzas';
     contributeInput.setAttribute('inputmode', contributeDominio === 'entreno' ? 'decimal' : 'numeric');
-    document.getElementById('goal-contribute-title').textContent = goal.name;
+    document.getElementById('goal-contribute-modal-titulo').textContent = goal.name;
     document.getElementById('goal-contribute-label').textContent = goal.unidad ? `Cantidad (${goal.unidad})` : 'Cantidad';
     contributeInput.value = '';
-    const contribBtn = document.getElementById('btn-save-goal-contribute');
-    if (contribBtn) contribBtn.style.background = accentFor(goal.dominio);
-    openModal('goal-contribute-modal');
+    ponerModulo('goal-contribute-modal', contributeDominio);
+    abrirHoja('goal-contribute-modal');
   };
 
   window.__openGoalForm = (goal = null, defaults = {}) => {
@@ -271,7 +254,7 @@ export function initGoalForm(refreshCallback) {
       document.getElementById('goal-deadline').value = goal.deadline || '';
       if (tipoSelect) tipoSelect.value = goal.tipo || 'personalizado';
       document.getElementById('goal-unidad').value = goal.unidad || '';
-      document.getElementById('modal-goal-title').textContent = 'Editar meta';
+      document.getElementById('goal-modal-titulo').textContent = 'Editar meta';
       // Monto inicial guardado (en metas antiguas, el de su creación): si no se
       // toca, se conserva al guardar.
       const inicialInput = document.getElementById('goal-initial');
@@ -290,13 +273,11 @@ export function initGoalForm(refreshCallback) {
       document.getElementById('goal-icon').value = defaults.icon || (dominio === 'entreno' ? 'dumbbell' : 'shield');
       if (tipoSelect) tipoSelect.value = defaults.tipo || 'sesiones';
       document.getElementById('goal-unidad').value = defaults.unidad || '';
-      document.getElementById('modal-goal-title').textContent = 'Nueva meta';
+      document.getElementById('goal-modal-titulo').textContent = 'Nueva meta';
     }
-    const color = accentFor(dominio);
-    const submitBtn = document.querySelector('#goal-form button[type="submit"]');
-    if (submitBtn) submitBtn.style.background = color;
+    ponerModulo('goal-modal', dominio);
     applyTipoUI();
-    openModal('goal-modal');
+    abrirHoja('goal-modal');
   };
 }
 

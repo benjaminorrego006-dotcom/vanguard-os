@@ -11,7 +11,7 @@ import { escapeHtml } from '../utils/escape.js';
 import { diaKeyDe, fechaLocalDe, formatFechaLarga } from '../utils/fecha.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
 import { esperarSalidaDeModal } from '../core/history.js';
-import { oIcono } from './orbita.js';
+import { oIcono, oHoja, abrirHoja, cerrarHoja } from './orbita.js';
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const ID = 'anual-modal';
@@ -61,37 +61,36 @@ export async function renderAnualesHTML() {
     </section>`;
 }
 
+// Hoja de crear y editar (Órbita, oHoja #anual-modal; Fase 8b).
 export function renderAnualForm() {
-  return `
-    <div id="${ID}" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="anual-form-titulo">
-      <div class="modal-content anual-hoja">
-        <div class="anual-etq">GASTO ANUAL</div>
-        <h3 id="anual-form-titulo">Nuevo gasto anual</h3>
-        <form id="anual-form" novalidate>
-          <label class="anual-campo">Nombre
-            <input type="text" id="anual-nombre" maxlength="40" autocomplete="off" placeholder="Patente, seguro, permiso…">
-          </label>
-          <label class="anual-campo">Monto
-            <input type="text" id="anual-monto" inputmode="numeric" autocomplete="off" placeholder="180000">
-          </label>
-          <div class="anual-campos">
-            <label class="anual-campo">Día
-              <select id="anual-dia">${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('')}</select>
-            </label>
-            <label class="anual-campo">Mes
-              <select id="anual-mes">${MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('')}</select>
-            </label>
+  return oHoja({
+    id: ID, titulo: 'Nuevo gasto anual', modulo: 'finanzas',
+    cuerpo: `
+      <form id="anual-form" class="o-hoja-cuerpo" novalidate>
+        <div class="o-campo">
+          <label for="anual-nombre">Nombre</label>
+          <input type="text" id="anual-nombre" class="o-input" maxlength="40" autocomplete="off" placeholder="Patente, seguro, permiso…">
+        </div>
+        <div class="o-campo">
+          <label for="anual-monto">Monto</label>
+          <input type="text" id="anual-monto" class="o-input o-input--monto" inputmode="numeric" autocomplete="off" placeholder="180000">
+        </div>
+        <div class="o-fin-hoja-par o-fin-hoja-par--1-2">
+          <div class="o-campo">
+            <label for="anual-dia">Día</label>
+            <select id="anual-dia" class="o-input">${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('')}</select>
           </div>
-          <p class="anual-preview" id="anual-preview" aria-live="polite"></p>
-          <p class="anual-error" id="anual-error" hidden></p>
-          <div class="anual-acciones">
-            <button type="button" id="anual-cancelar" class="anual-btn">Cancelar</button>
-            <button type="submit" id="anual-guardar" class="anual-btn anual-btn--primario">Guardar</button>
+          <div class="o-campo">
+            <label for="anual-mes">Mes</label>
+            <select id="anual-mes" class="o-input">${MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('')}</select>
           </div>
-          <button type="button" id="anual-eliminar" class="anual-eliminar" hidden>Eliminar gasto anual</button>
-        </form>
-      </div>
-    </div>`;
+        </div>
+        <p class="o-card o-anual-preview" id="anual-preview" aria-live="polite"></p>
+        <p class="o-campo-error" id="anual-error" role="alert" hidden></p>
+        <button type="button" id="anual-eliminar" class="o-btn o-btn--secundario o-fin-eliminar" hidden>Eliminar gasto anual</button>
+      </form>`,
+    pie: '<button type="button" id="anual-cancelar" class="o-btn o-btn--secundario">Cancelar</button><button type="submit" form="anual-form" id="anual-guardar" class="o-btn o-btn--primario">Guardar</button>'
+  });
 }
 
 function datosForm() {
@@ -110,15 +109,14 @@ function pintarPreview() {
   if (!(d.monto > 0)) { el.textContent = 'Ingresa el monto para ver cuánto apartar cada mes.'; return; }
   const r = calcularApartarGastoAnual(d, baseEdicion, diaKeyDe(new Date()));
   const meses = r.meses === 1 ? '1 mes' : `${r.meses} meses`;
-  el.innerHTML = `${formatCurrency(d.monto)} · vence el <span class="num">${escapeHtml(fechaCorta(r.vence))}</span><br>`
-    + (r.sugerido === 0 ? 'Ya está cubierto.' : `Apartar este mes: <strong class="num">${formatCurrency(r.sugerido)}</strong> (${meses}, contando este)`);
+  el.innerHTML = `<span class="o-num">${formatCurrency(d.monto)}</span> · vence el <span class="o-num">${escapeHtml(fechaCorta(r.vence))}</span><br>`
+    + (r.sugerido === 0 ? 'Ya está cubierto.' : `Apartar este mes: <strong class="o-num">${formatCurrency(r.sugerido)}</strong> (${meses}, contando este)`);
 }
 
 async function cerrar() {
   const modal = document.getElementById(ID);
   if (!modal || !modal.classList.contains('open')) return;
-  modal.classList.remove('open');
-  setTimeout(() => { if (!modal.classList.contains('open')) modal.style.display = 'none'; }, 300);
+  await cerrarHoja(ID);
   await esperarSalidaDeModal(ID);
 }
 
@@ -127,7 +125,7 @@ async function abrir(gasto = null) {
   if (!modal) return;
   editando = gasto;
   baseEdicion = 0;
-  document.getElementById('anual-form-titulo').textContent = gasto ? 'Editar gasto anual' : 'Nuevo gasto anual';
+  document.getElementById(`${ID}-titulo`).textContent = gasto ? 'Editar gasto anual' : 'Nuevo gasto anual';
   document.getElementById('anual-nombre').value = gasto ? gasto.nombre : '';
   document.getElementById('anual-monto').value = gasto ? String(gasto.monto) : '';
   document.getElementById('anual-dia').value = String(gasto ? gasto.dia : 1);
@@ -135,8 +133,7 @@ async function abrir(gasto = null) {
   document.getElementById('anual-eliminar').hidden = !gasto;
   document.getElementById('anual-error').hidden = true;
   pintarPreview();
-  modal.style.display = 'flex';
-  setTimeout(() => modal.classList.add('open'), 10);
+  abrirHoja(ID);
   if (gasto) {
     const ap = await db.apartarSugerido(gasto);
     if (editando !== gasto) return;
@@ -184,6 +181,7 @@ export function initAnuales() {
     if (limpio !== e.target.value) e.target.value = limpio;
   });
   document.getElementById('anual-cancelar').addEventListener('click', () => cerrar());
+  modal.querySelectorAll('[data-hoja-cerrar]').forEach(b => b.addEventListener('click', () => cerrar()));
   modal.addEventListener('click', (e) => { if (e.target === modal) cerrar(); });
 
   document.getElementById('anual-form').addEventListener('submit', async (e) => {
@@ -201,7 +199,7 @@ export function initAnuales() {
       Toast(gasto ? 'Gasto anual guardado' : `Gasto anual creado, con su sobre "${datos.nombre.trim()}"`, 'success');
       repintarAnuales();
     } catch (err) {
-      error.textContent = err.message || 'No se pudo guardar.';
+      error.innerHTML = `${oIcono('alerta')}<span>${escapeHtml(err.message || 'No se pudo guardar.')}</span>`;
       error.hidden = false;
     } finally {
       btn.disabled = false;
