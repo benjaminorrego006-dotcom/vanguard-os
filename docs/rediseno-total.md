@@ -367,6 +367,11 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Limpieza:** CSS de Semana, buscador, «+» de encabezado, Foco y flecha de avance de MK III (`layout.css`, `components.css`).
 - **Verificación:** pruebas nuevas (lista + detalle de tareas en 390 y 1440 contando `pushState`/`back`; alta rápida, Empezar, Hecho desde el detalle y eliminar sin dejar entrada de historial; hoja nueva con atrás; Foco con Terminar y contraste; Semana: agregar, marcar y borrar; botones de 44 px y contraste AA en Tareas, el detalle, Semana y Notas en color y sobrio a 390, 768 y 1440, más la hoja en sobrio). El CRUD de tareas ahora pasa por el detalle. Cuando una prueba falla, el informe dice también qué esperaba Playwright y en qué ruta y estado de historial quedó la app. ESLint `no-undef` limpio. `CACHE_NAME` → `v355`. **48/48 OK y 0 errores de consola.**
 
+#### Íconos de alerta en modo sobrio (24-11-2026)
+- En sobrio, la regla general que pasa los íconos a gris (`components.css`) excluye `.o-ico-alerta`: el ícono de alerta y de vencido conserva el color de estado, igual que su texto. `oIcono('alerta')` pone la clase solo; los dos íconos de alerta dibujados a mano (pantalla de error de `app.js`, advertencia de Rutinas) la llevan explícita. Los de color fijo por atributo (`stroke`) no pasaban por la regla.
+- Cubre Hoy (atrasadas, cobros sin saldo y gastos anuales, que son las alertas de Finanzas con ícono), Plan (lista, detalle, Semana), la hoja de tarea y los avisos emergentes. Hábitos no tiene íconos de alerta; los de Finanzas llegan con la Fase 8.
+- Prueba nueva: en sobrio, cada ícono de alerta visible tiene color y el mismo que su texto (en los avisos emergentes, donde el texto es neutro, basta con que no sea gris); de control, un ícono común sigue gris. `CACHE_NAME` → `v356`. **49/49 OK.**
+
 ## 9. Riesgos y cómo se controlan
 
 | Riesgo | Mitigación |

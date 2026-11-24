@@ -23,6 +23,8 @@ const TRAZOS = {
 };
 
 export function oIcono(nombre, clase = '') {
+  // El de alerta lleva su clase: en modo sobrio conserva el color de estado.
+  if (nombre === 'alerta') clase = `o-ico-alerta ${clase}`.trim();
   return `<svg class="${clase}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TRAZOS[nombre] || TRAZOS.info}</svg>`;
 }
 

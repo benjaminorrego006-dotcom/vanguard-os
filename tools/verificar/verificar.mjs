@@ -925,6 +925,76 @@ async function main() {
     await irA(page, 'tareas');
   });
 
+  await prueba('Modo sobrio · los íconos de alerta conservan el color de su texto (Hoy, Plan, hoja de tarea y avisos)', async () => {
+    // Cada ícono de alerta visible: mismo color que el texto que acompaña
+    // y con color (no gris). En sobrio, el resto de los íconos sí pasa a gris.
+    const revisarIconos = async (donde) => {
+      await page.waitForSelector('svg.o-ico-alerta', { timeout: 5000 });
+      const iconos = await page.$$eval('svg.o-ico-alerta', (svgs) => svgs.filter((s) => s.getBoundingClientRect().width > 0).map((s) => {
+        const c = getComputedStyle(s).color;
+        const t = getComputedStyle(s.parentElement).color;
+        const n = (c.match(/[\d.]+/g) || []).map(Number);
+        const gris = c.startsWith('oklch') ? n[1] < 0.02 : Math.max(n[0], n[1], n[2]) - Math.min(n[0], n[1], n[2]) < 16;
+        // En los avisos emergentes el texto es neutro y el color de estado va
+        // solo en el ícono (igual en modo color): ahí basta con que no sea gris.
+        const aviso = !!s.closest('.o-toast');
+        return { c, t, gris, aviso, lugar: (s.parentElement.textContent || '').trim().slice(0, 30) };
+      }));
+      afirmar(iconos.length > 0, `${donde}: no hay íconos de alerta visibles`);
+      const mal = iconos.find((i) => i.gris || (!i.aviso && i.c !== i.t));
+      afirmar(!mal, `${donde}: el ícono de «${mal?.lugar}» quedó ${mal?.c} y su texto ${mal?.t}`);
+      return iconos.length;
+    };
+    try {
+      await page.evaluate(() => localStorage.setItem('vg-tema', 'gris'));
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.reload();
+      await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+      afirmar(await page.evaluate(() => document.documentElement.dataset.tema === 'gris'), 'no entró al modo sobrio');
+      // Control: un ícono que no es de alerta sigue pasando a gris.
+      await irA(page, 'dashboard');
+      await revisarIconos('Hoy');
+      await page.screenshot({ path: path.join(SALIDA, 'sobrio-alertas-hoy-390.png'), fullPage: true });
+      await irA(page, 'tareas');
+      await sinDetalleTarea();
+      await revisarIconos('Plan · lista');
+      const otro = await page.$eval(`${SEL.tareaCard('Renovar el pasaporte')} svg:not(.o-ico-alerta)`, (s) => getComputedStyle(s).color).catch(() => null);
+      if (otro) {
+        const n = (otro.match(/[\d.]+/g) || []).map(Number);
+        afirmar(otro.startsWith('oklch') ? n[1] < 0.02 : Math.max(n[0], n[1], n[2]) - Math.min(n[0], n[1], n[2]) < 16, `un ícono común dejó de pasar a gris (${otro})`);
+      }
+      await page.locator(SEL.tareaCard('Renovar el pasaporte')).click();
+      await page.waitForSelector(SEL.tareaVolver);
+      await revisarIconos('Plan · detalle');
+      await page.screenshot({ path: path.join(SALIDA, 'sobrio-alertas-detalle-390.png') });
+      await page.locator(SEL.tareaEditar).click();
+      await abierta(SEL.tareaModal);
+      await page.waitForSelector('#task-due-aviso svg.o-ico-alerta');
+      await revisarIconos('hoja de tarea');
+      await page.goBack();
+      await cerrada(SEL.tareaModal);
+      await page.goBack();
+      await page.waitForSelector(SEL.tarLdLista);
+      await irA(page, 'tareas/semana');
+      await revisarIconos('Semana');
+      await page.screenshot({ path: path.join(SALIDA, 'sobrio-alertas-semana-390.png'), fullPage: true });
+      // Aviso emergente: guardar una nota vacía muestra uno con ícono de alerta.
+      await irA(page, 'tareas/notas');
+      await page.locator('.cat-abrir').first().click();
+      await page.waitForSelector('#nota-guardar');
+      await page.evaluate((s) => { const t = document.querySelector(s); if (t) t.innerHTML = ''; }, SEL.toast);
+      await page.locator('#nota-guardar').click();
+      await esperarToast(page, /Escribe algo/);
+      await revisarIconos('aviso');
+      await page.locator('#cat-volver').click();
+    } finally {
+      await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
+      await page.reload();
+      await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+      await irA(page, 'tareas');
+    }
+  });
+
   await prueba('Plan · objetivos táctiles de 44 px y contraste AA en Tareas, el detalle, Semana y Notas (color y sobrio)', async () => {
     const revisar = async (donde) => {
       const chicos = await page.$$eval('.o-plan button', (bs) => bs.filter((b) => {

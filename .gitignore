@@ -39,5 +39,5 @@ supabase/.branches/
 # Verificación con Playwright: capturas e informes locales
 tools/verificar/salida/
 
-# graphify: archivo local de cada uno, no subir
-graphify-out/cost.json
+# graphify: grafo local de cada uno, no subir
+graphify-out/

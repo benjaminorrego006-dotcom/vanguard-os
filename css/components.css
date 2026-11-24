@@ -944,8 +944,10 @@ button.semana-bloque { cursor: pointer; }
 
 /* Íconos SVG: toman el gris de la misma luminosidad que el color que
    heredan (croma 0 en oklch). Un ícono dentro de un texto de color queda
-   gris sin tocar cada plantilla; uno que ya era gris queda igual. */
-html[data-tema="gris"] svg { color: oklch(from currentColor l 0 h); }
+   gris sin tocar cada plantilla; uno que ya era gris queda igual.
+   Excepción: el ícono de alerta (.o-ico-alerta) conserva el color de
+   estado, igual que su texto (una alerta no pierde el rojo). */
+html[data-tema="gris"] svg:not(.o-ico-alerta) { color: oklch(from currentColor l 0 h); }
 
 /* Barra inferior y riel: el ícono activo en gris claro; el texto conserva
    el acento del módulo (.nav-item.active, layout.css). */

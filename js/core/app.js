@@ -685,7 +685,7 @@ class Router {
       this.root.innerHTML = `
         <div style="padding: 48px 24px 24px; text-align: center;">
           <div class="icon-chip" style="width: 56px; height: 56px; background: color-mix(in srgb, var(--fondo-alerta) 12%, transparent); color: var(--state-high-t); margin: 0 auto 20px auto;">
-            <svg aria-hidden="true" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <svg class="o-ico-alerta" aria-hidden="true" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
           </div>
           <h2 style="font-size: 18px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-primary);">Esta pantalla no cargó bien</h2>
           <p style="font-size: 13px; color: var(--text-secondary); margin: 0 auto 24px auto; line-height: 1.5; max-width: 320px;">Puede ser un problema pasajero de conexión o un dato que la vista no supo interpretar. Reintenta — si sigue pasando, vuelve a Inicio.</p>
