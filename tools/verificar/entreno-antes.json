@@ -1,0 +1,112 @@
+{
+  "ui": {
+    "nivel": "Nivel: intermedio",
+    "hoyToca": {
+      "nombre": "Tabata express",
+      "categoria": "HIIT"
+    },
+    "racha": 0,
+    "categorias": {
+      "gym": {
+        "anillo": "0/3",
+        "ultima": "Última: 20 nov"
+      },
+      "calistenia": {
+        "anillo": "0/3",
+        "ultima": "Sin sesiones todavía"
+      },
+      "hiit": {
+        "anillo": "0/2",
+        "ultima": "Última: 15 nov"
+      }
+    },
+    "volumen": {
+      "actual": "11.344 kg",
+      "delta": "+1%",
+      "puntos": [
+        "10.262",
+        "10.795",
+        "6.422",
+        "4.743",
+        "11.277",
+        "11.344"
+      ]
+    },
+    "sesionesSemana": "0",
+    "imc": {
+      "valor": "25,2",
+      "categoria": "Sobrepeso"
+    },
+    "cuerpo": {
+      "peso": null,
+      "sub": "Registra tu peso y tus medidas para seguir tu evolución."
+    },
+    "sugerencias": {
+      "titulo": "3 ejercicios listos para avanzar",
+      "filas": [
+        {
+          "rama": "empuje-horizontal",
+          "texto": [
+            "Empuje Horizontal · Avanzado",
+            "Fondos en Paralelas → Fondos en Anillas",
+            "3 de tus últimas 3 sesiones con 3×8 de fondos en paralelas."
+          ]
+        },
+        {
+          "rama": "empuje-vertical",
+          "texto": [
+            "Empuje Vertical · Avanzado",
+            "Press Militar (de pie) → Press Arnold",
+            "Tu press militar (de pie) está en Avanzado (1,03× tu peso corporal, en las últimas 4 semanas)."
+          ]
+        },
+        {
+          "rama": "traccion-horizontal",
+          "texto": [
+            "Tracción Horizontal · Avanzado",
+            "Remo con Barra → Remo Pendlay",
+            "3 de tus últimas 3 sesiones con 3×8 de remo con barra."
+          ]
+        }
+      ]
+    },
+    "tarjetaPerfil": false,
+    "sesionEnCurso": false,
+    "enlaces": {
+      "historial": true,
+      "progreso": true
+    }
+  },
+  "datos": {
+    "sesiones": 21,
+    "rutinasPorCategoria": {
+      "gym": [
+        "Legs",
+        "Pull",
+        "Push"
+      ],
+      "calistenia": [],
+      "hiit": [
+        "Tabata express"
+      ]
+    },
+    "resumenSemanal": {
+      "gym": 0,
+      "calistenia": 0,
+      "hiit": 0
+    },
+    "racha": {
+      "actual": 0
+    },
+    "volumenPorSemana": [
+      10262,
+      10795,
+      6422,
+      4743,
+      11277,
+      11344
+    ],
+    "hoyToca": "Tabata express"
+  },
+  "errores": []
+}
