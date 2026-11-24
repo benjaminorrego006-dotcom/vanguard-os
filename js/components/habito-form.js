@@ -1,136 +1,112 @@
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
+import { oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
+import { esperarSalidaDeModal } from '../core/history.js';
 
-// Modal de alta/edición de hábito — mismo patrón que task-form.js. Antes
-// un hábito era solo un nombre; ahora también declara frecuencia (todo
-// hábito viejo sin este campo se trata como 'diario', mismo comportamiento
-// que siempre tuvo) y, opcionalmente, una meta numérica (cantidad + unidad
-// — "8 vasos", "20 páginas") en vez de un simple cumplido/no cumplido.
+// Hoja de alta/edición de hábito (Órbita, Fase 6). Un hábito declara
+// frecuencia (todo hábito viejo sin este campo se trata como 'diario') y,
+// opcionalmente, una meta numérica (cantidad + unidad: "8 vasos") en vez de
+// un simple cumplido/no cumplido. Es un .modal-overlay con id (oHoja):
+// history.js la cierra con el botón atrás.
+const ID = 'habito-modal';
 const DOW_FORM = ['L', 'M', 'X', 'J', 'V', 'S', 'D']; // 0=lunes..6=domingo, mismo orden que habitos.js
-
-function renderFrecuenciaPicker() {
-  const OPCIONES = [
-    { value: 'diario', label: 'Diario' },
-    { value: 'dias', label: 'Días específicos' },
-    { value: 'semanal', label: 'X veces/semana' }
-  ];
-  return `
-    <div id="frecuencia-picker" style="display: flex; gap: 6px;">
-      ${OPCIONES.map(o => `<button type="button" class="btn-frecuencia-chip tappable" data-frecuencia="${o.value}" style="flex: 1; padding: 10px 4px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); cursor: pointer; font-size: 12px; font-weight: 700;">${o.label}</button>`).join('')}
-    </div>
-    <input type="hidden" id="habito-frecuencia-tipo" value="diario">
-
-    <div id="frecuencia-dias-picker" style="display: none; gap: 6px; margin-top: 10px;">
-      ${DOW_FORM.map((letra, i) => `<button type="button" class="btn-frecuencia-dia tappable" data-dow="${i}" style="flex: 1; min-height: 40px; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-secondary); cursor: pointer; font-weight: 700;">${letra}</button>`).join('')}
-    </div>
-
-    <div id="frecuencia-semanal-picker" style="display: none; align-items: center; gap: 10px; margin-top: 10px;">
-      <span style="font-size: 13px; color: var(--text-secondary);">Al menos</span>
-      <input type="number" id="habito-veces-objetivo" min="1" max="7" value="3" style="width: 60px; text-align: center; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 8px;">
-      <span style="font-size: 13px; color: var(--text-secondary);">veces por semana</span>
-    </div>
-  `;
-}
+const DOW_NOMBRE = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const OPCIONES = [
+  { value: 'diario', label: 'Diario' },
+  { value: 'dias', label: 'Algunos días' },
+  { value: 'semanal', label: 'X por semana' }
+];
 
 export function renderHabitoForm() {
-  return `
-    <div id="habito-modal" class="modal-overlay sheet-overlay">
-      <div class="sheet-content" style="max-width: 440px;">
-        <h2 id="habito-modal-title" style="margin-top: 0; font-size: 20px; font-weight: 700;">Nuevo hábito</h2>
+  const cuerpo = `
+    <form id="habito-form" class="o-hab-form" onsubmit="return false;" novalidate>
+      <div class="o-campo">
+        <label for="habito-nombre">Nombre del hábito</label>
+        <input type="text" id="habito-nombre" class="o-input" placeholder="Ej.: Entrenar 45 min" maxlength="60" enterkeyhint="done" autocomplete="off">
         <input type="hidden" id="habito-id">
-
-        <form id="habito-form" onsubmit="return false;">
-          <div class="input-group">
-            <label for="habito-nombre">Nombre del hábito</label>
-            <input type="text" id="habito-nombre" placeholder="Ej. Entrenar 45 min" maxlength="60" enterkeyhint="done">
-          </div>
-
-          <div class="input-group">
-            <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Frecuencia</div>
-            ${renderFrecuenciaPicker()}
-          </div>
-
-          <div class="input-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-            <input type="checkbox" id="habito-tiene-meta" style="width: 20px; height: 20px; flex-shrink: 0;">
-            <label for="habito-tiene-meta" style="margin: 0; cursor: pointer;">Tiene una meta numérica (ej. 8 vasos de agua)</label>
-          </div>
-          <div id="habito-meta-campos" style="display: none; gap: 10px; margin-bottom: 8px;">
-            <div class="input-group" style="margin-bottom: 0; flex: 1;">
-              <label for="habito-meta-cantidad">Cantidad</label>
-              <input type="number" id="habito-meta-cantidad" min="1" placeholder="8" inputmode="numeric">
-            </div>
-            <div class="input-group" style="margin-bottom: 0; flex: 1;">
-              <label for="habito-meta-unidad">Unidad</label>
-              <input type="text" id="habito-meta-unidad" placeholder="vasos" maxlength="20">
-            </div>
-          </div>
-
-          <!-- Recordatorio opcional (docs/RECORDATORIOS-PLAN.md, F4): la hora
-               vive en settings.recordatorios.habitos.horas[id]. -->
-          <div class="input-group" style="margin: 18px 0 0;">
-            <label for="habito-recordar">Recordarme a las… (opcional)</label>
-            <input type="time" id="habito-recordar" class="num" style="max-width: 160px;">
-            <div id="habito-recordar-nota" style="font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.4;"></div>
-          </div>
-
-          <div style="display: flex; gap: 12px; margin-top: 24px;">
-            <button type="button" id="btn-cancel-habito" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Cancelar</button>
-            <button type="submit" id="btn-save-habito" class="btn-primary" style="background: var(--accent-purple); color: #000; flex: 1;">Guardar</button>
-          </div>
-        </form>
       </div>
-    </div>
-  `;
+
+      <div class="o-campo">
+        <span class="o-campo-etiqueta" id="habito-frec-etq">Frecuencia</span>
+        <div id="frecuencia-picker" class="o-hab-opciones" role="group" aria-labelledby="habito-frec-etq">
+          ${OPCIONES.map(o => `<button type="button" class="o-chip btn-frecuencia-chip" data-frecuencia="${o.value}" aria-pressed="false">${o.label}</button>`).join('')}
+        </div>
+        <div id="frecuencia-dias-picker" class="o-hab-dias-form" role="group" aria-label="Días de la semana" hidden>
+          ${DOW_FORM.map((letra, i) => `<button type="button" class="o-chip btn-frecuencia-dia" data-dow="${i}" aria-pressed="false" aria-label="${DOW_NOMBRE[i]}">${letra}</button>`).join('')}
+        </div>
+        <div id="frecuencia-semanal-picker" class="o-hab-semanal" hidden>
+          <label for="habito-veces-objetivo">Al menos</label>
+          <input type="number" id="habito-veces-objetivo" class="o-input" min="1" max="7" value="3" inputmode="numeric">
+          <span>veces por semana</span>
+        </div>
+      </div>
+
+      <div class="o-campo">
+        <label class="o-hab-interruptor" for="habito-tiene-meta">
+          <input type="checkbox" id="habito-tiene-meta">
+          <span>Tiene una meta numérica (ej.: 8 vasos de agua)</span>
+        </label>
+        <div id="habito-meta-campos" class="o-hab-meta" hidden>
+          <div class="o-campo">
+            <label for="habito-meta-cantidad">Cantidad</label>
+            <input type="number" id="habito-meta-cantidad" class="o-input" min="1" placeholder="8" inputmode="numeric">
+          </div>
+          <div class="o-campo">
+            <label for="habito-meta-unidad">Unidad</label>
+            <input type="text" id="habito-meta-unidad" class="o-input" placeholder="vasos" maxlength="20" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <!-- Recordatorio opcional (docs/RECORDATORIOS-PLAN.md, F4): la hora
+           vive en settings.recordatorios.habitos.horas[id]. -->
+      <div class="o-campo">
+        <label for="habito-recordar">Recordarme a las… (opcional)</label>
+        <input type="time" id="habito-recordar" class="o-input">
+        <p id="habito-recordar-nota" class="o-campo-ayuda"></p>
+      </div>
+    </form>`;
+  return oHoja({
+    id: ID, modulo: 'habitos', titulo: 'Nuevo hábito', cuerpo,
+    pie: '<button type="button" class="o-btn o-btn--secundario" data-hoja-cerrar>Cancelar</button><button type="submit" form="habito-form" id="btn-save-habito" class="o-btn o-btn--primario">Guardar</button>'
+  });
 }
 
-// Estado de los pickers de frecuencia — vive en el módulo (no en el DOM)
-// porque "días específicos" es una selección múltiple que no mapea a un
-// solo input nativo; se sincroniza a inputs ocultos recién al guardar.
+// Estado de los selectores de frecuencia: vive en el módulo (no en el DOM)
+// porque "algunos días" es una selección múltiple que no mapea a un solo
+// input nativo.
 let frecuenciaTipoActual = 'diario';
 let diasSeleccionados = new Set();
 
-function pintarFrecuenciaChips() {
+function pintarFrecuencia() {
   document.querySelectorAll('.btn-frecuencia-chip').forEach(btn => {
-    const activo = btn.getAttribute('data-frecuencia') === frecuenciaTipoActual;
-    btn.style.background = activo ? 'var(--vip)' : 'var(--surface-1)';
-    btn.style.borderColor = activo ? 'var(--vi)' : 'var(--surface-border)';
-    btn.style.color = activo ? 'var(--text-primary)' : 'var(--text-secondary)';
+    btn.setAttribute('aria-pressed', String(btn.getAttribute('data-frecuencia') === frecuenciaTipoActual));
   });
   const diasPicker = document.getElementById('frecuencia-dias-picker');
   const semanalPicker = document.getElementById('frecuencia-semanal-picker');
-  if (diasPicker) diasPicker.style.display = frecuenciaTipoActual === 'dias' ? 'flex' : 'none';
-  if (semanalPicker) semanalPicker.style.display = frecuenciaTipoActual === 'semanal' ? 'flex' : 'none';
+  if (diasPicker) diasPicker.hidden = frecuenciaTipoActual !== 'dias';
+  if (semanalPicker) semanalPicker.hidden = frecuenciaTipoActual !== 'semanal';
 }
 
-function pintarDiasChips() {
+function pintarDias() {
   document.querySelectorAll('.btn-frecuencia-dia').forEach(btn => {
-    const dow = Number(btn.getAttribute('data-dow'));
-    const activo = diasSeleccionados.has(dow);
-    btn.style.background = activo ? 'var(--vip)' : 'var(--surface-1)';
-    btn.style.borderColor = activo ? 'var(--vi)' : 'var(--surface-border)';
-    btn.style.color = activo ? 'var(--text-primary)' : 'var(--text-secondary)';
+    btn.setAttribute('aria-pressed', String(diasSeleccionados.has(Number(btn.getAttribute('data-dow')))));
   });
 }
 
 export function setupHabitoForm(onSaveCallback) {
-  const modal = document.getElementById('habito-modal');
-  const btnCancel = document.getElementById('btn-cancel-habito');
   const input = document.getElementById('habito-nombre');
   const checkMeta = document.getElementById('habito-tiene-meta');
   const camposMeta = document.getElementById('habito-meta-campos');
-
-  const close = () => {
-    modal.classList.remove('open');
-    setTimeout(() => modal.style.display = 'none', 300);
-  };
-
-  btnCancel.addEventListener('click', close);
+  const guardar = document.getElementById('btn-save-habito');
+  if (!input) return;
+  montarHoja(ID);
 
   document.querySelectorAll('.btn-frecuencia-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       frecuenciaTipoActual = btn.getAttribute('data-frecuencia');
-      pintarFrecuenciaChips();
+      pintarFrecuencia();
     });
   });
 
@@ -139,17 +115,15 @@ export function setupHabitoForm(onSaveCallback) {
       const dow = Number(btn.getAttribute('data-dow'));
       if (diasSeleccionados.has(dow)) diasSeleccionados.delete(dow);
       else diasSeleccionados.add(dow);
-      pintarDiasChips();
+      pintarDias();
     });
   });
 
-  checkMeta.addEventListener('change', () => {
-    camposMeta.style.display = checkMeta.checked ? 'flex' : 'none';
-  });
+  checkMeta.addEventListener('change', () => { camposMeta.hidden = !checkMeta.checked; });
 
   const save = async () => {
     const nombre = input.value.trim();
-    if (!nombre) return Toast('El nombre es requerido', 'warning');
+    if (!nombre) { input.focus(); return Toast('Escribe un nombre para el hábito', 'warning'); }
 
     if (frecuenciaTipoActual === 'dias' && diasSeleccionados.size === 0) {
       return Toast('Elige al menos un día', 'warning');
@@ -167,40 +141,48 @@ export function setupHabitoForm(onSaveCallback) {
     if (tieneMeta && (!cantidad || cantidad <= 0)) return Toast('Ingresa una cantidad para la meta', 'warning');
     const meta = tieneMeta ? { cantidad, unidad: unidad || 'veces' } : null;
 
-    const id = document.getElementById('habito-id').value;
-    const horaAviso = document.getElementById('habito-recordar').value;
-    let idGuardado = id;
-    if (id) {
-      await db.renombrarHabito(id, nombre);
-      await db.actualizarConfigHabito(id, { frecuencia, meta });
-    } else {
-      const nuevo = await db.crearHabito(nombre, { frecuencia, meta });
-      idGuardado = nuevo && nuevo.id;
-    }
-    // La hora del recordatorio: solo se guarda si cambió.
-    if (idGuardado) {
-      const prefs = await db.getPrefsRecordatorios();
-      const antes = prefs.habitos.horas[idGuardado] || '';
-      if (antes !== horaAviso) {
-        if (horaAviso) prefs.habitos.horas[idGuardado] = horaAviso;
-        else delete prefs.habitos.horas[idGuardado];
-        await db.savePrefsRecordatorios(prefs);
+    guardar.disabled = true;
+    try {
+      const id = document.getElementById('habito-id').value;
+      const horaAviso = document.getElementById('habito-recordar').value;
+      let idGuardado = id;
+      if (id) {
+        await db.renombrarHabito(id, nombre);
+        await db.actualizarConfigHabito(id, { frecuencia, meta });
+      } else {
+        const nuevo = await db.crearHabito(nombre, { frecuencia, meta });
+        idGuardado = nuevo && nuevo.id;
       }
+      // La hora del recordatorio: solo se guarda si cambió.
+      if (idGuardado) {
+        const prefs = await db.getPrefsRecordatorios();
+        const antes = prefs.habitos.horas[idGuardado] || '';
+        if (antes !== horaAviso) {
+          if (horaAviso) prefs.habitos.horas[idGuardado] = horaAviso;
+          else delete prefs.habitos.horas[idGuardado];
+          await db.savePrefsRecordatorios(prefs);
+        }
+      }
+      Toast(id ? 'Hábito actualizado' : 'Hábito creado', 'success');
+      await cerrarHoja(ID);
+      await esperarSalidaDeModal(ID);
+      if (onSaveCallback) await onSaveCallback();
+    } catch (err) {
+      console.error('Error al guardar el hábito:', err);
+      Toast('No se pudo guardar. Inténtalo de nuevo.', 'error');
+    } finally {
+      guardar.disabled = false;
     }
-    close();
-    if (onSaveCallback) setTimeout(onSaveCallback, 300);
   };
 
   bindQuickCaptureForm(document.getElementById('habito-form'), save);
 }
 
 export function openHabitoForm(habito = null) {
-  const modal = document.getElementById('habito-modal');
-  const titleEl = document.getElementById('habito-modal-title');
-  const idInput = document.getElementById('habito-id');
+  if (!document.getElementById(ID)) return;
+  const titleEl = document.getElementById(`${ID}-titulo`);
   const nombreInput = document.getElementById('habito-nombre');
   const checkMeta = document.getElementById('habito-tiene-meta');
-  const camposMeta = document.getElementById('habito-meta-campos');
 
   const frecuencia = (habito && habito.frecuencia) || { tipo: 'diario' };
   frecuenciaTipoActual = frecuencia.tipo || 'diario';
@@ -209,36 +191,30 @@ export function openHabitoForm(habito = null) {
 
   const meta = (habito && habito.meta) || null;
   checkMeta.checked = !!meta;
-  camposMeta.style.display = meta ? 'flex' : 'none';
+  document.getElementById('habito-meta-campos').hidden = !meta;
   document.getElementById('habito-meta-cantidad').value = meta ? meta.cantidad : '';
   document.getElementById('habito-meta-unidad').value = meta ? meta.unidad : '';
 
-  pintarFrecuenciaChips();
-  pintarDiasChips();
+  pintarFrecuencia();
+  pintarDias();
 
-  if (habito) {
-    titleEl.innerText = 'Editar hábito';
-    idInput.value = habito.id;
-    nombreInput.value = habito.nombre || '';
-  } else {
-    titleEl.innerText = 'Nuevo hábito';
-    idInput.value = '';
-    nombreInput.value = '';
-  }
+  titleEl.textContent = habito ? 'Editar hábito' : 'Nuevo hábito';
+  document.getElementById('habito-id').value = habito ? habito.id : '';
+  nombreInput.value = habito ? (habito.nombre || '') : '';
 
   // Hora del recordatorio (id capturado antes del await).
   const idAviso = habito ? habito.id : null;
   const inputAviso = document.getElementById('habito-recordar');
   const notaAviso = document.getElementById('habito-recordar-nota');
   inputAviso.value = '';
+  notaAviso.textContent = '';
   db.getPrefsRecordatorios().then(prefs => {
-    if (document.getElementById('habito-id').value !== (idAviso || '')) return;
+    if (document.getElementById('habito-id')?.value !== (idAviso || '')) return;
     inputAviso.value = (idAviso && prefs.habitos.horas[idAviso]) || '';
     notaAviso.textContent = prefs.habitos.activo
       ? 'Llega solo los días que aplica y si todavía no lo marcas.'
       : 'Los avisos de hábitos están apagados: actívalos en Configuración › Recordatorios.';
   });
 
-  modal.style.display = 'flex';
-  setTimeout(() => { modal.classList.add('open'); nombreInput.focus(); }, 10);
+  abrirHoja(ID);
 }

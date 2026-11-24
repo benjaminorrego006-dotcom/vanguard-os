@@ -82,8 +82,31 @@ const SEL = {
   tareaGuardar: '#btn-save-task',
   tareaEliminar: '#btn-delete-task-modal',
   tareaCard: (titulo) => `.btn-edit-task:has-text("${titulo}")`,
-  // Hábitos
-  habitoMarcado: (nombre) => `button[aria-label="Editar ${nombre} hoy"][aria-pressed="true"]`,
+  // Hábitos (Fase 6: pestañas Hoy · Análisis · Logros, detalle como sub-pantalla)
+  habitoMarcado: (nombre) => `.o-habitos .day-toggle-hoy[aria-label="Desmarcar ${nombre} hoy"][aria-pressed="true"]`,
+  habCheck: (nombre) => `.o-habitos .day-toggle-hoy[aria-label$=" ${nombre} hoy"]`,
+  habCantidad: (nombre) => `.o-habitos .day-progreso-hoy[aria-label^="Registrar progreso de ${nombre} hoy"]`,
+  habFila: (nombre) => `.o-habitos .habito-row[aria-label^="${nombre}:"]`,
+  habTab: (t) => `.o-habitos .o-tab[data-tab="${t}"]`,
+  habPanel: '#hab-panel',
+  habNuevo: '#btn-new-habito',
+  habModal: '#habito-modal',
+  habNombre: '#habito-nombre',
+  habFrec: (f) => `#habito-modal .btn-frecuencia-chip[data-frecuencia="${f}"]`,
+  habDia: (i) => `#habito-modal .btn-frecuencia-dia[data-dow="${i}"]`,
+  habGuardar: '#btn-save-habito',
+  habVolver: '#btn-volver-habito',
+  habEditar: '#btn-editar-habito-detalle',
+  habEliminar: '#btn-eliminar-habito-detalle',
+  habDetalleChips: '.o-hab-det-chips',
+  progresoModal: '#progreso-modal',
+  progresoInput: '#progreso-cantidad',
+  progresoGuardar: '#btn-save-progreso',
+  habDona: '#habitos-donut',
+  habTendencia: '#habitos-tendencia-chart',
+  habLogro: '#habitos-logro',
+  habInsignia: '.o-hab-insignia',
+  chipRacha: '#chip-racha',
   // Finanzas
   gastoModal: '#gasto-modal',
   gastoTecla: (v) => `#gasto-modal .numpad-btn[data-val="${v}"]`,
@@ -154,22 +177,27 @@ async function fallasContraste(page, selector) {
     const sonda = document.createElement('span'); sonda.style.color = 'var(--o-bg)'; document.body.appendChild(sonda);
     const base = rgba(getComputedStyle(sonda).color); sonda.remove();
     return els.filter((el) => el.textContent.trim() && el.getBoundingClientRect().width > 0).map((el) => {
-      const capas = []; let op = 1;
+      const capas = []; let op = 1; let paradas = null;
       for (let e = el; e; e = e.parentElement) {
         const c = getComputedStyle(e); op *= Number(c.opacity);
         // Un degradado de un solo color (relleno sólido, p. ej.
         // linear-gradient(X, X)) pinta encima del color de fondo y se cuenta.
-        // Las luces ambientales (radiales que se desvanecen) no.
-        const deg = c.backgroundImage.match(/rgba?\([^)]*\)/g);
+        // Un degradado lineal opaco de varios colores (relleno de módulo) se
+        // mide contra cada parada y vale la peor. Las luces ambientales
+        // (radiales que se desvanecen) no se cuentan.
+        const deg = c.backgroundImage.startsWith('linear-gradient') ? c.backgroundImage.match(/rgba?\([^)]*\)/g) : null;
         const dg = deg && new Set(deg).size === 1 ? rgba(deg[0]) : null; if (dg && dg.a > 0) capas.unshift(dg);
+        if (deg && !dg && deg.map(rgba).every((p) => p.a === 1)) { paradas = deg.map(rgba); break; }
         const bg = rgba(c.backgroundColor); if (bg.a > 0) capas.unshift(bg);
         if (bg.a === 1 || (dg && dg.a === 1)) break;
       }
-      let fondo = base; for (const c of capas) fondo = sobre(c, fondo);
       const cs = getComputedStyle(el); const fg = rgba(cs.color);
-      const texto = sobre({ ...fg, a: fg.a * op }, fondo);
-      const [x, y] = [lum(texto), lum(fondo)].sort((m, n) => n - m);
-      const q = (x + 0.05) / (y + 0.05);
+      const q = Math.min(...(paradas || [base]).map((p0) => {
+        let fondo = p0; for (const c of capas) fondo = sobre(c, fondo);
+        const texto = sobre({ ...fg, a: fg.a * op }, fondo);
+        const [x, y] = [lum(texto), lum(fondo)].sort((m, n) => n - m);
+        return (x + 0.05) / (y + 0.05);
+      }));
       const grande = parseFloat(cs.fontSize) >= 24 || (parseFloat(cs.fontSize) >= 18.66 && Number(cs.fontWeight) >= 700);
       return { texto: el.textContent.trim().slice(0, 24), q: Math.round(q * 100) / 100, min: grande ? 3 : 4.5 };
     }).filter((r) => r.q < r.min);
@@ -468,6 +496,163 @@ async function main() {
     await page.waitForSelector(`${SEL.hoyHabitosHoja} .o-check[aria-pressed="true"]`);
     await page.goBack();
     await page.waitForFunction((s) => !document.querySelector(s)?.classList.contains('open'), SEL.hoyHabitosHoja);
+  });
+
+  // ---------- Hábitos (Fase 6) ----------
+  const abierta = (s) => page.waitForFunction((x) => document.querySelector(x)?.classList.contains('open'), s, { timeout: 8000 });
+  const cerrada = (s) => page.waitForFunction((x) => !document.querySelector(x)?.classList.contains('open'), s, { timeout: 8000 });
+  const pestanaActiva = (t) => page.waitForSelector(`${SEL.habTab(t)}[aria-selected="true"]`, { timeout: 8000 });
+
+  await prueba('Hábitos · pestañas Hoy, Análisis y Logros (con sus gráficos)', async () => {
+    await irA(page, 'habitos');
+    await pestanaActiva('hoy');
+    const filas = await page.$$eval('.o-habitos .habito-row', (els) => els.length);
+    afirmar(filas >= 4, `la lista tiene ${filas} hábitos`);
+    await page.locator(SEL.habTab('analisis')).click();
+    await pestanaActiva('analisis');
+    // Chart.js diferido: la dona y la tendencia quedan dibujadas.
+    await page.waitForFunction(([d, t]) => window.Chart && window.Chart.getChart(document.querySelector(d)) && window.Chart.getChart(document.querySelector(t)), [SEL.habDona, SEL.habTendencia], { timeout: 10000 });
+    // La dona conserva su caja (Chart.js no la hace crecer).
+    const alto = await page.locator(SEL.habDona).evaluate((c) => c.getBoundingClientRect().height);
+    afirmar(alto > 0 && alto <= 110, `la dona mide ${Math.round(alto)} px de alto`);
+    await page.locator(SEL.habTab('logros')).click();
+    await pestanaActiva('logros');
+    await page.waitForSelector(`${SEL.habLogro} .o-anillo`, { state: 'visible' });
+    const insignias = await page.$$eval(SEL.habInsignia, (els) => els.length);
+    afirmar(insignias === 4, `hay ${insignias} insignias`);
+    // Flechas del teclado entre pestañas (tablist).
+    await page.locator(SEL.habTab('logros')).focus();
+    await page.keyboard.press('ArrowRight');
+    await pestanaActiva('hoy');
+  });
+
+  await prueba('Hoy · el chip de racha abre Hábitos › Logros', async () => {
+    await irA(page, 'dashboard');
+    await page.locator(SEL.chipRacha).click();
+    await page.waitForFunction(() => window.appRouter.currentView === 'habitos');
+    await pestanaActiva('logros');
+    await page.waitForSelector(`${SEL.habLogro} .o-anillo`, { state: 'visible' });
+    await page.goBack();
+    await page.waitForFunction(() => window.appRouter.currentView === 'dashboard');
+    // El chip de Hábitos de la órbita abre la pestaña Hoy.
+    await page.locator('#chip-habitos').click();
+    await page.waitForFunction(() => window.appRouter.currentView === 'habitos');
+    await pestanaActiva('hoy');
+  });
+
+  await prueba('CRUD · Hábitos: crear (algunos días), marcar, detalle con atrás, editar y eliminar', async () => {
+    const nombre = 'Prueba hábito';
+    await irA(page, 'habitos');
+    await page.locator(SEL.habNuevo).click();
+    await abierta(SEL.habModal);
+    afirmar(await page.evaluate((s) => document.activeElement?.matches(s), SEL.habNombre), 'el foco no quedó en el nombre');
+    await page.locator(SEL.habNombre).fill(nombre);
+    await page.locator(SEL.habFrec('dias')).click();
+    // Lunes 23 nov (hoy) y miércoles.
+    await page.locator(SEL.habDia(0)).click();
+    await page.locator(SEL.habDia(2)).click();
+    afirmar(await page.locator(SEL.habDia(0)).getAttribute('aria-pressed') === 'true', 'el lunes no quedó elegido');
+    await page.locator(SEL.habGuardar).click();
+    await cerrada(SEL.habModal);
+    await page.waitForSelector(SEL.habFila(nombre));
+    // Marcar hoy desde la lista; queda marcado tras salir y volver.
+    await page.locator(SEL.habCheck(nombre)).click();
+    await page.waitForSelector(SEL.habitoMarcado(nombre), { timeout: 8000 });
+    await irA(page, 'dashboard');
+    await irA(page, 'habitos');
+    await page.waitForSelector(SEL.habitoMarcado(nombre));
+    // Detalle: abre como sub-pantalla y el botón atrás vuelve a la lista.
+    await page.locator(SEL.habFila(nombre)).click();
+    await page.waitForSelector(SEL.habVolver);
+    afirmar((await page.locator(SEL.vistaTitulo).textContent()).trim() === nombre, 'el detalle no muestra el hábito');
+    afirmar(/L, X/.test(await page.locator(SEL.habDetalleChips).textContent()), 'la frecuencia no quedó en lunes y miércoles');
+    await page.goBack();
+    await page.waitForSelector(SEL.habFila(nombre));
+    afirmar((await page.evaluate(() => location.hash)) === '#habitos', 'atrás salió de Hábitos');
+    // Editar el nombre desde el detalle.
+    await page.locator(SEL.habFila(nombre)).click();
+    await page.locator(SEL.habEditar).click();
+    await abierta(SEL.habModal);
+    afirmar(await page.locator(SEL.habNombre).inputValue() === nombre, 'la hoja de edición no trae el nombre');
+    await page.locator(SEL.habNombre).fill(`${nombre} editado`);
+    await page.locator(SEL.habGuardar).click();
+    await cerrada(SEL.habModal);
+    await page.waitForFunction(([s, n]) => document.querySelector(s)?.textContent.trim() === n, [SEL.vistaTitulo, `${nombre} editado`], { timeout: 8000 });
+    // Eliminar con confirmación: vuelve a la lista sin el hábito.
+    await page.locator(SEL.habEliminar).click();
+    await abierta(SEL.confirmModal);
+    await page.locator(SEL.confirmOk).click();
+    await page.waitForSelector(SEL.habPanel);
+    await page.waitForSelector(SEL.habFila(`${nombre} editado`), { state: 'detached', timeout: 8000 });
+    afirmar((await page.evaluate(() => location.hash)) === '#habitos', 'eliminar salió de Hábitos');
+  });
+
+  await prueba('Hábitos · un hábito con cantidad registra su progreso y cumple la meta', async () => {
+    await irA(page, 'habitos');
+    await page.locator(SEL.habCantidad('Leer')).click();
+    await abierta(SEL.progresoModal);
+    await page.locator(SEL.progresoInput).fill('20');
+    await page.locator(SEL.progresoGuardar).click();
+    await cerrada(SEL.progresoModal);
+    await page.waitForFunction((s) => { const b = document.querySelector(s); return b && b.getAttribute('aria-pressed') === 'true' && b.textContent.trim() === '20'; }, SEL.habCantidad('Leer'), { timeout: 8000 });
+    // El atrás cierra la hoja sin salir de la vista.
+    await page.locator(SEL.habCantidad('Leer')).click();
+    await abierta(SEL.progresoModal);
+    await page.goBack();
+    await cerrada(SEL.progresoModal);
+    afirmar((await page.evaluate(() => location.hash)) === '#habitos', 'atrás salió de Hábitos');
+  });
+
+  await prueba('Hábitos · objetivos táctiles de 44 px y contraste AA en las 3 pestañas y el detalle (color y sobrio)', async () => {
+    const revisar = async (donde) => {
+      const chicos = await page.$$eval('.o-habitos button', (bs) => bs.filter((b) => {
+        const r = b.getBoundingClientRect();
+        return r.width > 0 && !b.closest('.modal-overlay') && (r.width < 44 || r.height < 44);
+      }).map((b) => `${b.getAttribute('aria-label') || b.textContent.trim()} (${Math.round(b.getBoundingClientRect().width)}×${Math.round(b.getBoundingClientRect().height)})`));
+      afirmar(chicos.length === 0, `${donde}: botones bajo 44 px: ${chicos.slice(0, 3).join(', ')}`);
+      const fallas = await fallasContraste(page, '.o-habitos *');
+      afirmar(fallas.length === 0, `${donde}: «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+    };
+    try {
+      for (const tema of ['color', 'gris']) {
+        await page.evaluate((t) => localStorage.setItem('vg-tema', t), tema);
+        for (const vp of VIEWPORTS) {
+          await page.setViewportSize({ width: vp.width, height: vp.height });
+          await page.reload();
+          await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+          await irA(page, 'habitos');
+          for (const t of ['hoy', 'analisis', 'logros']) {
+            await page.locator(SEL.habTab(t)).click();
+            await pestanaActiva(t);
+            await page.waitForTimeout(t === 'analisis' ? 700 : 300);
+            await revisar(`${tema} ${vp.nombre} ${t}`);
+            await page.screenshot({ path: path.join(SALIDA, `habitos-${t}-${tema}-${vp.nombre}.png`), fullPage: true });
+          }
+          await page.locator(SEL.habTab('hoy')).click();
+          await pestanaActiva('hoy');
+          await page.locator(SEL.habFila(HABITO_PENDIENTE)).click();
+          await page.waitForSelector(SEL.habVolver);
+          await page.waitForTimeout(300);
+          await revisar(`${tema} ${vp.nombre} detalle`);
+          await page.screenshot({ path: path.join(SALIDA, `habitos-detalle-${tema}-${vp.nombre}.png`), fullPage: true });
+          await page.goBack();
+          await page.waitForSelector(SEL.habPanel);
+        }
+      }
+      // Hoja del formulario en 390.
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.locator(SEL.habNuevo).click();
+      await abierta(SEL.habModal);
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: path.join(SALIDA, 'habitos-form-gris-390.png') });
+      await page.goBack();
+      await cerrada(SEL.habModal);
+    } finally {
+      await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.reload();
+      await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+    }
   });
 
   // ---------- Crear / editar / borrar (Tareas) ----------

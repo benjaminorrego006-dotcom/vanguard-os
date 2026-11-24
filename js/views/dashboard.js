@@ -14,6 +14,7 @@ import { renderGastoForm, initGastoForm } from '../components/GastoForm.js';
 import { lineaFocoHoy, abrirPantallaFoco } from '../components/foco.js';
 import * as Anotaciones from './anotaciones.js';
 import { svgEscudo, avisarPrimeraVidaSiCorresponde } from '../components/racha-reactor.js';
+import { pedirPestanaHabitos } from './habitos.js';
 import { pedirSemana, rangoTexto } from '../components/lab-semana.js';
 import { abrirHojaDia } from '../components/dia-hoja.js';
 import { oIcono, oMazo, montarMazo, oVacio, oHoja, abrirHoja, cerrarHoja, montarHoja } from '../components/orbita.js';
@@ -573,7 +574,7 @@ export async function render() {
             <div class="o-hoy-cab-chips">
               <!-- Hoja "Día": descanso planificado y nota de hoy. -->
               <button type="button" id="btn-dia-hoy" class="o-chip${descanso ? ' o-dia--descanso' : ''}" aria-label="Día de hoy: descanso planificado y nota${descanso ? ' (hoy es de descanso)' : ''}${diaHoy && diaHoy.nota ? ' (con nota)' : ''}">${descanso ? 'Descanso' : 'Día'}${diaHoy && diaHoy.nota ? '<span class="o-dia-punto" aria-hidden="true"></span>' : ''}</button>
-              <button type="button" id="chip-racha" class="o-chip" aria-label="Racha de ${rachaGlobal.actual} ${rachaGlobal.actual === 1 ? 'día' : 'días'}, ${vidas} ${vidas === 1 ? 'vida extra' : 'vidas extra'}. Ver hábitos">
+              <button type="button" id="chip-racha" class="o-chip" aria-label="Racha de ${rachaGlobal.actual} ${rachaGlobal.actual === 1 ? 'día' : 'días'}, ${vidas} ${vidas === 1 ? 'vida extra' : 'vidas extra'}. Ver logros de Hábitos">
                 <span aria-hidden="true">🔥</span><span class="o-num">${rachaGlobal.actual}</span>
                 <span class="chip-vidas${vidas > 0 ? '' : ' chip-vidas--vacio'}" aria-hidden="true">${svgEscudo({ lleno: vidas > 0, size: 14 })}<span class="o-num">${vidas}</span></span>
               </button>
@@ -676,7 +677,8 @@ export function mountListeners() {
   ['hoy-agenda-hoja', 'hoy-habitos-hoja', 'hoy-captura', 'hoy-progreso-modal'].forEach(montarHoja);
 
   // --- Cabecera ---
-  document.getElementById('chip-racha')?.addEventListener('click', () => go('habitos'));
+  // La racha y las vidas viven en Hábitos › Logros.
+  document.getElementById('chip-racha')?.addEventListener('click', () => { pedirPestanaHabitos('logros'); go('habitos'); });
   document.getElementById('btn-dia-hoy')?.addEventListener('click', () => abrirHojaDia(hoy(), { alGuardar: () => repintar() }));
   // Foco en curso (components/foco.js): la línea abre su pantalla.
   document.getElementById('hoy-foco')?.addEventListener('click', () => abrirPantallaFoco({ alVolver: abrirDetallePorId }));
@@ -688,7 +690,7 @@ export function mountListeners() {
     pedirSemana(sumarDias(h, -((new Date().getDay() + 6) % 7)));
     go('laboratorio');
   });
-  document.getElementById('chip-habitos')?.addEventListener('click', () => go('habitos'));
+  document.getElementById('chip-habitos')?.addEventListener('click', () => { pedirPestanaHabitos('hoy'); go('habitos'); });
   document.getElementById('chip-tareas')?.addEventListener('click', () => go('tareas'));
   document.getElementById('chip-entreno')?.addEventListener('click', () => go('entrenamiento'));
   document.getElementById('chip-finanzas')?.addEventListener('click', () => go('finanzas'));

@@ -456,21 +456,6 @@ input[type="date"] { color-scheme: dark; }
 .chip-vidas--vacio { color: var(--text-disabled); }
 .escudo-vida { display: block; flex-shrink: 0; }
 
-.reactor-vidas {
-  display: flex;
-  gap: 4px;
-  margin-top: 6px;
-  color: var(--vib);
-}
-.reactor-vida--llena { color: var(--vi-t); }
-.reactor-vidas-texto {
-  margin-top: 14px;
-  text-align: center;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
 /* Últimos 7 días de la racha: activo (relleno), protegido por una vida
    (borde discontinuo + escudo), vacío (borde fino) y hoy (etiqueta
    resaltada). */
@@ -852,12 +837,6 @@ button.semana-bloque { cursor: pointer; }
   font-family: var(--font-display) !important;
 }
 
-/* Panal hexagonal de insignias (Inicio) — hexágono de punta arriba/abajo
-   vía clip-path, reemplaza las cajas redondeadas genéricas. */
-.mk3-hex {
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-}
-
 /* Flecha de avance rápido (Tareas) — feedback sutil de opacidad, sin
    sombras (la regla global ya fuerza box-shadow:none en todo mk3-tareas). */
 .btn-advance-task {
@@ -1010,8 +989,6 @@ html[data-tema="gris"] :is(.btn-primary, #confirm-ok)[style*="state-high"] {
    que siempre. */
 html[data-tema="gris"] .fin-amt--gasto { color: var(--state-high-t) !important; }
 
-/* "+" del toggle de hábito sin marcar: era negro sobre gris (1,5:1). */
-html[data-tema="gris"] .day-toggle-circle { color: var(--text-secondary) !important; }
 
 /* Hoy (y Configuración, mismo scope): títulos y valores en blanco. */
 html[data-tema="gris"] .mk3-dashboard { --text-primary: #F5F5F7; }

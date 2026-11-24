@@ -1,0 +1,191 @@
+/* =====================================================================
+   HÁBITOS (Órbita, Fase 6) — js/views/habitos.js
+   ---------------------------------------------------------------------
+   Pestañas Hoy · Análisis · Logros y el detalle de un hábito como
+   sub-pantalla. Celular en una columna; tablet y PC en dos columnas
+   (resumen o anillo a la izquierda, lista o tarjetas a la derecha).
+   Componentes base en orbita.css; el contenedor de vista (.o-vista) en
+   hoy.css. Aquí solo lo propio de Hábitos, con tokens --o-*.
+   ===================================================================== */
+
+/* --- Cabecera del módulo (título + botón principal) y pestañas --- */
+.o-mod-cab { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-3); margin-bottom: var(--o-sp-4); }
+.o-mod-titulo {
+  margin: 0; font-size: var(--o-fs-2xl); font-weight: var(--o-fw-black);
+  letter-spacing: var(--o-ls-title); line-height: var(--o-lh-tight);
+}
+.o-mod-sub { margin: var(--o-sp-1) 0 0; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-habitos > .o-tabs { margin-bottom: var(--o-sp-5); }
+.o-hab-panel { display: grid; gap: var(--o-sp-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
+.o-hab-col { display: grid; gap: var(--o-sp-4); min-width: 0; }
+
+/* --- Hoy: resumen del día (anillo + texto) --- */
+.o-hab-resumen { display: flex; align-items: center; gap: var(--o-sp-4); }
+.o-hab-resumen-texto { display: grid; gap: var(--o-sp-1); min-width: 0; }
+.o-hab-resumen-texto b { font-size: var(--o-fs-lg); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-title); line-height: var(--o-lh-snug); }
+.o-hab-resumen-texto span { font-size: var(--o-fs-sm); color: var(--o-text-2); }
+
+/* --- Hoy: fila de hábito. La fila abre el detalle (botón .o-hab-abrir);
+   el check o «Sumar» es un botón aparte, a la derecha. --- */
+.o-hab-fila { align-items: stretch; padding: var(--o-sp-2) var(--o-sp-2) var(--o-sp-2) var(--o-sp-3); }
+.o-hab-abrir {
+  flex: 1; min-width: 0; display: grid; gap: var(--o-sp-2); align-content: center;
+  min-height: var(--o-touch); padding: var(--o-sp-1) 0; margin: 0;
+  background: none; border: 0; border-radius: var(--o-radius-control);
+  color: var(--o-text); font: inherit; text-align: left;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.o-hab-abrir:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-hab-abrir .o-fila-texto small { display: inline-flex; align-items: center; gap: var(--o-sp-1); }
+.o-hab-abrir .o-fila-texto small svg { width: var(--o-icon-sm); height: var(--o-icon-sm); flex-shrink: 0; color: var(--o-mod-t); }
+.o-hab-fila-fin { display: flex; align-items: center; flex-shrink: 0; }
+.o-hab-noaplica {
+  width: var(--o-touch); text-align: center; line-height: var(--o-lh-tight);
+  font-family: var(--o-font-num); font-size: var(--o-fs-2xs); letter-spacing: var(--o-ls-label);
+  text-transform: uppercase; color: var(--o-text-3);
+}
+/* Hábito con cantidad: botón con el valor de hoy (o «+»). */
+.o-hab-cantidad {
+  min-width: var(--o-touch); min-height: var(--o-touch); padding: 0 var(--o-sp-3);
+  font-family: var(--o-font-num); font-size: var(--o-fs-sm);
+}
+.o-hab-cantidad[aria-pressed="true"] { background: var(--o-mod-grad); border-color: transparent; color: var(--o-ink); }
+.o-hab-chevron { width: var(--o-icon-sm); height: var(--o-icon-sm); color: var(--o-text-3); flex-shrink: 0; align-self: center; }
+
+/* Semana compacta (lunes a domingo) bajo el nombre. */
+.o-hab-semana { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--o-sp-1); max-width: calc(var(--o-touch) * 6); }
+.o-hab-celda {
+  position: relative; aspect-ratio: 1; max-width: var(--o-check); width: 100%;
+  display: grid; place-items: center; box-sizing: border-box;
+  border-radius: var(--o-radius-check); border: 1px solid var(--o-line-strong); background: transparent;
+  color: var(--o-text-3);
+}
+.o-hab-celda svg { width: 70%; height: 70%; }
+.o-hab-celda--hecha { background: var(--o-mod-grad); border-color: transparent; color: var(--o-ink); }
+.o-hab-celda--fallada::after { content: ''; width: 40%; height: 2px; border-radius: var(--o-radius-check); background: var(--o-text-3); }
+.o-hab-celda--hoy:not(.o-hab-celda--hecha) { border: 2px solid var(--o-mod); }
+.o-hab-celda--inactiva { opacity: var(--o-disabled); }
+.o-hab-celda--descanso:not(.o-hab-celda--hecha) {
+  opacity: 1;
+  background: repeating-linear-gradient(135deg, transparent 0 3px, var(--o-line-strong) 3px 5px), var(--o-surface-1);
+}
+.o-hab-nota { position: absolute; top: var(--o-sp-1); right: var(--o-sp-1); width: var(--o-sp-1); height: var(--o-sp-1); border-radius: var(--o-radius-circle); background: var(--o-text-2); pointer-events: none; }
+
+/* Hábito semanal (X veces por semana): barra de la semana. */
+.o-hab-barra { display: flex; align-items: center; gap: var(--o-sp-2); }
+.o-hab-barra-pista { flex: 1; height: var(--o-sp-2); border-radius: var(--o-radius-check); background: var(--o-surface-2); overflow: hidden; }
+.o-hab-barra-relleno { height: 100%; border-radius: var(--o-radius-check); background: var(--o-mod-grad); }
+.o-hab-barra-num { flex-shrink: 0; font-family: var(--o-font-num); font-size: var(--o-fs-xs); color: var(--o-text-2); }
+
+/* --- Detalle de un hábito (sub-pantalla) --- */
+.o-hab-det-cab { display: flex; align-items: center; gap: var(--o-sp-3); margin-bottom: var(--o-sp-4); }
+.o-hab-det-cab .o-mod-titulo { flex: 1; min-width: 0; font-size: var(--o-fs-xl); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.o-hab-det-chips { flex-wrap: wrap; margin-bottom: var(--o-sp-4); }
+.o-hab-det-chips .o-chip { min-height: auto; padding: var(--o-sp-1) var(--o-sp-3); }
+.o-hab-racha-linea { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-3); margin: 0 0 var(--o-sp-3); font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-hab-racha-linea svg { width: var(--o-icon); height: var(--o-icon); color: var(--o-mod-t); flex-shrink: 0; }
+.o-hab-franja { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0; }
+/* Día de la franja: toque = marcar; mantener presionado = hoja «Día». */
+.o-hab-dia {
+  position: relative; display: grid; justify-items: center; gap: var(--o-sp-2);
+  min-height: var(--o-touch); padding: var(--o-sp-1) 0; margin: 0;
+  background: none; border: 0; border-radius: var(--o-radius-control);
+  color: var(--o-text-3); font: inherit; cursor: pointer;
+  -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.o-hab-dia[aria-disabled="true"] { cursor: default; }
+.o-hab-dia:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.o-hab-dia-letra { font-family: var(--o-font-num); font-size: var(--o-fs-xs); font-weight: var(--o-fw-semibold); }
+.o-hab-dia--hoy .o-hab-dia-letra { color: var(--o-mod-t); font-weight: var(--o-fw-black); }
+.o-hab-dia .o-hab-celda { max-width: calc(var(--o-check) + var(--o-sp-2)); font-family: var(--o-font-num); font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold); }
+.o-hab-ayuda { margin: var(--o-sp-3) 0 0; font-size: var(--o-fs-xs); color: var(--o-text-2); line-height: var(--o-lh-body); }
+.o-hab-total { margin: 0; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-hab-det-acciones { display: grid; grid-template-columns: 1fr 1fr; gap: var(--o-sp-3); }
+.o-hab-eliminar { color: var(--o-alert-t); }
+
+/* --- Tarjetas comunes --- */
+.o-hab-card-rotulo { margin-bottom: var(--o-sp-3); }
+.o-hab-vacio-accion { display: grid; justify-items: center; }
+.o-hab-riesgo-titulo { margin-top: var(--o-sp-1); }
+.o-hab-perfecta { max-width: none; margin-top: var(--o-sp-2); }
+
+/* --- Análisis --- */
+.o-hab-dona { display: flex; align-items: center; gap: var(--o-sp-4); }
+/* Caja de tamaño fijo: Chart.js toma el tamaño del contenedor, y con solo
+   aspect-ratio el lienzo lo hacía crecer. */
+.o-hab-dona-lienzo { position: relative; width: calc(var(--o-anillo) + var(--o-sp-7)); height: calc(var(--o-anillo) + var(--o-sp-7)); flex-shrink: 0; }
+.o-hab-leyenda { flex: 1; min-width: 0; display: grid; gap: var(--o-sp-2); margin: 0; padding: 0; list-style: none; }
+.o-hab-leyenda li { display: flex; align-items: center; gap: var(--o-sp-2); font-size: var(--o-fs-sm); }
+.o-hab-leyenda-punto { width: var(--o-sp-2); height: var(--o-sp-2); border-radius: var(--o-radius-circle); flex-shrink: 0; }
+.o-hab-leyenda-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.o-hab-leyenda-num { flex-shrink: 0; font-family: var(--o-font-num); color: var(--o-text-2); }
+.o-hab-cifras { display: flex; gap: var(--o-sp-6); margin-bottom: var(--o-sp-3); }
+.o-hab-cifra { display: grid; gap: var(--o-sp-1); }
+.o-hab-cifra b { font-family: var(--o-font-num); font-size: var(--o-fs-xl); font-weight: var(--o-fw-semibold); font-variant-numeric: tabular-nums; }
+.o-hab-tendencia { position: relative; height: calc(var(--o-anillo-lg) + var(--o-sp-10)); }
+
+/* --- Logros --- */
+.o-hab-logro { display: grid; justify-items: center; gap: var(--o-sp-3); text-align: center; }
+.o-hab-vidas { display: flex; gap: var(--o-sp-2); color: var(--o-text-3); }
+.o-hab-vidas .escudo-vida { width: var(--o-icon); height: var(--o-icon); }
+.o-hab-vida--llena { color: var(--o-mod-t); }
+.o-hab-logro-texto { margin: 0; max-width: var(--o-text-max); font-size: var(--o-fs-sm); color: var(--o-text-2); line-height: var(--o-lh-body); }
+.o-hab-logro-texto b { color: var(--o-text); font-family: var(--o-font-num); font-weight: var(--o-fw-semibold); }
+/* Últimos 7 días de la racha global. */
+.o-hab-racha7 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--o-sp-2); width: 100%; margin: 0; padding: 0; list-style: none; }
+.o-hab-racha7 li { display: grid; justify-items: center; gap: var(--o-sp-1); }
+.o-hab-racha7-letra { font-family: var(--o-font-num); font-size: var(--o-fs-2xs); color: var(--o-text-2); }
+.o-hab-racha7-hoy .o-hab-racha7-letra { color: var(--o-text); font-weight: var(--o-fw-bold); }
+.o-hab-racha7 .o-hab-celda { max-width: calc(var(--o-check) + var(--o-sp-1)); }
+.o-hab-racha7 .o-hab-celda--protegida { border-style: dashed; border-color: var(--o-mod); color: var(--o-mod-t); }
+.o-hab-racha7 .o-hab-celda--protegida svg { width: 55%; height: 55%; }
+/* Insignias: celdas con la forma de tarjeta, el color de su módulo si están ganadas. */
+.o-hab-insignias { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-sp-3); margin: 0; padding: 0; list-style: none; }
+.o-hab-insignia {
+  display: flex; align-items: center; gap: var(--o-sp-3); min-height: calc(var(--o-touch) + var(--o-sp-4));
+  padding: var(--o-sp-3); background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-radius-card);
+}
+.o-hab-insignia-ico {
+  width: var(--o-touch); height: var(--o-touch); flex-shrink: 0; display: grid; place-items: center;
+  border-radius: var(--o-radius-control); background: var(--o-surface-2); color: var(--o-text-3);
+}
+.o-hab-insignia-ico svg { width: var(--o-icon); height: var(--o-icon); }
+.o-hab-insignia--ganada .o-hab-insignia-ico { background: var(--o-mod-soft, var(--o-ok-soft)); color: var(--o-mod-t, var(--o-ok-t)); }
+.o-hab-insignia-texto { display: grid; gap: var(--o-sp-1); min-width: 0; font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold); line-height: var(--o-lh-snug); }
+.o-hab-insignia-texto small { font-family: var(--o-font-num); font-size: var(--o-fs-2xs); font-weight: var(--o-fw-regular); letter-spacing: var(--o-ls-label); text-transform: uppercase; color: var(--o-text-2); }
+
+/* --- Formulario de hábito (hoja) --- */
+.o-hab-form { display: grid; gap: var(--o-sp-5); }
+.o-hab-opciones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-hab-opciones .o-chip, .o-hab-dias-form .o-chip { justify-content: center; padding: 0 var(--o-sp-2); }
+.o-hab-dias-form { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--o-sp-1); }
+.o-hab-dias-form .o-chip { min-width: 0; font-family: var(--o-font-num); }
+.o-hab-dias-form[hidden], .o-hab-semanal[hidden], .o-hab-meta[hidden] { display: none; }
+.o-hab-semanal { display: flex; align-items: center; gap: var(--o-sp-3); font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-hab-semanal .o-input { width: calc(var(--o-touch) * 2); text-align: center; font-family: var(--o-font-num); }
+.o-hab-meta { display: grid; grid-template-columns: 1fr 1fr; gap: var(--o-sp-3); }
+.o-campo > label.o-hab-interruptor { font-family: var(--o-font); font-size: var(--o-fs-base); font-weight: var(--o-fw-regular); letter-spacing: normal; text-transform: none; color: var(--o-text); }
+.o-hab-interruptor { display: flex; align-items: center; gap: var(--o-sp-3); min-height: var(--o-touch); font-size: var(--o-fs-base); cursor: pointer; }
+.o-hab-interruptor input { width: var(--o-icon); height: var(--o-icon); flex-shrink: 0; margin: 0; accent-color: var(--o-mod); }
+.o-habitos .o-input[type="time"] { max-width: calc(var(--o-touch) * 4); font-family: var(--o-font-num); }
+
+/* El detalle va en una columna del ancho de una hoja: así cada día de la
+   franja mide más de 44 px también en tablet. */
+.o-hab-panel.o-hab-panel--detalle { grid-template-columns: minmax(0, 1fr); max-width: var(--o-sheet-max); }
+.o-hab-panel.o-hab-panel--detalle > .o-hab-col:first-child { position: static; }
+
+/* --- Tablet (≥ 768 px): dos columnas --- */
+@media (min-width: 768px) {
+  .o-hab-panel { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: var(--o-sp-6); }
+  .o-hab-panel > .o-hab-col:first-child { position: sticky; top: 0; }
+  .o-hab-panel.o-hab-panel--detalle { grid-template-columns: minmax(0, 1fr); }
+  .o-hab-panel.o-hab-panel--detalle > .o-hab-col:first-child { position: static; }
+  .o-hab-insignias { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- PC (≥ 1280 px) --- */
+@media (min-width: 1280px) {
+  .o-hab-panel { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); }
+  .o-hab-panel.o-hab-panel--detalle { grid-template-columns: minmax(0, 1fr); }
+  .o-hab-insignias { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

@@ -629,10 +629,9 @@ class Router {
     // propio contenedor con su propio scope, sin pisarse entre ellos.
     this.root.classList.toggle('mk3-entreno', viewId === 'entrenamiento');
     this.root.classList.toggle('mk3-finanzas', viewId === 'finanzas');
-    // Hábitos comparte el scope MK III de Tareas (mismo acento violeta,
-    // mismo dominio): no hace falta un .mk3-habitos aparte que
-    // duplicaría el mismo bloque de chaflán/tipografía en components.css.
-    this.root.classList.toggle('mk3-tareas', viewId === 'tareas' || viewId === 'habitos');
+    // Hábitos ya es Órbita (Fase 6): su vista lleva .o-mod-habitos y no
+    // usa ámbito MK III.
+    this.root.classList.toggle('mk3-tareas', viewId === 'tareas');
     // Configuración es una pantalla utilitaria sin identidad de módulo
     // propia: usa la paleta neutra de MK III. Hoy ya es Órbita (Fase 5) y
     // no lleva ámbito MK III.

@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (24-11-2026):** la **Fase 5 (Hoy) está terminada**, y después se unificaron los bordes de toda la app («Esquina Vanguard», 32/32 OK en `verificar.mjs esquina`). Los tres pendientes que quedaban (hoja de gasto desde Hoy, contraste del mapa de calor y del riel en sobrio) están corregidos, 35/35 OK. Lo siguiente: la **Fase 6**.
+> **Estado actual (24-11-2026):** la **Fase 6 (Hábitos) está terminada** (41/41 OK en `verificar.mjs fase-6`), con el arreglo previo del check de Órbita en su propio commit. Lo siguiente: la **Fase 7 (Plan)**.
 
 Fecha: 23-11-2026
 Concepto elegido: **C · Órbita** (el día como un juego: anillos por módulo y misiones de a una)
@@ -335,6 +335,18 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Mapa de calor (Finanzas y Tareas):** cada celda ya no baja la opacidad (apagaba también el número); se pinta con una mezcla opaca del acento sobre el fondo, y al montar se elige texto claro o tinta oscura según el contraste real, corriendo la mezcla lo justo en los tonos medios donde ninguno llega a 4,5:1. Prueba nueva de contraste de todas las celdas en color y en sobrio: falla sin el arreglo (19 celdas, la peor 3,2:1) y pasa con él. `v350`, 34/34.
 - **Riel en modo sobrio:** una regla vieja de `components.css` (el filo de 2 px del riel MK III, hecho con `background-image: linear-gradient(#D0D0D4, #D0D0D4)`) rellenaba todo el ítem activo del riel de Órbita con gris claro, y el texto del módulo quedaba en 1,74:1. Se quitó: el ítem activo vuelve a `--o-mod-soft` (superficie neutra) con el texto `--o-mod-t`. Prueba nueva en 768 y 1440 para Hábitos, Plan, Entreno y Finanzas; la ayuda de contraste del verificador ahora también cuenta los degradados de un solo color. `v351`, 35/35.
 - **Check de Órbita sin ✓ (bug de la Fase 4, encontrado en la Fase 6):** al marcar un `.o-check`, su caja (`::before`) se escala con `transform`, y un elemento transformado se pinta encima del contenido sin posicionar: el ✓ quedaba tapado y se veía un cuadrado de color. El ícono pasa a `position: relative`. Prueba nueva: fotografía el ícono del check marcado en la hoja «Hábitos de hoy» y cuenta los píxeles de tinta; falla sin el arreglo (0) y pasa con él. `v352`, 36/36.
+
+#### Fase 6 · Hábitos (24-11-2026)
+- **Vista nueva** (`js/views/habitos.js` + `css/habitos.css`, en el precache): cabecera con el botón principal «+», pestañas **Hoy · Análisis · Logros** (estado del módulo, como Finanzas; flechas del teclado entre pestañas) y el detalle como sub-pantalla con su `pushState` de siempre. Sale el ámbito `.mk3-tareas` de Hábitos (`app.js`).
+  - **Hoy:** resumen con anillo («2 de 3 hoy», descanso planificado si corresponde) y lista: nombre, racha y semana lunes a domingo (hecha, fallada con raya, hoy con borde, inactiva, descanso rayado, punto de nota); los semanales con su barra. Check de Órbita o botón con la cantidad para los hábitos con meta; «No aplica» los días fuera de su frecuencia.
+  - **Análisis:** dona de 7 días con leyenda «N/7», el hábito en riesgo hoy y la tendencia de 8 semanas (la misma serie del Laboratorio). Chart.js sigue diferido; colores leídos de los tokens del módulo.
+  - **Logros:** anillo de la racha global (el arco avanza hacia la próxima vida extra), las dos vidas, los últimos 7 días (con los protegidos), la racha perfecta (ahora y la mejor) e insignias en tarjetas con el color de su módulo. Reemplaza al «reactor» de tres anillos, que repetía la órbita de Hoy; `racha-reactor.js` queda con el escudo y el aviso de la primera vida.
+  - **Detalle:** franja de la semana (toque = marcar; mantener presionado = hoja «Día»), racha y mejor, días marcados, Editar y Eliminar (con confirmación). Una columna del ancho de una hoja para que cada día mida más de 44 px también en tablet.
+- **Hojas de Órbita:** formulario de hábito (`habito-form.js`: frecuencia con chips, días, meta, recordatorio) y progreso de cantidad; `.modal-overlay` con `id`, atrás las cierra.
+- **Hoy:** el chip 🔥 abre Hábitos › Logros y el chip de Hábitos de la órbita, Hábitos › Hoy (`pedirPestanaHabitos`).
+- **Limpieza:** CSS muerto del reactor, del «Análisis» plegable y del hexágono de insignias (`components.css`, `layout.css`).
+- **Diseño adaptable:** celular en una columna; tablet y PC con el resumen, la racha o la dona a la izquierda y la lista o las tarjetas a la derecha. La lista y el detalle lado a lado en PC no se hizo: el detalle sigue siendo sub-pantalla.
+- **Verificación:** pruebas nuevas (pestañas con sus gráficos y el tamaño de la dona; chip de racha → Logros; crear con «algunos días», marcar, detalle con atrás, editar y eliminar; cantidad con su hoja y atrás; botones de 44 px y contraste AA en las 3 pestañas y el detalle, en color y sobrio, a 390, 768 y 1440). La ayuda de contraste mide el texto sobre un degradado de módulo contra cada parada. ESLint `no-undef` limpio. `CACHE_NAME` → `v353`. **41/41 OK y 0 errores de consola.**
 
 ## 9. Riesgos y cómo se controlan
 

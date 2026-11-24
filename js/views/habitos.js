@@ -1,637 +1,589 @@
+// js/views/habitos.js
+// Hábitos en Órbita (docs/rediseno-total.md, Fase 6). Tres pestañas: Hoy
+// (lista con check y semana de cada hábito), Análisis (dona de 7 días, el
+// hábito en riesgo y la tendencia de 8 semanas) y Logros (anillo de la
+// racha global, vidas extra, últimos 7 días, mejor racha perfecta e
+// insignias). El detalle de un hábito es una sub-pantalla con su propia
+// entrada de historial. La pestaña es estado del módulo (como en Finanzas),
+// no va en el hash. Todo se deriva en memoria; las mutaciones son las de
+// db.js, cada una con su logEvent.
 import { db } from '../core/db.js';
 import { renderHabitoForm, setupHabitoForm, openHabitoForm } from '../components/habito-form.js';
-import { renderDonutChart, renderDonutLegend, destroyAllDonuts } from '../components/donut-chart.js';
-import { ensureChartJs, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, lineValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
-import { Toast, ConfirmDialog, EmptyState, hayModalAbierto } from '../utils/states.js';
-import { diaKeyDe } from '../utils/fecha.js';
+import { renderDonutChart, destroyAllDonuts } from '../components/donut-chart.js';
+import { ensureChartJs, baseChartOptions, hdPixelRatio, lineValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
+import { Toast, ConfirmDialog, hayModalAbierto } from '../utils/states.js';
+import { diaKeyDe, sumarDias, fechaLocalDe } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { bindQuickCaptureForm } from '../utils/quickCapture.js';
-import { renderCabeceraRacha } from '../components/racha-reactor.js';
+import { svgEscudo, avisarPrimeraVidaSiCorresponde } from '../components/racha-reactor.js';
 import { guardiaVista } from '../core/vista-activa.js';
 import { abrirHojaDia } from '../components/dia-hoja.js';
-import { colorTexto } from '../utils/tema.js';
-
-// Botón de marcar de la lista sin marcar (Revisión oct 5.1): check tenue en
-// vez de un círculo vacío; al marcar pasa a check negro sobre violeta. Los
-// hábitos con meta muestran "+" o su valor.
-const CHECK_SIN_MARCAR = '<svg width="16" height="16" fill="none" stroke="var(--text-secondary)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+import { habitoDiaAplicable, habitoCumplidoEnFecha } from '../utils/habito-dias.js';
+import { oIcono, oAnillo, oVacio, oHoja, abrirHoja, cerrarHoja, montarHoja } from '../components/orbita.js';
+import { esperarSalidaDeModal } from '../core/history.js';
 
 // Guardia de la navegación con que se montó esta vista (core/vista-activa.js):
 // un repintado que termina después de cambiar de vista no escribe encima.
 let vistaVigente = () => true;
 
-// Días de la semana en curso con descanso planificado o nota (store `dias`):
-// fecha -> { descanso, nota }. Se lee en cada render (lista y detalle). En
-// las franjas, un día de descanso sin marcar se ve rayado y neutro (no
-// fallado) y un día con nota lleva un punto chico.
-let diasSemana = new Map();
-async function cargarDiasSemana() {
-  const s = semanaActual();
-  const filas = await db.getDias(diaKeyDe(s[0]), diaKeyDe(s[6]));
-  diasSemana = new Map(filas.map(d => [d.fecha, d]));
+// --- Estado del módulo ---------------------------------------------------
+const PESTANAS = [
+  { id: 'hoy', label: 'Hoy' },
+  { id: 'analisis', label: 'Análisis' },
+  { id: 'logros', label: 'Logros' }
+];
+let pestana = 'hoy';
+// Hoy (chip de racha) abre Hábitos directo en Logros.
+export function pedirPestanaHabitos(tab) {
+  if (PESTANAS.some(p => p.id === tab)) pestana = tab;
 }
-const esDescansoDia = (iso) => !!(diasSemana.get(iso) && diasSemana.get(iso).descanso);
-const notaDia = (iso) => (diasSemana.get(iso) && diasSemana.get(iso).nota) || '';
-
-// Lunes primero (convención es-CL) — a diferencia de la franja rodante
-// anterior (últimos 7 días terminando hoy), esta es la semana calendario
-// fija: lunes a domingo, hoy puede caer en cualquier posición.
-const DOW_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-
-// Mismo trazo que el ícono del header de esta vista (ver renderLista) —
-// reemplaza al emoji 🔥 del contador de racha por un ícono vectorial
-// consistente con el resto del set de íconos outline de la app.
-const iconoFuego = (size = 15, color = 'currentColor') =>
-  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" style="flex-shrink: 0;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`;
-const DOW_LARGO = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
-
-// Frecuencia + meta numérica (ver db.js para la forma completa de estos
-// campos) — helpers de solo lectura para la vista, misma lógica que
-// habitoDiaAplicable/habitoCumplidoEnFecha en db.js pero duplicada acá
-// porque esas son funciones privadas del módulo, no exportadas por `db`.
-function esDiaAplicable(habito, fechaIso) {
-  const frecuencia = habito.frecuencia || { tipo: 'diario' };
-  if (frecuencia.tipo !== 'dias') return true;
-  const d = new Date(fechaIso + 'T12:00:00');
-  const dow = (d.getDay() + 6) % 7; // 0=lunes..6=domingo
-  return (frecuencia.dias || []).includes(dow);
-}
-function valorEnFecha(habito, fechaIso) {
-  return (habito.marcas || {})[fechaIso];
-}
-// Igual que habitoCumplidoEnFecha en db.js -- una marca "true" (booleana) es
-// de antes de que el hábito tuviera meta numérica y se sigue contando como
-// completa, en vez de compararla como número (Number(true) da 1 y rompería
-// la racha para cualquier meta real).
-function estaCumplido(habito, fechaIso) {
-  const valor = valorEnFecha(habito, fechaIso);
-  if (habito.meta && Number(habito.meta.cantidad) > 0) {
-    if (valor === true) return true;
-    return Number(valor || 0) >= Number(habito.meta.cantidad);
-  }
-  return !!valor;
-}
-// Para MOSTRAR un valor numérico en la UI: una marca "true" heredada se
-// traduce a la meta completa (así se ve "45" en vez del string literal
-// "true") -- ver estaCumplido arriba para el mismo criterio en el cálculo.
-function valorMostrado(habito, fechaIso) {
-  const valor = valorEnFecha(habito, fechaIso);
-  if (habito.meta && valor === true) return habito.meta.cantidad;
-  return valor;
-}
-function esHabitoSemanal(habito) {
-  return (habito.frecuencia || {}).tipo === 'semanal';
-}
-function marcasEstaSemanaCount(habito) {
-  const dias7 = semanaActual();
-  return dias7.filter(d => estaCumplido(habito, diaKeyDe(d))).length;
-}
-function labelFrecuencia(habito) {
-  const f = habito.frecuencia || { tipo: 'diario' };
-  if (f.tipo === 'dias') return (f.dias || []).slice().sort().map(i => DOW_SHORT[i]).join(', ');
-  if (f.tipo === 'semanal') return `${f.vecesObjetivo || 1}x por semana`;
-  return 'Diario';
-}
-
-// Mini-modal para registrar la cantidad del día en hábitos con meta
-// numérica (ej. "6" de "8 vasos") — un tap simple no alcanza para un
-// hábito que mide cantidad, a diferencia del check de los hábitos
-// simples. Se incluye una vez por render (lista y detalle) igual que
-// renderHabitoForm().
-function renderProgresoModal() {
-  return `
-    <div id="progreso-modal" class="modal-overlay sheet-overlay">
-      <div class="sheet-content" style="max-width: 360px;">
-        <h2 id="progreso-modal-title" style="margin-top: 0; font-size: 18px; font-weight: 700;">Registrar progreso</h2>
-        <input type="hidden" id="progreso-habito-id">
-        <input type="hidden" id="progreso-fecha">
-        <form id="progreso-form" onsubmit="return false;">
-          <div class="input-group">
-            <label for="progreso-cantidad" id="progreso-unidad-label">Cantidad</label>
-            <input type="number" id="progreso-cantidad" min="0" inputmode="numeric" enterkeyhint="done">
-          </div>
-          <div style="display: flex; gap: 12px; margin-top: 20px;">
-            <button type="button" id="btn-cancel-progreso" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Cancelar</button>
-            <button type="submit" id="btn-save-progreso" class="btn-primary" style="background: var(--accent-purple); color: #000; flex: 1;">Guardar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `;
-}
-
-function abrirProgresoModal(habito, fecha) {
-  const modal = document.getElementById('progreso-modal');
-  if (!modal) return;
-  document.getElementById('progreso-modal-title').innerText = habito.nombre;
-  document.getElementById('progreso-habito-id').value = habito.id;
-  document.getElementById('progreso-fecha').value = fecha;
-  const unidad = (habito.meta && habito.meta.unidad) || 'veces';
-  document.getElementById('progreso-unidad-label').innerText = `Cantidad (${unidad})`;
-  const input = document.getElementById('progreso-cantidad');
-  input.value = valorMostrado(habito, fecha) || '';
-  modal.style.display = 'flex';
-  setTimeout(() => { modal.classList.add('open'); input.focus(); }, 10);
-}
-
-function setupProgresoModal(onSaveCallback) {
-  const modal = document.getElementById('progreso-modal');
-  if (!modal) return;
-  const close = () => {
-    modal.classList.remove('open');
-    setTimeout(() => modal.style.display = 'none', 300);
-  };
-  document.getElementById('btn-cancel-progreso').addEventListener('click', close);
-
-  const save = async () => {
-    const id = document.getElementById('progreso-habito-id').value;
-    const fecha = document.getElementById('progreso-fecha').value;
-    const cantidad = parseFloat(document.getElementById('progreso-cantidad').value) || 0;
-    await db.registrarProgresoHabito(id, fecha, cantidad);
-    close();
-    if (onSaveCallback) setTimeout(onSaveCallback, 300);
-  };
-  bindQuickCaptureForm(document.getElementById('progreso-form'), save);
-}
-
-// Vista local (lista | detalle) — mismo patrón que activeFinTab en
-// finanzas.js, pero además empuja una entrada de historial al entrar al
-// detalle: instalada como PWA no hay botón atrás del navegador, así que
-// sin esto el botón atrás del sistema saldría directo de la app en vez de
-// volver a la lista. habitoDetalleId identifica qué hábito ver en detalle.
+// Sub-pantalla de detalle: empuja una entrada de historial al entrar
+// (instalada como PWA no hay botón atrás del navegador; sin esto el atrás
+// del sistema saldría de la app en vez de volver a la lista).
 let vista = 'lista';
 let habitoDetalleId = null;
 let popstateEnganchado = false;
-
 // 'budget-updated' es el aviso genérico de sync.js de que se aplicó un
-// cambio remoto (ver runFullSync en core/sync.js) — sin este listener, un
-// hábito marcado en otro dispositivo queda guardado en IndexedDB pero esta
-// vista no se repinta sola hasta que se sale y se vuelve a entrar. Se
-// engancha una sola vez, igual que popstateEnganchado arriba: mountListeners()
-// se vuelve a llamar en cada refresh() local (crear/editar/marcar un
-// hábito), así que sin el guard se acumularía un listener nuevo por cada
-// uno de esos, no solo por cada sync.
+// cambio remoto: sin este listener un hábito marcado en otro dispositivo no
+// se ve hasta salir y volver. Se engancha una sola vez (mountListeners se
+// llama en cada repintado).
 let syncEnganchado = false;
-async function onSyncActualizado() {
-  if (hayModalAbierto()) return; // no pisar el modal de alta/edición o de progreso si está abierto
-  const root = document.getElementById('view-root');
-  const htmlVista = await render();
-  if (!vistaVigente()) return;
-  root.innerHTML = htmlVista;
-  mountListeners();
-}
 
-// Entries de la dona de "cumplimiento por hábito" del resumen de Hábitos
-// (ver renderResumenHabitos) — igual que lastTareasDonutEntries en
-// lab-tareas.js, se guardan al renderizar el HTML (síncrono) para que
-// mountListeners() pueda montar el Chart.js real después, sin recalcular.
-let lastHabitosDonutEntries = [];
-let lastHabitosTendencia = [];
-let tendenciaChartInstance = null;
-// Sección "Análisis" (dona, en riesgo y tendencia de 8 semanas): plegada
-// por defecto; vive en el módulo para que marcar un hábito (que repinta la
-// lista) no la cierre si estaba abierta.
-let analisisAbierto = false;
+// Datos que los gráficos montan después de pintar el HTML.
+let donaEntradas = [];
+let tendencia = [];
+let tendenciaChart = null;
 
-// Variantes del acento violeta (mismo que lab-habitos.js): la dona de
-// Hábitos usa shades de SU PROPIO acento, no colores prestados de otros
-// módulos — mismo criterio que Entreno (shades de --cy) o Tareas.
-const VIOLET_SHADES_RESUMEN = ['var(--vi)', 'var(--vib)', 'var(--vid)', 'var(--vip)', 'var(--vis)'];
-
-function onPopStateHabitos(e) {
-  if (vista === 'detalle' && (!e.state || !e.state.habitoDetalle)) {
-    vista = 'lista';
-    habitoDetalleId = null;
-    const root = document.getElementById('view-root');
-    if (root) render().then(html => { if (!vistaVigente()) return; root.innerHTML = html; mountListeners(); });
-  }
-}
-
+// --- Fechas: semana calendario (lunes a domingo, es-CL) -----------------
+const DOW_CORTO = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const DOW_LARGO = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+const hoyKey = () => diaKeyDe(new Date());
+const dowDe = (iso) => (fechaLocalDe(iso).getDay() + 6) % 7; // 0 = lunes
 function semanaActual() {
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const dow = hoy.getDay(); // 0=domingo .. 6=sábado
-  const offsetLunes = dow === 0 ? 6 : dow - 1;
-  const lunes = new Date(hoy);
-  lunes.setDate(hoy.getDate() - offsetLunes);
-  const dias = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(lunes);
-    d.setDate(lunes.getDate() + i);
-    dias.push(d);
-  }
-  return dias;
+  const hoy = hoyKey();
+  const lunes = sumarDias(hoy, -dowDe(hoy));
+  return Array.from({ length: 7 }, (_, i) => sumarDias(lunes, i));
 }
 
-// Franja semanal reutilizada por la vista de detalle. Los días futuros de
-// la semana calendario (ej. si hoy es miércoles, jueves en adelante) se
-// muestran pero no son tocables — no tiene sentido marcar un hábito por
-// adelantado. Los días NO aplicables (frecuencia 'dias' que no incluye esa
-// fecha) reciben el mismo tratamiento visual que un futuro: no hay nada
-// que marcar ahí, así que no se distingue de "todavía no llega".
-// Días: mantener presionado (o clic derecho) un día abre la hoja "Día"; por
-// eso los días inactivos llevan aria-disabled en vez de disabled (un botón
-// disabled no recibe el toque largo) y el toque normal los ignora.
-function renderFranjaSemanal(habito, hoyIso) {
-  const tieneMeta = !!habito.meta;
-  const dias7 = semanaActual();
-  return dias7.map(d => {
-    const iso = diaKeyDe(d);
-    const marcado = estaCumplido(habito, iso);
-    const valor = valorMostrado(habito, iso);
-    const esHoy = iso === hoyIso;
-    const esFuturo = iso > hoyIso;
-    const aplicable = esDiaAplicable(habito, iso);
-    const inactivo = esFuturo || !aplicable;
-    const diaLabel = `${DOW_LARGO[d.getDay() === 0 ? 6 : d.getDay() - 1]} ${d.getDate()}`;
-    const accion = marcado ? 'Desmarcar' : 'Marcar';
-    // Un solo tratamiento de borde para todo lo "sin marcar" (hoy incluido)
-    // — antes hoy llevaba un anillo de acento aparte, dos reglas de borde
-    // distintas conviviendo se sentía menos prolijo. "Hoy" ahora se marca
-    // por tipografía (la letra del día en el acento, en negrita), no por
-    // una caja con borde especial — la caja en sí queda uniforme.
-    const labelColor = esHoy ? 'var(--accent-purple)' : 'var(--text-disabled)';
-    const labelWeight = esHoy ? '800' : '700';
-    const claseBoton = tieneMeta ? 'day-progreso' : 'day-toggle';
-    const etiquetaInactivo = esFuturo ? 'todavía no llega' : 'no aplica este día';
-    const descanso = esDescansoDia(iso);
-    const nota = notaDia(iso);
-    const extraDia = [descanso ? 'descanso planificado' : '', nota ? `nota: ${nota}` : ''].filter(Boolean).join(', ');
+// Días de la semana en curso con descanso planificado o nota (store `dias`).
+// En las semanas, un día de descanso sin marcar va rayado y neutro (no
+// fallado) y un día con nota lleva un punto.
+let diasSemana = new Map();
+async function cargarDiasSemana() {
+  const s = semanaActual();
+  const filas = await db.getDias(s[0], s[6]);
+  diasSemana = new Map(filas.map(d => [d.fecha, d]));
+}
+const esDescanso = (iso) => !!(diasSemana.get(iso) && diasSemana.get(iso).descanso);
+const notaDia = (iso) => (diasSemana.get(iso) && diasSemana.get(iso).nota) || '';
+
+// --- Hábitos: frecuencia y meta (utils/habito-dias.js) -------------------
+const estaCumplido = habitoCumplidoEnFecha;
+const esDiaAplicable = habitoDiaAplicable;
+const tieneMeta = (h) => !!(h.meta && Number(h.meta.cantidad) > 0);
+const esSemanal = (h) => (h.frecuencia || {}).tipo === 'semanal';
+// Para MOSTRAR un valor: una marca "true" heredada (de antes de la meta
+// numérica) se ve como la meta completa.
+function valorMostrado(h, iso) {
+  const v = (h.marcas || {})[iso];
+  if (h.meta && v === true) return h.meta.cantidad;
+  return v;
+}
+function labelFrecuencia(h) {
+  const f = h.frecuencia || { tipo: 'diario' };
+  if (f.tipo === 'dias') return (f.dias || []).slice().sort().map(i => DOW_CORTO[i]).join(', ');
+  if (f.tipo === 'semanal') return `${f.vecesObjetivo || 1} ${(f.vecesObjetivo || 1) === 1 ? 'vez' : 'veces'} por semana`;
+  return 'Diario';
+}
+function textoRacha(racha, semanal) {
+  const n = racha.actual;
+  if (!(n > 0)) return 'Sin racha todavía';
+  if (semanal) return `${n} ${n === 1 ? 'semana seguida' : 'semanas seguidas'}`;
+  return `${n} ${n === 1 ? 'día seguido' : 'días seguidos'}`;
+}
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+
+const ICO_FUEGO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>';
+const ICO_MAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+const ICO_VOLVER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>';
+const ICO_CHEVRON = '<svg class="o-hab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+
+// --- Semana compacta de una fila ----------------------------------------
+// hecha (relleno del módulo) · fallada (día pasado que aplicaba, sin marcar:
+// raya) · hoy (borde del módulo) · inactiva (futuro o no aplica) ·
+// descanso (rayado). Los semanales muestran la barra de la semana.
+function renderSemanaFila(h, hoyIso) {
+  if (esSemanal(h)) {
+    const hechas = semanaActual().filter(iso => estaCumplido(h, iso)).length;
+    const objetivo = (h.frecuencia || {}).vecesObjetivo || 1;
     return `
-      <button class="${claseBoton} tappable" data-id="${habito.id}" data-fecha="${iso}" data-dia-largo="1"
-        ${inactivo ? 'aria-disabled="true"' : ''}
-        aria-label="${inactivo ? `${escapeHtml(habito.nombre)} el ${diaLabel} (${etiquetaInactivo})` : `${accion} ${escapeHtml(habito.nombre)} el ${diaLabel}`}${extraDia ? ` · ${escapeHtml(extraDia)}` : ''}"
-        ${nota ? `title="${escapeHtml(nota)}"` : ''}
-        aria-pressed="${marcado}"
-        style="position: relative; flex: 1; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; background: transparent; border: none; cursor: ${inactivo ? 'default' : 'pointer'}; padding: 0; opacity: ${inactivo && !descanso ? '0.4' : '1'}; -webkit-touch-callout: none; user-select: none;">
-        ${nota ? '<span class="dia-punto" aria-hidden="true"></span>' : ''}
-        <span aria-hidden="true" style="font-size: 11px; font-weight: ${labelWeight}; color: ${colorTexto(labelColor)}; letter-spacing: 0.4px;">${DOW_SHORT[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span>
-        <span aria-hidden="true" class="day-toggle-circle${descanso && !marcado ? ' dia-rayado' : ''}" data-check-size="8" style="width: 50%; aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : 'var(--surface-border)'}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; transition: background 0.15s ease, border-color 0.15s ease; font-size: 8px; font-weight: 800; color: #fff;">
-          ${tieneMeta && valor ? escapeHtml(String(valor)) : (marcado ? '<svg width="8" height="8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '')}
-        </span>
+      <span class="o-hab-barra" aria-hidden="true">
+        <span class="o-hab-barra-pista"><span class="o-hab-barra-relleno" style="width: ${Math.min(100, (hechas / objetivo) * 100)}%"></span></span>
+        <span class="o-hab-barra-num">${hechas}/${objetivo} esta semana</span>
+      </span>`;
+  }
+  const celdas = semanaActual().map(iso => {
+    const hecha = estaCumplido(h, iso);
+    const futuro = iso > hoyIso;
+    const aplica = esDiaAplicable(h, iso);
+    const descanso = esDescanso(iso);
+    const clases = ['o-hab-celda'];
+    if (hecha) clases.push('o-hab-celda--hecha');
+    else if (descanso) clases.push('o-hab-celda--descanso');
+    else if (!futuro && iso !== hoyIso && aplica) clases.push('o-hab-celda--fallada');
+    if (iso === hoyIso) clases.push('o-hab-celda--hoy');
+    if ((futuro || !aplica) && !descanso) clases.push('o-hab-celda--inactiva');
+    return `<span class="${clases.join(' ')}">${notaDia(iso) ? '<span class="o-hab-nota"></span>' : ''}${hecha ? oIcono('check') : ''}</span>`;
+  }).join('');
+  return `<span class="o-hab-semana" aria-hidden="true">${celdas}</span>`;
+}
+
+function resumenSemanaTexto(h) {
+  if (esSemanal(h)) return '';
+  const dias = semanaActual().filter(iso => iso <= hoyKey() && esDiaAplicable(h, iso));
+  const hechas = dias.filter(iso => estaCumplido(h, iso)).length;
+  return `, esta semana ${hechas} de ${dias.length}`;
+}
+
+// --- Pestaña Hoy -----------------------------------------------------------
+function renderFila(h, hoyIso) {
+  const hecho = estaCumplido(h, hoyIso);
+  const aplica = esDiaAplicable(h, hoyIso);
+  const racha = h._racha || { actual: 0 };
+  const nombre = escapeHtml(h.nombre);
+  let accion;
+  if (!aplica) {
+    accion = '<span class="o-hab-noaplica" aria-label="No aplica hoy">No<br>aplica</span>';
+  } else if (tieneMeta(h)) {
+    const v = valorMostrado(h, hoyIso);
+    const unidad = escapeHtml(h.meta.unidad || '');
+    accion = `<button type="button" class="o-btn o-btn--secundario o-hab-cantidad day-progreso-hoy" data-id="${escapeHtml(h.id)}" data-fecha="${hoyIso}" aria-pressed="${hecho}" aria-label="Registrar progreso de ${nombre} hoy (${Number(v) || 0} de ${h.meta.cantidad}${unidad ? ' ' + unidad : ''})">${v ? escapeHtml(String(v)) : ICO_MAS}</button>`;
+  } else {
+    accion = `<button type="button" class="o-check day-toggle-hoy" data-id="${escapeHtml(h.id)}" data-fecha="${hoyIso}" aria-pressed="${hecho}" aria-label="${hecho ? 'Desmarcar' : 'Marcar'} ${nombre} hoy">${oIcono('check')}</button>`;
+  }
+  return `
+    <li class="o-fila o-hab-fila${hecho ? ' o-fila--hecha' : ''}" data-id="${escapeHtml(h.id)}">
+      <button type="button" class="o-hab-abrir habito-row" data-id="${escapeHtml(h.id)}" aria-label="${nombre}: ${escapeHtml(textoRacha(racha, esSemanal(h)).toLowerCase())}${resumenSemanaTexto(h)}. Ver detalle">
+        <span class="o-fila-texto"><b>${nombre}</b><small>${racha.actual > 0 ? ICO_FUEGO : ''}${escapeHtml(textoRacha(racha, esSemanal(h)))}</small></span>
+        ${renderSemanaFila(h, hoyIso)}
       </button>
-    `;
-  }).join('');
+      <span class="o-hab-fila-fin">${accion}</span>
+    </li>`;
 }
 
-// Cuadrícula semanal compacta por hábito, para la fila de la lista —
-// mismo espíritu que el heatmap de Tareas/Entreno (una franja de celdas de
-// color), pero de 7 días fijos (semana calendario actual, no un mes) y con
-// 3 estados discretos en vez de intensidad por opacidad: un hábito no mide
-// "cuánta actividad hubo" sino si se cumplió ese día o no.
-//   cumplido → relleno sólido con el acento del módulo.
-//   fallado  → día ya pasado y sin marcar, tinte rojizo apagado.
-//   pendiente → hoy (todavía accionable) o futuro; hoy lleva un anillo para
-//   distinguirlo de "ya pasó y no se hizo".
-// Mismo lenguaje visual que la franja de racha del detalle (ver
-// renderFranjaSemanal): sin marcar = solo borde fino, sin relleno oscuro;
-// marcado = relleno del acento + check blanco. La única diferencia real es
-// que acá "fallado" (día pasado sin marcar) sí necesita distinguirse de
-// "pendiente" (hoy o futuro) porque no hay letra de día para hacerlo por
-// tipografía — se resuelve con un borde con tinte rojizo en vez de uno
-// gris neutro.
-function renderMiniSemana(habito, hoyIso) {
-  // Hábitos 'semanal' (X veces por semana) no tienen una obligación por
-  // día puntual — la grilla de 7 celdas fallado/pendiente no aplica.
-  // Muestra en cambio el conteo de la semana en curso contra el objetivo.
-  if (esHabitoSemanal(habito)) {
-    const hechas = marcasEstaSemanaCount(habito);
-    const objetivo = (habito.frecuencia || {}).vecesObjetivo || 1;
-    const completo = hechas >= objetivo;
-    return `
-      <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px;">
-        <div style="flex: 1; height: 6px; border-radius: 3px; background: var(--surface-border); overflow: hidden;">
-          <div style="height: 100%; width: ${Math.min(100, (hechas / objetivo) * 100)}%; background: ${completo ? 'var(--state-success)' : 'var(--accent-purple)'};"></div>
-        </div>
-        <span class="num" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); flex-shrink: 0;">${hechas}/${objetivo} esta sem.</span>
-      </div>`;
+function renderPanelHoy(habitos, hoyIso) {
+  const nuevo = '<button type="button" class="o-btn o-btn--secundario" data-nuevo-habito>Nuevo hábito</button>';
+  if (habitos.length === 0) {
+    return `<div class="o-card">${oVacio({ icono: 'check', titulo: 'Sin hábitos todavía', texto: 'Agrega el primero y empieza a marcar días.' })}<div class="o-hab-vacio-accion">${nuevo}</div></div>`;
   }
-
-  const dias7 = semanaActual();
-  const celdas = dias7.map(d => {
-    const iso = diaKeyDe(d);
-    const marcado = estaCumplido(habito, iso);
-    const esHoy = iso === hoyIso;
-    const esFuturo = iso > hoyIso;
-    const aplicable = esDiaAplicable(habito, iso);
-    // "Fallado" (borde rojizo) solo tiene sentido en un día que de verdad
-    // aplicaba — un día fuera de la frecuencia declarada no es una falla, y
-    // un día de descanso planificado tampoco (va rayado y neutro).
-    const descanso = esDescansoDia(iso);
-    const nota = notaDia(iso);
-    const fallado = !marcado && !esHoy && !esFuturo && aplicable && !descanso;
-    const borderColor = fallado
-      ? 'color-mix(in srgb, var(--state-high) 45%, var(--surface-border))'
-      : 'var(--surface-border)';
-    const ring = esHoy ? 'box-shadow: 0 0 0 1.5px var(--accent-purple) inset;' : '';
-    const dim = (esFuturo || !aplicable) ? 'opacity: 0.4;' : '';
-    return `
-      <div aria-hidden="true" style="position: relative; flex: 1; display: flex; align-items: center; justify-content: center;">
-        ${nota ? '<span class="dia-punto" aria-hidden="true"></span>' : ''}
-        <div class="${descanso && !marcado ? 'dia-rayado' : ''}" style="width: 50%; aspect-ratio: 1; border-radius: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: ${marcado ? '0px' : '0.5px'} solid ${marcado ? 'transparent' : borderColor}; background: ${marcado ? 'var(--accent-purple)' : 'transparent'}; ${ring} ${dim}">
-          ${marcado ? '<svg width="8" height="8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+  const tocan = habitos.filter(h => esDiaAplicable(h, hoyIso) && !esSemanal(h));
+  const hechos = tocan.filter(h => estaCumplido(h, hoyIso)).length;
+  const descanso = esDescanso(hoyIso);
+  let titulo; let texto;
+  if (tocan.length === 0) {
+    titulo = 'Hoy no te toca ninguno';
+    texto = 'Los semanales se marcan cualquier día.';
+  } else if (hechos === tocan.length) {
+    titulo = 'Todo listo por hoy';
+    texto = `${plural(hechos, 'hábito cumplido', 'hábitos cumplidos')}.`;
+  } else {
+    titulo = `${hechos} de ${tocan.length} hoy`;
+    texto = `Te ${tocan.length - hechos === 1 ? 'falta 1' : `faltan ${tocan.length - hechos}`} para cerrar el anillo.`;
+  }
+  if (descanso) texto = `Día de descanso planificado. ${texto}`;
+  const anillo = oAnillo({
+    valor: hechos, max: tocan.length || 1, centro: tocan.length ? `${hechos}/${tocan.length}` : '—',
+    etiqueta: tocan.length ? `Hábitos de hoy: ${hechos} de ${tocan.length}` : 'Hoy no te toca ningún hábito'
+  });
+  return `
+    <div class="o-hab-panel">
+      <div class="o-hab-col">
+        <div class="o-card o-card--destacada o-hab-resumen">
+          ${anillo}
+          <div class="o-hab-resumen-texto"><b>${titulo}</b><span>${escapeHtml(texto)}</span></div>
         </div>
-      </div>`;
-  }).join('');
-  return `<div style="display: flex; gap: 3px; margin-top: 8px;">${celdas}</div>`;
+      </div>
+      <div class="o-hab-col">
+        <ul class="o-lista" aria-label="Tus hábitos">${habitos.map(h => renderFila(h, hoyIso)).join('')}</ul>
+      </div>
+    </div>`;
 }
 
-// Resumen agregado de Hábitos: cumplimiento por hábito (dona), el hábito
-// que más necesita atención hoy, y la tendencia semanal — todo por encima
-// de la lista fila-por-fila, porque es información sobre el CONJUNTO de
-// hábitos, no de uno puntual (esa ya la cubre cada fila con su racha y su
-// franja de 7 días). Solo tiene sentido con al menos un hábito creado.
-async function renderResumenHabitos(habitos, hoyIso) {
-  if (habitos.length === 0) return '';
+// --- Pestaña Análisis -----------------------------------------------------
+async function renderPanelAnalisis(habitos, hoyIso) {
+  if (habitos.length === 0) {
+    return `<div class="o-card">${oVacio({ icono: 'info', titulo: 'Sin datos todavía', texto: 'Crea un hábito y márcalo unos días para ver tu análisis.' })}</div>`;
+  }
+  // Últimos 7 días terminando hoy.
+  const dias7 = Array.from({ length: 7 }, (_, i) => sumarDias(hoyIso, -i));
+  donaEntradas = habitos
+    .map((h, i) => ({ label: h.nombre, valor: dias7.filter(iso => estaCumplido(h, iso)).length, i }))
+    .filter(e => e.valor > 0);
+  const leyenda = donaEntradas.map(e => `
+      <li><span class="o-hab-leyenda-punto" data-color="${e.i}"></span><span class="o-hab-leyenda-nombre">${escapeHtml(e.label)}</span><span class="o-hab-leyenda-num">${e.valor}/7</span></li>`).join('');
+  const dona = donaEntradas.length === 0
+    ? oVacio({ icono: 'check', titulo: 'Sin marcas esta semana', texto: 'Marca un hábito para ver su desglose aquí.' })
+    : `<div class="o-hab-dona"><div class="o-hab-dona-lienzo"><canvas id="habitos-donut" role="img" aria-label="Días cumplidos por hábito en los últimos 7 días"></canvas></div><ul class="o-hab-leyenda">${leyenda}</ul></div>`;
 
-  const hace7Dias = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    return diaKeyDe(d);
-  });
-  const entries = habitos.map((h, i) => {
-    const marcados = hace7Dias.filter(iso => estaCumplido(h, iso)).length;
-    return { label: escapeHtml(h.nombre), valor: marcados, color: VIOLET_SHADES_RESUMEN[i % VIOLET_SHADES_RESUMEN.length] };
-  }).filter(e => e.valor > 0);
-  lastHabitosDonutEntries = entries;
-
-  const donutHtml = entries.length === 0
-    ? EmptyState('Sin marcas esta semana', 'Marca un hábito para ver su desglose acá.')
-    : `<div style="display: flex; gap: 16px; align-items: center;">
-         <div style="width: 92px; height: 92px; flex-shrink: 0;"><canvas id="habitos-donut"></canvas></div>
-         <div style="flex: 1; min-width: 0;">${renderDonutLegend(entries)}</div>
-       </div>`;
-
-  // En riesgo: el hábito con la racha más floja entre los que hoy siguen
-  // sin marcar — con un solo hábito no hay "el más flojo" que destacar,
-  // ya lo cubre la tarjeta de racha global de arriba.
-  let riesgoHtml = '';
-  if (habitos.length >= 2 && !esDescansoDia(hoyIso)) {
-    const sinMarcarHoy = habitos.filter(h => esDiaAplicable(h, hoyIso) && !estaCumplido(h, hoyIso));
-    if (sinMarcarHoy.length > 0) {
-      const masFlojo = [...sinMarcarHoy].sort((a, b) => (a._racha?.actual || 0) - (b._racha?.actual || 0))[0];
-      const rachaTxt = masFlojo._racha && masFlojo._racha.actual > 0
-        ? `Racha de <span class="num">${masFlojo._racha.actual}</span> ${masFlojo._racha.actual === 1 ? 'día' : 'días'} — todavía sin marcar hoy.`
-        : 'Sin racha y todavía sin marcar hoy.';
-      riesgoHtml = `
-        <div class="card" style="padding: 16px; border-color: color-mix(in srgb, var(--state-high) 35%, var(--surface-border));">
-          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--state-high-t); margin-bottom: 8px;">En riesgo hoy</div>
-          <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${escapeHtml(masFlojo.nombre)}</div>
-          <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px;">${rachaTxt}</div>
+  // En riesgo: el hábito con la racha más floja entre los que hoy siguen sin
+  // marcar (con un solo hábito no hay "el más flojo").
+  let riesgo = '';
+  if (habitos.length >= 2 && !esDescanso(hoyIso)) {
+    const sinMarcar = habitos.filter(h => esDiaAplicable(h, hoyIso) && !estaCumplido(h, hoyIso));
+    if (sinMarcar.length > 0) {
+      const flojo = [...sinMarcar].sort((a, b) => (a._racha?.actual || 0) - (b._racha?.actual || 0))[0];
+      const n = flojo._racha?.actual || 0;
+      riesgo = `
+        <div class="o-card o-card--destacada" id="habitos-riesgo">
+          <p class="o-rotulo">En riesgo hoy</p>
+          <h3 class="o-card-titulo o-hab-riesgo-titulo">${escapeHtml(flojo.nombre)}</h3>
+          <p class="o-card-texto">${n > 0 ? `Racha de ${plural(n, 'día', 'días')}; todavía sin marcar hoy.` : 'Sin racha y todavía sin marcar hoy.'}</p>
         </div>`;
     }
   }
 
-  // Reusa la serie del Laboratorio (getTendenciaCumplimientoHabitos) en vez
-  // de calcular una nueva — mismo dato, un solo lugar que lo define.
-  const tendencia = await db.getTendenciaCumplimientoHabitos(8);
-  lastHabitosTendencia = tendencia;
+  // Misma serie que el Laboratorio (un solo lugar que la define).
+  tendencia = await db.getTendenciaCumplimientoHabitos(8);
   const hayTendencia = tendencia.some(v => v > 0);
-  const tendenciaHoy = tendencia[tendencia.length - 1] || 0;
-  const tendenciaProm = Math.round(tendencia.reduce((a, b) => a + b, 0) / tendencia.length);
-
+  const estaSemana = tendencia[tendencia.length - 1] || 0;
+  const promedio = Math.round(tendencia.reduce((a, b) => a + b, 0) / (tendencia.length || 1));
   const tendenciaHtml = !hayTendencia
-    ? EmptyState('Sin tendencia todavía', 'Marca hábitos un par de semanas más para ver el avance.')
+    ? oVacio({ icono: 'info', titulo: 'Sin tendencia todavía', texto: 'Marca hábitos un par de semanas más para ver el avance.' })
     : `
-      <div style="display: flex; gap: 20px; margin-bottom: 14px;">
-        <div><span class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${tendenciaHoy}%</span><div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px;">Esta semana</div></div>
-        <div><span class="num" style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${tendenciaProm}%</span><div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px;">Promedio 8 sem.</div></div>
+      <div class="o-hab-cifras">
+        <div class="o-hab-cifra"><b>${estaSemana}%</b><span class="o-rotulo">Esta semana</span></div>
+        <div class="o-hab-cifra"><b>${promedio}%</b><span class="o-rotulo">Promedio 8 sem.</span></div>
       </div>
-      <div style="height: 200px; padding-top: 8px;"><canvas id="habitos-tendencia-chart"></canvas></div>
-    `;
+      <div class="o-hab-tendencia"><canvas id="habitos-tendencia-chart" role="img" aria-label="Porcentaje de hábitos cumplidos por semana: esta semana ${estaSemana} %, promedio ${promedio} %"></canvas></div>`;
 
   return `
-    <details id="habitos-analisis" class="habitos-analisis"${analisisAbierto ? ' open' : ''}>
-    <summary class="habitos-analisis-sum tappable">Análisis</summary>
-    <div style="display: grid; grid-template-columns: ${riesgoHtml ? '1.3fr 1fr' : '1fr'}; gap: 12px; margin-top: 12px; margin-bottom: 12px;">
-      <div class="card" style="padding: 16px;">
-        <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 10px;">Cumplimiento por hábito, 7 días</div>
-        ${donutHtml}
+    <div class="o-hab-panel">
+      <div class="o-hab-col">
+        <div class="o-card">
+          <p class="o-rotulo o-hab-card-rotulo">Cumplimiento por hábito · 7 días</p>
+          ${dona}
+        </div>
+        ${riesgo}
       </div>
-      ${riesgoHtml}
-    </div>
-    <div class="card" style="padding: 16px;">
-      <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 10px;">% de hábitos cumplidos por semana (últimas 8 semanas)</div>
-      ${tendenciaHtml}
-    </div>
-    </details>
-  `;
+      <div class="o-hab-col">
+        <div class="o-card">
+          <p class="o-rotulo o-hab-card-rotulo">Hábitos cumplidos por semana · 8 semanas</p>
+          ${tendenciaHtml}
+        </div>
+      </div>
+    </div>`;
 }
 
-// Etiqueta de cada barra/punto de la tendencia semanal — mismo criterio
-// que renderVolumenSemanalChart en entrenamiento.js ("Esta sem." para la
-// última, "S-N" contando hacia atrás para el resto).
-function etiquetasSemanas(n) {
-  return Array.from({ length: n }, (_, i) => i === n - 1 ? 'Esta sem.' : `S-${n - 1 - i}`);
+// --- Pestaña Logros ---------------------------------------------------------
+const DIAS_POR_VIDA = 7;
+const VIDAS_MAX = 2;
+// Insignias: sin niveles ni copy de videojuego. Cada una toma el color de su
+// módulo (.o-mod-*); bloqueada = candado neutro.
+const INSIGNIAS = {
+  racha_7: { modulo: 'habitos', icono: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>' },
+  primera_meta: { modulo: 'finanzas', icono: '<circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1"></circle>' },
+  mes_sin_exceder: { modulo: 'finanzas', icono: '<circle cx="12" cy="12" r="9"></circle><polyline points="8.5 12 11 14.5 15.5 10"></polyline>' },
+  diez_sesiones: { modulo: 'entreno', icono: '<path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"></path>' }
+};
+const ICO_CANDADO = '<rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path>';
+
+function renderInsignia(b) {
+  const meta = INSIGNIAS[b.id] || { modulo: 'habitos', icono: ICO_CANDADO };
+  return `
+    <li class="o-hab-insignia${b.unlocked ? ' o-hab-insignia--ganada o-mod-' + meta.modulo : ''}">
+      <span class="o-hab-insignia-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${b.unlocked ? meta.icono : ICO_CANDADO}</svg></span>
+      <span class="o-hab-insignia-texto">${escapeHtml(b.label)}<small>${b.unlocked ? 'Ganada' : 'Bloqueada'}</small></span>
+    </li>`;
 }
 
-async function initTendenciaChart() {
+function renderRacha7(racha) {
+  const protegidos = new Set(racha.diasProtegidos || []);
+  const hoy = hoyKey();
+  return `
+    <ul class="o-hab-racha7" aria-label="Últimos 7 días de la racha">
+      ${racha.last7.map(d => {
+        const estado = protegidos.has(d.date) ? 'protegida' : d.count > 0 ? 'hecha' : d.descanso ? 'descanso' : 'vacia';
+        const etiqueta = { protegida: 'protegido por una vida extra', hecha: 'con actividad', descanso: 'descanso planificado', vacia: d.date === hoy ? 'hoy, pendiente' : 'sin actividad' }[estado];
+        const dow = dowDe(d.date);
+        return `
+          <li class="${d.date === hoy ? 'o-hab-racha7-hoy' : ''}" aria-label="${DOW_LARGO[dow]} ${Number(d.date.slice(8))}: ${etiqueta}">
+            <span class="o-hab-racha7-letra" aria-hidden="true">${DOW_CORTO[dow]}</span>
+            <span class="o-hab-celda o-hab-celda--${estado}${d.date === hoy && estado === 'vacia' ? ' o-hab-celda--hoy' : ''}" aria-hidden="true">${estado === 'hecha' ? oIcono('check') : estado === 'protegida' ? svgEscudo({ lleno: true, size: 12 }) : ''}</span>
+          </li>`;
+      }).join('')}
+    </ul>`;
+}
+
+async function renderPanelLogros(habitos) {
+  const [racha, badges, perfecta] = await Promise.all([db.getRachaGlobal(), db.getBadges(), db.getRachaHabitosGlobal()]);
+  avisarPrimeraVidaSiCorresponde(racha);
+  const llenas = Math.min(racha.vidas, VIDAS_MAX);
+  // El arco avanza hacia la próxima vida extra (7 días activos seguidos); con
+  // las dos vidas ganadas queda lleno.
+  const avance = racha.vidas >= VIDAS_MAX ? DIAS_POR_VIDA : DIAS_POR_VIDA - racha.faltanParaVida;
+  const vidasTexto = racha.vidas > 0
+    ? `${plural(racha.vidas, 'vida extra', 'vidas extra')}: protege${racha.vidas === 1 ? '' : 'n'} tu racha si un día no registras nada.`
+    : `Gana una vida con 7 días seguidos (${racha.faltanParaVida === 1 ? 'falta 1' : `faltan ${racha.faltanParaVida}`}).`;
+  return `
+    <div class="o-hab-panel">
+      <div class="o-hab-col">
+        <div class="o-card o-card--destacada o-hab-logro" id="habitos-logro">
+          <p class="o-rotulo">Racha global</p>
+          ${oAnillo({ valor: avance, max: DIAS_POR_VIDA, grande: true, centro: racha.actual, sub: racha.actual === 1 ? 'día' : 'días', etiqueta: `Racha de ${plural(racha.actual, 'día', 'días')}. ${racha.vidas >= VIDAS_MAX ? 'Tienes las dos vidas extra' : `Faltan ${plural(racha.faltanParaVida, 'día', 'días')} para la próxima vida extra`}` })}
+          <span class="o-hab-vidas" aria-label="${plural(racha.vidas, 'vida extra', 'vidas extra')} de ${VIDAS_MAX}">
+            ${Array.from({ length: VIDAS_MAX }, (_, i) => `<span class="${i < llenas ? 'o-hab-vida--llena' : ''}">${svgEscudo({ lleno: i < llenas, size: 22 })}</span>`).join('')}
+          </span>
+          <p class="o-hab-logro-texto" id="habitos-vidas-texto">${escapeHtml(vidasTexto)}</p>
+          ${renderRacha7(racha)}
+          <p class="o-hab-logro-texto">La racha cuenta actividad en Hábitos, Tareas, Entreno y Finanzas.${racha.descansosMes > 0 ? ` <b>${racha.descansosMes}</b> ${racha.descansosMes === 1 ? 'descanso' : 'descansos'} este mes.` : ''}</p>
+        </div>
+      </div>
+      <div class="o-hab-col">
+        ${habitos.length > 0 ? `
+        <div class="o-card">
+          <p class="o-rotulo">Racha perfecta</p>
+          <p class="o-hab-logro-texto o-hab-perfecta" title="Días con todos los hábitos cumplidos">Días seguidos con todos tus hábitos cumplidos: <b>${perfecta.actual}</b> ahora, mejor <b>${perfecta.mejor}</b>.</p>
+        </div>` : ''}
+        <div class="o-card">
+          <p class="o-rotulo o-hab-card-rotulo">Insignias · ${badges.filter(b => b.unlocked).length} de ${badges.length}</p>
+          <ul class="o-hab-insignias">${badges.map(renderInsignia).join('')}</ul>
+        </div>
+      </div>
+    </div>`;
+}
+
+// --- Hoja de progreso (hábitos con cantidad): fija la cantidad del día ---
+function renderProgresoHoja() {
+  return oHoja({
+    id: 'progreso-modal', modulo: 'habitos', titulo: 'Registrar progreso',
+    cuerpo: `
+      <form id="progreso-form" class="o-campo" onsubmit="return false;">
+        <label for="progreso-cantidad" id="progreso-unidad-label">Cantidad</label>
+        <input type="number" id="progreso-cantidad" class="o-input o-input--monto" min="0" step="any" inputmode="decimal" enterkeyhint="done" autocomplete="off">
+        <p id="progreso-ayuda" class="o-campo-ayuda"></p>
+        <input type="hidden" id="progreso-habito-id">
+        <input type="hidden" id="progreso-fecha">
+      </form>`,
+    pie: '<button type="button" class="o-btn o-btn--secundario" data-hoja-cerrar>Cancelar</button><button type="submit" form="progreso-form" id="btn-save-progreso" class="o-btn o-btn--primario">Guardar</button>'
+  });
+}
+
+function abrirProgreso(h, fecha) {
+  if (!document.getElementById('progreso-modal')) return;
+  document.getElementById('progreso-modal-titulo').textContent = h.nombre;
+  document.getElementById('progreso-habito-id').value = h.id;
+  document.getElementById('progreso-fecha').value = fecha;
+  const unidad = (h.meta && h.meta.unidad) || 'veces';
+  document.getElementById('progreso-unidad-label').textContent = `Cantidad (${unidad})`;
+  const dia = fecha === hoyKey() ? 'hoy' : `el ${DOW_LARGO[dowDe(fecha)]} ${Number(fecha.slice(8))}`;
+  document.getElementById('progreso-ayuda').textContent = `Meta: ${h.meta.cantidad} ${unidad}. Escribe el total de ${dia}.`;
+  document.getElementById('progreso-cantidad').value = valorMostrado(h, fecha) || '';
+  abrirHoja('progreso-modal');
+}
+
+// --- Detalle de un hábito ---------------------------------------------------
+function renderFranja(h, hoyIso) {
+  return semanaActual().map(iso => {
+    const hecha = estaCumplido(h, iso);
+    const valor = valorMostrado(h, iso);
+    const esHoy = iso === hoyIso;
+    const futuro = iso > hoyIso;
+    const aplica = esDiaAplicable(h, iso);
+    const inactivo = futuro || !aplica;
+    const descanso = esDescanso(iso);
+    const nota = notaDia(iso);
+    const dow = dowDe(iso);
+    const diaLabel = `${DOW_LARGO[dow]} ${Number(iso.slice(8))}`;
+    const extra = [descanso ? 'descanso planificado' : '', nota ? `nota: ${nota}` : ''].filter(Boolean).join(', ');
+    const label = inactivo
+      ? `${h.nombre} el ${diaLabel} (${futuro ? 'todavía no llega' : 'no aplica este día'})`
+      : `${hecha ? 'Desmarcar' : 'Marcar'} ${h.nombre} el ${diaLabel}`;
+    const clases = ['o-hab-celda'];
+    if (hecha) clases.push('o-hab-celda--hecha');
+    else if (descanso) clases.push('o-hab-celda--descanso');
+    if (inactivo && !descanso) clases.push('o-hab-celda--inactiva');
+    if (esHoy) clases.push('o-hab-celda--hoy');
+    const contenido = tieneMeta(h) && valor ? escapeHtml(String(valor)) : (hecha ? oIcono('check') : '');
+    return `
+      <button type="button" class="o-hab-dia ${tieneMeta(h) ? 'day-progreso' : 'day-toggle'}${esHoy ? ' o-hab-dia--hoy' : ''}" data-id="${escapeHtml(h.id)}" data-fecha="${iso}" data-dia-largo="1"
+        ${inactivo ? 'aria-disabled="true"' : ''} aria-pressed="${hecha}" aria-label="${escapeHtml(label)}${extra ? ` · ${escapeHtml(extra)}` : ''}"${nota ? ` title="${escapeHtml(nota)}"` : ''}>
+        <span class="o-hab-dia-letra" aria-hidden="true">${DOW_CORTO[dow]}</span>
+        <span class="${clases.join(' ')}" aria-hidden="true">${nota ? '<span class="o-hab-nota"></span>' : ''}${contenido}</span>
+      </button>`;
+  }).join('');
+}
+
+async function renderDetalle(id) {
+  await cargarDiasSemana();
+  const habitos = await db.getHabitos();
+  const h = habitos.find(x => x.id === id);
+  if (!h) { vista = 'lista'; habitoDetalleId = null; return renderModulo(); }
+  const hoyIso = hoyKey();
+  const racha = await db.getRachaHabito(id);
+  const total = Object.keys(h.marcas || {}).length;
+  const unidad = esSemanal(h) ? ['semana', 'semanas'] : ['día', 'días'];
+  return `
+    <div class="o-vista o-habitos o-mod-habitos">
+      <header class="o-hab-det-cab">
+        <button type="button" id="btn-volver-habito" class="o-btn o-btn--secundario o-btn--icono" aria-label="Volver a Hábitos">${ICO_VOLVER}</button>
+        <h1 class="o-mod-titulo">${escapeHtml(h.nombre)}</h1>
+      </header>
+      <ul class="o-chips o-hab-det-chips" aria-label="Configuración del hábito">
+        <li class="o-chip">${escapeHtml(labelFrecuencia(h))}</li>
+        ${h.meta ? `<li class="o-chip">Meta: <span class="o-num">${escapeHtml(String(h.meta.cantidad))}</span> ${escapeHtml(h.meta.unidad || '')}</li>` : ''}
+      </ul>
+      <div class="o-hab-panel o-hab-panel--detalle">
+        <div class="o-hab-col">
+          <div class="o-card o-card--destacada">
+            <p class="o-hab-racha-linea">
+              <span>${racha.actual > 0
+                ? `<span class="o-num">${racha.actual}</span> ${racha.actual === 1 ? `${unidad[0]} seguid${unidad[0] === 'día' ? 'o' : 'a'}` : `${unidad[1]} seguid${unidad[0] === 'día' ? 'os' : 'as'}`} · Mejor: <span class="o-num">${racha.mejor}</span> ${racha.mejor === 1 ? unidad[0] : unidad[1]}`
+                : 'Sin racha: márcalo hoy'}</span>
+              ${racha.actual > 0 ? ICO_FUEGO : ''}
+            </p>
+            <div class="o-hab-franja">${renderFranja(h, hoyIso)}</div>
+            <p class="o-hab-ayuda">Mantén presionado un día para planificar un descanso o anotar algo.</p>
+          </div>
+        </div>
+        <div class="o-hab-col">
+          <p class="o-hab-total">${plural(total, 'día marcado', 'días marcados')} en total.</p>
+          <div class="o-hab-det-acciones">
+            <button type="button" id="btn-editar-habito-detalle" class="o-btn o-btn--secundario">Editar</button>
+            <button type="button" id="btn-eliminar-habito-detalle" class="o-btn o-btn--secundario o-hab-eliminar">Eliminar</button>
+          </div>
+        </div>
+      </div>
+      ${renderHabitoForm()}
+      ${renderProgresoHoja()}
+    </div>`;
+}
+
+// --- Vista con pestañas -----------------------------------------------------
+async function renderModulo() {
+  await cargarDiasSemana();
+  const habitos = await db.getHabitos();
+  const hoyIso = hoyKey();
+  await Promise.all(habitos.map(async (h) => { h._racha = await db.getRachaHabito(h.id); }));
+
+  let panel;
+  if (pestana === 'analisis') panel = await renderPanelAnalisis(habitos, hoyIso);
+  else if (pestana === 'logros') panel = await renderPanelLogros(habitos);
+  else panel = renderPanelHoy(habitos, hoyIso);
+
+  const tocan = habitos.filter(h => esDiaAplicable(h, hoyIso) && !esSemanal(h));
+  const hechos = tocan.filter(h => estaCumplido(h, hoyIso)).length;
+  const sub = habitos.length === 0 ? 'Empieza con uno pequeño.' : tocan.length ? `${hechos} de ${tocan.length} hoy` : 'Hoy no te toca ninguno';
+
+  return `
+    <div class="o-vista o-habitos o-mod-habitos">
+      <header class="o-mod-cab">
+        <div>
+          <h1 class="o-mod-titulo">Hábitos</h1>
+          <p class="o-mod-sub">${escapeHtml(sub)}</p>
+        </div>
+        <button type="button" id="btn-new-habito" class="o-btn o-btn--primario o-btn--icono" aria-label="Nuevo hábito">${ICO_MAS}</button>
+      </header>
+      <div class="o-tabs" role="tablist" aria-label="Secciones de Hábitos">
+        ${PESTANAS.map(p => `<button type="button" class="o-tab" role="tab" id="hab-tab-${p.id}" data-tab="${p.id}" aria-selected="${p.id === pestana}" aria-controls="hab-panel" tabindex="${p.id === pestana ? '0' : '-1'}">${p.label}</button>`).join('')}
+      </div>
+      <section id="hab-panel" role="tabpanel" aria-labelledby="hab-tab-${pestana}">
+        ${panel}
+      </section>
+      ${renderHabitoForm()}
+      ${renderProgresoHoja()}
+    </div>`;
+}
+
+export async function render() {
+  if (vista === 'detalle' && habitoDetalleId) return renderDetalle(habitoDetalleId);
+  return renderModulo();
+}
+
+// --- Gráficos de Análisis (Chart.js diferido) -------------------------------
+// Los colores salen de los tokens del módulo, leídos en el propio lienzo
+// (Chart.js no entiende var(--x)).
+function colorDe(el, token) { return getComputedStyle(el).getPropertyValue(token).trim(); }
+function conAlfa(hex, a) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
+function paletaDona(el) {
+  const base = ['--o-mod', '--o-mod-2', '--o-mod-t'].map(t => colorDe(el, t));
+  return (i) => conAlfa(base[i % base.length], [1, 0.6, 0.35][Math.floor(i / base.length) % 3]);
+}
+
+async function montarGraficos() {
+  if (vista !== 'lista' || pestana !== 'analisis') return;
+  const lienzo = document.getElementById('habitos-donut');
+  if (lienzo && donaEntradas.length > 0) {
+    const color = paletaDona(lienzo);
+    const entradas = donaEntradas.map(e => ({ label: e.label, valor: e.valor, color: color(e.i) }));
+    document.querySelectorAll('.o-hab-leyenda-punto').forEach(p => { p.style.background = color(Number(p.dataset.color)); });
+    renderDonutChart('habitos-donut', entradas, { tooltipLabel: (ctx, e) => `${e.label}: ${e.valor} de 7 días` });
+  }
   const canvas = document.getElementById('habitos-tendencia-chart');
-  if (!canvas || lastHabitosTendencia.length === 0) return;
-
+  if (!canvas || tendencia.length === 0) return;
   const Chart = await ensureChartJs();
+  if (!document.body.contains(canvas)) return;
   const opts = baseChartOptions();
-  const color = cssVar('--accent-purple');
-  const textPrimary = cssVar('--text-primary');
-  const family = chartFontFamily();
-
-  const gradient = verticalGradient(canvas.getContext('2d'), color, canvas.clientHeight || 200);
-
-  if (tendenciaChartInstance) tendenciaChartInstance.destroy();
-  tendenciaChartInstance = new Chart(canvas, {
+  const color = colorDe(canvas, '--o-mod');
+  const texto = colorDe(canvas, '--o-text');
+  const texto3 = colorDe(canvas, '--o-text-3');
+  const linea = colorDe(canvas, '--o-line');
+  const family = colorDe(canvas, '--o-font-num');
+  if (tendenciaChart) tendenciaChart.destroy();
+  tendenciaChart = new Chart(canvas, {
     type: 'line',
     data: {
-      labels: etiquetasSemanas(lastHabitosTendencia.length),
+      labels: tendencia.map((_, i) => (i === tendencia.length - 1 ? 'Esta sem.' : `S-${tendencia.length - 1 - i}`)),
       datasets: [{
-        data: lastHabitosTendencia,
-        borderColor: color,
-        backgroundColor: gradient,
-        fill: true,
-        tension: 0.35,
-        pointRadius: 4,
-        pointBackgroundColor: color,
-        pointBorderColor: cssVar('--panel'),
-        pointBorderWidth: 2,
-        pointHoverRadius: 6,
-        borderWidth: 3
+        data: tendencia, borderColor: color, backgroundColor: verticalGradient(canvas.getContext('2d'), color, canvas.clientHeight || 180),
+        fill: true, tension: 0.35, pointRadius: 4, pointBackgroundColor: color,
+        pointBorderColor: colorDe(canvas, '--o-bg'), pointBorderWidth: 2, pointHoverRadius: 6, borderWidth: 3
       }]
     },
     options: {
       ...opts,
       devicePixelRatio: hdPixelRatio(),
       layout: { padding: { top: 20 } },
-      plugins: {
-        ...opts.plugins,
-        tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.parsed.y}% cumplido` } }
-      },
+      plugins: { ...opts.plugins, tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.parsed.y} % cumplido` } } },
       scales: {
-        x: { grid: { display: false }, ticks: { color: cssVar('--text-disabled'), font: { size: 10, family } } },
-        y: {
-          min: 0, max: 100,
-          grid: { color: cssVar('--surface-border') },
-          ticks: { color: cssVar('--text-disabled'), font: { size: 10, family }, stepSize: 25, callback: (v) => `${v}%` }
-        }
+        x: { grid: { display: false }, ticks: { color: texto3, font: { size: 10, family } } },
+        y: { min: 0, max: 100, grid: { color: linea }, ticks: { color: texto3, font: { size: 10, family }, stepSize: 25, callback: (v) => `${v}%` } }
       }
     },
-    plugins: [lineValueLabelsPlugin(textPrimary, '%')]
+    plugins: [lineValueLabelsPlugin(texto, '%')]
   });
 }
 
-async function renderDetalle(id) {
-  await cargarDiasSemana();
-  const habitos = await db.getHabitos();
-  const habito = habitos.find(h => h.id === id);
-  if (!habito) { vista = 'lista'; return render(); }
-
-  const hoyIso = diaKeyDe(new Date());
-  const racha = await db.getRachaHabito(id);
-  const diasRegistrados = Object.keys(habito.marcas || {}).length;
-  const unidadRachaDetalle = esHabitoSemanal(habito) ? 'semana' : 'día';
-
-  return `
-    <div style="padding: 20px; font-family: var(--font-body); padding-bottom: 0;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-        <button id="btn-volver-habito" aria-label="Volver a Hábitos" style="width: 44px; height: 44px; flex-shrink: 0; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center;">
-          <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-        </button>
-        <h1 style="font-size: 22px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.4px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(habito.nombre)}</h1>
-      </div>
-
-      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
-        <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary); background: var(--surface-2); border: 1px solid var(--surface-border); padding: 4px 10px; border-radius: 100px;">${escapeHtml(labelFrecuencia(habito))}</span>
-        ${habito.meta ? `<span style="font-size: 11px; font-weight: 700; color: var(--text-secondary); background: var(--surface-2); border: 1px solid var(--surface-border); padding: 4px 10px; border-radius: 100px;">Meta: ${habito.meta.cantidad} ${escapeHtml(habito.meta.unidad || '')}</span>` : ''}
-      </div>
-
-      <div class="card card-hero" style="padding: 1.25rem; margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 600;">
-            ${racha.actual > 0
-              ? `<span class="num">${racha.actual}</span> ${racha.actual === 1 ? `${unidadRachaDetalle} seguid${unidadRachaDetalle === 'día' ? 'o' : 'a'}` : `${unidadRachaDetalle}s seguid${unidadRachaDetalle === 'día' ? 'os' : 'as'}`} · Mejor: <span class="num">${racha.mejor}</span> ${racha.mejor === 1 ? unidadRachaDetalle : `${unidadRachaDetalle}s`}`
-              : 'Sin racha — márcalo hoy'}
-          </div>
-          ${racha.actual > 0 ? iconoFuego(18, 'var(--accent-purple)') : ''}
-        </div>
-        <div style="display: flex; gap: 8px;">
-          ${renderFranjaSemanal(habito, hoyIso)}
-        </div>
-        <div class="habitos-franja-ayuda">Mantén presionado un día para planificar un descanso o anotar algo.</div>
-      </div>
-
-      <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">${diasRegistrados} día${diasRegistrados === 1 ? '' : 's'} marcado${diasRegistrados === 1 ? '' : 's'} en total.</div>
-
-      <div style="display: flex; gap: 12px;">
-        <button id="btn-editar-habito-detalle" class="tappable" style="flex: 1; min-height: 44px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-weight: 700; cursor: pointer;">Editar nombre</button>
-        <button id="btn-eliminar-habito-detalle" class="tappable" style="flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--surface-border); color: var(--state-high-t); font-weight: 700; cursor: pointer;">Eliminar</button>
-      </div>
-
-      ${renderHabitoForm()}
-      ${renderProgresoModal()}
-    </div>
-  `;
+function soltarGraficos() {
+  destroyAllDonuts();
+  if (tendenciaChart) { tendenciaChart.destroy(); tendenciaChart = null; }
 }
 
-async function renderLista() {
-  await cargarDiasSemana();
-  const habitos = await db.getHabitos();
-  const rachaGlobal = await db.getRachaHabitosGlobal();
-  const hoyIso = diaKeyDe(new Date());
-
-  await Promise.all(habitos.map(async (h) => {
-    h._racha = await db.getRachaHabito(h.id);
-  }));
-
-  // Fila simple: nombre a la izquierda, checkbox de HOY a la derecha (zona
-  // del pulgar — es la acción que se repite a diario), chevron decorativo.
-  // El área táctil de la fila entera lleva a la vista de detalle; el
-  // checkbox tiene su propio manejador y no propaga el click a la fila.
-  const renderFila = (habito) => {
-    const marcadoHoy = estaCumplido(habito, hoyIso);
-    const hoyAplica = esDiaAplicable(habito, hoyIso);
-    const tieneMeta = !!habito.meta;
-    const racha = habito._racha || { actual: 0, mejor: 0 };
-    const unidadRacha = esHabitoSemanal(habito) ? 'semana' : 'día';
-    const rachaTexto = racha.actual > 0
-      ? `🔥 <span class="num">${racha.actual}</span> ${racha.actual === 1 ? `${unidadRacha} seguid${unidadRacha === 'día' ? 'o' : 'a'}` : `${unidadRacha}s seguid${unidadRacha === 'día' ? 'os' : 'as'}`}`
-      : 'Sin racha todavía';
-    const claseToggle = tieneMeta ? 'day-progreso-hoy' : 'day-toggle-hoy';
-    const valorHoy = valorMostrado(habito, hoyIso);
-    return `
-      <div class="list-row habito-row tappable" data-id="${habito.id}" style="display: flex; flex-direction: column; padding: 10px 12px; min-height: 44px; cursor: pointer; margin-bottom: 8px;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="flex: 1; min-width: 0;">
-            <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(habito.nombre)}</div>
-            <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">${rachaTexto}</div>
-          </div>
-          ${!hoyAplica
-            ? `<div aria-hidden="true" style="flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-disabled); text-align: center; line-height: 1.1;">No<br>aplica</div>`
-            : `<button class="${claseToggle} tappable" data-id="${habito.id}" data-fecha="${hoyIso}" aria-label="${marcadoHoy ? 'Editar' : 'Marcar'} ${escapeHtml(habito.nombre)} hoy" aria-pressed="${marcadoHoy}" style="flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;">
-                <span aria-hidden="true" class="day-toggle-circle" data-check-size="16" data-borde-marca="1" style="width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1.5px solid ${marcadoHoy ? 'transparent' : 'var(--surface-border)'}; background: ${marcadoHoy ? 'var(--accent-purple)' : 'var(--surface-2)'}; font-size: 12px; font-weight: 800; color: #000;">
-                  ${tieneMeta ? (valorHoy ? escapeHtml(String(valorHoy)) : '+') : (marcadoHoy ? '<svg width="16" height="16" fill="none" stroke="#000" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : CHECK_SIN_MARCAR)}
-                </span>
-              </button>`
-          }
-          <svg aria-hidden="true" width="16" height="16" fill="none" stroke="var(--text-disabled)" stroke-width="2.3" viewBox="0 0 24 24" style="flex-shrink: 0;"><polyline points="9 18 15 12 9 6"></polyline></svg>
-        </div>
-        ${renderMiniSemana(habito, hoyIso)}
-      </div>
-    `;
-  };
-
-  return `
-    <div style="padding: 20px 0 20px 20px; font-family: var(--font-body);">
-      <!-- Header -->
-      <div class="flex-between" style="padding-right: 20px; margin-bottom: 20px;">
-        <h1 style="font-size: 30px; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.5px;">Hábitos</h1>
-        <!-- "+" en el encabezado (antes un FAB sticky que flotaba sobre las
-             tarjetas): abre el mismo formulario de hábito nuevo. -->
-        <button type="button" id="btn-new-habito" class="cab-accion tappable" aria-label="Nuevo hábito"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
-      </div>
-
-      <!-- Cabecera: anillo de racha grande + insignias (antes vivían en
-           Inicio). Una sola racha visible arriba: los días perfectos (todos
-           los hábitos cumplidos ese día) van como línea secundaria bajo el
-           anillo, ya no como una segunda tarjeta de racha. -->
-      ${await renderCabeceraRacha({
-        lineaSecundaria: habitos.length > 0
-          ? `<span title="Días con todos los hábitos cumplidos">Mejor racha perfecta: <span class="num">${rachaGlobal.mejor}</span> ${rachaGlobal.mejor === 1 ? 'día' : 'días'}</span>`
-          : ''
-      })}
-
-      <!-- Lista de hábitos primero: es lo único con lo que se puede
-           interactuar (marcar el día) — el resumen/analítica de abajo es
-           soporte, no debería empujarlo hacia abajo (mismo criterio que
-           Inicio, donde el contenido accionable va antes que Laboratorio).
-           Envueltos juntos en un solo wrapper (en vez de que cada uno
-           cargue su propio padding-right/bottom) porque cuál de los dos
-           termina siendo el último varía: sin datos de resumen todavía,
-           renderResumenHabitos() devuelve '' y la lista queda al final.
-           El aire final lo da #view-root (la barra inferior va en el flujo). -->
-      <div style="padding-right: 20px;">
-        <div>
-          ${habitos.length > 0
-            ? habitos.map(renderFila).join('')
-            : EmptyState('Sin hábitos todavía', 'Agrega el primero y empieza a marcar días.')}
-        </div>
-        ${await renderResumenHabitos(habitos, hoyIso)}
-      </div>
-
-      ${renderHabitoForm()}
-      ${renderProgresoModal()}
-    </div>
-  `;
+// --- Listeners ----------------------------------------------------------------
+async function repintar() {
+  const root = document.getElementById('view-root');
+  const html = await render();
+  if (!vistaVigente()) return;
+  soltarGraficos();
+  root.innerHTML = html;
+  mountListeners();
 }
 
-export async function render() {
-  if (vista === 'detalle' && habitoDetalleId) return renderDetalle(habitoDetalleId);
-  return renderLista();
+async function onSyncActualizado() {
+  if (hayModalAbierto()) return; // no pisar una hoja abierta
+  await repintar();
 }
 
-// Monta el Chart.js real de la dona de cumplimiento, recién después de
-// que el HTML ya está en el DOM — mismo patrón que initDesgloseChart() en
-// lab-tareas.js/lab-finanzas.js. Sin efecto si el canvas no existe (vista
-// de detalle) o si no hay datos para la dona (sin hábitos marcados aún).
-function initHabitosCharts() {
-  if (vista !== 'lista' || !analisisAbierto) return;
-  if (lastHabitosDonutEntries.length > 0) renderDonutChart('habitos-donut', lastHabitosDonutEntries);
-  initTendenciaChart();
+function onPopStateHabitos(e) {
+  if (vista === 'detalle' && (!e.state || !e.state.habitoDetalle)) {
+    vista = 'lista';
+    habitoDetalleId = null;
+    repintar();
+  }
 }
 
 export function mountListeners() {
@@ -640,89 +592,73 @@ export function mountListeners() {
     syncEnganchado = true;
     window.addEventListener('budget-updated', onSyncActualizado);
   }
-
-  const refresh = async () => {
-    const root = document.getElementById('view-root');
-    const htmlVista = await render();
-    if (!vistaVigente()) return;
-    root.innerHTML = htmlVista;
-    mountListeners();
-  };
-
-  initHabitosCharts();
-  const analisis = document.getElementById('habitos-analisis');
-  analisis?.addEventListener('toggle', () => {
-    analisisAbierto = analisis.open;
-    if (analisisAbierto) initHabitosCharts();
-  });
-  setupHabitoForm(refresh);
-  setupProgresoModal(refresh);
-
   if (!popstateEnganchado) {
     popstateEnganchado = true;
     window.addEventListener('popstate', onPopStateHabitos);
   }
 
-  const abrirDetalle = (id) => {
-    vista = 'detalle'; habitoDetalleId = id;
-    history.pushState({ habitoDetalle: true }, '');
-    refresh();
-  };
-  const volverALista = () => {
-    vista = 'lista'; habitoDetalleId = null;
-    // Si la entrada actual sigue siendo la que empujó abrirDetalle, la
-    // sacamos para no dejar un "atrás" fantasma que no vuelva a nada la
-    // próxima vez (mismo criterio que history.js con los modales).
-    if (history.state && history.state.habitoDetalle) history.back();
-    refresh();
-  };
+  setupHabitoForm(repintar);
+  montarHoja('progreso-modal');
+  montarGraficos();
 
-  const btnNew = document.getElementById('btn-new-habito');
-  if (btnNew) btnNew.addEventListener('click', () => openHabitoForm());
-
-  const btnVolver = document.getElementById('btn-volver-habito');
-  if (btnVolver) btnVolver.addEventListener('click', volverALista);
-
-  document.querySelectorAll('.habito-row').forEach(row => {
-    row.addEventListener('click', (e) => {
-      if (e.target.closest('.day-toggle-hoy') || e.target.closest('.day-progreso-hoy')) return;
-      abrirDetalle(row.getAttribute('data-id'));
+  // Pestañas (flechas para moverse entre ellas, como un tablist).
+  const tabs = [...document.querySelectorAll('.o-habitos .o-tab')];
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => {
+      if (tab.dataset.tab === pestana) return;
+      pestana = tab.dataset.tab;
+      repintar().then(() => document.getElementById(`hab-tab-${pestana}`)?.focus({ preventScroll: true }));
+    });
+    tab.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length].click();
     });
   });
 
-  // Optimista: pinta el círculo al instante y recién después escribe en
-  // IndexedDB — un check que espera a la base de datos se siente roto.
-  // Si la escritura falla, vuelve al estado anterior y avisa con un toast
-  // en vez de dejar un check mintiendo en pantalla.
-  const pintarCirculo = (btn, marcado) => {
-    const circle = btn.querySelector('.day-toggle-circle');
-    if (!circle) return;
-    btn.setAttribute('aria-pressed', String(marcado));
-    // Dos "sabores" de círculo comparten esta función: el toggle de hoy en
-    // la lista (data-borde-marca="1", relleno gris cuando no está marcado,
-    // check negro) y las celdas de la franja semanal en el detalle (sin
-    // relleno cuando no está marcado, solo borde fino, check blanco).
-    const esListaFlavor = !!circle.getAttribute('data-borde-marca');
-    if (esListaFlavor) {
-      circle.style.background = marcado ? 'var(--accent-purple)' : 'var(--surface-2)';
-      circle.style.borderColor = marcado ? 'transparent' : 'var(--surface-border)';
-    } else {
-      circle.style.background = marcado ? 'var(--accent-purple)' : 'transparent';
-      circle.style.borderColor = marcado ? 'transparent' : 'var(--surface-border)';
-      circle.style.borderWidth = marcado ? '0px' : '0.5px';
-    }
-    const size = circle.getAttribute('data-check-size') || '16';
-    const checkColor = esListaFlavor ? '#000' : '#fff';
-    circle.innerHTML = marcado
-      ? `<svg width="${size}" height="${size}" fill="none" stroke="${checkColor}" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`
-      : (esListaFlavor ? CHECK_SIN_MARCAR : '');
+  const abrirDetalle = (id) => {
+    vista = 'detalle'; habitoDetalleId = id;
+    history.pushState({ habitoDetalle: true }, '');
+    repintar().then(() => window.scrollTo(0, 0));
+  };
+  const volverALista = () => {
+    vista = 'lista'; habitoDetalleId = null;
+    // Sacar la entrada que empujó abrirDetalle para no dejar un "atrás" fantasma.
+    if (history.state && history.state.habitoDetalle) history.back();
+    repintar();
   };
 
-  // Días: mantener presionado (500 ms) o clic derecho un día de la franja del
-  // detalle abre la hoja "Día". El click que sigue al toque largo se descarta
-  // para no marcar el hábito de paso.
+  document.getElementById('btn-new-habito')?.addEventListener('click', () => openHabitoForm());
+  document.querySelectorAll('[data-nuevo-habito]').forEach(b => b.addEventListener('click', () => openHabitoForm()));
+  document.getElementById('btn-volver-habito')?.addEventListener('click', volverALista);
+  document.querySelectorAll('.habito-row').forEach(row => {
+    row.addEventListener('click', () => abrirDetalle(row.getAttribute('data-id')));
+  });
+
+  // Hoja de progreso: guarda el total del día con registrarProgresoHabito.
+  const progForm = document.getElementById('progreso-form');
+  bindQuickCaptureForm(progForm, async () => {
+    const btn = document.getElementById('btn-save-progreso');
+    const id = document.getElementById('progreso-habito-id').value;
+    const fecha = document.getElementById('progreso-fecha').value;
+    const cantidad = parseFloat(String(document.getElementById('progreso-cantidad').value).replace(',', '.')) || 0;
+    btn.disabled = true;
+    try {
+      await db.registrarProgresoHabito(id, fecha, cantidad);
+      await cerrarHoja('progreso-modal');
+      await esperarSalidaDeModal('progreso-modal');
+      await repintar();
+    } catch (err) {
+      console.error('Error al registrar el progreso:', err);
+      Toast('No se pudo guardar. Inténtalo de nuevo.', 'error');
+      btn.disabled = false;
+    }
+  });
+
+  // Días del detalle: mantener presionado (500 ms) o clic derecho abre la
+  // hoja «Día». El clic que sigue al toque largo se descarta.
   let ultimoLargo = 0;
-  const abrirDia = (fecha) => { ultimoLargo = Date.now(); abrirHojaDia(fecha, { alGuardar: () => refresh() }); };
+  const abrirDia = (fecha) => { ultimoLargo = Date.now(); abrirHojaDia(fecha, { alGuardar: () => repintar() }); };
   document.querySelectorAll('[data-dia-largo]').forEach(btn => {
     let timer = null;
     const cancelar = () => { clearTimeout(timer); timer = null; };
@@ -734,111 +670,86 @@ export function mountListeners() {
     ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => btn.addEventListener(t, cancelar));
     btn.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      // En táctil, el contextmenu llega junto con el toque largo: no abrir dos veces.
-      if (Date.now() - ultimoLargo < 800) return;
+      if (Date.now() - ultimoLargo < 800) return; // en táctil llega junto con el toque largo
       cancelar();
       abrirDia(btn.getAttribute('data-fecha'));
     });
   });
-  const descartarClick = (el) => el.getAttribute('aria-disabled') === 'true' || Date.now() - ultimoLargo < 800;
+  const descartarClic = (el) => el.getAttribute('aria-disabled') === 'true' || Date.now() - ultimoLargo < 800;
 
-  // Hábitos con meta numérica: un tap abre el mini-modal de cantidad en
-  // vez de togglear un booleano — necesitan un valor, no un check.
+  // Hábitos con cantidad: el toque abre la hoja de progreso.
   document.querySelectorAll('.day-progreso-hoy, .day-progreso').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const el = e.currentTarget;
-      if (descartarClick(el)) return;
-      const id = el.getAttribute('data-id');
-      const fecha = el.getAttribute('data-fecha');
+    btn.addEventListener('click', async () => {
+      if (descartarClic(btn)) return;
       const habitos = await db.getHabitos();
-      const habito = habitos.find(h => h.id === id);
-      if (habito) abrirProgresoModal(habito, fecha);
+      const h = habitos.find(x => x.id === btn.getAttribute('data-id'));
+      if (h) abrirProgreso(h, btn.getAttribute('data-fecha'));
     });
   });
 
+  // Marcar: optimista (se pinta al instante y después se escribe). Si la
+  // escritura no quedó, vuelve atrás y avisa.
+  const pintar = (el, marcado) => {
+    el.setAttribute('aria-pressed', String(marcado));
+    const celda = el.querySelector('.o-hab-celda');
+    if (celda) {
+      celda.classList.toggle('o-hab-celda--hecha', marcado);
+      celda.innerHTML = (celda.querySelector('.o-hab-nota')?.outerHTML || '') + (marcado ? oIcono('check') : '');
+    }
+  };
   document.querySelectorAll('.day-toggle-hoy, .day-toggle').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const el = e.currentTarget;
-      if (descartarClick(el)) return;
-      const id = el.getAttribute('data-id');
-      const fecha = el.getAttribute('data-fecha');
-      const estabaMarcado = el.getAttribute('aria-pressed') === 'true';
-      const nuevoMarcado = !estabaMarcado;
-
-      pintarCirculo(el, nuevoMarcado);
-
+    btn.addEventListener('click', async () => {
+      if (descartarClic(btn)) return;
+      const id = btn.getAttribute('data-id');
+      const fecha = btn.getAttribute('data-fecha');
+      const antes = btn.getAttribute('aria-pressed') === 'true';
+      pintar(btn, !antes);
       try {
         await db.toggleMarcaHabito(id, fecha);
-        // idbSetArray (db.js) atrapa sus propios errores de IndexedDB y
-        // solo los loguea — nunca rechaza la promesa hacia quien la llamó.
-        // Sin esta verificación, una escritura que falló en silencio se
-        // vería igual que una exitosa. Se relee para confirmar que el
-        // marcado realmente quedó como se pintó antes de confiar en él.
-        const habitosActuales = await db.getHabitos();
-        const habitoActual = habitosActuales.find(h => h.id === id);
-        const quedoMarcado = !!(habitoActual && habitoActual.marcas && habitoActual.marcas[fecha]);
-        if (quedoMarcado !== nuevoMarcado) throw new Error('La marca no se guardó en IndexedDB');
-        // El toque ya se vio al instante — este refresh solo pone al día
-        // la racha y otros contadores derivados, ya no bloquea la
-        // respuesta visual.
-        refresh();
+        // db.js atrapa sus errores de IndexedDB sin rechazar: se relee para
+        // confirmar que la marca quedó como se pintó.
+        const actual = (await db.getHabitos()).find(x => x.id === id);
+        const quedo = !!(actual && actual.marcas && actual.marcas[fecha]);
+        if (quedo === antes) throw new Error('La marca no se guardó en IndexedDB');
+        await repintar();
       } catch (err) {
         console.error('Error al marcar hábito:', err);
-        pintarCirculo(el, estabaMarcado);
-        Toast('No se pudo guardar — inténtalo de nuevo.', 'error');
+        pintar(btn, antes);
+        Toast('No se pudo guardar. Inténtalo de nuevo.', 'error');
       }
     });
   });
 
-  const btnEditarDetalle = document.getElementById('btn-editar-habito-detalle');
-  if (btnEditarDetalle) {
-    btnEditarDetalle.addEventListener('click', async () => {
-      const habitos = await db.getHabitos();
-      const habito = habitos.find(h => h.id === habitoDetalleId);
-      if (habito) openHabitoForm(habito);
-    });
-  }
+  document.getElementById('btn-editar-habito-detalle')?.addEventListener('click', async () => {
+    const h = (await db.getHabitos()).find(x => x.id === habitoDetalleId);
+    if (h) openHabitoForm(h);
+  });
 
-  const btnEliminarDetalle = document.getElementById('btn-eliminar-habito-detalle');
-  if (btnEliminarDetalle) {
-    btnEliminarDetalle.addEventListener('click', async () => {
-      const habitos = await db.getHabitos();
-      const habito = habitos.find(h => h.id === habitoDetalleId);
-      const diasRegistrados = habito ? Object.keys(habito.marcas || {}).length : 0;
-      const confirmed = await ConfirmDialog(
-        `Eliminar hábito${habito ? ' ' + habito.nombre : ''}`,
-        diasRegistrados > 0
-          ? `Se perderá el registro de ${diasRegistrados} día${diasRegistrados === 1 ? '' : 's'} marcado${diasRegistrados === 1 ? '' : 's'}. No se puede deshacer.`
-          : 'No se puede deshacer.',
-        { verb: 'Eliminar' }
-      );
-      if (confirmed) {
-        await db.eliminarHabito(habitoDetalleId);
-        Toast('Hábito eliminado', 'success');
-        volverALista();
-      }
-    });
-  }
+  document.getElementById('btn-eliminar-habito-detalle')?.addEventListener('click', async () => {
+    const h = (await db.getHabitos()).find(x => x.id === habitoDetalleId);
+    const dias = h ? Object.keys(h.marcas || {}).length : 0;
+    const ok = await ConfirmDialog(
+      `Eliminar hábito${h ? ' ' + h.nombre : ''}`,
+      dias > 0 ? `Se perderá el registro de ${plural(dias, 'día marcado', 'días marcados')}. No se puede deshacer.` : 'No se puede deshacer.',
+      { verb: 'Eliminar' }
+    );
+    if (!ok) return;
+    await db.eliminarHabito(habitoDetalleId);
+    Toast('Hábito eliminado', 'success');
+    volverALista();
+  });
 }
 
-// Llamado por el router (app.js) antes de desmontar esta vista — si el
-// detalle de un hábito estaba abierto (con su entrada de historial
-// empujada), su nodo va a desaparecer con el innerHTML de la vista nueva
-// sin pasar por volverALista(); hay que soltar esa entrada (mismo criterio
-// que forgetOpenModals en history.js) y resetear a la lista para la
-// próxima vez que se entre a Hábitos.
+// Llamado por el router antes de desmontar la vista: si el detalle estaba
+// abierto (con su entrada de historial), se suelta esa entrada y la próxima
+// entrada a Hábitos parte en la lista.
 export function cleanup() {
   window.removeEventListener('popstate', onPopStateHabitos);
   popstateEnganchado = false;
   window.removeEventListener('budget-updated', onSyncActualizado);
   syncEnganchado = false;
-  if (vista === 'detalle' && history.state && history.state.habitoDetalle) {
-    history.back();
-  }
+  if (vista === 'detalle' && history.state && history.state.habitoDetalle) history.back();
   vista = 'lista';
   habitoDetalleId = null;
-  destroyAllDonuts();
-  if (tendenciaChartInstance) { tendenciaChartInstance.destroy(); tendenciaChartInstance = null; }
+  soltarGraficos();
 }
