@@ -192,6 +192,14 @@ async function main() {
     await page.waitForFunction((s) => /almuerzo/i.test(document.querySelector(s)?.textContent || ''), SEL.movimientos, { timeout: 8000 });
   });
 
+  await prueba('Finanzas · Movimientos sigue llena al volver a la vista', async () => {
+    // Sigue a la prueba anterior: sale de Finanzas con Movimientos activa y vuelve sin tocar la pestaña.
+    await irA(page, 'dashboard');
+    await irA(page, 'finanzas');
+    afirmar(await page.locator(SEL.finTab('movimientos')).evaluate((e) => e.classList.contains('active')), 'Movimientos no quedó activa');
+    await page.waitForFunction((s) => /almuerzo/i.test(document.querySelector(s)?.textContent || ''), SEL.movimientos, { timeout: 8000 });
+  });
+
   await prueba('Acción 3b · botón Gasto abre el formulario', async () => {
     await irA(page, 'dashboard');
     await page.locator(SEL.qaGasto).click();

@@ -507,6 +507,10 @@ export async function init() {
       });
     });
 
+    // Al volver a Finanzas con Movimientos activa, la pestaña ya sale visible
+    // pero su lista solo se llenaba al tocarla: se llena aquí también.
+    if (activeFinTab === 'movimientos') renderHistoryList('All');
+
     initActivityHeatmapListeners('finanzas-heatmap', 'var(--am)');
 
     const elIncome = document.getElementById('stat-income');
