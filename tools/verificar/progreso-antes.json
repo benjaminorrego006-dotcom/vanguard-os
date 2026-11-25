@@ -1918,7 +1918,7 @@
       },
       {
         "nombre": "Correr 50 km",
-        "valor": "12.5 km / 50 km",
+        "valor": "12,5 km / 50 km",
         "pct": 25,
         "completada": false,
         "plazo": "Venció el 10 nov",
@@ -1936,6 +1936,23 @@
       }
     ]
   },
+  "metasGuardadas": [
+    {
+      "nombre": "20 sesiones este trimestre",
+      "actual": 0,
+      "meta": 20
+    },
+    {
+      "nombre": "Correr 50 km",
+      "actual": 12.5,
+      "meta": 50
+    },
+    {
+      "nombre": "Sentadilla 100 kg",
+      "actual": 100,
+      "meta": 100
+    }
+  ],
   "cuerpo": {
     "30": {
       "titulo": "Cuerpo",

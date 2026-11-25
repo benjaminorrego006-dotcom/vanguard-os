@@ -3,6 +3,7 @@
 // metas de Entreno (sesiones, km, personalizado). Misma barra de progreso
 // y fecha límite en los dos casos, solo cambia cómo se formatea el número.
 import { formatCurrency } from '../utils/currency.js';
+import { formatNumero } from '../utils/numero.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatFechaCorta, diaKeyDe, diasEntre } from '../utils/fecha.js';
 
@@ -63,11 +64,12 @@ export function getGoalSVG(icon, color = 'currentColor') {
 }
 
 // Formatea un valor de meta según su tipo: dinero usa formatCurrency, el
-// resto muestra el número con la unidad ("12 sesiones", "45 km").
+// resto muestra el número en formato es-CL con la unidad ("12 sesiones",
+// "12,5 km", "1.500 m"). Solo presentación: el valor guardado no cambia.
 export function formatGoalValue(goal, value) {
   if ((goal.dominio || 'finanzas') === 'finanzas') return formatCurrency(value);
-  const n = Math.round(value * 10) / 10;
-  return goal.unidad ? `${n} ${goal.unidad}` : `${n}`;
+  const n = formatNumero(Math.round((Number(value) || 0) * 10) / 10);
+  return goal.unidad ? `${n} ${goal.unidad}` : n;
 }
 
 export function renderGoalCard(goal) {

@@ -431,6 +431,10 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Sin cambios de datos ni de esquemas.** Los errores de las sub-pantallas pasan a una alerta Órbita con ícono y texto.
 - **Verificación (`fase-9c-2` y `fase-9c-3`, 66/66 cada una):** foto de Historial, Progreso y Cuerpo idéntica a la de antes (además, cuatro corridas sueltas sin diferencias; `fase-9c-1` tuvo una espera vencida en esa foto que no se repitió, y ahora el error indica el paso); 44 px y contraste AA en el historial, las cuatro pestañas de Progreso y Cuerpo, en 390 y 1440, color y sobrio; teclado de las pestañas de Progreso.
 
+#### Fase 9c · Arreglo: decimales de las metas de Entreno (24-11-2026)
+- `formatGoalValue` (`goal-card.js`) mostraba las metas que no son de dinero con punto decimal y sin separador de miles («12.5 km»). Ahora usa `formatNumero` (es-CL): «12,5 km», «1.500 m». Solo presentación: el valor guardado no cambia. Aplica a Progreso, al Laboratorio y a la confirmación de borrar una meta; las metas de dinero siguen con `formatCurrency`.
+- **Prueba:** la foto de la 9c registra ahora también los montos guardados de cada meta (sin formato) y la prueba exige «12,5 km / 50 km» en pantalla. En `progreso-antes.json` se cambió a propósito solo esa cifra (de «12.5» a «12,5») y se agregaron los montos guardados, que son los mismos de antes.
+
 ## 9. Riesgos y cómo se controlan
 
 | Riesgo | Mitigación |

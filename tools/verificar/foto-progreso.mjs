@@ -381,6 +381,11 @@ export async function recorrerProgreso(page, ui) {
   }
   await elegir(page, ui.tab('metas'), '#btn-lab-entreno-nueva-meta');
   foto.metas = await page.evaluate(ui.metas);
+  // Lo guardado (números, sin formato): la presentación no lo cambia.
+  foto.metasGuardadas = await page.evaluate(async () => {
+    const { db } = await import('/js/core/db.js');
+    return (await db.getGoals('entreno')).map((g) => ({ nombre: g.name, actual: g.currentAmount, meta: g.targetAmount }));
+  });
 
   paso("cuerpo");
   // Cuerpo: el gráfico de peso en cada rango (y vuelta a 90 días).

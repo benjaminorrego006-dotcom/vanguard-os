@@ -1494,11 +1494,14 @@ async function main() {
     afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
   });
 
-  await prueba('Entreno › Historial, Progreso completo y Cuerpo · cifras y gráficos idénticos a la foto de antes de la Fase 9c', async () => {
+  await prueba('Entreno › Historial, Progreso completo y Cuerpo · cifras y gráficos idénticos a la foto de antes de la Fase 9c (metas con coma decimal)', async () => {
     // Contexto propio (datos demo, medidas, metas y fotos de foto-progreso.mjs), leído por la interfaz Órbita.
     const despues = await tomarFotoProgreso(browser, BASE, { ui: UI_ORBITA_PROGRESO, capturas: path.join(SALIDA, 'progreso-foto') });
     fs.writeFileSync(path.join(SALIDA, 'progreso-despues.json'), JSON.stringify(despues, null, 2) + '\n');
     afirmar(despues.errores.length === 0, `errores de consola: ${despues.errores[0]}`);
+    // Metas de Entreno con coma decimal (es-CL), solo en la presentación.
+    const correr = despues.metas.metas.find((m) => m.nombre === 'Correr 50 km');
+    afirmar(correr && correr.valor === '12,5 km / 50 km', `meta en km: «${correr && correr.valor}»`);
     const difs = compararFotos(JSON.parse(fs.readFileSync(ARCHIVO_ANTES_PROGRESO, 'utf8')), despues);
     afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
   });
