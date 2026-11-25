@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (25-11-2026):** la **Fase 8 (Finanzas) está terminada**, hojas incluidas. La **Fase 9 (Entreno)** va por partes: **9a lista** (pestañas Inicio · Rutinas · Progreso) y **9b lista** (lista de rutinas, vistas previas y formularios de rutina en Órbita; `verificar.mjs fase-9b-4` OK, fotos de cifras idénticas a las de antes). El buscador de Inicio también quedó (commit aparte, `verificar.mjs buscador-2`). **9c lista** (Historial, Progreso completo y Cuerpo en Órbita; foto de cifras idéntica a la de antes). **9d lista** (sesión activa de GYM y Calistenia en Órbita; foto de cifras idéntica y la sesión sobrevive a salir, al atrás y a recargar). **9e lista** (hojas de Entreno, temporizador de HIIT y descanso activo en Órbita; foto de cifras idéntica, el HIIT se sigue perdiendo al salir como antes). Sigue 9f (que el HIIT y el descanso activo se retomen como la sesión de GYM).
+> **Estado actual (25-11-2026):** la **Fase 8 (Finanzas) está terminada**, hojas incluidas. La **Fase 9 (Entreno)** va por partes: **9a lista** (pestañas Inicio · Rutinas · Progreso) y **9b lista** (lista de rutinas, vistas previas y formularios de rutina en Órbita; `verificar.mjs fase-9b-4` OK, fotos de cifras idénticas a las de antes). El buscador de Inicio también quedó (commit aparte, `verificar.mjs buscador-2`). **9c lista** (Historial, Progreso completo y Cuerpo en Órbita; foto de cifras idéntica a la de antes). **9d lista** (sesión activa de GYM y Calistenia en Órbita; foto de cifras idéntica y la sesión sobrevive a salir, al atrás y a recargar). **9e lista** en `rediseno-orbita` (`bb2be74`): hojas de Entreno, temporizador de HIIT y descanso activo en Órbita, con la foto de cifras idéntica. Falta una verificación completa en verde: `fase-9e-5` dio 69/70, y la única falla fue una espera vencida al preparar los datos de una foto que, corrida sola dos veces, pasó. **9f preparada y aplicada solo en la rama `wip-9e-9f`** (`368d866`, sin verificación completa; ver `docs/rediseno/wip-9f.md`): el HIIT y el descanso activo se retoman, y atrás en el resumen del HIIT guarda la sesión. **Pendiente:** las esperas vencidas de 30 s al preparar los datos de las fotos (intermitentes; commit aparte de herramientas). Después viene la Fase 10 (Perfil: Laboratorio, Ritual y Configuración).
 >
 > **Obligatorio antes de fusionar `rediseno-orbita` con `worktree-dashboard-mk3`:** prueba con los datos reales del usuario. Cargar su respaldo (sin copiarlo al repo ni subirlo a git) en un perfil de navegador aislado con `supabase.co` bloqueado, primero en `worktree-dashboard-mk3` y luego en `rediseno-orbita`, y comparar en una tabla las cifras de Finanzas, las rachas de Hábitos y las tareas pendientes. Pendiente desde el 24-11-2026: el respaldo no estaba en la ruta indicada.
 
@@ -464,6 +464,24 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Verificación (`fase-9e-5`, 69/70):** la foto de cifras es idéntica a la de antes. La única falla fue una espera vencida al preparar los datos de la foto de la sesión de la 9d, sin diferencias de cifras; corrida sola dos veces, pasó sin diferencias. La causa de esas esperas se busca después de la 9f. Pasan 44 px, contraste AA y «sin restos de MK III» en el temporizador (cuatro modos, en curso, hoja de resumen y fin), el descanso activo y cada hoja, en 390 y 1440, color y sobrio.
 - **Antes de la 9e, en su propio commit (`d2af677`):** «1RM estimado» en el progreso de un ejercicio de la sesión quedaba en 4,49:1 (tarjeta dentro de otra tarjeta, de la 9d). Ahí deja de ser tarjeta aparte.
 - **Pendiente para la 9f (bug anterior):** con la hoja de resumen del HIIT abierta, el botón atrás la cierra sin resolver la pregunta y la sesión no se guarda. Igual que antes.
+
+#### Fase 9f · Entreno: el HIIT y el descanso activo se retoman (25-11-2026, WIP en `wip-9e-9f`)
+- **Borrador** (`utils/sesion-borrador.js`): usa la misma clave que la sesión de GYM (`vanguard.sesionEnCurso`), así que sigue habiendo una sola sesión en curso. Es estado de un solo dispositivo y no va al log. Los borradores sin `tipo` son de GYM o Calistenia, como antes.
+  - `tipo: 'hiit'` nace al tocar «Iniciar timer». Guarda el modo, los ajustes, la hora de inicio y las rondas de AMRAP. El tiempo no se guarda.
+  - `tipo: 'descanso'` nace al abrir el descanso activo.
+  - Se borra al guardar la sesión, al marcar el descanso como hecho o con «Descartar».
+- **HIIT retomado** (`hiit-timer.js`, `estadoHiitEn`): vuelve donde va según la hora real, con las mismas reglas de fases del temporizador. Mientras estás fuera no hay voz ni pitidos, y al volver no se anuncia nada.
+  - Si terminó fuera de la pantalla, «Retomar» pide el resumen y lo guarda con su duración real (su hora de término), no con la hora de ahora.
+  - Si lo detuviste y saliste con el resumen abierto, el borrador queda como terminado y «Retomar» vuelve a esa hoja.
+- **Atrás en el resumen del HIIT** (`session-summary-form.js`): cerrar la hoja sin elegir (con atrás o deslizándola) cuenta como «Omitir». La sesión se guarda una sola vez con su duración real. Antes la pregunta quedaba sin responder y la sesión se perdía.
+- **Inicio:** la tarjeta «Tienes una sesión en curso» dice por dónde va cada tipo, por ejemplo «HIIT Tabata · ronda 3 de 8», «AMRAP · 4 rondas», «terminado, falta guardarlo» o «Descanso activo sin marcar». «Descartar» explica qué se pierde en cada caso. Empezar cualquier sesión con otra en curso pide descartarla, como ya pasaba entre GYM y Calistenia.
+- **Prueba** (`foto-hojas.mjs`): la parte «salida» de `hojas-antes.json` se cambió a propósito (antes registraba que el HIIT se perdía) y se agregó la parte «fin». El resto de la foto sigue idéntico.
+  - **HIIT:** se retoma tras Volver, otra vista y atrás. Vuelve en el descanso de la ronda 1 con 00:05 y pasa a la ronda 2 con su voz seis segundos después. No hay voz mientras está fuera.
+  - **Descanso activo:** se retoma en las cuatro salidas, recarga incluida.
+  - **Recarga una hora después:** el HIIT ya terminado se guarda con 4 min.
+  - **Atrás con el resumen abierto:** la sesión queda guardada con 1 min y sale un solo `sesion_registrada`, que sigue siendo uno después de recargar. `verificar.mjs` además lo afirma explícitamente.
+- **Sin cambios de esquemas ni de eventos.**
+- **Verificación:** pendiente (WIP). La foto de la 9e corrida sola salió dos veces seguidas sin diferencias; `fase-9f-1` se detuvo con 35 pruebas OK y ninguna falla.
 
 ## 9. Riesgos y cómo se controlan
 
