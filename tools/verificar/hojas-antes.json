@@ -755,28 +755,154 @@
       }
     },
     "volver": {
-      "hiitAbierto": false,
-      "tarjetaEnCurso": false,
+      "hiitAbierto": true,
       "sesiones": 26,
-      "vozTrasSalir": []
+      "vozFuera": [],
+      "tarjeta": "Tienes una sesión en curso Tabata express · 0 min HIIT Tabata · ronda 1 de 8 Retomar Descartar",
+      "retomado": {
+        "titulo": "Tabata express",
+        "ejercicios": [
+          "Burpees"
+        ],
+        "vista": "hiit-active-view",
+        "activo": {
+          "fase": "DESCANSO",
+          "tiempo": "00:05",
+          "ronda": "Ronda 1 / 8",
+          "siguiente": "Siguiente: Burpees",
+          "record": null,
+          "amrapBtn": null,
+          "actual": 0
+        }
+      },
+      "vozAlRetomar": [],
+      "seisSegundos": {
+        "titulo": "Tabata express",
+        "ejercicios": [
+          "Burpees"
+        ],
+        "vista": "hiit-active-view",
+        "activo": {
+          "fase": "TRABAJO",
+          "tiempo": "00:19",
+          "ronda": "Ronda 2 / 8",
+          "siguiente": null,
+          "record": null,
+          "amrapBtn": null,
+          "actual": 0
+        }
+      },
+      "voz6s": [
+        "Prepárate",
+        "Trabajo"
+      ],
+      "sesionesTrasDescartar": 26
     },
     "otraVista": {
-      "hiitAbierto": false,
-      "tarjetaEnCurso": false,
+      "hiitAbierto": true,
       "sesiones": 26,
-      "vozTrasSalir": []
+      "vozFuera": [],
+      "tarjeta": "Tienes una sesión en curso Tabata express · 0 min HIIT Tabata · ronda 1 de 8 Retomar Descartar",
+      "retomado": {
+        "titulo": "Tabata express",
+        "ejercicios": [
+          "Burpees"
+        ],
+        "vista": "hiit-active-view",
+        "activo": {
+          "fase": "DESCANSO",
+          "tiempo": "00:05",
+          "ronda": "Ronda 1 / 8",
+          "siguiente": "Siguiente: Burpees",
+          "record": null,
+          "amrapBtn": null,
+          "actual": 0
+        }
+      },
+      "vozAlRetomar": [],
+      "seisSegundos": {
+        "titulo": "Tabata express",
+        "ejercicios": [
+          "Burpees"
+        ],
+        "vista": "hiit-active-view",
+        "activo": {
+          "fase": "TRABAJO",
+          "tiempo": "00:19",
+          "ronda": "Ronda 2 / 8",
+          "siguiente": null,
+          "record": null,
+          "amrapBtn": null,
+          "actual": 0
+        }
+      },
+      "voz6s": [
+        "Prepárate",
+        "Trabajo"
+      ],
+      "sesionesTrasDescartar": 26
     },
     "atras": {
-      "hiitAbierto": false,
-      "tarjetaEnCurso": false,
+      "hiitAbierto": true,
       "sesiones": 26,
-      "vozTrasSalir": []
+      "vozFuera": [],
+      "tarjeta": "Tienes una sesión en curso Tabata express · 0 min HIIT Tabata · ronda 1 de 8 Retomar Descartar",
+      "retomado": {
+        "titulo": "Tabata express",
+        "ejercicios": [
+          "Burpees"
+        ],
+        "vista": "hiit-active-view",
+        "activo": {
+          "fase": "DESCANSO",
+          "tiempo": "00:05",
+          "ronda": "Ronda 1 / 8",
+          "siguiente": "Siguiente: Burpees",
+          "record": null,
+          "amrapBtn": null,
+          "actual": 0
+        }
+      },
+      "vozAlRetomar": [],
+      "seisSegundos": {
+        "titulo": "Tabata express",
+        "ejercicios": [
+          "Burpees"
+        ],
+        "vista": "hiit-active-view",
+        "activo": {
+          "fase": "TRABAJO",
+          "tiempo": "00:19",
+          "ronda": "Ronda 2 / 8",
+          "siguiente": null,
+          "record": null,
+          "amrapBtn": null,
+          "actual": 0
+        }
+      },
+      "voz6s": [
+        "Prepárate",
+        "Trabajo"
+      ],
+      "sesionesTrasDescartar": 26
     },
-    "recarga": {
-      "hiitAbierto": false,
-      "tarjetaEnCurso": false,
-      "sesiones": 26,
-      "vozTrasSalir": []
+    "descanso": {
+      "volver": {
+        "tarjeta": "Tienes una sesión en curso Día 7 · Movilidad · 2 min Descanso activo sin marcar Retomar Descartar",
+        "retomado": "DescansoactivoDía7·MovilidadHoynotocafuerza:lasemanayaquedócubierta.Camina30–45minaritmocómodo10mindemovilidad:caderas,hombrosycolumnaDuerme7–9hMarcarcomohecho"
+      },
+      "otraVista": {
+        "tarjeta": "Tienes una sesión en curso Día 7 · Movilidad · 2 min Descanso activo sin marcar Retomar Descartar",
+        "retomado": "DescansoactivoDía7·MovilidadHoynotocafuerza:lasemanayaquedócubierta.Camina30–45minaritmocómodo10mindemovilidad:caderas,hombrosycolumnaDuerme7–9hMarcarcomohecho"
+      },
+      "atras": {
+        "tarjeta": "Tienes una sesión en curso Día 7 · Movilidad · 2 min Descanso activo sin marcar Retomar Descartar",
+        "retomado": "DescansoactivoDía7·MovilidadHoynotocafuerza:lasemanayaquedócubierta.Camina30–45minaritmocómodo10mindemovilidad:caderas,hombrosycolumnaDuerme7–9hMarcarcomohecho"
+      },
+      "recarga": {
+        "tarjeta": "Tienes una sesión en curso Día 7 · Movilidad · 15 min Descanso activo sin marcar Retomar Descartar",
+        "retomado": "DescansoactivoDía7·MovilidadHoynotocafuerza:lasemanayaquedócubierta.Camina30–45minaritmocómodo10mindemovilidad:caderas,hombrosycolumnaDuerme7–9hMarcarcomohecho"
+      }
     }
   },
   "descansoActivo": {
@@ -1061,5 +1187,79 @@
       "duracion": 45
     }
   },
-  "errores": []
+  "errores": [],
+  "fin": {
+    "recarga": {
+      "sesiones": 27,
+      "tarjeta": "Tienes una sesión en curso Tabata express · 1 h 0 min HIIT Tabata · terminado, falta guardarlo Retomar Descartar",
+      "hiit": {
+        "titulo": "Tabata express",
+        "ejercicios": [
+          "Burpees"
+        ],
+        "vista": "hiit-active-view",
+        "activo": {
+          "fase": "DESCANSO",
+          "tiempo": "00:00",
+          "ronda": "Ronda 8 / 8",
+          "siguiente": null,
+          "record": null,
+          "amrapBtn": null,
+          "actual": 0
+        }
+      },
+      "fin": {
+        "titulo": "Tabata express",
+        "ejercicios": [
+          "Burpees"
+        ],
+        "vista": "hiit-summary-view",
+        "resumen": {
+          "titulo": "¡Sesión Completada!",
+          "datos": "Duración:4minEnergíaestimada:~40kcal"
+        }
+      },
+      "guardada": {
+        "nombreRutina": "Tabata express (TABATA)",
+        "duracionMin": 4,
+        "completado": true,
+        "rpe": null,
+        "notas": "",
+        "ejercicios": "[{\"ejercicioId\":null,\"nombre\":\"HIIT Performance\",\"series\":[{\"tipo\":\"normal\",\"reps\":\"0\",\"peso\":0}]}]"
+      },
+      "sesionesDespues": 28,
+      "voz": [],
+      "tarjetaDespues": null
+    },
+    "resumenAtras": {
+      "sesiones": 28,
+      "hojaAbierta": false,
+      "fin": {
+        "titulo": "Tabata express",
+        "ejercicios": [
+          "Burpees"
+        ],
+        "vista": "hiit-summary-view",
+        "resumen": {
+          "titulo": "¡Sesión Completada!",
+          "datos": "Duración:1minEnergíaestimada:~10kcal"
+        }
+      },
+      "guardada": {
+        "nombreRutina": "Tabata express (TABATA)",
+        "duracionMin": 1,
+        "completado": false,
+        "rpe": null,
+        "notas": "",
+        "ejercicios": "[{\"ejercicioId\":null,\"nombre\":\"HIIT Performance\",\"series\":[{\"tipo\":\"normal\",\"reps\":\"0\",\"peso\":0}]}]"
+      },
+      "sesionesDespues": 29,
+      "eventosNuevos": 1,
+      "eventoEsLaSesion": true,
+      "tarjeta": null,
+      "tarjetaTrasRecargar": null,
+      "eventosTrasRecargar": 1,
+      "sesionesTrasRecargar": 29
+    }
+  }
 }

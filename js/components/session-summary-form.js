@@ -60,12 +60,27 @@ export function askSessionSummary() {
     });
 
     // Se resuelve en el acto (como antes); sacar "open" suelta su entrada
-    // de historial (history.js).
+    // de historial (history.js). Una sola vez: el observador de abajo
+    // también llama a close.
+    let resuelta = false;
+    let observador = null;
     const close = (result) => {
+      if (resuelta) return;
+      resuelta = true;
+      observador?.disconnect();
       modal.classList.remove('open');
       modal.style.display = 'none';
       resolve(result);
     };
+    // Fase 9f: si la hoja se cierra sin elegir (el botón atrás o deslizarla
+    // hacia abajo, que solo le sacan "open"), cuenta como Omitir. Antes la
+    // promesa quedaba colgada y la sesión no se guardaba.
+    let abierta = false;
+    observador = new MutationObserver(() => {
+      if (modal.classList.contains('open')) abierta = true;
+      else if (abierta) close({ rpe: null, notas: '' });
+    });
+    observador.observe(modal, { attributes: true, attributeFilter: ['class'] });
 
     newSkip.addEventListener('click', () => close({ rpe: null, notas: '' }));
     newSave.addEventListener('click', () => close({ rpe: selectedRpe, notas: notasEl.value.trim() }));

@@ -18,7 +18,7 @@ import { renderGeneradorConfigForm, setupGeneradorConfigForm, openGeneradorConfi
 import { renderRutinaForm, initRutinaFormListeners } from '../components/rutina-form.js';
 import { renderHiitRutinaForm, initHiitRutinaFormListeners } from '../components/hiit-rutina-form.js';
 import { renderRutinaSession, initRutinaSessionListeners, cleanupSessionTimer } from '../components/rutina-session.js';
-import { renderHiitTimer, initHiitTimerListeners, cleanupHiitTimer } from '../components/hiit-timer.js';
+import { renderHiitTimer, initHiitTimerListeners, cleanupHiitTimer, estadoHiitEn } from '../components/hiit-timer.js';
 import { WEEKLY_GOALS } from '../core/trainingConfig.js';
 import { renderProfileForm, setupProfileForm, openProfileForm } from '../components/profile-form.js';
 import { renderNivelOnboardingForm, setupNivelOnboardingForm, openNivelOnboardingForm } from '../components/nivel-onboarding-form.js';
@@ -270,6 +270,25 @@ function calcularUltimaSesionPorCategoria(sesiones, rutinasPorId) {
   return ultima;
 }
 
+// Segunda línea de la tarjeta según el tipo de borrador: series marcadas
+// (GYM y Calistenia), por dónde va el HIIT o el descanso activo (9f).
+const MODO_HIIT = { free: 'Libre', tabata: 'Tabata', emom: 'EMOM', amrap: 'AMRAP' };
+function detalleEnCurso(b) {
+  if (b.tipo === 'descanso') return 'Descanso activo sin marcar';
+  if (b.tipo === 'hiit') {
+    const modo = `HIIT ${MODO_HIIT[b.modo]}`;
+    const e = b.terminada ? null : estadoHiitEn(b);
+    if (!e || e.terminado) return `${modo} · terminado, falta guardarlo`;
+    if (b.modo === 'amrap') {
+      const n = Number(b.rondasAmrap) || 0;
+      return `${modo} · <span class="o-num">${n}</span> ${n === 1 ? 'ronda' : 'rondas'}`;
+    }
+    return `${modo} · ${b.modo === 'emom' ? 'intervalo' : 'ronda'} <span class="o-num">${e.currentRound}</span> de <span class="o-num">${b.rondas}</span>`;
+  }
+  const marcadas = b.ejercicios.reduce((n, ej) => n + (ej.series || []).filter(s => s.checked).length, 0);
+  return `<span class="o-num">${marcadas}</span> ${marcadas === 1 ? 'serie marcada' : 'series marcadas'}`;
+}
+
 // Tarjeta "Tienes una sesión en curso" (borrador en localStorage, ver
 // utils/sesion-borrador.js). Hasta 12 h muestra cuánto lleva; un borrador
 // más viejo muestra cuándo empezó (al guardarlo se pregunta la duración).
@@ -288,12 +307,11 @@ function renderSesionEnCurso(b) {
       ? `<span class="o-num">${Math.floor(min / 60)}</span> h <span class="o-num">${min % 60}</span> min`
       : `<span class="o-num">${min}</span> min`;
   }
-  const marcadas = b.ejercicios.reduce((n, ej) => n + (ej.series || []).filter(s => s.checked).length, 0);
   return `
     <section id="entreno-sesion-en-curso" class="o-card o-card--destacada o-ent-encurso" aria-labelledby="ent-encurso-rot">
       <p class="o-rotulo" id="ent-encurso-rot">Tienes una sesión en curso</p>
       <h2 class="o-ent-titulo">${nombre} <span class="o-ent-encurso-tiempo">· ${tiempo}</span></h2>
-      <p class="o-card-texto"><span class="o-num">${marcadas}</span> ${marcadas === 1 ? 'serie marcada' : 'series marcadas'}</p>
+      <p class="o-card-texto">${detalleEnCurso(b)}</p>
       <div class="o-ent-acciones">
         <button type="button" id="btn-sesion-en-curso-retomar" class="o-btn o-btn--primario">Retomar</button>
         <button type="button" id="btn-sesion-en-curso-descartar" class="o-btn o-btn--secundario">Descartar</button>
@@ -602,7 +620,11 @@ mountListeners = () => {
   });
   document.getElementById('btn-sesion-en-curso-descartar')?.addEventListener('click', async () => {
     const borrador = leerBorrador();
-    const ok = await ConfirmDialog('¿Descartar la sesión en curso?', `Se pierden las series que marcaste${borrador && borrador.nombreRutina ? ` en ${borrador.nombreRutina}` : ''}.`, { verb: 'Descartar' });
+    const en = borrador && borrador.nombreRutina ? ` en ${borrador.nombreRutina}` : '';
+    const queSePierde = borrador?.tipo === 'hiit' ? `Se pierde el HIIT que llevas${en}.`
+      : borrador?.tipo === 'descanso' ? `El descanso activo${en} queda sin marcar.`
+        : `Se pierden las series que marcaste${en}.`;
+    const ok = await ConfirmDialog('¿Descartar la sesión en curso?', queSePierde, { verb: 'Descartar' });
     if (!ok) { document.getElementById('btn-sesion-en-curso-descartar')?.focus(); return; }
     borrarBorrador();
     // Sin la sesión en curso, Empezar vuelve a ser el botón principal.
@@ -935,13 +957,13 @@ mountListeners = () => {
     document.getElementById('btn-entreno-vacio-manual')?.addEventListener('click', () => goToForm(vacio.dataset.cat));
   }
 
-  // opciones.borrador: retomar esa sesión en curso (GYM/Calistenia). Sin él,
-  // una sesión nueva de GYM/Calistenia con otra ya en curso pide descartarla
-  // antes (el borrador es uno solo y empezar otra lo reemplazaría).
+  // opciones.borrador: retomar esa sesión en curso (GYM/Calistenia y, desde
+  // la 9f, HIIT y descanso activo; su `tipo` dice cuál). Sin él, una sesión
+  // nueva con otra ya en curso pide descartarla antes (el borrador es uno
+  // solo y empezar otra lo reemplazaría).
   const goToSession = async (rutina, opciones = {}) => {
     const borrador = opciones.borrador || null;
-    const usaBorrador = (r) => !esDescansoActivo(r, r.categoria) && r.categoria !== 'hiit';
-    if (!borrador && usaBorrador(rutina)) {
+    if (!borrador) {
       const enCurso = leerBorrador();
       if (enCurso) {
         const ok = await ConfirmDialog('Ya tienes una sesión en curso', `Si empiezas ${rutina.nombre}, se descarta lo que llevas de ${enCurso.nombreRutina || 'la otra sesión'}.`, { verb: 'Descartar y empezar' });
@@ -960,7 +982,13 @@ mountListeners = () => {
     mostrarSubVista();
 
     try {
-      if (borrador) {
+      if (borrador?.tipo === 'descanso') {
+        subContent.innerHTML = renderDescansoActivoSesion(rutina);
+        initDescansoActivoListeners(rutina, async () => goToMain(), signal, { borrador });
+      } else if (borrador?.tipo === 'hiit') {
+        subContent.innerHTML = renderHiitTimer(rutina);
+        initHiitTimerListeners(rutina, async () => goToMain(), signal, { borrador });
+      } else if (borrador) {
         // Retomar: los ejercicios y series del borrador, y su hora de inicio.
         const retomada = { ...rutina, ejercicios: borrador.ejercicios };
         modoSesion(true);

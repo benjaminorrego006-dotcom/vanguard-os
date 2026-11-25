@@ -2,6 +2,37 @@ import { db } from '../core/db.js';
 import { playBeep, speakPhase } from '../core/audio.js';
 import { renderSessionSummaryForm, askSessionSummary } from './session-summary-form.js';
 import { escapeHtml } from '../utils/escape.js';
+import { guardarBorrador, borrarBorrador } from '../utils/sesion-borrador.js';
+
+// Fase 9f: el HIIT en marcha deja un borrador (utils/sesion-borrador.js) y
+// se retoma como la sesión de GYM. El tiempo no se guarda: sale de la hora
+// de inicio. Los segundos que pasaron fuera corren igual que si el
+// temporizador hubiera seguido en pantalla (sin voz ni pitidos mientras
+// tanto), con las mismas reglas de fases que el intervalo de abajo.
+// Devuelve { terminado, fin (ms) } o { phase, timeRemaining, currentRound }.
+export function estadoHiitEn(b, ahora = Date.now()) {
+  const t = Math.max(0, Math.floor((ahora - b.inicio) / 1000));
+  const seg = (n) => Math.max(1, Math.floor(Number(n)) || 1);
+  if (b.modo === 'amrap') {
+    const total = seg(b.totalSeg);
+    return t >= total ? { terminado: true, fin: b.inicio + total * 1000 } : { phase: 'work', timeRemaining: total - t, currentRound: 1 };
+  }
+  const rondas = seg(b.rondas);
+  if (b.modo === 'emom') {
+    const intervalo = seg(b.intervaloSeg);
+    if (t >= rondas * intervalo) return { terminado: true, fin: b.inicio + rondas * intervalo * 1000 };
+    return { phase: 'work', timeRemaining: intervalo - (t % intervalo), currentRound: Math.floor(t / intervalo) + 1 };
+  }
+  // Libre y Tabata: trabajo y descanso por ronda; termina con el descanso de la última.
+  const trabajo = seg(b.trabajoSeg);
+  const ciclo = trabajo + seg(b.descansoSeg);
+  if (t >= rondas * ciclo) return { terminado: true, fin: b.inicio + rondas * ciclo * 1000 };
+  const dentro = t % ciclo;
+  const currentRound = Math.floor(t / ciclo) + 1;
+  return dentro < trabajo
+    ? { phase: 'work', timeRemaining: trabajo - dentro, currentRound }
+    : { phase: 'rest', timeRemaining: ciclo - dentro, currentRound };
+}
 
 // Órbita (Fase 9e): misma lógica y mismos ids; la maqueta usa clases de
 // css/entreno.css (.o-ent-tim*) y el estado va en atributos (modo con
@@ -97,7 +128,8 @@ export function renderHiitTimer(rutina) {
   `;
 }
 
-export function initHiitTimerListeners(rutina, onSuccess, signal) {
+// opciones.borrador: retomar ese HIIT en curso (9f).
+export function initHiitTimerListeners(rutina, onSuccess, signal, opciones = {}) {
   // Load Streak
   const elRachaActual = document.getElementById('hiit-racha-actual');
   const elRachaMejor = document.getElementById('hiit-racha-mejor');
@@ -301,9 +333,31 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
     }
   };
 
-  const finishSessionLogic = async (completed) => {
+  // Borrador del HIIT en marcha (9f): lo que hace falta para recalcularlo.
+  const guardarHiit = (terminada) => guardarBorrador({
+    tipo: 'hiit',
+    rutinaId: rutina.id,
+    nombreRutina: rutina.nombre,
+    categoria: 'hiit',
+    inicio: currentState.startTime.getTime(),
+    modo: currentState.mode,
+    trabajoSeg: currentState.workSecs,
+    descansoSeg: currentState.restSecs,
+    rondas: currentState.totalRounds,
+    intervaloSeg: currentState.emomIntervalSecs,
+    totalSeg: currentState.amrapTotalSecs,
+    rondasAmrap: currentState.amrapCount,
+    ...(terminada ? { terminada } : {})
+  });
+
+  // `fin`: cuándo terminó (al retomar uno que terminó fuera de la pantalla,
+  // su hora de término real, no la de ahora).
+  const finishSessionLogic = async (completed, fin = new Date()) => {
     cleanupHiitTimer();
-    const duracionMin = currentState.startTime ? Math.max(1, Math.floor((new Date() - currentState.startTime) / 60000)) : 0;
+    // Hasta que se guarde, el borrador queda como terminado: si sales con
+    // la hoja del resumen abierta, «Retomar» vuelve a esa hoja.
+    if (currentState.startTime) guardarHiit({ completado: completed, fin: fin.getTime() });
+    const duracionMin = currentState.startTime ? Math.max(1, Math.floor((fin - currentState.startTime) / 60000)) : 0;
     
     // Calculate Calories
     let factor = 8;
@@ -321,6 +375,7 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
       rpe: summary.rpe,
       notas: summary.notas
     });
+    borrarBorrador();
 
     activeView.style.display = 'none';
     summaryView.style.display = 'flex';
@@ -330,6 +385,20 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
       <p>Energía estimada: <strong class="o-num">~${estKcal} kcal</strong></p>
       ${currentState.mode === 'amrap' ? `<p>Rondas completadas: <strong class="o-num">${currentState.amrapCount}</strong></p>` : ''}
     `;
+  };
+
+  // AMRAP: botón de ronda y récord de la rutina.
+  const mostrarAmrap = () => {
+    btnAmrapAdd.style.display = '';
+    const recordEl = document.getElementById('hiit-amrap-record');
+    if (recordEl) {
+      db.getMejorAmrap(rutina.id).then(record => {
+        if (record > 0) {
+          recordEl.innerHTML = `${crownSvg}Mejor histórico: ${record} rondas`;
+          recordEl.style.display = 'block';
+        }
+      });
+    }
   };
 
   document.getElementById('btn-hiit-start').addEventListener('click', () => {
@@ -348,23 +417,14 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
     } else if (currentState.mode === 'amrap') {
       const mins = parseInt(document.getElementById('hiit-s-amrap-mins').value) || 15;
       currentState.timeRemaining = mins * 60;
+      currentState.amrapTotalSecs = mins * 60;
       currentState.totalRounds = 1;
-      btnAmrapAdd.style.display = '';
-      
-      const recordEl = document.getElementById('hiit-amrap-record');
-      if (recordEl) {
-        db.getMejorAmrap(rutina.id).then(record => {
-          if (record > 0) {
-            recordEl.innerHTML = `${crownSvg}Mejor histórico: ${record} rondas`;
-            recordEl.style.display = 'block';
-          }
-        });
-      }
+      mostrarAmrap();
     }
 
     setupView.style.display = 'none';
     activeView.style.display = 'flex';
-    
+
     if (currentState.mode === 'free' || currentState.mode === 'tabata') {
       currentState.phase = 'work';
       currentState.timeRemaining = currentState.workSecs;
@@ -387,6 +447,7 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
 
     updateDisplay();
     currentState.startTime = new Date();
+    guardarHiit();
     playBeep();
     startTimerLogic();
   });
@@ -394,6 +455,7 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
   btnAmrapAdd.addEventListener('click', () => {
     currentState.amrapCount++;
     updateDisplay();
+    guardarHiit();
   });
 
   document.getElementById('btn-hiit-stop').addEventListener('click', () => {
@@ -403,6 +465,42 @@ export function initHiitTimerListeners(rutina, onSuccess, signal) {
   document.getElementById('btn-hiit-close').addEventListener('click', () => {
     if (onSuccess) onSuccess();
   });
+
+  // Retomar (9f): el temporizador sigue donde va según la hora real, sin
+  // anunciar nada al volver. Si terminó fuera de la pantalla (o se detuvo
+  // y quedó la hoja del resumen sin responder), pasa directo al resumen.
+  const b = opciones.borrador;
+  if (b && b.tipo === 'hiit') {
+    Object.assign(currentState, {
+      mode: b.modo,
+      workSecs: b.trabajoSeg,
+      restSecs: b.descansoSeg,
+      totalRounds: b.rondas,
+      emomIntervalSecs: b.intervaloSeg,
+      amrapTotalSecs: b.totalSeg,
+      amrapCount: Number(b.rondasAmrap) || 0,
+      startTime: new Date(b.inicio)
+    });
+    syncModeBtns();
+    renderSettingsForm();
+    setupView.style.display = 'none';
+    activeView.style.display = 'flex';
+    if (currentState.mode === 'amrap') mostrarAmrap();
+    const e = estadoHiitEn(b, b.terminada ? b.terminada.fin : Date.now());
+    currentState.phase = e.terminado ? 'rest' : e.phase;
+    currentState.timeRemaining = e.terminado ? 0 : e.timeRemaining;
+    currentState.currentRound = e.terminado ? currentState.totalRounds : e.currentRound;
+    const conCircuito = currentState.mode === 'free' || currentState.mode === 'tabata';
+    if (conCircuito) phaseLabel.innerText = currentState.phase === 'rest' ? 'DESCANSO' : 'TRABAJO';
+    else phaseLabel.innerText = currentState.mode === 'emom' ? 'TRABAJANDO' : 'AMRAP';
+    timeDisplay.classList.toggle('o-ent-tim-tiempo--acento', conCircuito);
+    highlightEjercicioActual();
+    if (!e.terminado) updateNextExercise();
+    updateDisplay();
+    if (b.terminada) finishSessionLogic(!!b.terminada.completado, new Date(b.terminada.fin));
+    else if (e.terminado) finishSessionLogic(true, new Date(e.fin));
+    else startTimerLogic();
+  }
 }
 
 export function cleanupHiitTimer() {

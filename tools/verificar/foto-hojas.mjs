@@ -2,8 +2,9 @@
 // Foto de lo que migra la Fase 9e del rediseño: el temporizador de HIIT
 // (Libre, Tabata, EMOM y AMRAP: fases, cuenta, rondas, ejercicio actual y
 // siguiente, voz, pitidos, resumen y lo que queda guardado), qué pasa con
-// un HIIT en curso al salir de la vista, al botón atrás y al recargar, el
-// descanso activo, y las cifras y textos de las hojas de Entreno (las de la
+// un HIIT o un descanso activo en curso al salir de la vista, al botón atrás
+// y al recargar (desde la 9f se retoman; atrás en el resumen guarda la
+// sesión una sola vez), el descanso activo, y las cifras y textos de las hojas de Entreno (las de la
 // sesión, el detalle y la edición de una sesión, perfil, nivel, generador,
 // medidas y fotos).
 //
@@ -484,60 +485,188 @@ export async function recorrerHojas(page, ui, capturar = async () => {}) {
   hojas.nivelGuardado = await page.evaluate(async () => { const { db } = await import('/js/core/db.js'); const n = await db.getNivelEntrenamiento(); const c = await db.getGeneradorConfig(); return { tiempo: n.tiempoEntrenando, dias: c.diasSemana, equipo: c.equipoDisponible, duracion: c.duracionSesionMin }; });
   paso('perfil y nivel');
   foto.hojas = hojas;
+  // Fase 9f: lo que guarda sesiones va al final (no mueve las cifras de arriba).
+  foto.fin = await recorrerFinHiit(page, hiit, correr);
+  paso('fin HIIT');
   return foto;
 }
 
-async function recorrerSalidaHiit(page, hiit, correr) {
-  const salida = {};
-  const estado = async () => ({
-    hiitAbierto: await page.locator('#hiit-container').count() > 0,
-    tarjetaEnCurso: await page.locator('#btn-sesion-en-curso-retomar').count() > 0,
-    sesiones: await nSesiones(page)
+// --- Sesión en curso: tarjeta de Inicio, Retomar y Descartar -------------
+function ayudasEnCurso(page, correr) {
+  const tarjeta = () => page.evaluate(() => {
+    const c = document.getElementById('entreno-sesion-en-curso');
+    return c && c.checkVisibility() ? c.textContent.replace(/\s+/g, ' ').trim() : null;
   });
-  const arrancar = async () => {
+  // La tarjeta vive en la pestaña Inicio.
+  const alInicio = async () => {
+    await enMain(page);
+    if (await page.locator('[data-ent-tab="inicio"][aria-selected="false"]').count()) await page.locator('[data-ent-tab="inicio"]').click();
+    await page.waitForSelector('[data-ent-tab="inicio"][aria-selected="true"]');
+    await page.waitForTimeout(100);
+  };
+  const descartar = async () => {
+    await alInicio();
+    await page.locator('#btn-sesion-en-curso-descartar').click();
+    await correr(0.1);
+    await page.locator('#confirm-ok').click();
+    await correr(0.5);
+    await page.waitForSelector('#btn-sesion-en-curso-retomar', { state: 'detached' });
+  };
+  const recargar = async (pausa) => {
+    await page.clock.resume();
+    await page.reload();
+    await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+    await page.clock.pauseAt(pausa);
+    if (await page.evaluate(() => window.appRouter.currentView) !== 'entrenamiento') await ir(page, 'entrenamiento');
+    await enMain(page);
+  };
+  const voz = () => page.evaluate(() => window.__voz.splice(0));
+  // HIIT Tabata express con 10 s de trabajo.
+  const arrancar = async (hiit) => {
     await iniciar(page, 'hiit', 'Tabata express');
     await page.waitForSelector('#btn-hiit-start');
     await correr(1);
+    // Un aviso de antes (reloj detenido: no se va solo) taparía el botón.
+    await page.evaluate(() => { const c = document.getElementById('toast-container'); if (c) c.innerHTML = ''; });
     await page.locator('#btn-hiit-start').click();
     await correr(10);
-    await page.evaluate(() => { window.__voz = []; });
+    await voz();
     return hiit();
   };
-  const despues = async () => {
-    await correr(15);
-    const e = await estado();
-    e.vozTrasSalir = await page.evaluate(() => window.__voz.splice(0));
-    return e;
+  return { tarjeta, alInicio, descartar, recargar, voz, arrancar };
+}
+
+// Qué pasa con un HIIT o un descanso activo en curso al salir (Fase 9f):
+// el borrador queda, la pestaña Inicio muestra «Tienes una sesión en
+// curso» y «Retomar» lo abre donde va según la hora real (el HIIT sigue
+// corriendo mientras estás fuera, sin voz). Cada salida termina con
+// Descartar, así la siguiente parte limpia y no se guarda nada.
+async function recorrerSalidaHiit(page, hiit, correr) {
+  const { tarjeta, alInicio, descartar, recargar, voz, arrancar } = ayudasEnCurso(page, correr);
+  const salida = {};
+  const salidas = {
+    volver: async () => { await page.locator('#btn-entrenamiento-volver').click(); await correr(0.5); },
+    otraVista: async () => { await ir(page, 'dashboard'); await correr(0.5); await ir(page, 'entrenamiento'); },
+    atras: async () => { await page.goBack(); await correr(0.5); }
   };
 
-  salida.antes = await arrancar();
-  await page.locator('#btn-entrenamiento-volver').click();
-  await correr(0.5);
-  await enMain(page);
-  salida.volver = await despues();
+  // --- HIIT: fuera 15 s, vuelve en el descanso de la ronda 1; 6 s después, ronda 2.
+  salida.antes = await arrancar(hiit);
+  for (const [nombre, salir] of Object.entries(salidas)) {
+    if (nombre !== 'volver') await arrancar(hiit);
+    await salir();
+    await correr(15);
+    const e = { hiitAbierto: await page.locator('#hiit-container').count() > 0, sesiones: await nSesiones(page), vozFuera: await voz() };
+    await alInicio();
+    e.tarjeta = await tarjeta();
+    await page.locator('#btn-sesion-en-curso-retomar').click();
+    await page.waitForSelector('#hiit-active-view', { state: 'visible' });
+    e.retomado = await hiit();
+    e.vozAlRetomar = await voz();
+    await correr(6);
+    e.seisSegundos = await hiit();
+    e.voz6s = await voz();
+    await salidas.volver();
+    await descartar();
+    e.sesionesTrasDescartar = await nSesiones(page);
+    salida[nombre] = e;
+  }
 
-  await arrancar();
-  await ir(page, 'dashboard');
-  await correr(0.5);
-  await ir(page, 'entrenamiento');
-  await enMain(page);
-  salida.otraVista = await despues();
+  // --- Descanso activo: sale sin marcarlo y lo retoma (también al recargar).
+  const textoDescanso = () => page.$eval('#entrenamiento-sub-content', (e) => e.textContent.replace(/\s+/g, ''));
+  salida.descanso = {};
+  const conRecarga = { ...salidas, recarga: () => recargar(new Date(INICIO.getTime() + 1800 * 1000)) };
+  for (const [nombre, salir] of Object.entries(conRecarga)) {
+    await iniciar(page, 'gym', 'Día 7 · Movilidad');
+    await page.waitForSelector('#btn-descanso-activo-hecho');
+    await correr(60);
+    await salir();
+    await correr(60);
+    await alInicio();
+    const d = { tarjeta: await tarjeta() };
+    await page.locator('#btn-sesion-en-curso-retomar').click();
+    await page.waitForSelector('#btn-descanso-activo-hecho');
+    d.retomado = await textoDescanso();
+    await salidas.volver();
+    await descartar();
+    salida.descanso[nombre] = d;
+  }
 
-  await arrancar();
-  await page.goBack();
-  await correr(0.5);
-  await enMain(page);
-  salida.atras = await despues();
-
-  await arrancar();
-  await page.clock.resume();
-  await page.reload();
-  await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
-  await page.clock.pauseAt(new Date(INICIO.getTime() + 3600 * 1000));
-  if (await page.evaluate(() => window.appRouter.currentView) !== 'entrenamiento') await ir(page, 'entrenamiento');
-  await enMain(page);
-  salida.recarga = await despues();
+  // Como antes de la 9f, la foto sigue desde una recarga a la hora y media.
+  await recargar(new Date(INICIO.getTime() + 3600 * 1000));
   return salida;
+}
+
+// Al final de la foto (guardan sesiones y no deben mover las cifras de las
+// secciones anteriores). El reloj corre de verdad desde la sesión larga, así
+// que se registran duraciones y textos relativos al inicio, no la fecha.
+async function recorrerFinHiit(page, hiit, correr) {
+  const { tarjeta, alInicio, recargar, voz, arrancar } = ayudasEnCurso(page, correr);
+  const sinFecha = (s) => s && { ...s, fecha: undefined };
+  const fin = {};
+  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 1000));
+  paso('fin: arrancar');
+
+  // --- Recarga una hora después: el HIIT terminó fuera de la pantalla, así
+  // que «Retomar» pide el resumen y lo guarda con su duración real (4 min).
+  await arrancar(hiit);
+  const inicio = await page.evaluate(() => JSON.parse(localStorage.getItem('vanguard.sesionEnCurso')).inicio);
+  paso('fin: recarga');
+  await recargar(new Date(inicio + 3600 * 1000));
+  paso('fin: retomar terminado');
+  const r = { sesiones: await nSesiones(page) };
+  await alInicio();
+  r.tarjeta = await tarjeta();
+  await page.locator('#btn-sesion-en-curso-retomar').click();
+  await page.waitForSelector('#hiit-active-view', { state: 'visible' });
+  await correr(0.1);
+  await page.waitForSelector('#session-summary-modal.open');
+  await correr(0.1);
+  r.hiit = await hiit();
+  await page.locator('#btn-skip-summary').click();
+  await page.waitForSelector('#hiit-summary-view', { state: 'visible' });
+  r.fin = await hiit();
+  r.guardada = sinFecha(await ultimaSesion(page));
+  r.sesionesDespues = await nSesiones(page);
+  r.voz = await voz();
+  await page.locator('#btn-hiit-close').click();
+  await alInicio();
+  r.tarjetaDespues = await tarjeta();
+  fin.recarga = r;
+
+  // --- Atrás con la hoja del resumen abierta (antes la sesión se perdía):
+  // cuenta como Omitir, la sesión queda guardada con su duración real y su
+  // sesion_registrada sale una sola vez (también después de recargar).
+  const eventosSesion = () => page.evaluate(async () => (await (await import('/js/core/idb.js')).getAll('events'))
+    .filter((e) => e.tipo === 'sesion_registrada').map((e) => e.entidadId));
+  const previos = await eventosSesion();
+  paso('fin: resumen y atrás');
+  await arrancar(hiit);
+  await correr(70); // 1 min 20 s desde el inicio
+  await page.locator('#btn-hiit-stop').click();
+  await correr(0.1);
+  await page.waitForSelector('#session-summary-modal.open');
+  const a = { sesiones: await nSesiones(page) };
+  await page.goBack();
+  await correr(1);
+  await page.waitForSelector('#hiit-summary-view', { state: 'visible' });
+  a.hojaAbierta = await page.locator('#session-summary-modal.open').count() > 0;
+  a.fin = await hiit();
+  a.guardada = sinFecha(await ultimaSesion(page));
+  a.sesionesDespues = await nSesiones(page);
+  const nuevos = (await eventosSesion()).filter((id) => !previos.includes(id));
+  a.eventosNuevos = nuevos.length;
+  a.eventoEsLaSesion = nuevos[0] === (await page.evaluate(async () => (await (await import('/js/core/db.js')).db.getSesiones())[0]?.id));
+  await page.locator('#btn-hiit-close').click();
+  await alInicio();
+  a.tarjeta = await tarjeta();
+  await recargar(new Date(await page.evaluate(() => Date.now()) + 60 * 1000));
+  await alInicio();
+  a.tarjetaTrasRecargar = await tarjeta();
+  a.eventosTrasRecargar = (await eventosSesion()).filter((id) => !previos.includes(id)).length;
+  a.sesionesTrasRecargar = await nSesiones(page);
+  fin.resumenAtras = a;
+  return fin;
 }
 
 export async function tomarFotoHojas(browser, base, { ui = UI_MK3, capturas = null } = {}) {

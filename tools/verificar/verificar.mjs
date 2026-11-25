@@ -1869,13 +1869,26 @@ async function main() {
     }
   });
 
-  await prueba('Entreno › HIIT y hojas · cifras idénticas a la foto de antes de la Fase 9e (temporizador en sus cuatro modos, salida, descanso activo y hojas)', async () => {
+  await prueba('Entreno › HIIT y hojas · cifras idénticas a la foto de antes de la Fase 9e; desde la 9f el HIIT y el descanso activo se retoman al salir, con atrás y al recargar, y atrás en el resumen guarda la sesión una sola vez', async () => {
     // Contexto propio (datos demo, un circuito HIIT, un día de descanso
     // activo y tres fotos, de foto-hojas.mjs), con el reloj detenido.
     const despues = await tomarFotoHojas(browser, BASE, { ui: UI_ORBITA_HOJAS, capturas: path.join(SALIDA, 'hojas-foto') });
     fs.writeFileSync(path.join(SALIDA, 'hojas-despues.json'), JSON.stringify(despues, null, 2) + '\n');
     afirmar(despues.errores.length === 0, `errores de consola: ${despues.errores[0]}`);
     const difs = compararFotos(JSON.parse(fs.readFileSync(ARCHIVO_ANTES_HOJAS, 'utf8')), despues);
+    // 9f, además de la foto: lo esencial, explícito.
+    const { salida, fin } = despues;
+    for (const k of ['volver', 'otraVista', 'atras']) {
+      const e = salida[k];
+      afirmar(/HIIT Tabata · ronda 1 de 8/.test(e.tarjeta || ''), `${k}: sin tarjeta de HIIT en curso (${e.tarjeta})`);
+      afirmar(e.retomado?.activo?.fase === 'DESCANSO' && e.retomado.activo.tiempo === '00:05', `${k}: el HIIT no se retomó donde iba según la hora real`);
+      afirmar(e.vozFuera.length === 0, `${k}: hubo voz con el HIIT fuera de la pantalla`);
+    }
+    for (const [k, d] of Object.entries(salida.descanso)) afirmar(/Descanso activo sin marcar/.test(d.tarjeta || '') && /Marcarcomohecho/.test(d.retomado), `descanso activo, ${k}: no se retomó`);
+    afirmar(fin.recarga.guardada?.duracionMin === 4 && fin.recarga.guardada.completado === true, 'recarga: el HIIT terminado fuera no se guardó con su duración real');
+    const a = fin.resumenAtras;
+    afirmar(!a.hojaAbierta && a.guardada?.duracionMin === 1 && a.sesionesDespues === a.sesiones + 1, 'atrás en el resumen: la sesión no quedó guardada con su duración real');
+    afirmar(a.eventosNuevos === 1 && a.eventoEsLaSesion && a.eventosTrasRecargar === 1 && a.sesionesTrasRecargar === a.sesionesDespues, `atrás en el resumen: ${a.eventosNuevos} eventos sesion_registrada (y ${a.eventosTrasRecargar} tras recargar), se esperaba 1`);
     afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
   });
 
@@ -1975,6 +1988,13 @@ async function main() {
           await revisar('#entrenamiento-sub-view', `${donde} descanso activo`);
           await page.locator('#btn-entrenamiento-volver').click();
           await enMain();
+          // 9f: queda en curso; la tarjeta de Inicio también se revisa y se descarta.
+          await page.locator('#ent-tab-inicio').click();
+          await page.waitForSelector('#entreno-sesion-en-curso');
+          await revisar('#entreno-sesion-en-curso', `${donde} tarjeta de sesión en curso`);
+          await page.locator('#btn-sesion-en-curso-descartar').click();
+          await page.locator(SEL.confirmOk).click();
+          await page.waitForSelector('#entreno-sesion-en-curso', { state: 'detached' });
 
           // --- Hojas de la sesión de GYM.
           await aRutinas('gym');

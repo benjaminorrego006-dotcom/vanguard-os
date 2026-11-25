@@ -6,6 +6,7 @@
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
 import { escapeHtml } from '../utils/escape.js';
+import { guardarBorrador, borrarBorrador } from '../utils/sesion-borrador.js';
 
 const SUGERENCIAS = [
   'Camina 30–45 min a ritmo cómodo',
@@ -41,13 +42,18 @@ export function renderDescansoActivoSesion(rutina) {
   return `<div class="o-mod-entreno o-ent-descanso-sesion">${renderDescansoActivoCard({ nombre: rutina.nombre, conBoton: true })}</div>`;
 }
 
-export function initDescansoActivoListeners(rutina, onSuccess, signal) {
+// Fase 9f: abrirlo deja un borrador (utils/sesion-borrador.js), así se
+// retoma como la sesión de GYM si sales sin marcarlo. opciones.borrador: el
+// que se retoma (conserva su hora de inicio).
+export function initDescansoActivoListeners(rutina, onSuccess, signal, opciones = {}) {
   const btn = document.getElementById('btn-descanso-activo-hecho');
   if (!btn) return;
+  guardarBorrador({ tipo: 'descanso', rutinaId: rutina.id, nombreRutina: rutina.nombre, categoria: rutina.categoria, inicio: opciones.borrador?.inicio ?? Date.now() });
   btn.addEventListener('click', async () => {
     btn.disabled = true;
     try {
       await db.registrarDescansoActivoCompletado({ rutinaId: rutina.id, categoria: rutina.categoria, nombre: rutina.nombre });
+      borrarBorrador();
       Toast('Descanso activo registrado.', 'success');
       if (onSuccess) await onSuccess();
     } catch (err) {
