@@ -103,6 +103,9 @@ let rutinasTabController = null;
 // la ficha de un ejercicio); se consume una vez.
 let rutinaResaltada = null;
 
+// Aviso de error de una sub-pantalla (alerta con ícono y texto).
+const errorSubVista = (err) => `<p class="o-alerta" role="alert"><span class="o-alerta-ico">${ICO.alerta}</span><span class="o-alerta-cuerpo"><span class="o-alerta-titulo">Algo falló al cargar esta sección</span><span class="o-alerta-linea">${escapeHtml(err.message)}</span></span></p>`;
+
 // Instalada como PWA no hay botón atrás del navegador — sin esto, el botón
 // atrás del sistema saldría directo de la app en vez de volver a la
 // pantalla principal de Entreno. Un solo nivel de historial para TODA la
@@ -723,7 +726,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'progreso';
-    mostrarSubVista();
+    mostrarSubVista(false);
     setContextoCategoria(categoria);
 
     const refreshProgreso = async () => {
@@ -737,7 +740,7 @@ mountListeners = () => {
       await refreshProgreso();
     } catch (err) {
       console.error('Error renderizando Progreso:', err);
-      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${escapeHtml(err.message)}</div>`;
+      subContent.innerHTML = errorSubVista(err);
     }
   };
 
@@ -750,7 +753,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'historial';
-    mostrarSubVista();
+    mostrarSubVista(false);
 
     try {
       const htmlSub = await renderSesionesHistorial();
@@ -759,7 +762,7 @@ mountListeners = () => {
       initSesionesHistorialListeners(signal);
     } catch (err) {
       console.error('Error renderizando el historial:', err);
-      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${escapeHtml(err.message)}</div>`;
+      subContent.innerHTML = errorSubVista(err);
     }
   };
 
@@ -771,7 +774,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'cuerpo';
-    mostrarSubVista();
+    mostrarSubVista(false);
     const refreshCuerpo = async () => {
       if (viewState !== 'cuerpo') return;
       const [medidas, fotos] = await Promise.all([db.getMedidas(), db.getFotos()]);
@@ -784,7 +787,7 @@ mountListeners = () => {
       await refreshCuerpo();
     } catch (err) {
       console.error('Error renderizando Cuerpo:', err);
-      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${escapeHtml(err.message)}</div>`;
+      subContent.innerHTML = errorSubVista(err);
     }
   };
 
@@ -804,7 +807,7 @@ mountListeners = () => {
       }, signal);
     } catch (err) {
       console.error('Error renderizando preview:', err);
-      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${escapeHtml(err.message)}</div>`;
+      subContent.innerHTML = errorSubVista(err);
     }
   };
 
@@ -824,7 +827,7 @@ mountListeners = () => {
       }, signal, () => openGeneradorConfigForm(cat));
     } catch (err) {
       console.error('Error renderizando rutina generada:', err);
-      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${escapeHtml(err.message)}</div>`;
+      subContent.innerHTML = errorSubVista(err);
     }
   };
 
@@ -851,7 +854,7 @@ mountListeners = () => {
       }
     } catch (err) {
       console.error('Error renderizando formulario:', err);
-      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${escapeHtml(err.message)}</div>`;
+      subContent.innerHTML = errorSubVista(err);
     }
   };
 
@@ -889,7 +892,7 @@ mountListeners = () => {
       await initEjercicioDetalleChart(FICHA_CHART_ID, historial);
     } catch (err) {
       console.error('Error renderizando la ficha del ejercicio:', err);
-      subContent.innerHTML = `<p class="o-alerta" role="alert"><span class="o-alerta-ico">${ICO.alerta}</span><span class="o-alerta-cuerpo"><span class="o-alerta-titulo">Algo falló al cargar esta sección</span><span class="o-alerta-linea">${escapeHtml(err.message)}</span></span></p>`;
+      subContent.innerHTML = errorSubVista(err);
     }
   };
 
@@ -985,7 +988,7 @@ mountListeners = () => {
       }
     } catch (err) {
       console.error('Error renderizando sesión:', err);
-      subContent.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-secondary);">Error: ${escapeHtml(err.message)}</div>`;
+      subContent.innerHTML = errorSubVista(err);
     }
   };
 

@@ -14,6 +14,7 @@ import { diaKeyDe, fechaLocalDe, formatFechaCorta } from '../utils/fecha.js';
 import { formatNumero } from '../utils/numero.js';
 import { escapeHtml } from '../utils/escape.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
+import { oIcono } from './orbita.js';
 
 export const LADO_MAX = 1080;
 export const CALIDAD_JPEG = 0.82;
@@ -71,10 +72,11 @@ export function cleanupFotos() {
 
 // --- Selectores de archivo ---------------------------------------------------------
 // "Tomar foto" abre la cámara (capture); "Elegir foto" deja elegir de la
-// galería (un input con capture no lo permite).
-export const botonesAgregar = (prefijo) => `
-  <button type="button" class="cuerpo-btn tappable" data-abrir="${prefijo}-camara">Tomar foto</button>
-  <button type="button" class="cuerpo-btn tappable" data-abrir="${prefijo}-galeria">Elegir foto</button>
+// galería (un input con capture no lo permite). `clase`: la de los botones
+// (la galería de Cuerpo ya es Órbita; la hoja de registro sigue en MK III).
+export const botonesAgregar = (prefijo, clase = 'cuerpo-btn tappable') => `
+  <button type="button" class="${clase}" data-abrir="${prefijo}-camara">Tomar foto</button>
+  <button type="button" class="${clase}" data-abrir="${prefijo}-galeria">Elegir foto</button>
   <input type="file" id="${prefijo}-camara" accept="image/*" capture="environment" hidden>
   <input type="file" id="${prefijo}-galeria" accept="image/*" multiple hidden>`;
 
@@ -99,29 +101,33 @@ async function procesar(archivos, alListo) {
 export function renderFotosSeccion(fotos) {
   const porDia = new Map();
   fotos.forEach(f => { if (!porDia.has(f.fecha)) porDia.set(f.fecha, []); porDia.get(f.fecha).push(f); });
+  // Órbita (Fase 9c); data-foto: lo que lee tools/verificar/foto-progreso.mjs.
   const grupos = [...porDia.entries()].map(([fecha, lista]) => `
-    <div class="fotos-dia" data-fecha="${escapeHtml(fecha)}">
-      <h4 class="fotos-dia-titulo num">${escapeHtml(fechaCorta(fecha))}</h4>
-      <div class="fotos-grid">
-        ${lista.map(f => `<button type="button" class="foto-mini tappable" data-id="${escapeHtml(f.id)}" aria-label="Ver la foto del ${escapeHtml(fechaCorta(f.fecha))}"><img src="${urlDe(f)}" alt="" loading="lazy"></button>`).join('')}
+    <div class="o-ent-fotos-dia" data-fecha="${escapeHtml(fecha)}" data-foto="fotos-dia">
+      <h4 class="o-rotulo" data-foto="fotos-fecha">${escapeHtml(fechaCorta(fecha))}</h4>
+      <div class="o-ent-fotos-grid">
+        ${lista.map(f => `<button type="button" class="o-ent-foto" data-id="${escapeHtml(f.id)}" aria-label="Ver la foto del ${escapeHtml(fechaCorta(f.fecha))}"><img src="${urlDe(f)}" alt="" loading="lazy"></button>`).join('')}
       </div>
     </div>`).join('');
   return `
-    <section class="card cuerpo-fotos" aria-labelledby="cuerpo-fotos-titulo">
-      <div class="cuerpo-graf-cab">
-        <h3 id="cuerpo-fotos-titulo">Fotos${fotos.length ? ` · <span class="num">${fotos.length}</span>` : ''}</h3>
-        ${fotos.length >= 2 ? '<button type="button" id="btn-fotos-comparar" class="cuerpo-btn tappable">Comparar</button>' : ''}
+    <section class="o-card o-ent-fotos" aria-labelledby="cuerpo-fotos-titulo">
+      <div class="o-ent-cgraf-cab">
+        <h3 class="o-card-titulo" id="cuerpo-fotos-titulo">Fotos${fotos.length ? ` · <span class="o-num">${fotos.length}</span>` : ''}</h3>
+        ${fotos.length >= 2 ? '<button type="button" id="btn-fotos-comparar" class="o-btn o-btn--secundario">Comparar</button>' : ''}
       </div>
-      <p class="cuerpo-fotos-aviso">Las fotos quedan solo en este teléfono. Exporta tus fotos para no perderlas.</p>
-      <div class="cuerpo-fotos-acciones">${botonesAgregar('fotos-input')}</div>
-      ${fotos.length ? grupos : '<p class="cuerpo-sub">Todavía no hay fotos.</p>'}
+      <div class="o-alerta o-alerta--aviso">
+        <span class="o-alerta-ico">${oIcono('info')}</span>
+        <span class="o-alerta-cuerpo"><span class="o-alerta-linea">Las fotos quedan solo en este teléfono. Exporta tus fotos para no perderlas.</span></span>
+      </div>
+      <div class="o-ent-acciones">${botonesAgregar('fotos-input', 'o-btn o-btn--secundario')}</div>
+      ${fotos.length ? grupos : '<p class="o-card-texto">Todavía no hay fotos.</p>'}
     </section>`;
 }
 
 // Tras insertar renderFotosSeccion. `repintar`: vuelve a pintar el historial.
 export function initFotos({ repintar, signal } = {}) {
   const opts = signal ? { signal } : undefined;
-  const seccion = document.querySelector('.cuerpo-fotos');
+  const seccion = document.querySelector('.o-ent-fotos');
   if (!seccion) return;
   engancharBotones(seccion, async (archivos) => {
     const hoy = diaKeyDe(new Date());
@@ -129,7 +135,7 @@ export function initFotos({ repintar, signal } = {}) {
     if (n) Toast(n === 1 ? 'Foto agregada' : `${n} fotos agregadas`, 'success');
     if (n && repintar) await repintar();
   }, opts);
-  seccion.querySelectorAll('.foto-mini').forEach(b => b.addEventListener('click', () => abrirFoto(b.dataset.id, repintar), opts));
+  seccion.querySelectorAll('.o-ent-foto').forEach(b => b.addEventListener('click', () => abrirFoto(b.dataset.id, repintar), opts));
   document.getElementById('btn-fotos-comparar')?.addEventListener('click', () => abrirComparar(), opts);
 }
 

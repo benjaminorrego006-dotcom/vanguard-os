@@ -10,7 +10,6 @@ import { esperarSalidaDeModal } from '../core/history.js';
 import { claveDiaDe, fechaLocalDe, sumarDias, diaKeyDe, formatFechaCorta, conMayuscula } from '../utils/fecha.js';
 import { escapeHtml } from '../utils/escape.js';
 import { ConfirmDialog, ToastAccion, Toast } from '../utils/states.js';
-import { CATEGORY_COLORS } from '../core/trainingConfig.js';
 import { abrirBuscadorEjercicios, TIPO_LABELS } from './rutina-session.js';
 
 const SEMANAS_POR_PAGINA = 8;
@@ -61,6 +60,8 @@ function tituloSemana(lunes) {
   return `Semana del ${formatFechaCorta(fechaLocalDe(lunes))}`;
 }
 
+// Fila de una sesión (Órbita, Fase 9c). data-foto: lo que lee
+// tools/verificar/foto-progreso.mjs.
 function filaSesion(s, categoria) {
   const series = seriesMarcadas(s);
   const incompleta = categoria === 'hiit' && s.completado === false;
@@ -68,16 +69,15 @@ function filaSesion(s, categoria) {
   const aria = [diaLargo(s.fecha), s.nombreRutina, cat, plural(s.duracionMin || 0, 'minuto', 'minutos'), plural(series, 'serie', 'series'), incompleta ? 'incompleta' : ''].filter(Boolean).join(', ');
   return `
     <li>
-      <button type="button" class="hist-sesion tappable" data-id="${escapeHtml(s.id)}" aria-label="${escapeHtml(aria)}. Ver detalle" style="width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; background: var(--surface-1); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px 14px; cursor: pointer; font: inherit;">
-        <span aria-hidden="true" style="width: 3px; align-self: stretch; background: ${CATEGORY_COLORS[categoria] || 'var(--surface-border)'}; flex-shrink: 0;"></span>
-        <span style="flex: 1; min-width: 0;">
-          <span style="display: block; font-size: 12px; color: var(--text-secondary);">${escapeHtml(diaCorto(s.fecha))}${cat ? ` · ${cat}` : ''}</span>
-          <span style="display: block; font-size: 15px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(s.nombreRutina || 'Entrenamiento')}</span>
-          ${incompleta ? '<span style="display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 700; color: var(--text-secondary); border: 1px solid var(--surface-border); padding: 1px 6px;">Incompleta</span>' : ''}
+      <button type="button" class="o-fila o-ent-hist-fila hist-sesion" data-id="${escapeHtml(s.id)}" aria-label="${escapeHtml(aria)}. Ver detalle" data-foto="hist-sesion">
+        <span class="o-fila-texto">
+          <small data-foto="hist-dia">${escapeHtml(diaCorto(s.fecha))}${cat ? ` · ${cat}` : ''}</small>
+          <b data-foto="hist-nombre">${escapeHtml(s.nombreRutina || 'Entrenamiento')}</b>
+          ${incompleta ? '<span class="o-ent-hist-incompleta" data-foto="hist-incompleta">Incompleta</span>' : ''}
         </span>
-        <span style="text-align: right; flex-shrink: 0; font-size: 12px; color: var(--text-secondary);">
-          <span style="display: block;"><span class="num" style="color: var(--text-primary); font-weight: 700;">${s.duracionMin || 0}</span> min</span>
-          <span style="display: block; margin-top: 2px;"><span class="num">${series}</span> ${series === 1 ? 'serie' : 'series'}</span>
+        <span class="o-ent-hist-meta">
+          <span data-foto="hist-min"><span class="o-num">${s.duracionMin || 0}</span> min</span>
+          <span data-foto="hist-series"><span class="o-num">${series}</span> ${series === 1 ? 'serie' : 'series'}</span>
         </span>
       </button>
     </li>`;
@@ -88,23 +88,23 @@ async function renderLista() {
   const catPorRutina = {};
   rutinas.forEach(r => { catPorRutina[r.id] = r.categoria; });
   if (sesiones.length === 0) {
-    return '<p style="color: var(--text-secondary); font-size: 14px; text-align: center; padding: 32px 0;">Todavía no tienes sesiones registradas.</p>';
+    return '<p class="o-card-texto o-ent-hist-vacio" data-foto="hist-vacio">Todavía no tienes sesiones registradas.</p>';
   }
   const semanas = agruparPorSemana(sesiones);
   const visibles = semanas.slice(0, semanasVisibles);
   return `
     ${visibles.map(sem => `
-      <section aria-label="${escapeHtml(tituloSemana(sem.lunes))}" style="margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
-          <h3 style="font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-secondary); margin: 0;">${escapeHtml(tituloSemana(sem.lunes))}</h3>
-          <span style="font-size: 12px; color: var(--text-secondary);"><span class="num">${sem.sesiones.length}</span> ${sem.sesiones.length === 1 ? 'sesión' : 'sesiones'}</span>
+      <section class="o-ent-hist-sem" aria-label="${escapeHtml(tituloSemana(sem.lunes))}" data-foto="hist-semana">
+        <div class="o-ent-hist-sem-cab">
+          <h2 class="o-rotulo" data-foto="sem-titulo">${escapeHtml(tituloSemana(sem.lunes))}</h2>
+          <span class="o-ent-hist-cuenta" data-foto="sem-cuenta"><span class="o-num">${sem.sesiones.length}</span> ${sem.sesiones.length === 1 ? 'sesión' : 'sesiones'}</span>
         </div>
-        <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px;">
+        <ul class="o-lista">
           ${sem.sesiones.map(s => filaSesion(s, catPorRutina[s.rutinaId])).join('')}
         </ul>
       </section>`).join('')}
     ${semanas.length > visibles.length ? `
-      <button type="button" id="btn-hist-cargar-mas" class="tappable" style="width: 100%; background: transparent; border: 1px solid var(--surface-border); color: var(--accent-teal-t); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 24px;">Cargar más</button>` : ''}`;
+      <button type="button" id="btn-hist-cargar-mas" class="o-btn o-btn--secundario o-btn--bloque">Cargar más</button>` : ''}`;
 }
 
 function renderDetalle(s, categoria) {
@@ -306,14 +306,20 @@ function cambiosDe(b) {
 
 export async function renderSesionesHistorial() {
   semanasVisibles = SEMANAS_POR_PAGINA;
+  // La hoja del detalle (y su edición) sigue en MK III hasta la 9e: va
+  // dentro de un envoltorio .mk3-entreno, que solo aporta sus variables.
   return `
-    <div style="margin-bottom: 16px;">
-      <h1 style="font-size: 26px; font-weight: 800; margin: 0; color: var(--text-primary);">Historial de sesiones</h1>
-      <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 0 0;">Toca una sesión para ver sus series, editarla o eliminarla.</p>
+    <div class="o-ent-hist">
+      <header class="o-ent-sub-cab">
+        <h1 class="o-ent-titulo" data-foto="hist-titulo">Historial de sesiones</h1>
+        <p class="o-card-texto">Toca una sesión para ver sus series, editarla o eliminarla.</p>
+      </header>
+      <div id="hist-lista" class="o-ent-hist-lista">${await renderLista()}</div>
     </div>
-    <div id="hist-lista">${await renderLista()}</div>
-    <div id="sesion-detalle-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="sesion-detalle-titulo">
-      <div class="modal-content" id="sesion-detalle-contenido"></div>
+    <div class="mk3-entreno">
+      <div id="sesion-detalle-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="sesion-detalle-titulo">
+        <div class="modal-content" id="sesion-detalle-contenido"></div>
+      </div>
     </div>`;
 }
 

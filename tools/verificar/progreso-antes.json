@@ -1,0 +1,2521 @@
+{
+  "historial": {
+    "titulo": "Historial de sesiones",
+    "semanas": [
+      {
+        "titulo": "Semana pasada",
+        "cuenta": "3 sesiones",
+        "sesiones": [
+          {
+            "aria": "viernes 20 nov, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Vie 20 nov · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          },
+          {
+            "aria": "miércoles 18 nov, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Mié 18 nov · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          },
+          {
+            "aria": "lunes 16 nov, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Lun 16 nov",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 9 nov",
+        "cuenta": "3 sesiones",
+        "sesiones": [
+          {
+            "aria": "domingo 15 nov, Tabata express, HIIT, 20 minutos, 0 series, incompleta. Ver detalle",
+            "dia": "Dom 15 nov · HIIT",
+            "nombre": "Tabata express",
+            "incompleta": true,
+            "min": "20 min",
+            "series": "0 series"
+          },
+          {
+            "aria": "viernes 13 nov, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Vie 13 nov · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          },
+          {
+            "aria": "martes 10 nov, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Mar 10 nov · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 2 nov",
+        "cuenta": "2 sesiones",
+        "sesiones": [
+          {
+            "aria": "sábado 7 nov, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Sáb 7 nov",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          },
+          {
+            "aria": "miércoles 4 nov, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Mié 4 nov · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 26 oct",
+        "cuenta": "3 sesiones",
+        "sesiones": [
+          {
+            "aria": "domingo 1 nov, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Dom 1 nov · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          },
+          {
+            "aria": "jueves 29 oct, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Jue 29 oct",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          },
+          {
+            "aria": "lunes 26 oct, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Lun 26 oct · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 19 oct",
+        "cuenta": "2 sesiones",
+        "sesiones": [
+          {
+            "aria": "viernes 23 oct, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Vie 23 oct · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          },
+          {
+            "aria": "martes 20 oct, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Mar 20 oct",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 12 oct",
+        "cuenta": "2 sesiones",
+        "sesiones": [
+          {
+            "aria": "sábado 17 oct, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Sáb 17 oct · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          },
+          {
+            "aria": "miércoles 14 oct, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Mié 14 oct · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 5 oct",
+        "cuenta": "3 sesiones",
+        "sesiones": [
+          {
+            "aria": "domingo 11 oct, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Dom 11 oct",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          },
+          {
+            "aria": "jueves 8 oct, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Jue 8 oct · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          },
+          {
+            "aria": "lunes 5 oct, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Lun 5 oct · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 28 sept",
+        "cuenta": "2 sesiones",
+        "sesiones": [
+          {
+            "aria": "viernes 2 oct, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Vie 2 oct",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          },
+          {
+            "aria": "martes 29 sept, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Mar 29 sept · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          }
+        ]
+      }
+    ],
+    "vacio": null,
+    "cargarMas": true
+  },
+  "historialMas": {
+    "titulo": "Historial de sesiones",
+    "semanas": [
+      {
+        "titulo": "Semana pasada",
+        "cuenta": "3 sesiones",
+        "sesiones": [
+          {
+            "aria": "viernes 20 nov, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Vie 20 nov · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          },
+          {
+            "aria": "miércoles 18 nov, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Mié 18 nov · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          },
+          {
+            "aria": "lunes 16 nov, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Lun 16 nov",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 9 nov",
+        "cuenta": "3 sesiones",
+        "sesiones": [
+          {
+            "aria": "domingo 15 nov, Tabata express, HIIT, 20 minutos, 0 series, incompleta. Ver detalle",
+            "dia": "Dom 15 nov · HIIT",
+            "nombre": "Tabata express",
+            "incompleta": true,
+            "min": "20 min",
+            "series": "0 series"
+          },
+          {
+            "aria": "viernes 13 nov, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Vie 13 nov · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          },
+          {
+            "aria": "martes 10 nov, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Mar 10 nov · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 2 nov",
+        "cuenta": "2 sesiones",
+        "sesiones": [
+          {
+            "aria": "sábado 7 nov, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Sáb 7 nov",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          },
+          {
+            "aria": "miércoles 4 nov, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Mié 4 nov · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 26 oct",
+        "cuenta": "3 sesiones",
+        "sesiones": [
+          {
+            "aria": "domingo 1 nov, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Dom 1 nov · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          },
+          {
+            "aria": "jueves 29 oct, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Jue 29 oct",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          },
+          {
+            "aria": "lunes 26 oct, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Lun 26 oct · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 19 oct",
+        "cuenta": "2 sesiones",
+        "sesiones": [
+          {
+            "aria": "viernes 23 oct, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Vie 23 oct · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          },
+          {
+            "aria": "martes 20 oct, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Mar 20 oct",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 12 oct",
+        "cuenta": "2 sesiones",
+        "sesiones": [
+          {
+            "aria": "sábado 17 oct, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Sáb 17 oct · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          },
+          {
+            "aria": "miércoles 14 oct, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Mié 14 oct · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 5 oct",
+        "cuenta": "3 sesiones",
+        "sesiones": [
+          {
+            "aria": "domingo 11 oct, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Dom 11 oct",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          },
+          {
+            "aria": "jueves 8 oct, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Jue 8 oct · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          },
+          {
+            "aria": "lunes 5 oct, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Lun 5 oct · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 28 sept",
+        "cuenta": "2 sesiones",
+        "sesiones": [
+          {
+            "aria": "viernes 2 oct, Calistenia en casa, 35 minutos, 12 series. Ver detalle",
+            "dia": "Vie 2 oct",
+            "nombre": "Calistenia en casa",
+            "incompleta": false,
+            "min": "35 min",
+            "series": "12 series"
+          },
+          {
+            "aria": "martes 29 sept, Pull, GYM, 55 minutos, 9 series. Ver detalle",
+            "dia": "Mar 29 sept · GYM",
+            "nombre": "Pull",
+            "incompleta": false,
+            "min": "55 min",
+            "series": "9 series"
+          }
+        ]
+      },
+      {
+        "titulo": "Semana del 21 sept",
+        "cuenta": "1 sesión",
+        "sesiones": [
+          {
+            "aria": "sábado 26 sept, Push, GYM, 50 minutos, 11 series. Ver detalle",
+            "dia": "Sáb 26 sept · GYM",
+            "nombre": "Push",
+            "incompleta": false,
+            "min": "50 min",
+            "series": "11 series"
+          }
+        ]
+      }
+    ],
+    "vacio": null,
+    "cargarMas": false
+  },
+  "tabs": [
+    "Estándares",
+    "Árbol",
+    "Tendencia",
+    "Metas"
+  ],
+  "estandares": {
+    "titulo": "Estándares de fuerza",
+    "aviso": "Sentadilla, Press de Banca, Peso Muerto Convencional, Press Militar (de pie)",
+    "bannerPeso": false,
+    "filas": [
+      {
+        "nombre": "Sentadilla",
+        "valor": "130 kg · 1,63× peso corporal",
+        "sinDato": false,
+        "nivel": "Novato",
+        "gap": "Te faltan 2 kg para Intermedio",
+        "segmentos": 2
+      },
+      {
+        "nombre": "Press de Banca",
+        "valor": "90 kg · 1,13× peso corporal",
+        "sinDato": false,
+        "nivel": "Novato",
+        "gap": "Te faltan 7 kg para Intermedio",
+        "segmentos": 2
+      },
+      {
+        "nombre": "Peso Muerto Convencional",
+        "valor": "156 kg · 1,95× peso corporal",
+        "sinDato": false,
+        "nivel": "Intermedio",
+        "gap": "Te faltan 38 kg para Avanzado",
+        "segmentos": 3
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "valor": "82 kg · 1,03× peso corporal",
+        "sinDato": false,
+        "nivel": "Avanzado",
+        "gap": "Tope de esta escala",
+        "segmentos": 4
+      }
+    ]
+  },
+  "arbol": {
+    "gym": {
+      "titulo": "Árbol de Progresión · GYM",
+      "ramas": [
+        {
+          "rama": "Empuje Horizontal",
+          "nodos": [
+            {
+              "nombre": "Flexiones en Pared",
+              "objetivo": "3 × 15 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Fondos en Banco",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Press de Banca",
+              "objetivo": "Nivel de fuerza (ver Estándares de Fuerza)",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones Inclinadas",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Fondos en Paralelas",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Press Cerrado en Banca",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Press Declinado",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Press Inclinado",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones con Rodillas",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones (Push-up)",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones Declinadas",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones con Palmada",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones Declinadas — 3 × 10 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones Diamante",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones Declinadas — 3 × 10 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones en Anillas",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones Declinadas — 3 × 10 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones con Lastre",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones con Palmada — 3 × 8 reps"
+              ],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Empuje Vertical",
+          "nodos": [
+            {
+              "nombre": "Press Militar (de pie)",
+              "objetivo": "Nivel de fuerza (ver Estándares de Fuerza)",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Press Arnold",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Push Press",
+              "objetivo": "3 × 5 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Tracción Horizontal",
+          "nodos": [
+            {
+              "nombre": "Curl con Barra",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Remo en Máquina",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Remo Invertido",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Curl 21s",
+              "objetivo": "3 × 1 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Remo con Barra",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Remo Invertido con Pies Elevados",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Remo Pendlay",
+              "objetivo": "3 × 6 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Tracción Vertical",
+          "nodos": [
+            {
+              "nombre": "Jalón al Pecho",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Dominadas",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Jalón Tras Nuca",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Dominadas Agarre Ancho",
+              "objetivo": "3 × 6 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Dominadas — 3 × 8 reps"
+              ],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Rodilla",
+          "nodos": [
+            {
+              "nombre": "Sentadilla",
+              "objetivo": "Nivel de fuerza (ver Estándares de Fuerza)",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Zancadas",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Sentadilla Frontal",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Zancadas Búlgaras",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Cadera",
+          "nodos": [
+            {
+              "nombre": "Peso Muerto Convencional",
+              "objetivo": "Nivel de fuerza (ver Estándares de Fuerza)",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Puente de Glúteo (Glute Bridge)",
+              "objetivo": "3 × 15 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Peso Muerto Rumano",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Peso Muerto Sumo",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Puente de Glúteo a una Pierna",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Buenos Días",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Peso Muerto Rumano — 3 × 10 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Peso Muerto con Piernas Rígidas",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Peso Muerto Rumano — 3 × 10 reps"
+              ],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Core",
+          "nodos": [
+            {
+              "nombre": "Abdominales",
+              "objetivo": "3 × 15 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Crunch en Banco Declinado",
+              "objetivo": "3 × 15 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Crunch en Polea",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Elevaciones de Piernas",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Plancha (Plank)",
+              "objetivo": "3 × 40s",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Plancha con Peso",
+              "objetivo": "3 × 30s",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Rueda Abdominal",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            }
+          ]
+        }
+      ]
+    },
+    "calistenia": {
+      "titulo": "Árbol de Progresión · Calistenia",
+      "ramas": [
+        {
+          "rama": "Empuje Horizontal",
+          "nodos": [
+            {
+              "nombre": "Flexiones en Pared",
+              "objetivo": "3 × 15 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Fondos en Banco",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones Inclinadas",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Fondos Asistidos con Banda",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Fondos en Paralelas",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones con Rodillas",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Fondos en Anillas",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Fondos Lastrados",
+              "objetivo": "3 × 5 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones (Push-up)",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones Manos Abiertas",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones Declinadas",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones con Palmada",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones Declinadas — 3 × 10 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones de Arquero",
+              "objetivo": "3 × 6 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones Declinadas — 3 × 10 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones Diamante",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones Declinadas — 3 × 10 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones en Anillas",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones Declinadas — 3 × 10 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Pseudo Planche Push-up",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones Declinadas — 3 × 10 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones a Una Mano Asistidas",
+              "objetivo": "3 × 5 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones de Arquero — 3 × 6 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones con Lastre",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones con Palmada — 3 × 8 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexiones a Una Mano",
+              "objetivo": "2 × 3 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Flexiones a Una Mano Asistidas — 3 × 5 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Plancha Lean",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Tuck Planche",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Plancha Lean — 3 × 10s"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Tuck Avanzado Planche",
+              "objetivo": "3 × 15s",
+              "estatico": true,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Tuck Planche — 3 × 10s"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Straddle Planche",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Tuck Avanzado Planche — 3 × 15s"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Planche",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Straddle Planche — 3 × 10s"
+              ],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Empuje Vertical",
+          "nodos": [
+            {
+              "nombre": "Flexión en Pica con Manos Elevadas",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Flexión de Pino contra la Pared (HSPU)",
+              "objetivo": "3 × 5 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Pike Push-up",
+              "objetivo": "3 × 8 reps",
+              "estatico": true,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Handstand contra Pared",
+              "objetivo": "3 × 20s",
+              "estatico": true,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Handstand de Cara a la Pared",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Handstand (Libre)",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Tracción Horizontal",
+          "nodos": [
+            {
+              "nombre": "Remo Invertido",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Remo Invertido con Pies Elevados",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Remo Invertido a Una Mano",
+              "objetivo": "3 × 5 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Tracción Vertical",
+          "nodos": [
+            {
+              "nombre": "Dead Hang",
+              "objetivo": "3 × 20s",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Dominadas",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Dominadas Isométricas",
+              "objetivo": "3 × 10s",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Dominada Comando",
+              "objetivo": "3 × 5 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Dominadas — 3 × 8 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Dominada de Arquero",
+              "objetivo": "3 × 5 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Dominadas — 3 × 8 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Dominadas Lastradas",
+              "objetivo": "3 × 5 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Dominadas — 3 × 8 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Negativas de Dominada",
+              "objetivo": "3 × 5 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Dominada a Una Mano Asistida",
+              "objetivo": "3 × 3 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Dominada de Arquero — 3 × 5 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Dominada Asistida con Banda",
+              "objetivo": "3 × 6 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Dominada a Una Mano",
+              "objetivo": "2 × 1 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Dominada a Una Mano Asistida — 3 × 3 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Back Lever",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Dominadas — 3 × 8 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Front Lever Tuck",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Dominadas — 3 × 8 reps",
+                "Hollow Body Hold (Core) — 3 × 20s"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Muscle-up",
+              "objetivo": "2 × 3 reps",
+              "estatico": true,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Dominadas — 3 × 8 reps",
+                "Fondos en Paralelas (Empuje Horizontal) — 3 × 8 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Front Lever Avanzado (Tuck Avanzado)",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Front Lever Tuck — 3 × 10s"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Straddle Front Lever",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Front Lever Avanzado (Tuck Avanzado) — 3 × 10s"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Front Lever",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Straddle Front Lever — 3 × 10s"
+              ],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Rodilla",
+          "nodos": [
+            {
+              "nombre": "Sentadilla Asistida",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Zancadas",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Sentadilla Búlgara",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Sentadilla con Peso Corporal",
+              "objetivo": "3 × 15 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Zancada Lateral",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Zancadas Saltadas",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Pistol Squat Asistida",
+              "objetivo": "3 × 6 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Sentadilla Búlgara — 3 × 10 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Sentadilla con Salto",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Pistol Squat (progresión)",
+              "objetivo": "2 × 5 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Pistol Squat Asistida — 3 × 6 reps"
+              ],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Cadera",
+          "nodos": [
+            {
+              "nombre": "Puente de Glúteo (Glute Bridge)",
+              "objetivo": "3 × 15 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Puente de Glúteo a una Pierna",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Core",
+          "nodos": [
+            {
+              "nombre": "Hollow Body Hold",
+              "objetivo": "3 × 20s",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Plancha (Plank)",
+              "objetivo": "3 × 40s",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "L-Sit",
+              "objetivo": "3 × 10s",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Plancha Lateral",
+              "objetivo": "3 × 30s",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Windshield Wipers (Limpiaparabrisas)",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "L-Sit — 3 × 10s",
+                "Dead Hang (Tracción Vertical) — 3 × 20s"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Acondicionamiento de Muñeca",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Crow Pose",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Dragon Flag",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Bandera Humana",
+              "objetivo": "3 × 10s",
+              "estatico": true,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Dominadas (Tracción Vertical) — 3 × 8 reps"
+              ],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Locomoción",
+          "nodos": [
+            {
+              "nombre": "Medio Burpee",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Burpees",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            }
+          ]
+        }
+      ]
+    },
+    "hiit": {
+      "titulo": "Árbol de Progresión · HIIT",
+      "ramas": [
+        {
+          "rama": "Rodilla",
+          "nodos": [
+            {
+              "nombre": "Zancadas Saltadas",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Sentadilla con Salto",
+              "objetivo": "3 × 12 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            }
+          ]
+        },
+        {
+          "rama": "Locomoción",
+          "nodos": [
+            {
+              "nombre": "Caminata Rápida",
+              "objetivo": "1 × 1200s",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Medio Burpee",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": true,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Burpees",
+              "objetivo": "3 × 10 reps",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Trote Continuo",
+              "objetivo": "1 × 1200s",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Burpee con Salto Tuck",
+              "objetivo": "3 × 8 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Burpees — 3 × 10 reps"
+              ],
+              "alternativos": []
+            },
+            {
+              "nombre": "Sprint (carrera de máxima velocidad)",
+              "objetivo": "4 × 30s",
+              "estatico": false,
+              "bloqueado": false,
+              "raiz": false,
+              "requiere": [],
+              "alternativos": []
+            },
+            {
+              "nombre": "Burpee Box Jump",
+              "objetivo": "3 × 6 reps",
+              "estatico": false,
+              "bloqueado": true,
+              "raiz": false,
+              "requiere": [
+                "Burpee con Salto Tuck — 3 × 8 reps"
+              ],
+              "alternativos": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "tendencia": {
+    "todos": {
+      "titulo": "Tendencia de volumen",
+      "vacio": null,
+      "info": "Volumen combinado de todas las modalidades (kilos movidos + repeticiones a peso corporal).",
+      "grafico": {
+        "labels": [
+          "S-7",
+          "S-6",
+          "S-5",
+          "S-4",
+          "S-3",
+          "S-2",
+          "S-1",
+          "Esta sem."
+        ],
+        "series": [
+          [
+            10069,
+            4374,
+            10262,
+            10795,
+            6422,
+            4743,
+            11277,
+            11344
+          ]
+        ]
+      }
+    },
+    "gym": {
+      "titulo": "Tendencia de volumen",
+      "vacio": null,
+      "info": "Total de kilos movidos por semana (Series × Reps × Peso).",
+      "grafico": {
+        "labels": [
+          "S-7",
+          "S-6",
+          "S-5",
+          "S-4",
+          "S-3",
+          "S-2",
+          "S-1",
+          "Esta sem."
+        ],
+        "series": [
+          [
+            9931,
+            4230,
+            10262,
+            10651,
+            6272,
+            4590,
+            11118,
+            11344
+          ]
+        ]
+      }
+    },
+    "calistenia": {
+      "titulo": "Tendencia de volumen",
+      "vacio": "Sin datos todavía Registra un par de sesiones más para ver tu tendencia.",
+      "info": "Cantidad total de repeticiones hechas por semana.",
+      "grafico": null
+    },
+    "hiit": {
+      "titulo": "Tendencia de constancia",
+      "vacio": null,
+      "info": "Suma total de minutos activos en tus sesiones de cardio y HIIT de cada semana.",
+      "grafico": {
+        "labels": [
+          "S-7",
+          "S-6",
+          "S-5",
+          "S-4",
+          "S-3",
+          "S-2",
+          "S-1",
+          "Esta sem."
+        ],
+        "series": [
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            20,
+            0
+          ]
+        ]
+      }
+    }
+  },
+  "metas": {
+    "vacio": null,
+    "nueva": true,
+    "metas": [
+      {
+        "nombre": "20 sesiones este trimestre",
+        "valor": "0 sesiones / 20 sesiones",
+        "pct": 0,
+        "completada": false,
+        "plazo": "Vence el 31 dic • 38 días",
+        "automatica": true,
+        "aporte": false
+      },
+      {
+        "nombre": "Correr 50 km",
+        "valor": "12.5 km / 50 km",
+        "pct": 25,
+        "completada": false,
+        "plazo": "Venció el 10 nov",
+        "automatica": false,
+        "aporte": true
+      },
+      {
+        "nombre": "Sentadilla 100 kg",
+        "valor": "100 kg / 100 kg",
+        "pct": 100,
+        "completada": true,
+        "plazo": null,
+        "automatica": false,
+        "aporte": true
+      }
+    ]
+  },
+  "cuerpo": {
+    "30": {
+      "titulo": "Cuerpo",
+      "rangos": [
+        {
+          "r": "30",
+          "activo": true,
+          "texto": "30 d"
+        },
+        {
+          "r": "90",
+          "activo": false,
+          "texto": "90 d"
+        },
+        {
+          "r": "365",
+          "activo": false,
+          "texto": "365 d"
+        }
+      ],
+      "pesoVacio": null,
+      "pesoAria": "Peso de los últimos 30 días: de 81 a 79,8 kg",
+      "peso": {
+        "labels": [
+          "25 oct",
+          "5 nov",
+          "12 nov",
+          "15 nov",
+          "22 nov"
+        ],
+        "series": [
+          [
+            81,
+            80.7,
+            80.9,
+            80.2,
+            79.8
+          ],
+          [
+            81,
+            80.7,
+            80.9,
+            80.55,
+            79.8
+          ]
+        ]
+      },
+      "minis": [
+        {
+          "campo": "cinturaCm",
+          "etq": "Cintura",
+          "valor": "85,5 cm",
+          "variacion": "−2,5 cm desde 20 ago",
+          "grafico": {
+            "labels": [
+              "20 ago",
+              "25 sept",
+              "25 oct",
+              "15 nov"
+            ],
+            "series": [
+              [
+                88,
+                87,
+                86,
+                85.5
+              ]
+            ]
+          }
+        },
+        {
+          "campo": "pechoCm",
+          "etq": "Pecho",
+          "valor": "102 cm",
+          "variacion": "+1 cm desde 25 sept",
+          "grafico": {
+            "labels": [
+              "25 sept",
+              "22 nov"
+            ],
+            "series": [
+              [
+                101,
+                102
+              ]
+            ]
+          }
+        },
+        {
+          "campo": "brazoCm",
+          "etq": "Brazo",
+          "valor": "37 cm",
+          "variacion": "+0,5 cm desde 25 oct",
+          "grafico": {
+            "labels": [
+              "25 oct",
+              "15 nov"
+            ],
+            "series": [
+              [
+                36.5,
+                37
+              ]
+            ]
+          }
+        }
+      ],
+      "fotos": {
+        "titulo": "Fotos · 3",
+        "comparar": true,
+        "dias": [
+          {
+            "fecha": "22 nov",
+            "n": 2
+          },
+          {
+            "fecha": "25 oct",
+            "n": 1
+          }
+        ]
+      },
+      "medidas": [
+        {
+          "dia": "Dom 22 nov",
+          "valores": [
+            "Peso 79,8 kg",
+            "Pecho 102 cm",
+            "Muslo 58 cm"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Dom 15 nov",
+          "valores": [
+            "Peso 80,2 kg",
+            "Cintura 85,5 cm",
+            "Brazo 37 cm"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Jue 12 nov",
+          "valores": [
+            "Peso 80,9 kg"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Jue 5 nov",
+          "valores": [
+            "Peso 80,7 kg"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Dom 25 oct",
+          "valores": [
+            "Peso 81 kg",
+            "Cintura 86 cm",
+            "Brazo 36,5 cm"
+          ],
+          "nota": "Después de vacaciones"
+        },
+        {
+          "dia": "Sáb 10 oct",
+          "valores": [
+            "Peso 81,6 kg"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Vie 25 sept",
+          "valores": [
+            "Peso 82,1 kg",
+            "Cintura 87 cm",
+            "Pecho 101 cm"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Jue 20 ago",
+          "valores": [
+            "Peso 83,4 kg",
+            "Cintura 88 cm"
+          ],
+          "nota": null
+        }
+      ]
+    },
+    "90": {
+      "titulo": "Cuerpo",
+      "rangos": [
+        {
+          "r": "30",
+          "activo": false,
+          "texto": "30 d"
+        },
+        {
+          "r": "90",
+          "activo": true,
+          "texto": "90 d"
+        },
+        {
+          "r": "365",
+          "activo": false,
+          "texto": "365 d"
+        }
+      ],
+      "pesoVacio": null,
+      "pesoAria": "Peso de los últimos 90 días: de 82,1 a 79,8 kg",
+      "peso": {
+        "labels": [
+          "25 sept",
+          "10 oct",
+          "25 oct",
+          "5 nov",
+          "12 nov",
+          "15 nov",
+          "22 nov"
+        ],
+        "series": [
+          [
+            82.1,
+            81.6,
+            81,
+            80.7,
+            80.9,
+            80.2,
+            79.8
+          ],
+          [
+            82.1,
+            81.6,
+            81,
+            80.7,
+            80.9,
+            80.55,
+            79.8
+          ]
+        ]
+      },
+      "minis": [
+        {
+          "campo": "cinturaCm",
+          "etq": "Cintura",
+          "valor": "85,5 cm",
+          "variacion": "−2,5 cm desde 20 ago",
+          "grafico": {
+            "labels": [
+              "20 ago",
+              "25 sept",
+              "25 oct",
+              "15 nov"
+            ],
+            "series": [
+              [
+                88,
+                87,
+                86,
+                85.5
+              ]
+            ]
+          }
+        },
+        {
+          "campo": "pechoCm",
+          "etq": "Pecho",
+          "valor": "102 cm",
+          "variacion": "+1 cm desde 25 sept",
+          "grafico": {
+            "labels": [
+              "25 sept",
+              "22 nov"
+            ],
+            "series": [
+              [
+                101,
+                102
+              ]
+            ]
+          }
+        },
+        {
+          "campo": "brazoCm",
+          "etq": "Brazo",
+          "valor": "37 cm",
+          "variacion": "+0,5 cm desde 25 oct",
+          "grafico": {
+            "labels": [
+              "25 oct",
+              "15 nov"
+            ],
+            "series": [
+              [
+                36.5,
+                37
+              ]
+            ]
+          }
+        }
+      ],
+      "fotos": {
+        "titulo": "Fotos · 3",
+        "comparar": true,
+        "dias": [
+          {
+            "fecha": "22 nov",
+            "n": 2
+          },
+          {
+            "fecha": "25 oct",
+            "n": 1
+          }
+        ]
+      },
+      "medidas": [
+        {
+          "dia": "Dom 22 nov",
+          "valores": [
+            "Peso 79,8 kg",
+            "Pecho 102 cm",
+            "Muslo 58 cm"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Dom 15 nov",
+          "valores": [
+            "Peso 80,2 kg",
+            "Cintura 85,5 cm",
+            "Brazo 37 cm"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Jue 12 nov",
+          "valores": [
+            "Peso 80,9 kg"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Jue 5 nov",
+          "valores": [
+            "Peso 80,7 kg"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Dom 25 oct",
+          "valores": [
+            "Peso 81 kg",
+            "Cintura 86 cm",
+            "Brazo 36,5 cm"
+          ],
+          "nota": "Después de vacaciones"
+        },
+        {
+          "dia": "Sáb 10 oct",
+          "valores": [
+            "Peso 81,6 kg"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Vie 25 sept",
+          "valores": [
+            "Peso 82,1 kg",
+            "Cintura 87 cm",
+            "Pecho 101 cm"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Jue 20 ago",
+          "valores": [
+            "Peso 83,4 kg",
+            "Cintura 88 cm"
+          ],
+          "nota": null
+        }
+      ]
+    },
+    "365": {
+      "titulo": "Cuerpo",
+      "rangos": [
+        {
+          "r": "30",
+          "activo": false,
+          "texto": "30 d"
+        },
+        {
+          "r": "90",
+          "activo": false,
+          "texto": "90 d"
+        },
+        {
+          "r": "365",
+          "activo": true,
+          "texto": "365 d"
+        }
+      ],
+      "pesoVacio": null,
+      "pesoAria": "Peso de los últimos 365 días: de 83,4 a 79,8 kg",
+      "peso": {
+        "labels": [
+          "20 ago",
+          "25 sept",
+          "10 oct",
+          "25 oct",
+          "5 nov",
+          "12 nov",
+          "15 nov",
+          "22 nov"
+        ],
+        "series": [
+          [
+            83.4,
+            82.1,
+            81.6,
+            81,
+            80.7,
+            80.9,
+            80.2,
+            79.8
+          ],
+          [
+            83.4,
+            82.1,
+            81.6,
+            81,
+            80.7,
+            80.9,
+            80.55,
+            79.8
+          ]
+        ]
+      },
+      "minis": [
+        {
+          "campo": "cinturaCm",
+          "etq": "Cintura",
+          "valor": "85,5 cm",
+          "variacion": "−2,5 cm desde 20 ago",
+          "grafico": {
+            "labels": [
+              "20 ago",
+              "25 sept",
+              "25 oct",
+              "15 nov"
+            ],
+            "series": [
+              [
+                88,
+                87,
+                86,
+                85.5
+              ]
+            ]
+          }
+        },
+        {
+          "campo": "pechoCm",
+          "etq": "Pecho",
+          "valor": "102 cm",
+          "variacion": "+1 cm desde 25 sept",
+          "grafico": {
+            "labels": [
+              "25 sept",
+              "22 nov"
+            ],
+            "series": [
+              [
+                101,
+                102
+              ]
+            ]
+          }
+        },
+        {
+          "campo": "brazoCm",
+          "etq": "Brazo",
+          "valor": "37 cm",
+          "variacion": "+0,5 cm desde 25 oct",
+          "grafico": {
+            "labels": [
+              "25 oct",
+              "15 nov"
+            ],
+            "series": [
+              [
+                36.5,
+                37
+              ]
+            ]
+          }
+        }
+      ],
+      "fotos": {
+        "titulo": "Fotos · 3",
+        "comparar": true,
+        "dias": [
+          {
+            "fecha": "22 nov",
+            "n": 2
+          },
+          {
+            "fecha": "25 oct",
+            "n": 1
+          }
+        ]
+      },
+      "medidas": [
+        {
+          "dia": "Dom 22 nov",
+          "valores": [
+            "Peso 79,8 kg",
+            "Pecho 102 cm",
+            "Muslo 58 cm"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Dom 15 nov",
+          "valores": [
+            "Peso 80,2 kg",
+            "Cintura 85,5 cm",
+            "Brazo 37 cm"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Jue 12 nov",
+          "valores": [
+            "Peso 80,9 kg"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Jue 5 nov",
+          "valores": [
+            "Peso 80,7 kg"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Dom 25 oct",
+          "valores": [
+            "Peso 81 kg",
+            "Cintura 86 cm",
+            "Brazo 36,5 cm"
+          ],
+          "nota": "Después de vacaciones"
+        },
+        {
+          "dia": "Sáb 10 oct",
+          "valores": [
+            "Peso 81,6 kg"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Vie 25 sept",
+          "valores": [
+            "Peso 82,1 kg",
+            "Cintura 87 cm",
+            "Pecho 101 cm"
+          ],
+          "nota": null
+        },
+        {
+          "dia": "Jue 20 ago",
+          "valores": [
+            "Peso 83,4 kg",
+            "Cintura 88 cm"
+          ],
+          "nota": null
+        }
+      ]
+    }
+  },
+  "errores": []
+}

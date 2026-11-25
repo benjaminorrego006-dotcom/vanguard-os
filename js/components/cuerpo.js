@@ -13,7 +13,7 @@
 import { db } from '../core/db.js';
 import { esperarSalidaDeModal } from '../core/history.js';
 import { diaKeyDe, sumarDias, fechaLocalDe, formatFechaCorta, conMayuscula, diasEntre, formatMes } from '../utils/fecha.js';
-import { ensureChartJs, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio } from '../utils/charts.js';
+import { ensureChartJs, baseChartOptions, chartFontFamily, hdPixelRatio } from '../utils/charts.js';
 import { formatNumero } from '../utils/numero.js';
 import { escapeHtml } from '../utils/escape.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
@@ -32,7 +32,15 @@ const diaCorto = (clave) => {
   const f = fechaLocalDe(clave);
   return `${conMayuscula(f.toLocaleDateString('es-CL', { weekday: 'short' }).replace('.', ''))} ${formatFechaCorta(f)}`;
 };
-const conUnidad = (v, u) => `<span class="num">${formatNumero(v)}</span> ${u}`;
+const conUnidad = (v, u) => `<span class="o-num">${formatNumero(v)}</span> ${u}`;
+// Variación en Órbita (textoDelta, con .num, sigue para el Laboratorio).
+const deltaOrbita = (delta) => (delta === 0 ? 'sin cambios'
+  : `<span class="o-num">${delta > 0 ? '+' : '−'}${formatNumero(Math.abs(delta))}</span>`);
+// Color real de un token de Órbita en Entreno (Chart.js no entiende var()).
+function colorEntreno(token) {
+  const el = document.querySelector('#view-root .o-mod-entreno') || document.documentElement;
+  return getComputedStyle(el).getPropertyValue(token).trim();
+}
 
 // Variación del último peso contra el peso vigente hace 30 días (el último
 // registrado ese día o antes). null si no hay con qué comparar.
@@ -130,27 +138,27 @@ function renderGraficos(medidas) {
     : 'Registra tu peso al menos dos días para ver el gráfico.';
   const minis = CAMPOS.slice(1).map(c => ({ ...c, serie: serieDiaria(medidas, c.k) })).filter(c => c.serie.length >= 2);
   return `
-    <section class="card cuerpo-graf" aria-labelledby="cuerpo-graf-titulo">
-      <div class="cuerpo-graf-cab">
-        <h3 id="cuerpo-graf-titulo">Peso</h3>
-        <div class="cuerpo-rangos" role="group" aria-label="Rango del gráfico">
-          ${RANGOS.map(r => `<button type="button" class="cuerpo-rango tappable" data-rango="${r}" aria-pressed="${r === rangoPeso}"><span class="num">${r}</span> d</button>`).join('')}
+    <section class="o-card o-ent-cgraf" aria-labelledby="cuerpo-graf-titulo" data-foto="cuerpo-peso">
+      <div class="o-ent-cgraf-cab">
+        <h3 class="o-card-titulo" id="cuerpo-graf-titulo">Peso</h3>
+        <div class="o-chips" role="group" aria-label="Rango del gráfico">
+          ${RANGOS.map(r => `<button type="button" class="o-chip o-ent-rango" data-rango="${r}" aria-pressed="${r === rangoPeso}" data-foto="rango"><span class="o-num">${r}</span> d</button>`).join('')}
         </div>
       </div>
       ${vacio
-        ? `<p class="cuerpo-graf-vacio" id="cuerpo-peso-vacio">${vacio}</p>`
-        : `<div class="cuerpo-graf-caja"><canvas id="cuerpo-peso-chart" role="img" aria-label="Peso de los últimos ${rangoPeso} días: de ${formatNumero(serie[0].valor)} a ${formatNumero(serie[serie.length - 1].valor)} kg"></canvas></div>
-           <div class="cuerpo-graf-leyenda" aria-hidden="true"><span class="cuerpo-ley cuerpo-ley--peso">Peso</span><span class="cuerpo-ley cuerpo-ley--media">Media de 7 días</span></div>`}
+        ? `<p class="o-card-texto" id="cuerpo-peso-vacio">${vacio}</p>`
+        : `<div class="o-ent-graf o-ent-graf--alto"><canvas id="cuerpo-peso-chart" role="img" aria-label="Peso de los últimos ${rangoPeso} días: de ${formatNumero(serie[0].valor)} a ${formatNumero(serie[serie.length - 1].valor)} kg"></canvas></div>
+           <div class="o-ent-ley" aria-hidden="true"><span class="o-ent-ley-item o-ent-ley-item--peso">Peso</span><span class="o-ent-ley-item o-ent-ley-item--media">Media de 7 días</span></div>`}
     </section>
-    ${minis.length ? `<div class="cuerpo-minis">${minis.map(c => {
+    ${minis.length ? `<div class="o-ent-cminis">${minis.map(c => {
       const a = c.serie[0], b = c.serie[c.serie.length - 1];
       const delta = Math.round((b.valor - a.valor) * 10) / 10;
       return `
-        <section class="card cuerpo-mini" data-campo="${c.k}" aria-label="${c.etq}">
-          <div class="cuerpo-mini-etq">${c.etq}</div>
-          <div class="cuerpo-mini-valor">${conUnidad(b.valor, c.u)}</div>
-          <div class="cuerpo-mini-var">${textoDelta(delta)}${delta === 0 ? '' : ` ${c.u}`} desde ${escapeHtml(fechaCorta(a.fecha))}</div>
-          <div class="cuerpo-mini-caja"><canvas id="cuerpo-mini-${c.k}" aria-hidden="true"></canvas></div>
+        <section class="o-card o-ent-cmini" data-campo="${c.k}" aria-label="${c.etq}" data-foto="mini">
+          <p class="o-rotulo" data-foto="mini-etq">${c.etq}</p>
+          <p class="o-ent-cmini-valor" data-foto="mini-valor">${conUnidad(b.valor, c.u)}</p>
+          <p class="o-ent-cmini-var" data-foto="mini-var">${deltaOrbita(delta)}${delta === 0 ? '' : ` ${c.u}`} desde ${escapeHtml(fechaCorta(a.fecha))}</p>
+          <div class="o-ent-cmini-caja"><canvas id="cuerpo-mini-${c.k}" aria-hidden="true"></canvas></div>
         </section>`;
     }).join('')}</div>` : ''}`;
 }
@@ -159,11 +167,12 @@ function renderGraficos(medidas) {
 export async function initCuerpoGraficos(medidas) {
   cleanupCuerpoGraficos();
   const canvas = document.getElementById('cuerpo-peso-chart');
-  const minis = [...document.querySelectorAll('.cuerpo-mini canvas')];
+  const minis = [...document.querySelectorAll('.o-ent-cmini canvas')];
   if (!canvas && !minis.length) return;
   const Chart = await ensureChartJs();
-  const cy = cssVar('--cy');
-  const texto = cssVar('--text-secondary');
+  const cy = colorEntreno('--o-mod');
+  const media = colorEntreno('--o-mod-2');
+  const texto = colorEntreno('--o-text-2');
   const family = chartFontFamily();
   const opts = baseChartOptions();
   if (canvas && canvas.isConnected) {
@@ -175,7 +184,7 @@ export async function initCuerpoGraficos(medidas) {
         labels: serie.map(p => fechaCorta(p.fecha)),
         datasets: [
           { label: 'Peso', data: serie.map(p => p.valor), fechas: serie.map(p => p.fecha), borderColor: cy, backgroundColor: cy, borderWidth: 2, pointRadius: serie.length > 60 ? 0 : 3, pointHoverRadius: 5, tension: 0 },
-          { label: 'Media de 7 días', data: mediaMovil7(serie), borderColor: cy + '66', borderWidth: 2, pointRadius: 0, pointHoverRadius: 0, tension: 0.3 }
+          { label: 'Media de 7 días', data: mediaMovil7(serie), borderColor: media, borderDash: [4, 4], borderWidth: 2, pointRadius: 0, pointHoverRadius: 0, tension: 0.3 }
         ]
       },
       options: {
@@ -185,7 +194,7 @@ export async function initCuerpoGraficos(medidas) {
         plugins: { ...opts.plugins, tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${ctx.dataset.label}: ${formatNumero(ctx.parsed.y)} kg` } } },
         scales: {
           x: { grid: { display: false }, ticks: { color: texto, maxTicksLimit: 6, maxRotation: 0, font: { size: 10, family } } },
-          y: { grid: { color: cssVar('--line') }, ticks: { color: texto, maxTicksLimit: 5, font: { size: 10, family }, callback: (v) => formatNumero(v) } }
+          y: { grid: { color: colorEntreno('--o-line') }, ticks: { color: texto, maxTicksLimit: 5, font: { size: 10, family }, callback: (v) => formatNumero(v) } }
         }
       }
     }));
@@ -207,30 +216,30 @@ export async function initCuerpoGraficos(medidas) {
 export function renderCuerpoHistorial(medidas, fotos = []) {
   const filas = medidas.map(m => {
     const valores = CAMPOS.filter(c => typeof m[c.k] === 'number')
-      .map(c => `<span class="cuerpo-valor"><span class="cuerpo-valor-etq">${c.etq}</span> ${conUnidad(m[c.k], c.u)}</span>`).join('');
+      .map(c => `<span class="o-ent-medida-valor" data-foto="medida-valor"><span class="o-ent-medida-etq">${c.etq}</span> ${conUnidad(m[c.k], c.u)}</span>`).join('');
     const dia = diaCorto(m.fecha);
     return `
-      <li class="cuerpo-fila" data-id="${escapeHtml(m.id)}" data-fecha="${escapeHtml(m.fecha)}">
-        <div class="cuerpo-fila-dia num">${escapeHtml(dia)}</div>
-        <div class="cuerpo-fila-valores">${valores}</div>
-        ${m.nota ? `<p class="cuerpo-fila-nota">${escapeHtml(m.nota)}</p>` : ''}
-        <div class="cuerpo-fila-acciones">
-          <button type="button" class="cuerpo-btn btn-medida-editar tappable" data-id="${escapeHtml(m.id)}" aria-label="Editar la medida del ${escapeHtml(dia)}">Editar</button>
-          <button type="button" class="cuerpo-btn btn-medida-eliminar tappable" data-id="${escapeHtml(m.id)}" aria-label="Eliminar la medida del ${escapeHtml(dia)}">Eliminar</button>
+      <li class="o-card o-ent-medida" data-id="${escapeHtml(m.id)}" data-fecha="${escapeHtml(m.fecha)}" data-foto="medida">
+        <p class="o-rotulo o-ent-medida-dia" data-foto="medida-dia">${escapeHtml(dia)}</p>
+        <div class="o-ent-medida-valores">${valores}</div>
+        ${m.nota ? `<p class="o-card-texto o-ent-medida-nota" data-foto="medida-nota">${escapeHtml(m.nota)}</p>` : ''}
+        <div class="o-ent-acciones">
+          <button type="button" class="o-btn o-btn--secundario btn-medida-editar" data-id="${escapeHtml(m.id)}" aria-label="Editar la medida del ${escapeHtml(dia)}">Editar</button>
+          <button type="button" class="o-btn o-btn--fantasma btn-medida-eliminar" data-id="${escapeHtml(m.id)}" aria-label="Eliminar la medida del ${escapeHtml(dia)}">Eliminar</button>
         </div>
       </li>`;
   }).join('');
   return `
-    <div class="cuerpo-historial">
-      <div class="cuerpo-historial-cab">
-        <h2>Cuerpo</h2>
-        <button type="button" id="btn-cuerpo-hist-registrar" class="cuerpo-btn cuerpo-btn--primario tappable">Registrar medidas</button>
-      </div>
+    <div class="o-ent-chist" data-foto="cuerpo">
+      <header class="o-ent-rut-cab">
+        <h2 class="o-ent-titulo" data-foto="cuerpo-titulo">Cuerpo</h2>
+        <button type="button" id="btn-cuerpo-hist-registrar" class="o-btn o-btn--primario">Registrar medidas</button>
+      </header>
       ${medidas.length ? renderGraficos(medidas) : ''}
       ${renderFotosSeccion(fotos)}
       ${medidas.length
-        ? `<ul class="cuerpo-lista">${filas}</ul>`
-        : '<p class="cuerpo-sub">Todavía no hay medidas registradas.</p>'}
+        ? `<section class="o-ent-seccion" aria-labelledby="cuerpo-medidas-titulo"><h3 class="o-rotulo" id="cuerpo-medidas-titulo">Medidas</h3><ul class="o-lista">${filas}</ul></section>`
+        : '<p class="o-card-texto" data-foto="medidas-vacio">Todavía no hay medidas registradas.</p>'}
     </div>`;
 }
 
@@ -354,7 +363,7 @@ export function initCuerpo({ repintar, abrirHistorial, signal } = {}) {
   document.getElementById(abrirHistorial ? 'btn-cuerpo-registrar' : 'btn-cuerpo-hist-registrar')?.addEventListener('click', () => abrirMedidaForm(), opts);
   document.getElementById('btn-cuerpo-historial')?.addEventListener('click', () => abrirHistorial && abrirHistorial(), opts);
   initFotos({ repintar: alCambiar, signal });
-  document.querySelectorAll('.cuerpo-rango').forEach(b => b.addEventListener('click', async () => {
+  document.querySelectorAll('.o-ent-rango').forEach(b => b.addEventListener('click', async () => {
     rangoPeso = Number(b.dataset.rango) || 90;
     if (alCambiar) await alCambiar();
   }, opts));
@@ -366,7 +375,7 @@ export function initCuerpo({ repintar, abrirHistorial, signal } = {}) {
   document.querySelectorAll('.btn-medida-eliminar').forEach(b => b.addEventListener('click', async () => {
     // El id y la fecha se capturan antes de cualquier await.
     const id = b.dataset.id;
-    const fecha = b.closest('.cuerpo-fila')?.dataset.fecha;
+    const fecha = b.closest('.o-ent-medida')?.dataset.fecha;
     const ok = await ConfirmDialog('¿Eliminar esta medida?', `Se borra la medida del ${fecha ? fechaCorta(fecha) : 'día elegido'}. No se puede deshacer.`, { verb: 'Eliminar' });
     if (!ok) return;
     await db.eliminarMedida(id);

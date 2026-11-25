@@ -24,6 +24,7 @@ import { chromium } from 'playwright';
 import { tomarFoto, leerUiOrbita, compararFotos, ARCHIVO_ANTES } from './foto-finanzas.mjs';
 import { tomarFotoEntreno, leerUiOrbitaEntreno, ARCHIVO_ANTES_ENTRENO } from './foto-entreno.mjs';
 import { tomarFotoRutinas, UI_ORBITA as UI_ORBITA_RUTINAS, ARCHIVO_ANTES_RUTINAS } from './foto-rutinas.mjs';
+import { tomarFotoProgreso, UI_ORBITA as UI_ORBITA_PROGRESO, ARCHIVO_ANTES_PROGRESO } from './foto-progreso.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '..', '..');
@@ -1493,6 +1494,15 @@ async function main() {
     afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
   });
 
+  await prueba('Entreno › Historial, Progreso completo y Cuerpo · cifras y gráficos idénticos a la foto de antes de la Fase 9c', async () => {
+    // Contexto propio (datos demo, medidas, metas y fotos de foto-progreso.mjs), leído por la interfaz Órbita.
+    const despues = await tomarFotoProgreso(browser, BASE, { ui: UI_ORBITA_PROGRESO, capturas: path.join(SALIDA, 'progreso-foto') });
+    fs.writeFileSync(path.join(SALIDA, 'progreso-despues.json'), JSON.stringify(despues, null, 2) + '\n');
+    afirmar(despues.errores.length === 0, `errores de consola: ${despues.errores[0]}`);
+    const difs = compararFotos(JSON.parse(fs.readFileSync(ARCHIVO_ANTES_PROGRESO, 'utf8')), despues);
+    afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
+  });
+
   const pestanaEnt = () => page.$eval('[data-ent-tab][aria-selected="true"]', (e) => e.dataset.entTab);
   const subVisible = () => page.$eval('#entrenamiento-sub-view', (e) => getComputedStyle(e).display !== 'none');
 
@@ -1632,7 +1642,7 @@ async function main() {
     afirmar(JSON.stringify(antes) === JSON.stringify(despues), `la base cambió: ${Object.keys(antes).filter((k) => antes[k] !== despues[k]).join(', ')}`);
   });
 
-  await prueba('Entreno · 44 px y contraste AA en las pestañas, la lista de rutinas, los formularios y las vistas previas (color y sobrio)', async () => {
+  await prueba('Entreno · 44 px y contraste AA en las pestañas, la lista de rutinas, los formularios, las vistas previas, el historial, Progreso completo y Cuerpo (color y sobrio)', async () => {
     const chicosEn = (sel) => page.$$eval(`${sel} :is(button, input, select, summary)`, (bs) => bs.filter((b) => {
       const r = b.getBoundingClientRect();
       // El progreso de la ficha sigue en MK III hasta la 9c.
@@ -1729,6 +1739,49 @@ async function main() {
           await page.screenshot({ path: path.join(SALIDA, `entreno-generada-${tema}-${vp.w}.png`), fullPage: true });
           await page.locator('#btn-entrenamiento-volver').click();
           await page.waitForSelector('#ent-tab-rutinas[aria-selected="true"]');
+          // Fase 9c: Historial, cada pestaña de Progreso completo y Cuerpo.
+          const aProgreso = async () => {
+            await page.locator('#ent-tab-progreso').click();
+            await page.waitForSelector('#ent-tab-progreso[aria-selected="true"]');
+          };
+          const volver = async () => {
+            await page.locator('#btn-entrenamiento-volver').click();
+            await page.waitForSelector('#entrenamiento-sub-view', { state: 'hidden' });
+          };
+          await aProgreso();
+          if (await page.locator('#link-historial-sesiones').count()) {
+            await page.locator('#link-historial-sesiones').click();
+            await page.waitForSelector('#hist-lista [data-foto="hist-sesion"]');
+            await revisar('#entrenamiento-sub-view', donde('historial'));
+            await page.screenshot({ path: path.join(SALIDA, `entreno-historial-${tema}-${vp.w}.png`), fullPage: true });
+            await volver();
+            await aProgreso();
+          }
+          await page.locator('#link-ver-progreso-completo').click();
+          await page.waitForSelector('#progreso-tab-content');
+          for (const tab of ['estandares', 'arbol', 'tendencia', 'metas']) {
+            await page.locator(`#prog-tab-${tab}`).click();
+            await page.waitForSelector(`#prog-tab-${tab}[aria-selected="true"]`);
+            await revisar('#entrenamiento-sub-view', donde(`progreso ${tab}`));
+            await page.screenshot({ path: path.join(SALIDA, `entreno-progreso-${tab}-${tema}-${vp.w}.png`), fullPage: true });
+          }
+          if (tema === 'color' && vp.w === 390) {
+            // Teclado de las pestañas de Progreso: flechas e Inicio/Fin, con el foco en la nueva.
+            await page.locator('#prog-tab-metas').focus();
+            await page.keyboard.press('ArrowRight');
+            await page.waitForSelector('#prog-tab-estandares[aria-selected="true"]');
+            afirmar(await page.evaluate(() => document.activeElement?.id) === 'prog-tab-estandares', 'la flecha no dejó el foco en la pestaña nueva');
+            await page.keyboard.press('End');
+            await page.waitForSelector('#prog-tab-metas[aria-selected="true"]');
+            afirmar(await page.evaluate(() => document.activeElement?.id) === 'prog-tab-metas', 'Fin no dejó el foco en Metas');
+          }
+          await volver();
+          await aProgreso();
+          await page.locator('#btn-cuerpo-historial').click();
+          await page.waitForSelector('#entrenamiento-sub-content [data-foto="cuerpo"]');
+          await revisar('#entrenamiento-sub-view', donde('cuerpo'));
+          await page.screenshot({ path: path.join(SALIDA, `entreno-cuerpo-${tema}-${vp.w}.png`), fullPage: true });
+          await volver();
         }
       }
     } finally {

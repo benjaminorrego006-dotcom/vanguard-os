@@ -7,12 +7,10 @@
 // el árbol completo sin filtrar para poder cruzar prerrequisitos entre
 // modalidades (ej. el camino a Front Lever pasa por Dominadas de gym).
 //
-// Vive dentro de la ruta Entreno, así que hereda el theming MK III de
-// html.mk3-entreno en components.css sin CSS propio: .card ya sale con el
-// radio de tarjeta de Órbita, sin box-shadow y en monoespaciada;
-// var(--accent-teal) ya está redefinida a var(--cy) en ese contexto. No hay
-// nada de esto que declarar acá, solo respetarlo (no usar border-radius,
-// box-shadow ni otra tipografía inline que lo pise).
+// Órbita (Fase 9c): estilos en css/entreno.css (.o-ent-arbol, .o-ent-nodo);
+// data-foto: lo que lee tools/verificar/foto-progreso.mjs. Un nodo
+// bloqueado se marca con borde punteado y el rótulo «Requiere» (no solo
+// con color ni con opacidad, que bajaría el contraste del texto).
 //
 // Sin XP, sin niveles, sin tiers, sin copy de "desbloqueaste X": un nodo
 // bloqueado se ve atenuado y muestra qué le falta; uno disponible se ve
@@ -68,17 +66,17 @@ function renderPrerrequisitos(nodoId, prereqs, categoria) {
     const partes = [];
     if (cruzaModalidad) partes.push(MODALIDAD_LABELS[getEjercicioPorId(p.id)?.categoria] || '');
     if (cruzaRama) partes.push(RAMA_LABELS[p.rama]);
-    const etiqueta = partes.length ? ` <span style="color: var(--text-disabled); font-weight: 500;">(${partes.join(' · ')})</span>` : '';
-    return `<li>${p.nombre}${etiqueta} — ${formatObjetivo(p.objetivo)}</li>`;
+    const etiqueta = partes.length ? ` <span class="o-ent-req-donde">(${partes.join(' · ')})</span>` : '';
+    return `<li>${p.nombre}${etiqueta} — <span class="o-num">${formatObjetivo(p.objetivo)}</span></li>`;
   };
   const items = prereqs.map(item).join('');
   const itemsAlternativos = alternativos.length === 0 ? '' : `
-      <div style="text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin: 6px 0 4px 0; color: var(--text-disabled);">Uno de estos</div>
-      <ul style="margin: 0; padding-left: 16px; line-height: 1.6;">${alternativos.map(item).join('')}</ul>`;
+      <p class="o-rotulo">Uno de estos</p>
+      <ul class="o-ent-req-lista" data-foto="req-alt">${alternativos.map(item).join('')}</ul>`;
   return `
-    <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary);">
-      <div style="text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 4px; color: var(--text-disabled);">Requiere</div>
-      <ul style="margin: 0; padding-left: 16px; line-height: 1.6;">${items}</ul>${itemsAlternativos}
+    <div class="o-ent-req">
+      <p class="o-rotulo">Requiere</p>
+      <ul class="o-ent-req-lista" data-foto="req">${items}</ul>${itemsAlternativos}
     </div>
   `;
 }
@@ -89,15 +87,15 @@ function renderNodo(nodoId, bloqueado, categoria) {
   const prereqs = getPrerrequisitos(nodoId);
 
   return `
-    <div class="card" style="padding: 14px 16px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 2px; border-left: 3px solid ${bloqueado ? 'var(--surface-border)' : 'var(--accent-teal)'}; opacity: ${bloqueado ? '0.45' : '1'};">
-      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px;">
-        <span style="font-size: 14px; font-weight: 700; color: ${bloqueado ? 'var(--text-disabled)' : 'var(--text-primary)'};">${nodo.nombre}</span>
-        <span style="font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap;">${formatObjetivo(nodo.objetivo)}</span>
+    <li class="o-card o-ent-nodo" data-foto="nodo" data-bloqueado="${bloqueado}">
+      <div class="o-ent-nodo-cab">
+        <b class="o-ent-nodo-nombre" data-foto="nodo-nombre">${nodo.nombre}</b>
+        <span class="o-ent-nodo-obj o-num" data-foto="nodo-objetivo">${formatObjetivo(nodo.objetivo)}</span>
       </div>
       ${esRaiz
-        ? `<div style="font-size: 10.5px; color: var(--text-disabled); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">Punto de partida</div>`
+        ? '<p class="o-rotulo o-ent-nodo-raiz" data-foto="nodo-raiz">Punto de partida</p>'
         : bloqueado ? renderPrerrequisitos(nodoId, prereqs, categoria) : ''}
-    </div>
+    </li>
   `;
 }
 
@@ -115,16 +113,16 @@ function renderRama(rama, historialPorNombre, categoria, desbloqueadosManuales, 
 
   const nodosNormalesHtml = normales.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre, desbloqueadosManuales, nivelRama), categoria)).join('');
   const nodosEstaticosHtml = estaticos.length === 0 ? '' : `
-    <div style="font-size: 10.5px; font-weight: 700; color: var(--text-disabled); text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 8px 0;">Estáticos</div>
-    ${estaticos.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre, desbloqueadosManuales, nivelRama), categoria)).join('')}
+    <h4 class="o-rotulo o-ent-rama-sub">Estáticos</h4>
+    <ul class="o-lista" data-foto="rama-estaticos">${estaticos.map(id => renderNodo(id, !estaDesbloqueado(id, historialPorNombre, desbloqueadosManuales, nivelRama), categoria)).join('')}</ul>
   `;
 
   return `
-    <div style="margin-bottom: 24px;">
-      <h3 style="font-size: 13px; font-weight: 700; color: var(--accent-teal-t); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 10px 0;">${RAMA_LABELS[rama]}</h3>
-      ${nodosNormalesHtml}
+    <section class="o-ent-rama" data-foto="rama" aria-labelledby="rama-${rama}">
+      <h3 class="o-rotulo o-ent-rama-titulo" id="rama-${rama}" data-foto="rama-nombre">${RAMA_LABELS[rama]}</h3>
+      ${nodosNormalesHtml ? `<ul class="o-lista">${nodosNormalesHtml}</ul>` : ''}
       ${nodosEstaticosHtml}
-    </div>
+    </section>
   `;
 }
 
@@ -145,10 +143,12 @@ export async function renderArbolProgresion(categoria) {
   const desbloqueadosManuales = new Set(Object.values(nivelDeclarado?.desbloqueadosPorRama || {}).flat().map(d => (typeof d === 'string' ? d : d.id)));
 
   return `
-    <div>
-      <h2 style="font-size: 21px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">Árbol de Progresión · ${MODALIDAD_LABELS[categoria] || ''}</h2>
-      <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 4px 0; line-height: 1.5;">Qué entrenar después. Un paso se habilita cuando el historial registra series limpias del paso anterior.</p>
-      <p style="font-size: 11px; color: var(--text-disabled); margin: 0 0 20px 0; line-height: 1.5; font-style: italic;">Es una referencia de la comunidad, no un veredicto sobre tu cuerpo — progresa al ritmo que te funcione.</p>
+    <div class="o-ent-arbol">
+      <header class="o-ent-sec-cab">
+        <h2 class="o-card-titulo" data-foto="arbol-titulo">Árbol de Progresión · ${MODALIDAD_LABELS[categoria] || ''}</h2>
+        <p class="o-card-texto">Qué entrenar después. Un paso se habilita cuando el historial registra series limpias del paso anterior.</p>
+        <p class="o-card-texto o-ent-nota">Es una referencia de la comunidad, no un veredicto sobre tu cuerpo — progresa al ritmo que te funcione.</p>
+      </header>
       ${RAMA_ORDEN.map(rama => renderRama(rama, historialPorNombre, categoria, desbloqueadosManuales, nivelPorRama)).join('')}
     </div>
   `;
