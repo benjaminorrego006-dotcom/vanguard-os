@@ -1,7 +1,7 @@
 // Historial de sesiones de Entreno: lista por semana (lunes a domingo, la
 // más reciente primero) con "Cargar más", y el detalle de cada sesión en un
-// modal (.modal-overlay + open, así el atrás del sistema lo cierra; ver
-// history.js) con Eliminar y Editar. Eliminar pide confirmación y deja un
+// hoja de Órbita (.modal-overlay con id + open, así el atrás del sistema la
+// cierra; ver history.js) con Eliminar y Editar. Eliminar pide confirmación y deja un
 // aviso con "Deshacer" (db.restaurarSesion). Editar abre el formulario en
 // el mismo modal y guarda con db.editarSesion; Cancelar, Atrás o Escape
 // vuelven al detalle (con "¿Descartar los cambios?" si hubo cambios).
@@ -11,6 +11,7 @@ import { claveDiaDe, fechaLocalDe, sumarDias, diaKeyDe, formatFechaCorta, conMay
 import { escapeHtml } from '../utils/escape.js';
 import { ConfirmDialog, ToastAccion, Toast } from '../utils/states.js';
 import { abrirBuscadorEjercicios, TIPO_LABELS } from './rutina-session.js';
+import { oIcono } from './orbita.js';
 
 const SEMANAS_POR_PAGINA = 8;
 // Serie por tiempo (plantillas de Calistenia): "30s", "20s/lado", "45 s".
@@ -111,41 +112,41 @@ function renderDetalle(s, categoria) {
   const series = seriesMarcadas(s);
   const incompleta = categoria === 'hiit' && s.completado === false;
   const ejercicios = (s.ejercicios || []).map(ej => `
-    <li style="padding: 10px 0; border-top: 1px solid var(--surface-border);">
-      <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">${escapeHtml(ej.nombre || 'Ejercicio')}</div>
-      <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px;">
+    <li class="o-ent-det-ej">
+      <h3 class="o-ent-det-ej-nombre">${escapeHtml(ej.nombre || 'Ejercicio')}</h3>
+      <ol class="o-ent-det-series">
         ${(ej.series || []).map((sr, i) => {
           const peso = Number(sr.peso) || 0;
           const tipo = sr.tipo && sr.tipo !== 'normal' ? ` · ${escapeHtml(sr.tipo)}` : '';
           const marcada = sr.checked !== false;
-          return `<li style="display: flex; gap: 10px; font-size: 13px; color: ${marcada ? 'var(--text-primary)' : 'var(--text-secondary)'};">
-            <span style="width: 56px; color: var(--text-secondary);">Serie <span class="num">${i + 1}</span></span>
-            <span>${peso > 0 ? `<span class="num">${escapeHtml(String(sr.peso))}</span> kg × ` : ''}<span class="num">${escapeHtml(String(sr.reps ?? 0))}</span>${esNumero(sr.reps ?? 0) ? ' reps' : ''}${tipo}${marcada ? '' : ' · sin marcar'}</span>
+          return `<li class="o-ent-det-serie${marcada ? '' : ' o-ent-det-serie--sin'}">
+            <span class="o-ent-det-serie-n">Serie <span class="o-num">${i + 1}</span></span>
+            <span>${peso > 0 ? `<span class="o-num">${escapeHtml(String(sr.peso))}</span> kg × ` : ''}<span class="o-num">${escapeHtml(String(sr.reps ?? 0))}</span>${esNumero(sr.reps ?? 0) ? ' reps' : ''}${tipo}${marcada ? '' : ' · sin marcar'}</span>
           </li>`;
         }).join('')}
       </ol>
     </li>`).join('');
   return `
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
-      <div style="min-width: 0;">
-        <div style="font-size: 12px; color: var(--text-secondary);">${escapeHtml(conMayuscula(diaLargo(s.fecha)))}${CATEGORIAS[categoria] ? ` · ${CATEGORIAS[categoria]}` : ''}</div>
-        <h2 id="sesion-detalle-titulo" style="font-size: 20px; font-weight: 800; margin: 4px 0 0 0; color: var(--text-primary);">${escapeHtml(s.nombreRutina || 'Entrenamiento')}</h2>
+    <div class="o-hoja-cab">
+      <div class="o-ent-det-cab">
+        <p class="o-rotulo">${escapeHtml(conMayuscula(diaLargo(s.fecha)))}${CATEGORIAS[categoria] ? ` · ${CATEGORIAS[categoria]}` : ''}</p>
+        <h2 id="sesion-detalle-titulo" class="o-hoja-titulo">${escapeHtml(s.nombreRutina || 'Entrenamiento')}</h2>
       </div>
-      <button type="button" id="btn-sesion-detalle-cerrar" aria-label="Cerrar detalle" style="width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-        <svg aria-hidden="true" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
+      <button type="button" id="btn-sesion-detalle-cerrar" class="o-btn o-btn--fantasma o-btn--icono" aria-label="Cerrar detalle">${oIcono('cerrar')}</button>
     </div>
-    <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
-      <span><span class="num" style="color: var(--text-primary); font-weight: 700;">${s.duracionMin || 0}</span> min</span>
-      <span><span class="num" style="color: var(--text-primary); font-weight: 700;">${series}</span> ${series === 1 ? 'serie' : 'series'}</span>
-      ${s.rpe ? `<span>RPE <span class="num" style="color: var(--text-primary); font-weight: 700;">${escapeHtml(String(s.rpe))}</span></span>` : ''}
-      ${incompleta ? '<span style="font-weight: 700;">Incompleta</span>' : ''}
+    <div class="o-hoja-cuerpo">
+      <p class="o-ent-det-datos">
+        <span><b class="o-num">${s.duracionMin || 0}</b> min</span>
+        <span><b class="o-num">${series}</b> ${series === 1 ? 'serie' : 'series'}</span>
+        ${s.rpe ? `<span>RPE <b class="o-num">${escapeHtml(String(s.rpe))}</b></span>` : ''}
+        ${incompleta ? '<span class="o-ent-hist-incompleta">Incompleta</span>' : ''}
+      </p>
+      ${s.notas ? `<p class="o-card-texto o-ent-det-notas">${escapeHtml(s.notas)}</p>` : ''}
+      <ul class="o-ent-det-ejs">${ejercicios || '<li class="o-card-texto">Sin series registradas.</li>'}</ul>
     </div>
-    ${s.notas ? `<p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 12px 0; white-space: pre-line;">${escapeHtml(s.notas)}</p>` : ''}
-    <ul style="list-style: none; margin: 0 0 16px 0; padding: 0;">${ejercicios || '<li style="font-size: 13px; color: var(--text-secondary);">Sin series registradas.</li>'}</ul>
-    <div class="sesion-detalle-acciones" style="display: flex; gap: 8px; background: var(--surface-1); padding-top: 12px; border-top: 1px solid var(--surface-border);">
-      <button type="button" id="btn-sesion-eliminar" class="tappable" style="flex: 1; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Eliminar</button>
-      <button type="button" id="btn-sesion-editar" class="tappable" style="flex: 1; background: transparent; border: 1px solid var(--cy); color: var(--cy-t); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Editar</button>
+    <div class="o-hoja-pie sesion-detalle-acciones">
+      <button type="button" id="btn-sesion-eliminar" class="o-btn o-btn--secundario">Eliminar</button>
+      <button type="button" id="btn-sesion-editar" class="o-btn o-btn--primario">Editar</button>
     </div>`;
 }
 
@@ -174,35 +175,30 @@ function borradorDe(s) {
   };
 }
 
-const ESTILO_INPUT = 'width: 100%; min-width: 0; box-sizing: border-box; min-height: 44px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 10px; font-size: 16px;';
-const ESTILO_ETIQUETA = 'display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;';
-
 function filaSerieEdicion(sr, ei, si, nombreEj) {
   const n = si + 1;
   const pre = `ed-${ei}-${si}`;
   const de = `de la serie ${n} de ${escapeHtml(nombreEj)}`;
   return `
-    <li class="ed-serie" style="border: 1px solid var(--surface-border); padding: 8px; display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 13px; color: var(--text-secondary); flex-shrink: 0;">Serie <span class="num">${n}</span></span>
-        <select id="${pre}-tipo" class="ed-campo" data-ej="${ei}" data-sr="${si}" data-prop="tipo" aria-label="Tipo ${de}" style="${ESTILO_INPUT} flex: 1; font-size: 14px;">
+    <li class="ed-serie o-ent-ed-serie">
+      <div class="o-ent-ed-serie-cab">
+        <span class="o-ent-det-serie-n">Serie <span class="o-num">${n}</span></span>
+        <select id="${pre}-tipo" class="ed-campo o-input" data-ej="${ei}" data-sr="${si}" data-prop="tipo" aria-label="Tipo ${de}">
           ${Object.entries(TIPO_LABELS).map(([v, l]) => `<option value="${v}" ${sr.tipo === v ? 'selected' : ''}>${l}</option>`).join('')}
         </select>
-        <button type="button" class="ed-campo tappable" data-accion="quitar-serie" data-ej="${ei}" data-sr="${si}" aria-label="Quitar la serie ${n} de ${escapeHtml(nombreEj)}" style="width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-          <svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
+        <button type="button" class="ed-campo o-btn o-btn--secundario o-btn--icono" data-accion="quitar-serie" data-ej="${ei}" data-sr="${si}" aria-label="Quitar la serie ${n} de ${escapeHtml(nombreEj)}">${oIcono('cerrar')}</button>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end;">
-        <div style="min-width: 0;">
-          <label for="${pre}-peso" style="${ESTILO_ETIQUETA}">Peso (kg)</label>
-          <input id="${pre}-peso" class="ed-campo num" type="number" inputmode="decimal" min="0" step="any" value="${escapeHtml(sr.peso)}" data-ej="${ei}" data-sr="${si}" data-prop="peso" aria-label="Peso en kilos ${de}" style="${ESTILO_INPUT}">
+      <div class="o-ent-ed-serie-campos">
+        <div class="o-campo">
+          <label for="${pre}-peso">Peso (kg)</label>
+          <input id="${pre}-peso" class="ed-campo o-input o-num" type="number" inputmode="decimal" min="0" step="any" value="${escapeHtml(sr.peso)}" data-ej="${ei}" data-sr="${si}" data-prop="peso" aria-label="Peso en kilos ${de}">
         </div>
-        <div style="min-width: 0;">
-          <label for="${pre}-reps" style="${ESTILO_ETIQUETA}">Reps</label>
-          <input id="${pre}-reps" class="ed-campo num" type="text" inputmode="numeric" value="${escapeHtml(sr.reps)}" data-ej="${ei}" data-sr="${si}" data-prop="reps" aria-label="Repeticiones ${de}" style="${ESTILO_INPUT}">
+        <div class="o-campo">
+          <label for="${pre}-reps">Reps</label>
+          <input id="${pre}-reps" class="ed-campo o-input o-num" type="text" inputmode="numeric" value="${escapeHtml(sr.reps)}" data-ej="${ei}" data-sr="${si}" data-prop="reps" aria-label="Repeticiones ${de}">
         </div>
-        <label style="display: flex; align-items: center; gap: 6px; min-height: 44px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
-          <input type="checkbox" class="ed-campo" data-ej="${ei}" data-sr="${si}" data-prop="checked" ${sr.checked ? 'checked' : ''} aria-label="Serie ${n} de ${escapeHtml(nombreEj)} marcada" style="width: 20px; height: 20px; accent-color: var(--cy); margin: 0;">
+        <label class="o-ent-casilla">
+          <input type="checkbox" class="ed-campo" data-ej="${ei}" data-sr="${si}" data-prop="checked" ${sr.checked ? 'checked' : ''} aria-label="Serie ${n} de ${escapeHtml(nombreEj)} marcada">
           Marcada
         </label>
       </div>
@@ -214,43 +210,45 @@ function renderEdicion(s, b) {
   const ejercicios = b.ejercicios.map((ej, ei) => {
     const nombre = ej.nombre || 'Ejercicio';
     return `
-      <li class="ed-ejercicio" style="padding: 12px 0; border-top: 1px solid var(--surface-border);">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
-          <h3 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0; min-width: 0; overflow-wrap: anywhere;">${escapeHtml(nombre)}</h3>
-          <button type="button" class="ed-campo tappable" data-accion="quitar-ejercicio" data-ej="${ei}" aria-label="Quitar ${escapeHtml(nombre)} de la sesión" style="flex-shrink: 0; min-height: 44px; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 0 12px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;">Quitar</button>
+      <li class="ed-ejercicio o-ent-ed-ej">
+        <div class="o-ent-ed-ej-cab">
+          <h3 class="o-ent-det-ej-nombre">${escapeHtml(nombre)}</h3>
+          <button type="button" class="ed-campo o-btn o-btn--secundario" data-accion="quitar-ejercicio" data-ej="${ei}" aria-label="Quitar ${escapeHtml(nombre)} de la sesión">Quitar</button>
         </div>
-        <ol style="list-style: none; margin: 0 0 8px 0; padding: 0; display: flex; flex-direction: column; gap: 6px;">
+        <ol class="o-ent-ed-series">
           ${ej.series.map((sr, si) => filaSerieEdicion(sr, ei, si, nombre)).join('')}
         </ol>
-        <button type="button" class="ed-campo tappable" data-accion="agregar-serie" data-ej="${ei}" aria-label="Agregar una serie a ${escapeHtml(nombre)}" style="width: 100%; min-height: 44px; background: transparent; border: 1px dashed var(--cy3); color: var(--cy-t); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;">+ Agregar serie</button>
+        <button type="button" class="ed-campo o-btn o-btn--fantasma o-btn--bloque o-ent-ed-agregar" data-accion="agregar-serie" data-ej="${ei}" aria-label="Agregar una serie a ${escapeHtml(nombre)}">+ Agregar serie</button>
       </li>`;
   }).join('');
   return `
-    <div style="margin-bottom: 12px;">
-      <div style="font-size: 12px; color: var(--cy-t); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Editar sesión</div>
-      <h2 id="sesion-detalle-titulo" style="font-size: 20px; font-weight: 800; margin: 4px 0 0 0; color: var(--text-primary);">${escapeHtml(s.nombreRutina || 'Entrenamiento')}</h2>
+    <div class="o-hoja-cab">
+      <div class="o-ent-det-cab">
+        <p class="o-rotulo">Editar sesión</p>
+        <h2 id="sesion-detalle-titulo" class="o-hoja-titulo">${escapeHtml(s.nombreRutina || 'Entrenamiento')}</h2>
+      </div>
     </div>
-    <form id="sesion-edicion-form" novalidate>
-      <div style="display: grid; grid-template-columns: 3fr 2fr; gap: 8px; margin-bottom: 12px;">
-        <div style="min-width: 0;">
-          <label for="ed-fecha" style="${ESTILO_ETIQUETA}">Fecha</label>
-          <input id="ed-fecha" class="ed-campo num" type="date" max="${hoy}" value="${escapeHtml(b.fecha)}" data-prop="fecha" style="${ESTILO_INPUT}">
+    <form id="sesion-edicion-form" class="o-hoja-cuerpo" novalidate>
+      <div class="o-ent-hoja-par">
+        <div class="o-campo">
+          <label for="ed-fecha">Fecha</label>
+          <input id="ed-fecha" class="ed-campo o-input o-num" type="date" max="${hoy}" value="${escapeHtml(b.fecha)}" data-prop="fecha">
         </div>
-        <div style="min-width: 0;">
-          <label for="ed-duracion" style="${ESTILO_ETIQUETA}">Duración (min)</label>
-          <input id="ed-duracion" class="ed-campo num" type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(b.duracionMin)}" data-prop="duracionMin" style="${ESTILO_INPUT}">
+        <div class="o-campo">
+          <label for="ed-duracion">Duración (min)</label>
+          <input id="ed-duracion" class="ed-campo o-input o-num" type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(b.duracionMin)}" data-prop="duracionMin">
         </div>
       </div>
-      <label for="ed-notas" style="${ESTILO_ETIQUETA}">Notas</label>
-      <textarea id="ed-notas" class="ed-campo" data-prop="notas" rows="2" style="${ESTILO_INPUT} font-family: inherit; resize: vertical; margin-bottom: 12px;">${escapeHtml(b.notas)}</textarea>
-      <ul style="list-style: none; margin: 0; padding: 0;">${ejercicios || '<li style="font-size: 13px; color: var(--text-secondary); padding: 12px 0; border-top: 1px solid var(--surface-border);">Sin ejercicios. Agrega al menos uno para guardar.</li>'}</ul>
-      <button type="button" class="ed-campo tappable" data-accion="agregar-ejercicio" style="width: 100%; min-height: 44px; margin: 4px 0 16px 0; background: transparent; border: 1px solid var(--cy); color: var(--cy-t); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">+ Agregar ejercicio</button>
-      <div class="sesion-detalle-acciones" style="background: var(--surface-1); padding-top: 12px; border-top: 1px solid var(--surface-border);">
-        <p id="sesion-edicion-error" role="alert" style="font-size: 13px; color: var(--rd-t); margin: 0;"></p>
-        <div style="display: flex; gap: 8px;">
-          <button type="button" class="ed-campo tappable" data-accion="cancelar" style="flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); padding: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;">Cancelar</button>
-          <button type="submit" class="ed-campo tappable" style="flex: 1; min-height: 44px; background: var(--cy); border: 1px solid var(--cy); color: var(--bg); padding: 12px; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;">Guardar</button>
-        </div>
+      <div class="o-campo">
+        <label for="ed-notas">Notas</label>
+        <textarea id="ed-notas" class="ed-campo o-input" data-prop="notas" rows="2">${escapeHtml(b.notas)}</textarea>
+      </div>
+      <ul class="o-ent-det-ejs">${ejercicios || '<li class="o-card-texto">Sin ejercicios. Agrega al menos uno para guardar.</li>'}</ul>
+      <button type="button" class="ed-campo o-btn o-btn--secundario o-btn--bloque" data-accion="agregar-ejercicio">+ Agregar ejercicio</button>
+      <div class="o-hoja-pie sesion-detalle-acciones">
+        <p id="sesion-edicion-error" class="o-campo-error o-ent-ed-error" role="alert" hidden>${oIcono('alerta')}<span></span></p>
+        <button type="button" class="ed-campo o-btn o-btn--secundario" data-accion="cancelar">Cancelar</button>
+        <button type="submit" class="ed-campo o-btn o-btn--primario">Guardar</button>
       </div>
     </form>`;
 }
@@ -306,8 +304,8 @@ function cambiosDe(b) {
 
 export async function renderSesionesHistorial() {
   semanasVisibles = SEMANAS_POR_PAGINA;
-  // La hoja del detalle (y su edición) sigue en MK III hasta la 9e: va
-  // dentro de un envoltorio .mk3-entreno, que solo aporta sus variables.
+  // La hoja del detalle (y su edición): Órbita (Fase 9e). Su contenido se
+  // repinta entero al pasar del detalle a la edición.
   return `
     <div class="o-ent-hist">
       <header class="o-ent-sub-cab">
@@ -316,10 +314,8 @@ export async function renderSesionesHistorial() {
       </header>
       <div id="hist-lista" class="o-ent-hist-lista">${await renderLista()}</div>
     </div>
-    <div class="mk3-entreno">
-      <div id="sesion-detalle-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="sesion-detalle-titulo">
-        <div class="modal-content" id="sesion-detalle-contenido"></div>
-      </div>
+    <div id="sesion-detalle-modal" class="modal-overlay o-ui o-mod-entreno" role="dialog" aria-modal="true" aria-labelledby="sesion-detalle-titulo">
+      <div class="o-hoja" id="sesion-detalle-contenido"></div>
     </div>`;
 }
 
@@ -526,11 +522,12 @@ export function initSesionesHistorialListeners(signal) {
     e.preventDefault();
     if (edicion.ocupado) return;
     const msg = document.getElementById('sesion-edicion-error');
+    const ponerError = (texto) => { msg.hidden = !texto; msg.querySelector('span').textContent = texto; };
     contenido.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
     const ilegibles = [...contenido.querySelectorAll('input[type="number"]')].filter(i => i.validity.badInput).map(i => i.id);
     const error = validarBorrador(edicion.borrador, ilegibles);
     if (error) {
-      msg.textContent = error.mensaje;
+      ponerError(error.mensaje);
       const campo = error.campo && document.getElementById(error.campo);
       if (campo) {
         campo.setAttribute('aria-invalid', 'true');
@@ -543,7 +540,7 @@ export function initSesionesHistorialListeners(signal) {
       }
       return;
     }
-    msg.textContent = '';
+    ponerError('');
     // Sin cambios no hay nada que registrar: vuelve al detalle.
     if (!hayCambios()) { pintarDetalle(edicion.s, edicion.cat, 'btn-sesion-editar'); return; }
 
@@ -553,7 +550,7 @@ export function initSesionesHistorialListeners(signal) {
     if (edicion !== actual) return;
     actual.ocupado = false;
     if (!res || !res.ok) {
-      msg.textContent = res && res.error === 'fecha-futura' ? 'La fecha no puede ser futura.' : 'No se pudo guardar la sesión. Inténtalo de nuevo.';
+      ponerError(res && res.error === 'fecha-futura' ? 'La fecha no puede ser futura.' : 'No se pudo guardar la sesión. Inténtalo de nuevo.');
       return;
     }
     ToastAccion('Sesión actualizada', { duracion: 3000 });

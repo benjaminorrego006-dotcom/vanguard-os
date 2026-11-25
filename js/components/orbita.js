@@ -198,14 +198,15 @@ export function montarMazo(contenedor, { alHecho, alDespues, alAccion } = {}) {
 // .modal-overlay con id + open: history.js la cierra con el botón atrás y
 // con Escape, y se puede cerrar arrastrando el agarre. cuerpo y pie son
 // HTML ya armado por quien llama (escapar ahí los datos del usuario).
-export function oHoja({ id, titulo = '', cuerpo = '', pie = '', modulo = '' } = {}) {
+// cerrar: false quita el ✕ (hojas que solo se cierran con sus botones).
+export function oHoja({ id, titulo = '', cuerpo = '', pie = '', modulo = '', cerrar = true } = {}) {
   const tituloId = `${id}-titulo`;
   return `
     <div id="${escapeHtml(id)}" class="modal-overlay o-ui${modulo ? ` o-mod-${escapeHtml(modulo)}` : ''}" role="dialog" aria-modal="true" aria-labelledby="${escapeHtml(tituloId)}">
       <div class="o-hoja">
         <div class="o-hoja-cab">
           <h2 id="${escapeHtml(tituloId)}" class="o-hoja-titulo">${escapeHtml(titulo)}</h2>
-          <button type="button" class="o-btn o-btn--fantasma o-btn--icono" data-hoja-cerrar aria-label="Cerrar">${oIcono('cerrar')}</button>
+          ${cerrar ? `<button type="button" class="o-btn o-btn--fantasma o-btn--icono" data-hoja-cerrar aria-label="Cerrar">${oIcono('cerrar')}</button>` : ''}
         </div>
         <div class="o-hoja-cuerpo">${cuerpo}</div>
         ${pie ? `<div class="o-hoja-pie">${pie}</div>` : ''}

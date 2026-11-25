@@ -375,10 +375,9 @@ input[type="date"] { color-scheme: dark; }
   font-variant-numeric: tabular-nums;
 }
 
-.mk3-entreno *,
-.mk3-finanzas *,
-.mk3-tareas *,
-.mk3-dashboard * {
+/* Las hojas Órbita (.o-ui) que una vista MK III todavía aloja (perfil y
+   nivel en Configuración) conservan su sombra y su anillo de foco. */
+:is(.mk3-entreno, .mk3-finanzas, .mk3-tareas, .mk3-dashboard) :not(.o-ui):not(.o-ui *) {
   box-shadow: none !important;
 }
 

@@ -1,40 +1,34 @@
-// Modal compartido para cerrar cualquier sesión (GYM, Calistenia o HIIT):
-// captura el RPE (esfuerzo percibido, 1-10) y notas libres antes de guardar.
-// Usado por rutina-session.js y hiit-timer.js.
+// Hoja compartida para cerrar una sesión (hoy la usa el temporizador de
+// HIIT): captura el RPE (esfuerzo percibido, 1-10) y notas libres antes de
+// guardar. Órbita (oHoja, Fase 9e). Sin ✕: como antes, se cierra solo con
+// Omitir o Guardar sesión, que son los que resuelven la promesa.
+import { oHoja } from './orbita.js';
+
+const ID = 'session-summary-modal';
 
 export function renderSessionSummaryForm() {
   const chips = Array.from({ length: 10 }, (_, i) => i + 1)
-    .map(n => `<button type="button" class="rpe-chip num tappable" data-rpe="${n}" style="flex: 1; min-width: 30px; padding: 10px 0; border-radius: 10px; border: 1px solid var(--surface-border); background: var(--bg-base); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer;">${n}</button>`)
+    .map(n => `<button type="button" class="o-chip rpe-chip" data-rpe="${n}" aria-pressed="false"><span class="o-num">${n}</span></button>`)
     .join('');
-
-  return `
-    <div id="session-summary-modal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 460px;">
-        <h2 style="margin-top: 0; font-size: 20px; font-weight: 700;">¿Cómo estuvo tu sesión?</h2>
-        <p style="color: var(--text-secondary); font-size: 13px; margin: -8px 0 20px 0;">Esto es opcional, pero ayuda a que futuras sugerencias sean más precisas.</p>
-
-        <div class="input-group">
-          <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Esfuerzo percibido (RPE)</div>
-          <div id="rpe-chip-container" style="display: flex; gap: 6px; flex-wrap: wrap;">${chips}</div>
-        </div>
-
-        <div class="input-group">
-          <label for="session-summary-notas">Notas (opcional)</label>
-          <textarea id="session-summary-notas" rows="3" placeholder="¿Cómo te sentiste? ¿Algo a mejorar la próxima vez?" style="width: 100%; background: var(--bg-base); border: 1px solid var(--surface-border); color: var(--text-primary); padding: 14px 16px; border-radius: 14px; font-size: 16px; box-sizing: border-box; outline: none; font-family: inherit; resize: vertical;"></textarea>
-        </div>
-
-        <div style="display: flex; gap: 12px; margin-top: 24px;">
-          <button id="btn-skip-summary" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Omitir</button>
-          <button id="btn-save-summary" class="btn-primary" style="background: var(--accent-teal); color: #000; flex: 1;">Guardar sesión</button>
-        </div>
-      </div>
+  const cuerpo = `
+    <p class="o-card-texto">Esto es opcional, pero ayuda a que futuras sugerencias sean más precisas.</p>
+    <div class="o-campo">
+      <span class="o-campo-etiqueta" id="rpe-chip-etq">Esfuerzo percibido (RPE)</span>
+      <div id="rpe-chip-container" class="o-ent-rpe-chips" role="group" aria-labelledby="rpe-chip-etq">${chips}</div>
     </div>
-  `;
+    <div class="o-campo">
+      <label for="session-summary-notas">Notas (opcional)</label>
+      <textarea id="session-summary-notas" class="o-input" rows="3" placeholder="¿Cómo te sentiste? ¿Algo a mejorar la próxima vez?"></textarea>
+    </div>`;
+  return oHoja({
+    id: ID, modulo: 'entreno', titulo: '¿Cómo estuvo tu sesión?', cuerpo, cerrar: false,
+    pie: '<button type="button" id="btn-skip-summary" class="o-btn o-btn--secundario">Omitir</button><button type="button" id="btn-save-summary" class="o-btn o-btn--primario">Guardar sesión</button>'
+  });
 }
 
 export function askSessionSummary() {
   return new Promise((resolve) => {
-    const modal = document.getElementById('session-summary-modal');
+    const modal = document.getElementById(ID);
     if (!modal) {
       resolve({ rpe: null, notas: '' });
       return;
@@ -46,14 +40,9 @@ export function askSessionSummary() {
     const btnSkip = document.getElementById('btn-skip-summary');
     const btnSave = document.getElementById('btn-save-summary');
 
-    // Reset visual state cada vez que se abre
+    // Estado limpio cada vez que se abre.
     notasEl.value = '';
-    selectedRpe = null;
-    chipContainer.querySelectorAll('.rpe-chip').forEach(chip => {
-      chip.style.background = 'var(--bg-base)';
-      chip.style.borderColor = 'var(--surface-border)';
-      chip.style.color = 'var(--text-primary)';
-    });
+    chipContainer.querySelectorAll('.rpe-chip').forEach(chip => chip.setAttribute('aria-pressed', 'false'));
 
     // Clonar para limpiar listeners de aperturas anteriores (mismo patrón que ConfirmDialog)
     const newChipContainer = chipContainer.cloneNode(true);
@@ -66,18 +55,15 @@ export function askSessionSummary() {
     newChipContainer.querySelectorAll('.rpe-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         selectedRpe = parseInt(chip.getAttribute('data-rpe'));
-        newChipContainer.querySelectorAll('.rpe-chip').forEach(c => {
-          const active = c === chip;
-          c.style.background = active ? 'var(--accent-teal)' : 'var(--bg-base)';
-          c.style.borderColor = active ? 'var(--accent-teal)' : 'var(--surface-border)';
-          c.style.color = active ? '#000' : 'var(--text-primary)';
-        });
+        newChipContainer.querySelectorAll('.rpe-chip').forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
       });
     });
 
+    // Se resuelve en el acto (como antes); sacar "open" suelta su entrada
+    // de historial (history.js).
     const close = (result) => {
       modal.classList.remove('open');
-      setTimeout(() => modal.style.display = 'none', 300);
+      modal.style.display = 'none';
       resolve(result);
     };
 
@@ -85,6 +71,9 @@ export function askSessionSummary() {
     newSave.addEventListener('click', () => close({ rpe: selectedRpe, notas: notasEl.value.trim() }));
 
     modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('open'), 10);
+    setTimeout(() => {
+      modal.classList.add('open');
+      newChipContainer.querySelector('.rpe-chip')?.focus({ preventScroll: true });
+    }, 10);
   });
 }

@@ -1,6 +1,7 @@
 import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
 import { diaKeyDe } from '../utils/fecha.js';
+import { oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
 
 // "Ahora no" del onboarding de perfil: oculta la apertura automática al
 // entrar a Entreno hasta mañana. La fecha (diaKeyDe) va en localStorage
@@ -33,64 +34,54 @@ const METAS = [
   { value: 'rendimiento', label: 'Mejorar rendimiento' }
 ];
 
+// Órbita (oHoja, Fase 9e). Se pinta en Entreno y en Configuración; ids de siempre.
 export function renderProfileForm() {
-  return `
-    <div id="profile-modal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
-        <h2 id="profile-modal-title" style="margin-top: 0; font-size: 20px; font-weight: 700;">Tu perfil</h2>
-        <p style="color: var(--text-secondary); font-size: 13px; margin: -8px 0 20px 0;">Estos datos se usan para calcular tu IMC y tu gasto calórico estimado.</p>
-
-        <div class="input-group">
-          <label for="profile-nombre">Nombre (opcional)</label>
-          <input type="text" id="profile-nombre" autocomplete="given-name" maxlength="40" placeholder="Para saludarte en Hoy">
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-          <div class="input-group">
-            <label for="profile-peso">Peso (kg)</label>
-            <input type="number" inputmode="decimal" id="profile-peso" placeholder="70" min="1" step="0.1" required>
-          </div>
-          <div class="input-group">
-            <label for="profile-estatura">Estatura (cm)</label>
-            <input type="number" inputmode="numeric" id="profile-estatura" placeholder="170" min="1" required>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-          <div class="input-group">
-            <label for="profile-edad">Edad</label>
-            <input type="number" inputmode="numeric" enterkeyhint="done" id="profile-edad" placeholder="25" min="1" required>
-          </div>
-          <div class="input-group">
-            <label for="profile-sexo">Sexo</label>
-            <select id="profile-sexo">
-              <option value="M">Masculino</option>
-              <option value="F">Femenino</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label for="profile-actividad">Nivel de actividad</label>
-          <select id="profile-actividad">
-            ${NIVELES_ACTIVIDAD.map(n => `<option value="${n.value}">${n.label}</option>`).join('')}
-          </select>
-        </div>
-
-        <div class="input-group">
-          <label for="profile-meta">Meta</label>
-          <select id="profile-meta">
-            ${METAS.map(m => `<option value="${m.value}">${m.label}</option>`).join('')}
-          </select>
-        </div>
-
-        <div style="display: flex; gap: 12px; margin-top: 24px;">
-          <button id="btn-cancel-profile" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Cancelar</button>
-          <button id="btn-save-profile" class="btn-primary" style="background: var(--accent-teal); color: #000; flex: 1;">Guardar</button>
-        </div>
+  const cuerpo = `
+    <p class="o-card-texto">Estos datos se usan para calcular tu IMC y tu gasto calórico estimado.</p>
+    <div class="o-campo">
+      <label for="profile-nombre">Nombre (opcional)</label>
+      <input type="text" id="profile-nombre" class="o-input" autocomplete="given-name" maxlength="40" placeholder="Para saludarte en Hoy">
+    </div>
+    <div class="o-ent-hoja-par">
+      <div class="o-campo">
+        <label for="profile-peso">Peso (kg)</label>
+        <input type="number" inputmode="decimal" id="profile-peso" class="o-input o-num" placeholder="70" min="1" step="0.1" required>
+      </div>
+      <div class="o-campo">
+        <label for="profile-estatura">Estatura (cm)</label>
+        <input type="number" inputmode="numeric" id="profile-estatura" class="o-input o-num" placeholder="170" min="1" required>
       </div>
     </div>
-  `;
+    <div class="o-ent-hoja-par">
+      <div class="o-campo">
+        <label for="profile-edad">Edad</label>
+        <input type="number" inputmode="numeric" enterkeyhint="done" id="profile-edad" class="o-input o-num" placeholder="25" min="1" required>
+      </div>
+      <div class="o-campo">
+        <label for="profile-sexo">Sexo</label>
+        <select id="profile-sexo" class="o-input">
+          <option value="M">Masculino</option>
+          <option value="F">Femenino</option>
+        </select>
+      </div>
+    </div>
+    <div class="o-campo">
+      <label for="profile-actividad">Nivel de actividad</label>
+      <select id="profile-actividad" class="o-input">
+        ${NIVELES_ACTIVIDAD.map(n => `<option value="${n.value}">${n.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="o-campo">
+      <label for="profile-meta">Meta</label>
+      <select id="profile-meta" class="o-input">
+        ${METAS.map(m => `<option value="${m.value}">${m.label}</option>`).join('')}
+      </select>
+    </div>`;
+  // El título lo cambia openProfileForm (perfil nuevo o edición): lleva su id de siempre.
+  return oHoja({
+    id: 'profile-modal', modulo: 'entreno', titulo: 'Tu perfil', cuerpo,
+    pie: '<button type="button" id="btn-cancel-profile" class="o-btn o-btn--secundario">Cancelar</button><button type="button" id="btn-save-profile" class="o-btn o-btn--primario">Guardar</button>'
+  }).replace('id="profile-modal-titulo"', 'id="profile-modal-title"').replace('aria-labelledby="profile-modal-titulo"', 'aria-labelledby="profile-modal-title"');
 }
 
 export function setupProfileForm(onSaveCallback) {
@@ -99,18 +90,13 @@ export function setupProfileForm(onSaveCallback) {
 
   const btnCancel = document.getElementById('btn-cancel-profile');
   const btnSave = document.getElementById('btn-save-profile');
-  const btnCloseX = modal.querySelector('.btn-close-modal');
-
-  const close = () => {
-    modal.classList.remove('open');
-    setTimeout(() => modal.style.display = 'none', 300);
-  };
+  montarHoja('profile-modal');
+  const close = () => cerrarHoja('profile-modal');
 
   btnCancel.addEventListener('click', () => {
     if (btnCancel.dataset.modo === 'onboarding') posponerPerfilHoy();
     close();
   });
-  if (btnCloseX) btnCloseX.addEventListener('click', close);
 
   btnSave.addEventListener('click', async () => {
     const pesoKg = parseFloat(document.getElementById('profile-peso').value);
@@ -170,6 +156,5 @@ export async function openProfileForm() {
     document.getElementById('profile-meta').value = 'mantener';
   }
 
-  modal.style.display = 'flex';
-  setTimeout(() => modal.classList.add('open'), 10);
+  abrirHoja('profile-modal');
 }

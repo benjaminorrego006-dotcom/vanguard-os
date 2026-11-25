@@ -3,8 +3,8 @@
 //   días, con "Registrar medidas" e "Historial".
 // - Historial (sub-vista de Entreno): medidas por fecha, la más reciente
 //   arriba, con Editar y Eliminar.
-// - Hoja de registro / edición (#medida-modal, .modal-overlay + open: Atrás
-//   la cierra vía history.js).
+// - Hoja de registro / edición (#medida-modal, oHoja de Órbita: Atrás la
+//   cierra vía history.js).
 // - Gráficos (F3), en el historial: peso con media móvil de 7 días y
 //   selector 30/90/365 días, y un mini-gráfico por perímetro con al menos 2
 //   días registrados. Chart.js se carga recién al pintarlos (ensureChartJs).
@@ -18,6 +18,7 @@ import { formatNumero } from '../utils/numero.js';
 import { escapeHtml } from '../utils/escape.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
 import { renderFotosSeccion, initFotos, botonesAgregar, limpiarPendientes, guardarPendientes } from './fotos-progreso.js';
+import { oHoja, oIcono, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
 
 const CAMPOS = [
   { k: 'pesoKg', etq: 'Peso', u: 'kg' },
@@ -244,42 +245,38 @@ export function renderCuerpoHistorial(medidas, fotos = []) {
 }
 
 // --- Hoja de registro / edición ------------------------------------------------------
+// Órbita (oHoja, Fase 9e); ids de siempre. El título cambia al editar.
 export function renderMedidaForm() {
-  return `
-    <div id="medida-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="medida-titulo">
-      <div class="modal-content cuerpo-hoja">
-        <h3 id="medida-titulo">Registrar medidas</h3>
-        <form id="medida-form" novalidate>
-          <input type="hidden" id="medida-id">
-          <label class="cuerpo-campo cuerpo-campo--fecha">
-            <span>Fecha</span>
-            <input type="date" id="medida-fecha" required>
-          </label>
-          <div class="cuerpo-campos">
-            ${CAMPOS.map(c => `
-              <label class="cuerpo-campo">
-                <span>${c.etq} (${c.u})</span>
-                <input type="text" inputmode="decimal" id="medida-${c.k}" data-campo="${c.k}" autocomplete="off" placeholder="—">
-                <small class="cuerpo-anterior" id="medida-ant-${c.k}"></small>
-              </label>`).join('')}
-          </div>
-          <div class="cuerpo-campo" id="medida-fotos">
-            <span>Fotos (opcional)</span>
-            <div class="cuerpo-fotos-acciones">${botonesAgregar('medida-foto')}</div>
-            <div id="medida-fotos-pend" class="fotos-pend"></div>
-          </div>
-          <label class="cuerpo-campo">
-            <span>Nota (opcional)</span>
-            <textarea id="medida-nota" rows="2" maxlength="200" placeholder="Ej. en ayunas"></textarea>
-          </label>
-          <p class="cuerpo-error" id="medida-error" role="alert" hidden></p>
-          <div class="cuerpo-hoja-acciones">
-            <button type="button" id="medida-cancelar" class="cuerpo-btn tappable">Cancelar</button>
-            <button type="submit" id="medida-guardar" class="cuerpo-btn cuerpo-btn--primario tappable">Guardar</button>
-          </div>
-        </form>
+  const cuerpo = `
+    <form id="medida-form" class="o-hoja-cuerpo" novalidate>
+      <input type="hidden" id="medida-id">
+      <div class="o-campo">
+        <label for="medida-fecha">Fecha</label>
+        <input type="date" id="medida-fecha" class="o-input o-num" required>
       </div>
-    </div>`;
+      <div class="o-ent-hoja-par">
+        ${CAMPOS.map(c => `
+          <div class="o-campo">
+            <label for="medida-${c.k}">${c.etq} (${c.u})</label>
+            <input type="text" inputmode="decimal" id="medida-${c.k}" class="o-input o-num" data-campo="${c.k}" autocomplete="off" placeholder="—">
+            <small class="o-campo-ayuda o-ent-medida-ant" id="medida-ant-${c.k}"></small>
+          </div>`).join('')}
+      </div>
+      <div class="o-campo" id="medida-fotos">
+        <span class="o-campo-etiqueta">Fotos (opcional)</span>
+        <div class="o-ent-acciones">${botonesAgregar('medida-foto', 'o-btn o-btn--secundario')}</div>
+        <div id="medida-fotos-pend" class="fotos-pend"></div>
+      </div>
+      <div class="o-campo">
+        <label for="medida-nota">Nota (opcional)</label>
+        <textarea id="medida-nota" class="o-input" rows="2" maxlength="200" placeholder="Ej. en ayunas"></textarea>
+      </div>
+      <p class="o-campo-error" id="medida-error" role="alert" hidden>${oIcono('alerta')}<span id="medida-error-texto"></span></p>
+    </form>`;
+  return oHoja({
+    id: 'medida-modal', modulo: 'entreno', titulo: 'Registrar medidas', cuerpo,
+    pie: '<button type="button" id="medida-cancelar" class="o-btn o-btn--secundario">Cancelar</button><button type="submit" form="medida-form" id="medida-guardar" class="o-btn o-btn--primario">Guardar</button>'
+  });
 }
 
 let alCambiar = null; // repinta la vista que esté mostrando las medidas
@@ -293,7 +290,7 @@ export async function abrirMedidaForm(medida = null) {
   const medidas = await db.getMedidas();
   const hoy = diaKeyDe(new Date());
   const desde = medida ? medidas.findIndex(m => m.id === medida.id) + 1 : 0;
-  modal.querySelector('#medida-titulo').textContent = medida ? 'Editar medidas' : 'Registrar medidas';
+  modal.querySelector('#medida-modal-titulo').textContent = medida ? 'Editar medidas' : 'Registrar medidas';
   modal.querySelector('#medida-id').value = medida ? medida.id : '';
   const fecha = modal.querySelector('#medida-fecha');
   fecha.value = medida ? medida.fecha : hoy;
@@ -308,16 +305,14 @@ export async function abrirMedidaForm(medida = null) {
   limpiarPendientes();
   const error = modal.querySelector('#medida-error');
   error.hidden = true;
-  error.textContent = '';
-  modal.style.display = 'flex';
-  setTimeout(() => modal.classList.add('open'), 10);
+  modal.querySelector('#medida-error-texto').textContent = '';
+  abrirHoja('medida-modal');
 }
 
 async function cerrarMedidaForm() {
   const modal = document.getElementById('medida-modal');
   if (!modal || !modal.classList.contains('open')) return;
-  modal.classList.remove('open');
-  setTimeout(() => { modal.style.display = 'none'; }, 300);
+  await cerrarHoja('medida-modal');
   await esperarSalidaDeModal('medida-modal');
 }
 
@@ -326,6 +321,7 @@ async function cerrarMedidaForm() {
 export function setupMedidaForm() {
   const modal = document.getElementById('medida-modal');
   if (!modal) return;
+  montarHoja('medida-modal');
   modal.querySelector('#medida-cancelar').addEventListener('click', () => { limpiarPendientes(); cerrarMedidaForm(); });
   modal.querySelector('#medida-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -339,7 +335,7 @@ export function setupMedidaForm() {
     try {
       guardada = id ? await db.editarMedida(id, datos) : await db.registrarMedida(datos);
     } catch (err) {
-      error.textContent = err.message || 'No se pudo guardar. Inténtalo de nuevo.';
+      modal.querySelector('#medida-error-texto').textContent = err.message || 'No se pudo guardar. Inténtalo de nuevo.';
       error.hidden = false;
       btn.disabled = false;
       return;

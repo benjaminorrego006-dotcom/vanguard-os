@@ -14,6 +14,19 @@ import { escaleraCalentamiento, EQUIPOS_CON_CALENTAMIENTO } from '../utils/calen
 import { seriesDeTrabajo, esCalentamiento as esSerieCalentamiento } from '../utils/tipo-serie.js';
 import { MuscleMap, sumarFatigaPorGrupo, expandirIntensidadPorMusculo, FATIGA_REFERENCIA } from './mk3-muscle-map.js';
 import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
+import { oHoja, oIcono, abrirHoja } from './orbita.js';
+
+// Hoja de Órbita creada al vuelo (Fase 9e): se inserta cerrada y después se
+// abre, porque history.js empuja su entrada al ver aparecer "open" (no al
+// insertarla). Devuelve el overlay.
+function insertarHoja(opciones) {
+  document.getElementById(opciones.id)?.remove();
+  const rootDiv = document.querySelector('#view-root > div') || document.body;
+  rootDiv.insertAdjacentHTML('beforeend', oHoja({ modulo: 'entreno', ...opciones }));
+  const overlay = document.getElementById(opciones.id);
+  abrirHoja(opciones.id);
+  return overlay;
+}
 
 const trophySvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path></svg>`;
 const trendUpSvg = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`;
@@ -67,30 +80,12 @@ export const TIPO_LABELS = { normal: 'Normal', calentamiento: 'Calentamiento', f
 // da su entrada de historial, así Atrás y Escape cierran solo el buscador.
 export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = false } = {}) {
   return new Promise((resolve) => {
-    document.getElementById('buscador-ejercicios-modal')?.remove();
-    const overlay = document.createElement('div');
-    overlay.id = 'buscador-ejercicios-modal';
-    overlay.className = 'modal-overlay';
-    overlay.style.zIndex = '6000';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-labelledby', 'picker-titulo');
-    overlay.innerHTML = `
-      <div class="modal-content" style="display: flex; flex-direction: column; padding: 20px;">
-        <div class="flex-between" style="margin-bottom: 16px;">
-          <h3 id="picker-titulo" style="margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.3px;">Añadir ejercicio</h3>
-          <button id="close-picker" aria-label="Cerrar" style="background: transparent; border: none; color: var(--text-disabled); font-size: 24px; cursor: pointer;">&times;</button>
-        </div>
-        <input type="text" id="picker-search" aria-label="Buscar ejercicio" placeholder="Buscar ejercicio (ej. Sentadilla)" style="width: 100%; padding: 13px 16px; border-radius: 14px; border: 1px solid var(--surface-border); background: var(--surface-2); color: var(--text-primary); margin-bottom: 16px; outline: none; box-sizing: border-box; font-size: 16px;">
-        <div id="picker-results" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
-      </div>
-    `;
-    // For desktop frame compatibility, append to #view-root > div if available, otherwise body
-    const rootDiv = document.querySelector('#view-root > div') || document.body;
-    rootDiv.appendChild(overlay);
-    // La clase se agrega después de insertarlo: history.js observa el cambio
-    // de "open" (no la inserción) para empujar la entrada de historial.
-    overlay.classList.add('open');
+    const overlay = insertarHoja({
+      id: 'buscador-ejercicios-modal', titulo: 'Añadir ejercicio',
+      cuerpo: `
+        <input type="text" id="picker-search" class="o-input" aria-label="Buscar ejercicio" placeholder="Buscar ejercicio (ej. Sentadilla)" autocomplete="off">
+        <div id="picker-results" class="o-ent-picker-res"></div>`
+    });
 
     let cerrado = false;
     const close = (val) => {
@@ -108,7 +103,8 @@ export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = 
     const alAtras = () => { if (!overlay.classList.contains('open')) close(null); };
     window.addEventListener('popstate', alAtras);
 
-    document.getElementById('close-picker').onclick = () => close(null);
+    overlay.querySelector('[data-hoja-cerrar]').onclick = () => close(null);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(null); });
 
     const searchInput = document.getElementById('picker-search');
     const resultsContainer = document.getElementById('picker-results');
@@ -128,19 +124,18 @@ export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = 
 
       if (matches.length === 0 && q) {
         resultsContainer.innerHTML = `
-          <div style="text-align: center; color: var(--text-secondary); padding: 20px 0; font-size: 14px;">
-            No encontrado en el catálogo.
-            ${permitirPersonalizado ? `<br><br>
-            <button id="btn-custom-ej" class="tappable" style="background: var(--accent-teal); color: #000; border: none; padding: 10px 18px; border-radius: 12px; cursor: pointer; font-weight: 700; margin-top: 12px;">Añadir "${escapeHtml(escrito)}" de todas formas</button>` : ''}
+          <div class="o-ent-picker-vacio">
+            <p class="o-card-texto">No encontrado en el catálogo.</p>
+            ${permitirPersonalizado ? `<button type="button" id="btn-custom-ej" class="o-btn o-btn--secundario">Añadir "${escapeHtml(escrito)}" de todas formas</button>` : ''}
           </div>
         `;
         const btnCustom = document.getElementById('btn-custom-ej');
         if (btnCustom) btnCustom.onclick = () => close(conId ? { id: null, nombre: escrito } : escrito);
       } else {
         resultsContainer.innerHTML = matches.map(e => `
-          <button type="button" class="picker-item tappable" data-key="${escapeHtml(e.key)}" data-nombre="${escapeHtml(e.nombre)}" style="width: 100%; flex-shrink: 0; text-align: left; font: inherit; color: var(--text-primary); padding: 13px 16px; background: var(--surface-1); border: 1px solid var(--surface-border); border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-            <span style="font-weight: 600; font-size: 15px;">${escapeHtml(e.nombre)}</span>
-            <span style="font-size: 11px; color: var(--accent-teal-t); text-transform: uppercase; border: 1px solid var(--accent-teal); padding: 2px 6px; border-radius: 4px;">${e.musculo}</span>
+          <button type="button" class="o-fila picker-item" data-key="${escapeHtml(e.key)}" data-nombre="${escapeHtml(e.nombre)}">
+            <span class="o-fila-texto"><b>${escapeHtml(e.nombre)}</b></span>
+            <span class="o-rotulo o-ent-picker-musculo">${e.musculo}</span>
           </button>
         `).join('');
 
@@ -1098,28 +1093,19 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const clave = b.dataset.descansoClave;
     const nombre = b.dataset.ejNombre;
     if (!clave) return;
-    const id = 'descanso-ej-modal';
-    document.getElementById(id)?.remove();
-    const overlay = document.createElement('div');
-    overlay.id = id;
-    overlay.className = 'modal-overlay';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-labelledby', id + '-titulo');
-    overlay.innerHTML = `
-      <div class="modal-content descanso-ej-hoja">
-        <h3 id="${id}-titulo">Descanso</h3>
-        <p class="descanso-ej-nombre">${escapeHtml(nombre)}</p>
-        <div class="descanso-ej-ctrl">
-          <button type="button" class="descanso-ej-btn tappable" data-delta="-15" aria-label="Restar 15 segundos">−15</button>
-          <div class="descanso-ej-valor"><span class="o-num" id="descanso-ej-valor" aria-live="polite"></span><span class="descanso-ej-origen" id="descanso-ej-origen"></span></div>
-          <button type="button" class="descanso-ej-btn tappable" data-delta="15" aria-label="Sumar 15 segundos">+15</button>
+    const overlay = insertarHoja({
+      id: 'descanso-ej-modal', titulo: 'Descanso',
+      cuerpo: `
+        <p class="o-card-texto">${escapeHtml(nombre)}</p>
+        <div class="o-ent-desc-ctrl">
+          <button type="button" class="o-btn o-btn--secundario descanso-ej-btn" data-delta="-15" aria-label="Restar 15 segundos"><span class="o-num">−15</span></button>
+          <div class="o-ent-desc-valor"><span class="o-num" id="descanso-ej-valor" aria-live="polite"></span><span class="o-ent-desc-origen" id="descanso-ej-origen"></span></div>
+          <button type="button" class="o-btn o-btn--secundario descanso-ej-btn" data-delta="15" aria-label="Sumar 15 segundos"><span class="o-num">+15</span></button>
         </div>
-        <button type="button" class="descanso-ej-general tappable" id="descanso-ej-general">Usar el general</button>
-        <button type="button" class="descanso-ej-listo tappable" id="descanso-ej-listo">Listo</button>
-      </div>`;
-    (document.querySelector('#view-root > div') || document.body).appendChild(overlay);
-    overlay.classList.add('open');
+        <button type="button" class="o-btn o-btn--fantasma o-btn--bloque" id="descanso-ej-general">Usar el general</button>`,
+      pie: '<button type="button" class="o-btn o-btn--primario" id="descanso-ej-listo">Listo</button>'
+    });
+    overlay.querySelector('[data-hoja-cerrar]').addEventListener('click', () => cerrar());
     const pintar = () => {
       const ov = overrideDe(b);
       overlay.querySelector('#descanso-ej-valor').textContent = mmssDescanso(ov ?? currentRestTimerSecs);
@@ -1602,49 +1588,31 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       const meta = metadataDeEjercicio(nombre);
       if (!meta) return;
 
-      const pasosHtml = (meta.pasosEjecucion && meta.pasosEjecucion.length)
-        ? `<ol style="margin: 6px 0 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px;">${meta.pasosEjecucion.map(p => `<li style="font-size: 13px; color: var(--text-primary); line-height: 1.4;">${p}</li>`).join('')}</ol>`
-        : '';
-      const erroresHtml = (meta.erroresComunes && meta.erroresComunes.length)
-        ? `<ul style="margin: 6px 0 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px;">${meta.erroresComunes.map(er => `<li style="font-size: 13px; color: var(--state-high-t); line-height: 1.4;">${er}</li>`).join('')}</ul>`
-        : '';
+      // Hoja de Órbita con id (Fase 9e): Atrás y Escape la cierran (history.js).
+      const seccion = (rotulo, html) => `<section class="o-ent-tecnica-sec"><h3 class="o-rotulo">${rotulo}</h3>${html}</section>`;
+      const lista = (tag, items) => `<${tag} class="o-ent-tecnica-lista">${items.map(p => `<li>${p}</li>`).join('')}</${tag}>`;
+      const overlay = insertarHoja({
+        id: 'tecnica-ej-modal', titulo: nombre,
+        cuerpo: `
+          ${meta.posturaInicial ? seccion('Postura inicial', `<p class="o-ent-tecnica-texto">${meta.posturaInicial}</p>`) : ''}
+          ${meta.pasosEjecucion && meta.pasosEjecucion.length ? seccion('Ejecución', lista('ol', meta.pasosEjecucion)) : ''}
+          ${meta.erroresComunes && meta.erroresComunes.length ? seccion('Errores comunes', lista('ul', meta.erroresComunes)) : ''}
+          ${meta.musculoSecundario ? `<p class="o-card-texto">Músculos secundarios: ${meta.musculoSecundario}</p>` : ''}`
+      });
 
-      const overlay = document.createElement('div');
-      overlay.className = 'modal-overlay open';
-      overlay.style.zIndex = '6000';
-      overlay.innerHTML = `
-        <div class="modal-content" style="max-height: 80vh; overflow-y: auto; padding: 22px;">
-          <div class="flex-between" style="margin-bottom: 14px;">
-            <h3 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; color: var(--text-primary);">${escapeHtml(nombre)}</h3>
-            <button id="btn-close-tecnica" aria-label="Cerrar" style="background: transparent; border: none; color: var(--text-disabled); font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
-          </div>
-          ${meta.posturaInicial ? `
-            <div style="margin-bottom: 14px;">
-              <div style="font-size: 11px; font-weight: 700; color: var(--accent-teal-t); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Postura inicial</div>
-              <div style="font-size: 13px; color: var(--text-primary); line-height: 1.4;">${meta.posturaInicial}</div>
-            </div>
-          ` : ''}
-          ${pasosHtml ? `
-            <div style="margin-bottom: 14px;">
-              <div style="font-size: 11px; font-weight: 700; color: var(--accent-teal-t); text-transform: uppercase; letter-spacing: 0.5px;">Ejecución</div>
-              ${pasosHtml}
-            </div>
-          ` : ''}
-          ${erroresHtml ? `
-            <div style="margin-bottom: ${meta.musculoSecundario ? '14px' : '0'};">
-              <div style="font-size: 11px; font-weight: 700; color: var(--state-high-t); text-transform: uppercase; letter-spacing: 0.5px;">Errores comunes</div>
-              ${erroresHtml}
-            </div>
-          ` : ''}
-          ${meta.musculoSecundario ? `<div style="font-size: 11px; color: var(--text-secondary);">Músculos secundarios: ${meta.musculoSecundario}</div>` : ''}
-        </div>
-      `;
-
-      const rootDiv = document.querySelector('#view-root > div') || document.body;
-      rootDiv.appendChild(overlay);
-
-      const close = () => overlay.remove();
-      overlay.querySelector('#btn-close-tecnica').addEventListener('click', close);
+      let cerrado = false;
+      const close = () => {
+        if (cerrado) return;
+        cerrado = true;
+        window.removeEventListener('popstate', alAtras);
+        overlay.classList.remove('open');
+        overlay.remove();
+        btn.closest('.ejercicio-sesion-block')?.querySelector('.btn-ej-menu')?.focus();
+      };
+      const alAtras = () => { if (!overlay.classList.contains('open')) close(); };
+      window.addEventListener('popstate', alAtras);
+      if (signal) signal.addEventListener('abort', close);
+      overlay.querySelector('[data-hoja-cerrar]').addEventListener('click', close);
       overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
     });
   });
@@ -2158,35 +2126,20 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   }
 }
 
-// Modal de opciones de la sesión (.modal-overlay con id: history.js le da
-// su entrada, así Atrás lo cierra y resuelve null). Deja libre la barra
-// inferior y el riel (layout.css). Resuelve el valor elegido o null.
+// Hoja de opciones de la sesión (Órbita, con id: history.js le da su
+// entrada, así Atrás la cierra y resuelve null). Sin ✕: se responde con una
+// de sus opciones, como antes. Resuelve el valor elegido o null.
 function preguntarOpciones({ id, titulo, texto, opciones }) {
   return new Promise((resolve) => {
-    document.getElementById(id)?.remove();
-    const overlay = document.createElement('div');
-    overlay.id = id;
-    overlay.className = 'modal-overlay';
-    overlay.style.zIndex = '6000';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-labelledby', id + '-titulo');
-    const estilo = (o) => o.principal
-      ? 'background: var(--cy); border: 1px solid var(--cy); color: var(--bg); font-weight: 800;'
-      : o.neutro
-        ? 'background: transparent; border: 1px solid var(--surface-border); color: var(--text-primary); font-weight: 700;'
-        : 'background: transparent; border: 1px solid var(--cy); color: var(--cy-t); font-weight: 700;';
-    overlay.innerHTML = `
-      <div class="modal-content" style="padding: 22px;">
-        <h3 id="${id}-titulo" style="margin: 0 0 6px 0; font-size: 18px; font-weight: 800; color: var(--text-primary);">${titulo}</h3>
-        <p style="margin: 0 0 16px 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary);">${texto}</p>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          ${opciones.map(o => `<button type="button" data-valor="${o.valor}" class="tappable" style="min-height: 44px; font: inherit; font-size: 14px; cursor: pointer; ${estilo(o)}">${o.html}</button>`).join('')}
-        </div>
-      </div>`;
-    const rootDiv = document.querySelector('#view-root > div') || document.body;
-    rootDiv.appendChild(overlay);
-    overlay.classList.add('open');
+    const clase = (o) => o.principal ? 'o-btn--primario' : o.neutro ? 'o-btn--fantasma' : 'o-btn--secundario';
+    const overlay = insertarHoja({
+      id, titulo, cerrar: false,
+      cuerpo: `
+        <p class="o-card-texto">${texto}</p>
+        <div class="o-ent-opciones">
+          ${opciones.map(o => `<button type="button" data-valor="${o.valor}" class="o-btn o-btn--bloque ${clase(o)}">${o.html}</button>`).join('')}
+        </div>`
+    });
 
     let listo = false;
     const terminar = async (valor) => {

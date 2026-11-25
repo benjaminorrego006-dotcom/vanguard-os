@@ -13,6 +13,7 @@ import { db } from '../core/db.js';
 import { Toast } from '../utils/states.js';
 import { diaKeyDe } from '../utils/fecha.js';
 import { EQUIPO_OPCIONES } from '../core/trainingConfig.js';
+import { oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
 
 const TIEMPO_OPCIONES = [
   { value: 'menos-1', label: 'Menos de 1 año', ayuda: 'Recién empezando o volviendo después de una pausa larga.' },
@@ -30,21 +31,24 @@ const TOTAL_PASOS = 3;
 const respuestas = { tiempoEntrenando: null, diasSemana: null };
 let pasoActual = 1;
 
+// Órbita (oHoja, Fase 9e): el título de la hoja es la pregunta del paso.
+const ID = 'nivel-onboarding-modal';
+const TITULOS = ['¿Cuánto tiempo llevas entrenando?', '¿Cuántos días por semana puedes entrenar?', '¿Qué equipo tienes disponible?'];
+
 function renderDots() {
-  return `
-    <div style="display: flex; gap: 6px; justify-content: center; margin-bottom: 20px;">
-      ${Array.from({ length: TOTAL_PASOS }, (_, i) => `
-        <div style="width: 8px; height: 8px; background: ${i + 1 === pasoActual ? 'var(--accent-teal)' : 'var(--surface-border)'}; border-radius: var(--o-radius-check);"></div>
-      `).join('')}
-    </div>
-  `;
+  return Array.from({ length: TOTAL_PASOS }, (_, i) => `<span class="o-ent-paso"${i + 1 === pasoActual ? ' aria-current="step"' : ''}></span>`).join('');
 }
 
 function mostrarPaso(n) {
   pasoActual = n;
-  document.querySelectorAll('.nivel-onboarding-paso').forEach((el, i) => el.style.display = i + 1 === n ? 'block' : 'none');
+  document.querySelectorAll('.nivel-onboarding-paso').forEach((el, i) => el.style.display = i + 1 === n ? '' : 'none');
+  const titulo = document.getElementById(`${ID}-titulo`);
+  if (titulo) titulo.textContent = TITULOS[n - 1];
   const dots = document.getElementById('nivel-onboarding-dots');
-  if (dots) dots.innerHTML = renderDots();
+  if (dots) {
+    dots.innerHTML = renderDots();
+    dots.setAttribute('aria-label', `Paso ${n} de ${TOTAL_PASOS}`);
+  }
 }
 
 // "Ahora no": oculta la apertura automática al entrar a Entreno hasta mañana
@@ -63,65 +67,55 @@ function posponerNivelHoy() {
 }
 
 export function renderNivelOnboardingForm() {
-  return `
-    <div id="nivel-onboarding-modal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 460px;">
-        <div id="nivel-onboarding-dots">${renderDots()}</div>
+  const cuerpo = `
+    <div id="nivel-onboarding-dots" class="o-ent-pasos" role="img" aria-label="Paso 1 de ${TOTAL_PASOS}">${renderDots()}</div>
 
-        <div id="nivel-onboarding-paso-1" class="nivel-onboarding-paso">
-          <h2 style="margin-top: 0; font-size: 19px; font-weight: 700;">¿Cuánto tiempo llevas entrenando?</h2>
-          <p style="color: var(--text-secondary); font-size: 13px; margin: -6px 0 20px 0;">Es tu punto de partida, no la última palabra — si tu historial muestra que ya estás más avanzado, la app te lo va a sugerir después.</p>
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            ${TIEMPO_OPCIONES.map(o => `
-              <button class="nivel-onboarding-tiempo-btn tappable" data-value="${o.value}" style="text-align: left; padding: 14px 16px; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); cursor: pointer;">
-                <div style="font-size: 14px; font-weight: 700;">${o.label}</div>
-                <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; font-weight: 500;">${o.ayuda}</div>
-              </button>
-            `).join('')}
-          </div>
-          <button id="btn-nivel-onboarding-ahora-no" class="tappable" style="margin-top: 14px; width: 100%; background: transparent; border: 1px solid var(--surface-border); color: var(--text-secondary); padding: 12px; font-size: 13px; font-weight: 600; cursor: pointer;">Ahora no</button>
-        </div>
-
-        <div id="nivel-onboarding-paso-2" class="nivel-onboarding-paso" style="display: none;">
-          <h2 style="margin-top: 0; font-size: 19px; font-weight: 700;">¿Cuántos días por semana puedes entrenar?</h2>
-          <p style="color: var(--text-secondary); font-size: 13px; margin: -6px 0 20px 0;">Define si tus rutinas priorizan ejercicios compuestos (pocos días) o suman aislamiento (más días).</p>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-            ${[1, 2, 3, 4, 5, 6, 7].map(n => `
-              <button class="nivel-onboarding-dias-btn tappable" data-value="${n}" style="padding: 16px 0; background: var(--surface-2); border: 1px solid var(--surface-border); color: var(--text-primary); font-size: 16px; font-weight: 700; cursor: pointer;">${n}</button>
-            `).join('')}
-          </div>
-          <button id="btn-nivel-onboarding-atras-2" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); margin-top: 20px;">Atrás</button>
-        </div>
-
-        <div id="nivel-onboarding-paso-3" class="nivel-onboarding-paso" style="display: none;">
-          <h2 style="margin-top: 0; font-size: 19px; font-weight: 700;">¿Qué equipo tienes disponible?</h2>
-          <p style="color: var(--text-secondary); font-size: 13px; margin: -6px 0 16px 0;">Filtra los ejercicios que la app te va a proponer. Puedes dejarlo vacío si solo entrenas con peso corporal.</p>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px;">
-            ${EQUIPO_OPCIONES.map(o => `
-              <label for="nivel-onboarding-equipo-${o.value}" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer;">
-                <input type="checkbox" id="nivel-onboarding-equipo-${o.value}" class="nivel-onboarding-equipo-check" value="${o.value}">
-                ${o.label}
-              </label>
-            `).join('')}
-          </div>
-          <div style="display: flex; gap: 12px;">
-            <button id="btn-nivel-onboarding-atras-3" class="btn-primary tappable" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Atrás</button>
-            <button id="btn-nivel-onboarding-finalizar" class="btn-primary tappable" style="background: var(--accent-teal); color: #000; flex: 1;">Finalizar</button>
-          </div>
-        </div>
+    <div id="nivel-onboarding-paso-1" class="nivel-onboarding-paso o-ent-nivel-paso">
+      <p class="o-card-texto">Es tu punto de partida, no la última palabra — si tu historial muestra que ya estás más avanzado, la app te lo va a sugerir después.</p>
+      <div class="o-ent-nivel-opciones">
+        ${TIEMPO_OPCIONES.map(o => `
+          <button type="button" class="o-fila nivel-onboarding-tiempo-btn" data-value="${o.value}">
+            <span class="o-fila-texto"><b>${o.label}</b> <small>${o.ayuda}</small></span>
+          </button>
+        `).join('')}
       </div>
+      <button type="button" id="btn-nivel-onboarding-ahora-no" class="o-btn o-btn--secundario o-btn--bloque">Ahora no</button>
     </div>
-  `;
+
+    <div id="nivel-onboarding-paso-2" class="nivel-onboarding-paso o-ent-nivel-paso" style="display: none;">
+      <p class="o-card-texto">Define si tus rutinas priorizan ejercicios compuestos (pocos días) o suman aislamiento (más días).</p>
+      <div class="o-ent-nivel-dias">
+        ${[1, 2, 3, 4, 5, 6, 7].map(n => `
+          <button type="button" class="o-chip nivel-onboarding-dias-btn" data-value="${n}"><span class="o-num">${n}</span></button>
+        `).join('')}
+      </div>
+      <button type="button" id="btn-nivel-onboarding-atras-2" class="o-btn o-btn--secundario o-btn--bloque">Atrás</button>
+    </div>
+
+    <div id="nivel-onboarding-paso-3" class="nivel-onboarding-paso o-ent-nivel-paso" style="display: none;">
+      <p class="o-card-texto">Filtra los ejercicios que la app te va a proponer. Puedes dejarlo vacío si solo entrenas con peso corporal.</p>
+      <div class="o-ent-equipo">
+        ${EQUIPO_OPCIONES.map(o => `
+          <label for="nivel-onboarding-equipo-${o.value}" class="o-ent-casilla">
+            <input type="checkbox" id="nivel-onboarding-equipo-${o.value}" class="nivel-onboarding-equipo-check" value="${o.value}">
+            ${o.label}
+          </label>
+        `).join('')}
+      </div>
+      <div class="o-ent-acciones">
+        <button type="button" id="btn-nivel-onboarding-atras-3" class="o-btn o-btn--secundario">Atrás</button>
+        <button type="button" id="btn-nivel-onboarding-finalizar" class="o-btn o-btn--primario">Finalizar</button>
+      </div>
+    </div>`;
+  return oHoja({ id: ID, modulo: 'entreno', titulo: TITULOS[0], cuerpo });
 }
 
 export function setupNivelOnboardingForm(onFinalizado) {
   const modal = document.getElementById('nivel-onboarding-modal');
   if (!modal) return;
 
-  const close = () => {
-    modal.classList.remove('open');
-    setTimeout(() => modal.style.display = 'none', 300);
-  };
+  montarHoja(ID);
+  const close = () => cerrarHoja(ID);
 
   modal.querySelectorAll('.nivel-onboarding-tiempo-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -197,6 +191,5 @@ export async function openNivelOnboardingForm() {
   btnAhoraNo.dataset.modo = nivel ? '' : 'onboarding';
 
   mostrarPaso(1);
-  modal.style.display = 'flex';
-  setTimeout(() => modal.classList.add('open'), 10);
+  abrirHoja(ID);
 }

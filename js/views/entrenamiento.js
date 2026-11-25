@@ -6,10 +6,9 @@
 //    volumen semanal, sesiones e IMC.
 //  - Rutinas: categoría (GYM · Calistenia · HIIT) y la lista de rutinas.
 //  - Progreso: Cuerpo, historial de sesiones y progreso completo.
-// Las sub-pantallas (lista de rutinas, formularios, sesión activa,
-// historial, progreso completo, Cuerpo) y las hojas de Entreno siguen en
-// MK III hasta su parte de la fase: van dentro de un contenedor con
-// .mk3-entreno (antes el ámbito estaba en #view-root, ver app.js).
+// Desde la 9e, todas las sub-pantallas (sesión, temporizador de HIIT y
+// descanso activo incluidos) y las hojas de Entreno están en Órbita: la
+// vista ya no usa el ámbito .mk3-entreno.
 // La lógica (sub-vistas, historial, sesión, sugerencias) es la de siempre.
 import { db } from '../core/db.js';
 import { esperarSalidaDeModal } from '../core/history.js';
@@ -508,16 +507,14 @@ export async function render() {
         <section id="ent-panel" class="o-ent-panel" role="tabpanel" aria-labelledby="ent-tab-${pestana}">${panel}</section>
       </div>
 
-      <!-- Sub-pantallas. Formularios de rutina y vistas previas: Órbita
-           (Fase 9b). Sesión, historial, progreso completo y Cuerpo: MK III
-           hasta su parte de la fase (mostrarSubVista pone o quita
-           .mk3-entreno). -->
+      <!-- Sub-pantallas (Órbita): sesión, temporizador de HIIT, descanso
+           activo, formularios, vistas previas, historial, progreso y Cuerpo. -->
       <div id="entrenamiento-sub-view" class="o-ent-sub" style="display: none;">
         <button id="btn-entrenamiento-volver" type="button" class="o-btn o-btn--secundario o-btn--icono" aria-label="Volver">${ICO.volver}</button>
-        <div id="entrenamiento-sub-content" class="mk3-entreno"></div>
+        <div id="entrenamiento-sub-content"></div>
       </div>
 
-      <div class="mk3-entreno o-ent-hojas">
+      <div class="o-ent-hojas">
         ${renderProfileForm()}
         ${renderMedidaForm()}
         ${renderFotoModales()}
@@ -671,13 +668,11 @@ mountListeners = () => {
 
   // Toda sub-vista (sesión, progreso, historial, formularios) se pinta en
   // #entrenamiento-sub-view: este es el único lugar que la muestra y oculta
-  // la principal. `legado`: la sub-vista sigue en MK III y va dentro del
-  // ámbito .mk3-entreno; las ya migradas a Órbita, sin él.
-  const mostrarSubVista = (legado = true) => {
+  // la principal.
+  const mostrarSubVista = () => {
     // Un repintado de la principal que siga en curso ya no debe aplicarse:
     // taparía la sub-vista recién abierta.
     repintadoN++;
-    subContent.classList.toggle('mk3-entreno', legado);
     empujarHistorialSiHaceFalta();
     modoSesion(false);
     mainView.style.display = 'none';
@@ -726,7 +721,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'progreso';
-    mostrarSubVista(false);
+    mostrarSubVista();
     setContextoCategoria(categoria);
 
     const refreshProgreso = async () => {
@@ -753,7 +748,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'historial';
-    mostrarSubVista(false);
+    mostrarSubVista();
 
     try {
       const htmlSub = await renderSesionesHistorial();
@@ -774,7 +769,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'cuerpo';
-    mostrarSubVista(false);
+    mostrarSubVista();
     const refreshCuerpo = async () => {
       if (viewState !== 'cuerpo') return;
       const [medidas, fotos] = await Promise.all([db.getMedidas(), db.getFotos()]);
@@ -798,7 +793,7 @@ mountListeners = () => {
 
     categoriaActiva = cat;
     viewState = 'preview';
-    mostrarSubVista(false);
+    mostrarSubVista();
 
     try {
       subContent.innerHTML = renderPlantillaPreview(plantilla);
@@ -818,7 +813,7 @@ mountListeners = () => {
 
     categoriaActiva = cat;
     viewState = 'generador-preview';
-    mostrarSubVista(false);
+    mostrarSubVista();
 
     try {
       subContent.innerHTML = renderGeneradorPreview(plan, cat);
@@ -838,7 +833,7 @@ mountListeners = () => {
 
     categoriaActiva = cat;
     viewState = 'form';
-    mostrarSubVista(false);
+    mostrarSubVista();
 
     try {
       if (cat === 'hiit') {
@@ -881,7 +876,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'ejercicio';
-    mostrarSubVista(false);
+    mostrarSubVista();
     try {
       const [rutinas, historial] = await Promise.all([db.getRutinas(), db.getHistorialEjercicio(nombre)]);
       if (!vistaVigente() || viewState !== 'ejercicio') return;
@@ -962,9 +957,7 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'session';
-    // GYM/Calistenia (también al retomar) ya en Órbita (Fase 9d); el
-    // temporizador de HIIT y el descanso activo siguen en MK III.
-    mostrarSubVista(!borrador && !usaBorrador(rutina));
+    mostrarSubVista();
 
     try {
       if (borrador) {

@@ -6,6 +6,9 @@ import { Toast } from '../utils/states.js';
 import { generarPlan } from '../core/generador-rutinas.js';
 import { EQUIPO_OPCIONES } from '../core/trainingConfig.js';
 import { CATALOGO_EJERCICIOS } from '../core/ejercicios-catalogo.js';
+import { oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
+
+const ID = 'generador-config-modal';
 
 const DURACIONES = [20, 30, 45, 60, 75, 90];
 
@@ -24,48 +27,40 @@ function equipoUsadoPorCategoria(categoria) {
   return usados;
 }
 
+// Órbita (oHoja, Fase 9e); ids de siempre.
 export function renderGeneradorConfigForm() {
-  return `
-    <div id="generador-config-modal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 480px; max-height: 90vh; overflow-y: auto;">
-        <h2 style="margin-top: 0; font-size: 20px; font-weight: 700;">Generar rutina</h2>
-        <p style="color: var(--text-secondary); font-size: 13px; margin: -8px 0 20px 0;">Con qué cuentas para entrenar — el generador arma la rutina según tu nivel real en cada patrón de movimiento, sin proponer nada que no puedas hacer.</p>
-
-        <div class="input-group">
-          <div style="display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; margin-bottom: 8px;">Equipo disponible</div>
-          <div id="generador-equipo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
-            ${EQUIPO_OPCIONES.map(o => `
-              <label for="generador-equipo-${o.value}" data-equipo-opcion="${o.value}" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer;">
-                <input type="checkbox" id="generador-equipo-${o.value}" class="generador-equipo-check" value="${o.value}">
-                ${o.label}
-              </label>
-            `).join('')}
-          </div>
-          <p style="font-size: 11px; color: var(--text-disabled); margin: 8px 0 0 0;">Sin nada marcado, el generador solo usa ejercicios de peso corporal.</p>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-          <div class="input-group">
-            <label for="generador-dias-semana">Días por semana</label>
-            <select id="generador-dias-semana">
-              ${[1, 2, 3, 4, 5, 6, 7].map(n => `<option value="${n}">${n} día${n === 1 ? '' : 's'}</option>`).join('')}
-            </select>
-          </div>
-          <div class="input-group">
-            <label for="generador-duracion">Duración por sesión</label>
-            <select id="generador-duracion">
-              ${DURACIONES.map(n => `<option value="${n}">${n} min</option>`).join('')}
-            </select>
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 12px; margin-top: 24px;">
-          <button id="btn-cancel-generador-config" class="btn-primary" style="background: var(--surface-2); color: var(--text-primary); flex: 1;">Cancelar</button>
-          <button id="btn-generar-plan" class="btn-primary" style="background: var(--accent-teal); color: #000; flex: 1;">Generar</button>
-        </div>
+  const cuerpo = `
+    <p class="o-card-texto">Con qué cuentas para entrenar — el generador arma la rutina según tu nivel real en cada patrón de movimiento, sin proponer nada que no puedas hacer.</p>
+    <div class="o-campo">
+      <span class="o-campo-etiqueta" id="generador-equipo-etq">Equipo disponible</span>
+      <div id="generador-equipo-grid" class="o-ent-equipo" role="group" aria-labelledby="generador-equipo-etq">
+        ${EQUIPO_OPCIONES.map(o => `
+          <label for="generador-equipo-${o.value}" data-equipo-opcion="${o.value}" class="o-ent-casilla">
+            <input type="checkbox" id="generador-equipo-${o.value}" class="generador-equipo-check" value="${o.value}">
+            ${o.label}
+          </label>
+        `).join('')}
       </div>
+      <p class="o-campo-ayuda">Sin nada marcado, el generador solo usa ejercicios de peso corporal.</p>
     </div>
-  `;
+    <div class="o-ent-hoja-par">
+      <div class="o-campo">
+        <label for="generador-dias-semana">Días por semana</label>
+        <select id="generador-dias-semana" class="o-input">
+          ${[1, 2, 3, 4, 5, 6, 7].map(n => `<option value="${n}">${n} día${n === 1 ? '' : 's'}</option>`).join('')}
+        </select>
+      </div>
+      <div class="o-campo">
+        <label for="generador-duracion">Duración por sesión</label>
+        <select id="generador-duracion" class="o-input">
+          ${DURACIONES.map(n => `<option value="${n}">${n} min</option>`).join('')}
+        </select>
+      </div>
+    </div>`;
+  return oHoja({
+    id: ID, modulo: 'entreno', titulo: 'Generar rutina', cuerpo,
+    pie: '<button type="button" id="btn-cancel-generador-config" class="o-btn o-btn--secundario">Cancelar</button><button type="button" id="btn-generar-plan" class="o-btn o-btn--primario">Generar</button>'
+  });
 }
 
 export function setupGeneradorConfigForm(onGenerado) {
@@ -74,15 +69,10 @@ export function setupGeneradorConfigForm(onGenerado) {
 
   const btnCancel = document.getElementById('btn-cancel-generador-config');
   const btnGenerar = document.getElementById('btn-generar-plan');
-  const btnCloseX = modal.querySelector('.btn-close-modal');
-
-  const close = () => {
-    modal.classList.remove('open');
-    setTimeout(() => modal.style.display = 'none', 300);
-  };
+  montarHoja(ID);
+  const close = () => cerrarHoja(ID);
 
   btnCancel.addEventListener('click', close);
-  if (btnCloseX) btnCloseX.addEventListener('click', close);
 
   btnGenerar.addEventListener('click', async () => {
     const equipoDisponible = [...document.querySelectorAll('.generador-equipo-check:checked')].map(el => el.value);
@@ -128,7 +118,7 @@ export async function openGeneradorConfigForm(categoria) {
   // volver a GYM la mostraría destildada sin que el usuario la tocara.
   const equipoUsado = equipoUsadoPorCategoria(categoria);
   document.querySelectorAll('[data-equipo-opcion]').forEach(label => {
-    label.style.display = equipoUsado.has(label.dataset.equipoOpcion) ? 'flex' : 'none';
+    label.hidden = !equipoUsado.has(label.dataset.equipoOpcion);
   });
 
   const config = await db.getGeneradorConfig();
@@ -139,6 +129,5 @@ export async function openGeneradorConfigForm(categoria) {
   document.getElementById('generador-dias-semana').value = config?.diasSemana || 3;
   document.getElementById('generador-duracion').value = config?.duracionSesionMin || 45;
 
-  modal.style.display = 'flex';
-  setTimeout(() => modal.classList.add('open'), 10);
+  abrirHoja(ID);
 }

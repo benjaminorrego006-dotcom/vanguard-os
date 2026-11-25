@@ -47,10 +47,11 @@ export function ensureChartJs() {
 // el token base --cy/--am/--vi directo) quedaban con el color del acento
 // de marca o el default viejo sin importar qué módulo estaba montado.
 //
-// Entreno (Fase 9a) lleva su ámbito MK III en un contenedor de la vista
-// (.mk3-entreno), no en #view-root: si existe, se lee de ahí.
+// Entreno (Fase 9a) llevaba su ámbito MK III en un contenedor de la vista
+// (.mk3-entreno); desde la 9e ya no lo tiene y se lee del contenedor del
+// módulo (.o-mod-entreno), que da los mismos valores.
 function ambitoGraficos() {
-  return document.querySelector('#view-root .mk3-entreno') || document.getElementById('view-root') || document.documentElement;
+  return document.querySelector('#view-root .mk3-entreno, #view-root .o-vista.o-mod-entreno') || document.getElementById('view-root') || document.documentElement;
 }
 
 export function cssVar(name) {
@@ -82,7 +83,7 @@ export function appPalette() {
 export function chartFontFamily() {
   const scope = ambitoGraficos();
   const classes = scope.classList;
-  return (classes.contains('mk3-entreno') || classes.contains('mk3-finanzas') || classes.contains('mk3-tareas'))
+  return (classes.contains('mk3-entreno') || classes.contains('mk3-finanzas') || classes.contains('mk3-tareas') || classes.contains('o-mod-entreno'))
     ? "ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
     : undefined;
 }

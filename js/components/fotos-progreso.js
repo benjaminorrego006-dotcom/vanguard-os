@@ -2,8 +2,8 @@
 // - reducirFoto: canvas a 1080 px en el lado largo, JPEG calidad 0,82.
 // - Galería por fecha en Entreno › Cuerpo (historial), con aviso fijo, visor
 //   (#foto-modal) con Eliminar y comparación "antes / ahora"
-//   (#foto-comparar-modal). Ambos son .modal-overlay + open: Atrás los
-//   cierra vía history.js.
+//   (#foto-comparar-modal). Ambos son hojas de Órbita (oHoja, Fase 9e):
+//   Atrás las cierra vía history.js.
 // - Fotos pendientes de la hoja de registro: se guardan al guardar la
 //   medida, con su fecha y su id.
 // Las imágenes se muestran con object URLs, que se liberan al repintar, al
@@ -14,7 +14,7 @@ import { diaKeyDe, fechaLocalDe, formatFechaCorta } from '../utils/fecha.js';
 import { formatNumero } from '../utils/numero.js';
 import { escapeHtml } from '../utils/escape.js';
 import { Toast, ConfirmDialog } from '../utils/states.js';
-import { oIcono } from './orbita.js';
+import { oIcono, oHoja, abrirHoja, cerrarHoja, montarHoja } from './orbita.js';
 
 export const LADO_MAX = 1080;
 export const CALIDAD_JPEG = 0.82;
@@ -74,7 +74,7 @@ export function cleanupFotos() {
 // "Tomar foto" abre la cámara (capture); "Elegir foto" deja elegir de la
 // galería (un input con capture no lo permite). `clase`: la de los botones
 // (la galería de Cuerpo ya es Órbita; la hoja de registro sigue en MK III).
-export const botonesAgregar = (prefijo, clase = 'cuerpo-btn tappable') => `
+export const botonesAgregar = (prefijo, clase = 'o-btn o-btn--secundario') => `
   <button type="button" class="${clase}" data-abrir="${prefijo}-camara">Tomar foto</button>
   <button type="button" class="${clase}" data-abrir="${prefijo}-galeria">Elegir foto</button>
   <input type="file" id="${prefijo}-camara" accept="image/*" capture="environment" hidden>
@@ -141,44 +141,36 @@ export function initFotos({ repintar, signal } = {}) {
 
 // --- Visor y comparación -----------------------------------------------------------------
 export function renderFotoModales() {
-  return `
-    <div id="foto-modal" class="modal-overlay foto-overlay" role="dialog" aria-modal="true" aria-labelledby="foto-titulo">
-      <div class="modal-content foto-hoja">
-        <h3 id="foto-titulo" class="num"></h3>
-        <div class="foto-grande"><img id="foto-img" alt=""></div>
-        <p class="cuerpo-sub num" id="foto-tam"></p>
-        <div class="cuerpo-hoja-acciones">
-          <button type="button" id="foto-eliminar" class="cuerpo-btn tappable">Eliminar</button>
-          <button type="button" id="foto-cerrar" class="cuerpo-btn cuerpo-btn--primario tappable">Cerrar</button>
-        </div>
-      </div>
-    </div>
-    <div id="foto-comparar-modal" class="modal-overlay foto-overlay" role="dialog" aria-modal="true" aria-labelledby="foto-comparar-titulo">
-      <div class="modal-content foto-hoja">
-        <h3 id="foto-comparar-titulo">Antes / ahora</h3>
-        <div class="foto-comparar">
-          ${['antes', 'ahora'].map(k => `
-            <div class="foto-comparar-col">
-              <label class="cuerpo-campo"><span>${k === 'antes' ? 'Antes' : 'Ahora'}</span><select id="foto-sel-${k}"></select></label>
-              <div class="foto-grande"><img id="foto-cmp-${k}" alt=""></div>
-            </div>`).join('')}
-        </div>
-        <div class="cuerpo-hoja-acciones">
-          <button type="button" id="foto-comparar-cerrar" class="cuerpo-btn cuerpo-btn--primario tappable">Cerrar</button>
-        </div>
-      </div>
-    </div>`;
+  const visor = oHoja({
+    id: 'foto-modal', modulo: 'entreno', titulo: '',
+    cuerpo: `
+      <div class="o-ent-foto-grande"><img id="foto-img" alt=""></div>
+      <p class="o-card-texto o-num" id="foto-tam"></p>`,
+    pie: '<button type="button" id="foto-eliminar" class="o-btn o-btn--secundario">Eliminar</button><button type="button" id="foto-cerrar" class="o-btn o-btn--primario">Cerrar</button>'
+  });
+  const comparar = oHoja({
+    id: 'foto-comparar-modal', modulo: 'entreno', titulo: 'Antes / ahora',
+    cuerpo: `
+      <div class="o-ent-foto-comparar">
+        ${['antes', 'ahora'].map(k => `
+          <div class="o-campo">
+            <label for="foto-sel-${k}">${k === 'antes' ? 'Antes' : 'Ahora'}</label>
+            <select id="foto-sel-${k}" class="o-input"></select>
+            <div class="o-ent-foto-grande"><img id="foto-cmp-${k}" alt=""></div>
+          </div>`).join('')}
+      </div>`,
+    pie: '<button type="button" id="foto-comparar-cerrar" class="o-btn o-btn--primario">Cerrar</button>'
+  });
+  return visor + comparar;
 }
 
 function abrirModal(modal) {
-  modal.style.display = 'flex';
-  setTimeout(() => modal.classList.add('open'), 10);
+  abrirHoja(modal.id);
 }
 async function cerrarModal(id) {
   const modal = document.getElementById(id);
   if (!modal || !modal.classList.contains('open')) return;
-  modal.classList.remove('open');
-  setTimeout(() => { modal.style.display = 'none'; }, 300);
+  await cerrarHoja(id);
   await esperarSalidaDeModal(id);
 }
 
@@ -191,7 +183,7 @@ async function abrirFoto(id, repintar) {
   if (!modal || !foto) return;
   fotoAbierta = foto.id;
   alEliminar = repintar || null;
-  modal.querySelector('#foto-titulo').textContent = fechaCorta(foto.fecha);
+  modal.querySelector('#foto-modal-titulo').textContent = fechaCorta(foto.fecha);
   const img = modal.querySelector('#foto-img');
   img.src = urlDe(foto);
   img.alt = `Foto del ${fechaCorta(foto.fecha)}`;
@@ -224,6 +216,8 @@ async function abrirComparar() {
 export function setupFotoModales() {
   const ver = document.getElementById('foto-modal');
   if (!ver) return;
+  montarHoja('foto-modal');
+  montarHoja('foto-comparar-modal');
   ver.querySelector('#foto-cerrar').addEventListener('click', () => cerrarModal('foto-modal'));
   ver.querySelector('#foto-eliminar').addEventListener('click', async () => {
     const id = fotoAbierta; // antes de cualquier await
@@ -254,7 +248,7 @@ function pintarPendientes() {
   caja.innerHTML = pendientes.map((p, i) => `
     <div class="foto-pend">
       <img src="${p.url}" alt="Foto ${i + 1} para guardar">
-      <button type="button" class="foto-pend-quitar tappable" data-i="${i}" aria-label="Quitar la foto ${i + 1}">✕</button>
+      <button type="button" class="foto-pend-quitar" data-i="${i}" aria-label="Quitar la foto ${i + 1}">${oIcono('cerrar')}</button>
     </div>`).join('');
   caja.querySelectorAll('.foto-pend-quitar').forEach(b => b.addEventListener('click', () => {
     const [p] = pendientes.splice(Number(b.dataset.i), 1);

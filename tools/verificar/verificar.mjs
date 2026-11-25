@@ -26,6 +26,7 @@ import { tomarFotoEntreno, leerUiOrbitaEntreno, ARCHIVO_ANTES_ENTRENO } from './
 import { tomarFotoRutinas, UI_ORBITA as UI_ORBITA_RUTINAS, ARCHIVO_ANTES_RUTINAS } from './foto-rutinas.mjs';
 import { tomarFotoProgreso, UI_ORBITA as UI_ORBITA_PROGRESO, ARCHIVO_ANTES_PROGRESO } from './foto-progreso.mjs';
 import { tomarFotoSesion, UI_ORBITA as UI_ORBITA_SESION, ARCHIVO_ANTES_SESION } from './foto-sesion.mjs';
+import { tomarFotoHojas, UI_ORBITA as UI_ORBITA_HOJAS, ARCHIVO_ANTES_HOJAS } from './foto-hojas.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '..', '..');
@@ -1861,6 +1862,226 @@ async function main() {
       }
     } finally {
       await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.reload();
+      await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+      await irA(page, 'dashboard'); // la prueba siguiente parte en Hoy
+    }
+  });
+
+  await prueba('Entreno › HIIT y hojas · cifras idénticas a la foto de antes de la Fase 9e (temporizador en sus cuatro modos, salida, descanso activo y hojas)', async () => {
+    // Contexto propio (datos demo, un circuito HIIT, un día de descanso
+    // activo y tres fotos, de foto-hojas.mjs), con el reloj detenido.
+    const despues = await tomarFotoHojas(browser, BASE, { ui: UI_ORBITA_HOJAS, capturas: path.join(SALIDA, 'hojas-foto') });
+    fs.writeFileSync(path.join(SALIDA, 'hojas-despues.json'), JSON.stringify(despues, null, 2) + '\n');
+    afirmar(despues.errores.length === 0, `errores de consola: ${despues.errores[0]}`);
+    const difs = compararFotos(JSON.parse(fs.readFileSync(ARCHIVO_ANTES_HOJAS, 'utf8')), despues);
+    afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
+  });
+
+  await prueba('Entreno › HIIT y hojas · Órbita, 44 px y contraste AA en el temporizador, el descanso activo y cada hoja (color y sobrio, 390 y 1440)', async () => {
+    const chicosEn = (sel) => page.$$eval(`${sel} :is(button, input, select, summary, label:has(> input[type=checkbox]))`, (bs) => bs.filter((b) => {
+      const r = b.getBoundingClientRect();
+      return r.width > 0 && (r.width < 44 || r.height < 44) && !(b.matches('input[type=checkbox]') && b.closest('label'));
+    }).map((b) => `${b.getAttribute('aria-label') || b.textContent.trim() || b.id || b.className} (${Math.round(b.getBoundingClientRect().width)}×${Math.round(b.getBoundingClientRect().height)})`));
+    const revisar = async (sel, donde) => {
+      await page.waitForTimeout(450);
+      const chicos = await chicosEn(sel);
+      afirmar(chicos.length === 0, `${donde}: objetivos bajo 44 px: ${chicos.slice(0, 3).join(', ')}`);
+      const fallas = await fallasContraste(page, `${sel} *`);
+      afirmar(fallas.length === 0, `${donde}: «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+    };
+    // Una hoja abierta es Órbita (.o-ui + .o-hoja), sin restos de MK III.
+    // Configuración sigue en MK III (.mk3-dashboard en #view-root): ahí se
+    // admite ese ámbito de la vista, pero no debe quitarle la sombra.
+    const hojaOrbita = async (id, donde) => {
+      await page.waitForSelector(`#${id}.open .o-hoja`);
+      const mk3 = await page.$eval(`#${id}`, (h) => {
+        const ambito = h.parentElement?.closest('[class*="mk3-"]');
+        const sinSombra = getComputedStyle(h.querySelector('.o-hoja')).boxShadow === 'none';
+        return (!!ambito && ambito.id !== 'view-root') || sinSombra || !!h.querySelector('.modal-content, [style*="--text-"], [style*="--accent-"], [style*="--cy"]');
+      });
+      afirmar(!mk3, `${donde}: la hoja ${id} conserva estilos MK III`);
+      await revisar(`#${id}`, `${donde} ${id}`);
+    };
+    const cerrarConAtras = async (id) => {
+      await page.goBack();
+      await page.waitForFunction((i) => !document.getElementById(i)?.classList.contains('open'), id);
+      await page.waitForTimeout(300);
+    };
+    const aRutinas = async (cat) => {
+      if (await page.evaluate(() => window.appRouter.currentView) !== 'entrenamiento') await irA(page, 'entrenamiento');
+      await page.locator('#ent-tab-rutinas').click();
+      await page.waitForSelector('#ent-tab-rutinas[aria-selected="true"]');
+      if (await page.locator(`[data-rut-cat="${cat}"][aria-pressed="false"]`).count()) await page.locator(`[data-rut-cat="${cat}"]`).click();
+      await page.waitForSelector(`[data-rut-cat="${cat}"][aria-pressed="true"]`);
+      await page.waitForSelector('#ent-rutinas #btn-nueva-rutina');
+    };
+    const enMain = () => page.waitForSelector('#entrenamiento-main-view [data-ent-tab]', { state: 'visible' });
+    // Escenario: un día de descanso activo y dos fotos (se borran al final).
+    // Sin sesión de GYM a medias que haya dejado una prueba anterior fallida
+    // (si no, iniciar una rutina pregunta qué hacer con ella).
+    await page.evaluate(() => localStorage.removeItem('vanguard.sesionEnCurso'));
+    const extra = await page.evaluate(async () => {
+      const { db } = await import('/js/core/db.js');
+      const r = await db.crearRutina({ nombre: 'Día 7 · Movilidad', categoria: 'gym', ejercicios: [] });
+      const png = () => new Promise((ok) => { const c = document.createElement('canvas'); c.width = 4; c.height = 6; c.getContext('2d').fillRect(0, 0, 4, 6); c.toBlob(ok, 'image/png'); });
+      const fotos = [];
+      for (const fecha of ['2026-10-25', '2026-11-22']) fotos.push((await db.agregarFoto({ blob: await png(), ancho: 4, alto: 6, fecha })).id);
+      return { rutina: r.id || (await db.getRutinas()).find((x) => x.nombre === 'Día 7 · Movilidad').id, fotos };
+    });
+    try {
+      for (const tema of ['color', 'gris']) {
+        await page.evaluate((t) => localStorage.setItem('vg-tema', t), tema);
+        for (const vp of [{ w: 390, h: 844 }, { w: 1440, h: 900 }]) {
+          const donde = `${tema} ${vp.w}`;
+          const foto = (n) => page.screenshot({ path: path.join(SALIDA, `entreno-${n}-${tema}-${vp.w}.png`) });
+          await page.setViewportSize({ width: vp.w, height: vp.h });
+          await page.reload();
+          await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+
+          // --- Temporizador de HIIT: ajustes, en curso, hoja de resumen y fin.
+          await aRutinas('hiit');
+          await page.locator('#ent-rutinas .btn-iniciar-sesion').first().click();
+          await page.waitForSelector('#btn-hiit-start');
+          afirmar(!(await page.$eval('#entrenamiento-sub-content', (c) => !!c.closest('.mk3-entreno') || c.classList.contains('mk3-entreno'))), `${donde}: el temporizador sigue en el ámbito MK III`);
+          for (const m of ['free', 'emom', 'amrap', 'tabata']) {
+            await page.locator(`.hiit-mode-btn[data-mode="${m}"]`).click();
+            afirmar(await page.$eval(`.hiit-mode-btn[data-mode="${m}"]`, (b) => b.getAttribute('aria-pressed') === 'true'), `${donde}: el modo ${m} no quedó marcado`);
+            await revisar('#entrenamiento-sub-view', `${donde} HIIT ajustes ${m}`);
+          }
+          await foto('hiit-ajustes');
+          await page.locator('.hiit-mode-btn[data-mode="free"]').click();
+          await page.locator('#btn-hiit-start').click();
+          await page.waitForSelector('#hiit-active-view', { state: 'visible' });
+          await revisar('#entrenamiento-sub-view', `${donde} HIIT en curso`);
+          await foto('hiit-en-curso');
+          await page.locator('#btn-hiit-stop').click();
+          await hojaOrbita('session-summary-modal', `${donde} HIIT`);
+          await page.locator('#session-summary-modal [data-rpe="7"]').click();
+          afirmar(await page.$eval('#session-summary-modal [data-rpe="7"]', (b) => b.getAttribute('aria-pressed') === 'true'), `${donde}: el RPE elegido no quedó marcado`);
+          await revisar('#session-summary-modal', `${donde} resumen con RPE`);
+          await foto('hiit-resumen');
+          await page.locator('#btn-skip-summary').click();
+          await page.waitForSelector('#hiit-summary-view', { state: 'visible' });
+          await revisar('#entrenamiento-sub-view', `${donde} HIIT fin`);
+          await page.locator('#btn-hiit-close').click();
+          await enMain();
+
+          // --- Descanso activo.
+          await aRutinas('gym');
+          await page.locator(`#ent-rutinas .btn-iniciar-sesion[data-id="${extra.rutina}"]`).click();
+          await page.waitForSelector('#btn-descanso-activo-hecho');
+          await revisar('#entrenamiento-sub-view', `${donde} descanso activo`);
+          await page.locator('#btn-entrenamiento-volver').click();
+          await enMain();
+
+          // --- Hojas de la sesión de GYM.
+          await aRutinas('gym');
+          await page.locator(`#ent-rutinas .btn-iniciar-sesion:not([data-id="${extra.rutina}"])`).first().click();
+          await page.waitForSelector('#btn-finalizar-sesion');
+          const conTecnica = await page.evaluate(() => [...document.querySelectorAll('.ejercicio-sesion-block')].findIndex((b) => b.querySelector('.btn-info-ejercicio')));
+          if (conTecnica >= 0) {
+            await page.locator(`#sesion-riel .sesion-tab[data-ej-idx="${conTecnica}"]`).click();
+            const b = page.locator('.ejercicio-sesion-block:not([hidden])');
+            await b.locator('.btn-ej-menu').click();
+            await b.locator('.btn-info-ejercicio').click();
+            await hojaOrbita('tecnica-ej-modal', donde);
+            await foto('hoja-tecnica');
+            await cerrarConAtras('tecnica-ej-modal'); // antes no tenía id: Atrás no la cerraba
+          }
+          let b = page.locator('.ejercicio-sesion-block:not([hidden])');
+          await b.locator('.btn-ej-menu').click();
+          await b.locator('.btn-descanso-ej').click();
+          await hojaOrbita('descanso-ej-modal', donde);
+          await foto('hoja-descanso');
+          await cerrarConAtras('descanso-ej-modal');
+          await page.locator('#btn-add-ejercicio-live').click();
+          await hojaOrbita('buscador-ejercicios-modal', donde);
+          await page.locator('#picker-search').fill('Remo raro');
+          await revisar('#buscador-ejercicios-modal', `${donde} buscador sin resultados`);
+          await cerrarConAtras('buscador-ejercicios-modal');
+          await page.waitForSelector('#buscador-ejercicios-modal', { state: 'detached' });
+          await page.locator('#btn-sesion-principal').click();
+          if (await page.locator('#hud-descanso:not([hidden])').count()) await page.locator('#btn-descanso-saltar').click();
+          await page.locator('#btn-sesion-salir').click();
+          await hojaOrbita('sesion-salir-modal', donde);
+          await foto('hoja-salir');
+          await page.locator('#sesion-salir-modal [data-valor="descartar"]').click();
+          await enMain();
+
+          // --- Detalle y edición de una sesión.
+          await page.locator('#ent-tab-progreso').click();
+          await page.locator('#link-historial-sesiones').click();
+          await page.waitForSelector('.hist-sesion');
+          await page.locator('.hist-sesion').first().click();
+          await hojaOrbita('sesion-detalle-modal', `${donde} detalle`);
+          await foto('hoja-detalle');
+          await page.locator('#btn-sesion-editar').click();
+          await page.waitForSelector('#sesion-edicion-form');
+          await page.waitForTimeout(300); // la hoja termina de acomodarse
+          await page.locator('#ed-duracion').fill('');
+          await page.waitForFunction(() => document.getElementById('ed-duracion')?.value === '');
+          await page.locator('#sesion-edicion-form button[type="submit"]').click();
+          await page.waitForSelector('#sesion-edicion-error:not([hidden]) svg');
+          await revisar('#sesion-detalle-modal', `${donde} edición con error`);
+          await foto('hoja-edicion');
+          await page.locator('#sesion-detalle-modal [data-accion="cancelar"]').click();
+          await page.locator(SEL.confirmOk).click();
+          await page.waitForSelector('#sesion-detalle-modal.open #btn-sesion-editar');
+          await page.locator('#btn-sesion-detalle-cerrar').click();
+          await page.waitForFunction(() => !document.getElementById('sesion-detalle-modal')?.classList.contains('open'));
+          await page.locator('#btn-entrenamiento-volver').click();
+          await enMain();
+
+          // --- Generador, medidas y fotos.
+          await aRutinas('gym');
+          await page.locator('#btn-generar-rutina').click();
+          await hojaOrbita('generador-config-modal', donde);
+          await foto('hoja-generador');
+          await cerrarConAtras('generador-config-modal');
+          await page.locator('#ent-tab-progreso').click();
+          await page.locator('#btn-cuerpo-registrar').click();
+          await hojaOrbita('medida-modal', donde);
+          await foto('hoja-medida');
+          await page.locator('#medida-cancelar').click();
+          await page.waitForFunction(() => !document.getElementById('medida-modal')?.classList.contains('open'));
+          await page.locator('#btn-cuerpo-historial').click();
+          await page.waitForSelector('.o-ent-foto');
+          await page.locator('.o-ent-foto').first().click();
+          await hojaOrbita('foto-modal', donde);
+          await cerrarConAtras('foto-modal');
+          await page.locator('#btn-fotos-comparar').click();
+          await hojaOrbita('foto-comparar-modal', donde);
+          await foto('hoja-comparar');
+          await page.locator('#foto-comparar-cerrar').click();
+          await page.waitForFunction(() => !document.getElementById('foto-comparar-modal')?.classList.contains('open'));
+          await page.locator('#btn-entrenamiento-volver').click();
+          await enMain();
+
+          // --- Perfil y nivel (desde Configuración, que pinta las mismas hojas).
+          await irA(page, 'configuracion');
+          await page.locator('#btn-cfg-perfil').click();
+          await hojaOrbita('profile-modal', donde);
+          await foto('hoja-perfil');
+          await cerrarConAtras('profile-modal');
+          await page.locator('#btn-cfg-nivel').click();
+          await hojaOrbita('nivel-onboarding-modal', `${donde} nivel 1`);
+          await page.locator('.nivel-onboarding-tiempo-btn').first().click();
+          await revisar('#nivel-onboarding-modal', `${donde} nivel 2`);
+          await page.locator('.nivel-onboarding-dias-btn').first().click();
+          await revisar('#nivel-onboarding-modal', `${donde} nivel 3`);
+          await foto('hoja-nivel');
+          await cerrarConAtras('nivel-onboarding-modal');
+        }
+      }
+    } finally {
+      await page.evaluate(async (x) => {
+        localStorage.setItem('vg-tema', 'color');
+        const { db } = await import('/js/core/db.js');
+        for (const id of x.fotos) await db.eliminarFoto(id);
+        await db.eliminarRutina(x.rutina);
+      }, extra).catch(() => {});
       await page.setViewportSize({ width: 390, height: 844 });
       await page.reload();
       await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);

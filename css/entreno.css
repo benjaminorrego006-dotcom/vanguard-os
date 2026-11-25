@@ -5,8 +5,9 @@
    Pestañas Inicio · Rutinas · Progreso. Acento del módulo (turquesa →
    azul) vía .o-mod-entreno. Desde la 9b también la lista de rutinas, las
    vistas previas (plantilla y rutina generada) y los formularios de
-   rutina. La sesión, el historial, el progreso completo, Cuerpo y las
-   hojas siguen en MK III dentro de .mk3-entreno hasta su parte de la fase.
+   rutina; después el historial, el progreso completo y Cuerpo (9c), la
+   sesión activa (9d) y, desde la 9e, las hojas, el temporizador de HIIT y
+   el descanso activo. Ya nada de Entreno usa el ámbito .mk3-entreno.
    ===================================================================== */
 
 .o-ent .o-tabs { margin-bottom: var(--o-sp-5); }
@@ -399,7 +400,7 @@
 .o-ent-medida-etq { font-size: var(--o-fs-sm); color: var(--o-text-2); }
 .o-ent-medida-nota { overflow-wrap: anywhere; }
 
-/* --- Sub-pantallas (MK III hasta su parte de la fase) --- */
+/* --- Sub-pantallas --- */
 .o-ent-sub > #btn-entrenamiento-volver { margin-bottom: var(--o-sp-4); }
 
 /* --- Tablet y PC --- */
@@ -826,3 +827,151 @@ button.sesion-chip { min-height: var(--o-touch); cursor: pointer; }
 .o-ent-pej-prs-lista li { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-2); font-size: var(--o-fs-xs); color: var(--o-text-2); }
 .o-ent-pej-prs-lista b { display: inline-flex; align-items: center; gap: var(--o-sp-1); color: var(--o-text); }
 .o-ent-pej-prs-lista svg { width: var(--o-icon-sm); height: var(--o-icon-sm); color: var(--o-warn-t); }
+
+/* =====================================================================
+   Fase 9e: hojas de Entreno, temporizador de HIIT y descanso activo.
+   Las hojas son .o-hoja (oHoja); acá van solo sus piezas propias.
+   ===================================================================== */
+
+/* --- Piezas comunes de las hojas --- */
+.o-ent-hoja-par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-sp-3); align-items: start; }
+.o-ent-casilla {
+  display: flex; align-items: center; gap: var(--o-sp-3); min-height: var(--o-touch);
+  font-size: var(--o-fs-sm); color: var(--o-text); cursor: pointer;
+}
+.o-ent-casilla[hidden] { display: none; }
+.o-ent-casilla input { width: var(--o-icon); height: var(--o-icon); flex-shrink: 0; margin: 0; accent-color: var(--o-mod); }
+.o-ent-equipo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--o-sp-3); }
+.o-ent-opciones { display: grid; gap: var(--o-sp-2); }
+
+/* Resumen de una sesión de HIIT: RPE del 1 al 10. */
+.o-ent-rpe-chips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-ent-rpe-chips .o-chip { justify-content: center; padding: 0; }
+
+/* Nivel: puntos de avance y opciones de cada paso. */
+.o-ent-pasos { display: flex; justify-content: center; gap: var(--o-sp-2); }
+.o-ent-paso { width: var(--o-sp-2); height: var(--o-sp-2); border-radius: var(--o-radius-check); background: var(--o-line-strong); }
+.o-ent-paso[aria-current="step"] { background: var(--o-mod); }
+.o-ent-nivel-paso { display: grid; gap: var(--o-sp-4); }
+.o-ent-nivel-opciones { display: grid; gap: var(--o-sp-2); }
+.o-ent-nivel-opciones .o-fila-texto b { white-space: normal; }
+.o-ent-nivel-dias { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-ent-nivel-dias .o-chip { justify-content: center; padding: 0; font-size: var(--o-fs-md); }
+
+/* Medidas: valor anterior bajo cada campo y fotos por guardar. */
+.o-ent-medida-ant { min-height: var(--o-sp-4); font-size: var(--o-fs-xs); }
+.fotos-pend { display: flex; flex-wrap: wrap; gap: var(--o-sp-2); }
+.fotos-pend:empty { display: none; }
+.foto-pend {
+  position: relative; width: calc(var(--o-touch) * 2); aspect-ratio: 3 / 4;
+  border: 1px solid var(--o-line); border-radius: var(--o-radius-control); overflow: hidden;
+}
+.foto-pend img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.foto-pend-quitar {
+  position: absolute; top: 0; right: 0; width: var(--o-touch); height: var(--o-touch); padding: 0;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--o-sheet); border: 0; border-radius: var(--o-radius-check); color: var(--o-text);
+}
+.foto-pend-quitar svg { width: var(--o-icon-sm); height: var(--o-icon-sm); }
+.foto-pend-quitar:focus-visible { outline: none; box-shadow: var(--o-focus); }
+
+/* Visor y comparación de fotos. */
+.o-ent-foto-grande {
+  display: flex; align-items: center; justify-content: center; min-height: calc(var(--o-touch) * 3);
+  background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-radius-control); overflow: hidden;
+}
+.o-ent-foto-grande img { display: block; max-width: 100%; max-height: 55dvh; object-fit: contain; }
+.o-ent-foto-comparar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-sp-3); }
+.o-ent-foto-comparar .o-ent-foto-grande img { max-height: 45dvh; }
+#foto-comparar-modal .o-hoja { max-width: var(--o-content-max); }
+
+/* Detalle y edición de una sesión. */
+.o-ent-det-cab { display: grid; gap: var(--o-sp-1); min-width: 0; }
+.o-ent-det-cab .o-rotulo { color: var(--o-text-2); }
+.o-ent-det-cab .o-hoja-titulo { margin: 0; overflow-wrap: anywhere; }
+.o-ent-det-datos { margin: 0; display: flex; flex-wrap: wrap; gap: var(--o-sp-2) var(--o-sp-4); font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-ent-det-datos b { font-weight: var(--o-fw-bold); color: var(--o-text); }
+.o-ent-det-notas { white-space: pre-line; }
+.o-ent-det-ejs { list-style: none; margin: 0; padding: 0; display: grid; }
+.o-ent-det-ejs > li { padding: var(--o-sp-3) 0; border-top: 1px solid var(--o-line); }
+.o-ent-det-ej-nombre { margin: 0 0 var(--o-sp-2); font-size: var(--o-fs-base); font-weight: var(--o-fw-bold); line-height: var(--o-lh-snug); overflow-wrap: anywhere; }
+.o-ent-det-series { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--o-sp-1); }
+.o-ent-det-serie { display: flex; gap: var(--o-sp-3); font-size: var(--o-fs-sm); color: var(--o-text); }
+.o-ent-det-serie--sin { color: var(--o-text-2); }
+.o-ent-det-serie-n { flex-shrink: 0; min-width: calc(var(--o-touch) * 1.4); color: var(--o-text-2); font-size: var(--o-fs-sm); }
+.o-ent-ed-ej-cab { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-2); margin-bottom: var(--o-sp-2); }
+.o-ent-ed-ej-cab .o-ent-det-ej-nombre { margin: 0; min-width: 0; }
+.o-ent-ed-series { list-style: none; margin: 0 0 var(--o-sp-2); padding: 0; display: grid; gap: var(--o-sp-2); }
+.o-ent-ed-serie { display: grid; gap: var(--o-sp-2); padding: var(--o-sp-3); border: 1px solid var(--o-line); border-radius: var(--o-radius-control); background: var(--o-surface-1); }
+.o-ent-ed-serie-cab { display: flex; align-items: center; gap: var(--o-sp-2); }
+.o-ent-ed-serie-cab .o-input { flex: 1; min-width: 0; }
+.o-ent-ed-serie-campos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: var(--o-sp-2); align-items: end; }
+.o-ent-ed-agregar { border: 1px dashed var(--o-line-strong); }
+#sesion-detalle-modal .o-hoja-pie { flex-wrap: wrap; }
+.o-ent-ed-error { flex-basis: 100%; }
+
+/* Hojas de la sesión: buscador, descanso por ejercicio y técnica. */
+.o-ent-picker-res { display: grid; gap: var(--o-sp-2); }
+.o-ent-picker-musculo { flex-shrink: 0; color: var(--o-mod-t); }
+.o-ent-picker-vacio { display: grid; justify-items: center; gap: var(--o-sp-3); padding: var(--o-sp-4) 0; text-align: center; }
+.o-ent-picker-vacio .o-btn { white-space: normal; }
+.o-ent-desc-ctrl { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-3); }
+.o-ent-desc-ctrl .o-btn { min-width: calc(var(--o-touch) * 1.5); }
+.o-ent-desc-valor { flex: 1; display: grid; justify-items: center; gap: var(--o-sp-1); }
+.o-ent-desc-valor .o-num { font-size: var(--o-fs-2xl); font-weight: var(--o-fw-black); line-height: var(--o-lh-tight); }
+.o-ent-desc-origen { font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.o-ent-tecnica-sec { display: grid; gap: var(--o-sp-2); }
+.o-ent-tecnica-sec .o-rotulo { color: var(--o-mod-t); }
+.o-ent-tecnica-texto { margin: 0; font-size: var(--o-fs-sm); line-height: var(--o-lh-body); }
+.o-ent-tecnica-lista { margin: 0; padding-inline-start: var(--o-sp-5); display: grid; gap: var(--o-sp-2); font-size: var(--o-fs-sm); line-height: var(--o-lh-body); }
+.o-ent-tecnica-lista li::marker { color: var(--o-mod-t); }
+
+/* --- Temporizador de HIIT (hiit-timer.js). Las vistas se muestran y
+   ocultan con style.display (lógica de siempre); acá solo la forma. --- */
+.o-ent-tim { display: grid; gap: var(--o-sp-4); min-width: 0; }
+.o-ent-tim-ejs { display: grid; gap: var(--o-sp-2); }
+.o-ent-tim-ejs .o-rotulo { margin: 0; }
+.o-ent-tim-ej-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--o-sp-1); }
+.hiit-ej-item {
+  padding: var(--o-sp-2) var(--o-sp-3); border-radius: var(--o-radius-control);
+  font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold); color: var(--o-text-2);
+  transition: background-color var(--o-dur-2) var(--o-ease-out), color var(--o-dur-2) var(--o-ease-out);
+}
+/* Ejercicio en curso: relleno del módulo con texto en tinta (y aria-current). */
+.hiit-ej-item[aria-current="step"] { background: var(--o-mod-grad); color: var(--o-ink); }
+.o-ent-tim-vista { display: flex; flex-direction: column; gap: var(--o-sp-4); }
+.o-ent-tim-racha { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-sp-3); text-align: center; }
+.o-ent-tim-racha > div + div { border-inline-start: 1px solid var(--o-line); }
+.o-ent-tim-racha .o-rotulo { margin: 0 0 var(--o-sp-1); }
+.o-ent-tim-racha-valor { margin: 0; display: inline-flex; align-items: center; gap: var(--o-sp-1); font-size: var(--o-fs-xl); font-weight: var(--o-fw-black); }
+.o-ent-tim-ico { width: var(--o-icon-sm); height: var(--o-icon-sm); flex-shrink: 0; color: var(--o-mod-t); }
+.o-ent-tim-ajustes { display: grid; gap: var(--o-sp-3); }
+.o-ent-tim-par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-sp-3); }
+.o-ent-tim-campo { text-align: center; }
+.o-ent-tim-preset { text-align: center; }
+.o-ent-tim-voz { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-3); min-height: var(--o-touch); font-size: var(--o-fs-base); font-weight: var(--o-fw-semibold); cursor: pointer; }
+.o-ent-tim-voz input { width: var(--o-icon); height: var(--o-icon); margin: 0; accent-color: var(--o-mod); }
+.o-ent-tim-activa, .o-ent-tim-fin { align-items: center; justify-content: center; text-align: center; min-height: 50dvh; }
+.o-ent-tim-activa > p, .o-ent-tim-fin > * { margin: 0; }
+.o-ent-tim-fase { font-size: var(--o-fs-xl); font-weight: var(--o-fw-black); letter-spacing: var(--o-ls-label); color: var(--o-mod-t); }
+.o-ent-tim-tiempo { font-size: calc(var(--o-fs-display) * 1.6); font-weight: var(--o-fw-black); line-height: var(--o-lh-tight); letter-spacing: var(--o-ls-display); color: var(--o-text); }
+.o-ent-tim-tiempo--acento { color: var(--o-mod-t); }
+.o-ent-tim-ronda { font-size: var(--o-fs-md); font-weight: var(--o-fw-semibold); color: var(--o-text-2); }
+.o-ent-tim-siguiente { font-size: var(--o-fs-base); font-weight: var(--o-fw-bold); color: var(--o-text); }
+.o-ent-tim-record { display: inline-flex; align-items: center; gap: var(--o-sp-1); font-size: var(--o-fs-sm); font-weight: var(--o-fw-bold); color: var(--o-text-2); }
+.o-ent-tim-amrap { border-style: dashed; border-color: var(--o-mod); color: var(--o-mod-t); font-size: var(--o-fs-md); }
+.o-ent-tim-pie { margin-top: auto; align-self: stretch; }
+.o-ent-tim-fin-ico {
+  display: grid; place-items: center; width: calc(var(--o-touch) * 1.6); height: calc(var(--o-touch) * 1.6);
+  border-radius: var(--o-radius-card); background: var(--o-mod-soft); color: var(--o-mod-t);
+}
+.o-ent-tim-fin-ico svg { width: var(--o-icon); height: var(--o-icon); }
+.o-ent-tim-fin-datos { display: grid; gap: var(--o-sp-1); font-size: var(--o-fs-base); color: var(--o-text-2); line-height: var(--o-lh-body); }
+.o-ent-tim-fin-datos p { margin: 0; }
+.o-ent-tim-fin-datos strong { color: var(--o-text); }
+@media (min-width: 1024px) {
+  .o-ent-tim { max-width: calc(var(--o-sheet-max) * 1.5); }
+}
+/* Modo sobrio: la fase y la cuenta van en texto normal; el ejercicio en
+   curso sigue marcado (es un estado). */
+html[data-tema="gris"] :is(.o-ent-tim-tiempo--acento, .o-ent-tim-fase) { color: var(--o-text); }

@@ -1,6 +1,6 @@
 # Rediseño total de Vanguard OS — Concepto «Órbita»
 
-> **Estado actual (24-11-2026):** la **Fase 8 (Finanzas) está terminada**, hojas incluidas. La **Fase 9 (Entreno)** va por partes: **9a lista** (pestañas Inicio · Rutinas · Progreso) y **9b lista** (lista de rutinas, vistas previas y formularios de rutina en Órbita; `verificar.mjs fase-9b-4` OK, fotos de cifras idénticas a las de antes). El buscador de Inicio también quedó (commit aparte, `verificar.mjs buscador-2`). **9c lista** (Historial, Progreso completo y Cuerpo en Órbita; foto de cifras idéntica a la de antes). **9d lista** (sesión activa de GYM y Calistenia en Órbita; foto de cifras idéntica y la sesión sobrevive a salir, al atrás y a recargar). Sigue 9e (hojas de Entreno, más el temporizador de HIIT y el descanso activo).
+> **Estado actual (25-11-2026):** la **Fase 8 (Finanzas) está terminada**, hojas incluidas. La **Fase 9 (Entreno)** va por partes: **9a lista** (pestañas Inicio · Rutinas · Progreso) y **9b lista** (lista de rutinas, vistas previas y formularios de rutina en Órbita; `verificar.mjs fase-9b-4` OK, fotos de cifras idénticas a las de antes). El buscador de Inicio también quedó (commit aparte, `verificar.mjs buscador-2`). **9c lista** (Historial, Progreso completo y Cuerpo en Órbita; foto de cifras idéntica a la de antes). **9d lista** (sesión activa de GYM y Calistenia en Órbita; foto de cifras idéntica y la sesión sobrevive a salir, al atrás y a recargar). **9e lista** (hojas de Entreno, temporizador de HIIT y descanso activo en Órbita; foto de cifras idéntica, el HIIT se sigue perdiendo al salir como antes). Sigue 9f (que el HIIT y el descanso activo se retomen como la sesión de GYM).
 >
 > **Obligatorio antes de fusionar `rediseno-orbita` con `worktree-dashboard-mk3`:** prueba con los datos reales del usuario. Cargar su respaldo (sin copiarlo al repo ni subirlo a git) en un perfil de navegador aislado con `supabase.co` bloqueado, primero en `worktree-dashboard-mk3` y luego en `rediseno-orbita`, y comparar en una tabla las cifras de Finanzas, las rachas de Hábitos y las tareas pendientes. Pendiente desde el 24-11-2026: el respaldo no estaba en la ruta indicada.
 
@@ -442,6 +442,28 @@ En cada fase: `CACHE_NAME` se incrementa, los archivos nuevos van a `PRECACHE_UR
 - **Sigue en MK III hasta la 9e:** las hojas que abre la sesión (buscador de ejercicios, técnica, descanso por ejercicio, «¿Salir?», duración larga) y, como sesiones aparte, el temporizador de HIIT y el descanso activo (`entrenamiento.js` los abre todavía con el ámbito `.mk3-entreno`).
 - **Sin cambios de datos ni de esquemas.**
 - **Verificación (`fase-9d-4`):** foto de la sesión idéntica a la de antes y las tres retomadas iguales; 44 px y contraste AA en la sesión, el descanso, el progreso de un ejercicio y el resumen, en 390 y 1440, color y sobrio.
+
+#### Fase 9e · Entreno: hojas, temporizador de HIIT y descanso activo (25-11-2026)
+- **Foto de antes** (`tools/verificar/foto-hojas.mjs` → `hojas-antes.json`, tomada con el código de `027d750`; varias corridas idénticas). Usa el reloj detenido, la voz y los pitidos grabados, y además una rutina HIIT libre de 3 ejercicios, un día de descanso activo y 3 fotos que agrega la herramienta. Recorre:
+  - **HIIT:** los ajustes de cada modo y un Tabata completo hasta 240 s (fase, tiempo, ronda, siguiente, ejercicio resaltado, voz y pitidos cada segundo clave), con su resumen (RPE 8 y notas) y lo guardado. También un libre 5/3×4, un EMOM detenido a mano, dos AMRAP (el segundo muestra el récord) y la racha.
+  - **Salida del HIIT:** hoy se pierde con Volver, al ir a otra vista, con atrás y al recargar. No queda tarjeta de «sesión en curso», no se guarda nada y la voz se calla.
+  - **Descanso activo:** su pantalla y el evento del log.
+  - **Hojas de la sesión de GYM:** técnica, descanso ±15 y «Usar el general», buscador (con resultados y sin ellos), «¿Salir?» y la duración larga después de 13 h.
+  - **Hojas de Progreso y Cuerpo:** el detalle y la edición de una sesión del historial (con el error de duración vacía), el generador de GYM y de Calistenia, la medida, el visor y la comparación de fotos, el perfil y los tres pasos del nivel.
+- **Interfaz** (`hiit-timer.js`, `session-summary-form.js`, `rutina-session.js`, `sesiones-historial.js`, `cuerpo.js`, `fotos-progreso.js`, `generador-rutina-form.js`, `profile-form.js`, `nivel-onboarding-form.js`, estilos en `css/entreno.css`). Todas las hojas pasan a `oHoja`, con `abrirHoja`, `cerrarHoja` y `montarHoja`:
+  - El temporizador usa clases `o-ent-tim-*`. Los modos son chips con `aria-pressed`, el ejercicio actual va marcado con `aria-current="step"` y el degradado del módulo con texto `--o-ink`, y la cifra grande es `.o-num` con el acento del módulo (neutra en modo sobrio). No quedan colores en línea. La lógica, los tiempos, la voz y lo que se guarda no cambian.
+  - La hoja de resumen (RPE) lleva chips con `aria-pressed` y, como antes, no tiene ✕. `oHoja` acepta `cerrar: false`.
+  - Los errores (medida y edición de sesión) son alertas Órbita con ícono y texto.
+  - `entrenamiento.js` ya no usa el ámbito `.mk3-entreno` (sale `mostrarSubVista(legado)`). `charts.js` lee los colores y la fuente desde la vista Órbita de Entreno.
+  - Se borraron de `css/layout.css` las reglas MK III que quedaban del descanso por ejercicio, de Cuerpo y de las fotos.
+  - Configuración sigue en MK III y aloja las hojas de perfil y de nivel. Su ámbito quitaba todas las sombras con `!important`, también el anillo de foco y la sombra de la hoja. Ahora esa regla de `components.css` deja fuera lo que está dentro de `.o-ui`.
+- **Cambios de comportamiento mínimos:**
+  - La hoja de técnica ahora tiene `id`, así que el botón atrás la cierra (antes no la cerraba; la regla de los modales exige el `id`).
+  - El buscador de ejercicios se cierra también al tocar fuera.
+- **Sin cambios de datos ni de esquemas.**
+- **Verificación (`fase-9e-5`, 69/70):** la foto de cifras es idéntica a la de antes. La única falla fue una espera vencida al preparar los datos de la foto de la sesión de la 9d, sin diferencias de cifras; corrida sola dos veces, pasó sin diferencias. La causa de esas esperas se busca después de la 9f. Pasan 44 px, contraste AA y «sin restos de MK III» en el temporizador (cuatro modos, en curso, hoja de resumen y fin), el descanso activo y cada hoja, en 390 y 1440, color y sobrio.
+- **Antes de la 9e, en su propio commit (`d2af677`):** «1RM estimado» en el progreso de un ejercicio de la sesión quedaba en 4,49:1 (tarjeta dentro de otra tarjeta, de la 9d). Ahí deja de ser tarjeta aparte.
+- **Pendiente para la 9f (bug anterior):** con la hoja de resumen del HIIT abierta, el botón atrás la cierra sin resolver la pregunta y la sesión no se guarda. Igual que antes.
 
 ## 9. Riesgos y cómo se controlan
 

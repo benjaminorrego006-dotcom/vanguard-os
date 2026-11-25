@@ -7,8 +7,8 @@
 // Órbita (Fase 9c). data-foto: lo que lee tools/verificar/foto-progreso.mjs.
 // Las metas se pintan acá (lab-entreno.js las sigue pintando en MK III para
 // el Laboratorio); sus botones conservan los ids y clases que engancha
-// LabEntreno.initTabListeners('metas'). La hoja de metas (goal-form) sigue
-// en MK III hasta la 9e, dentro de un envoltorio .mk3-entreno.
+// LabEntreno.initTabListeners('metas'). La hoja de metas (goal-form) ya es
+// de Órbita (oHoja) y va sin envoltorio desde la 9e.
 import { db } from '../core/db.js';
 import { renderEstandaresFuerza, initEstandaresFuerzaListeners } from './estandares-fuerza.js';
 import { renderArbolProgresion } from './arbol-progresion.js';
@@ -212,7 +212,7 @@ export async function renderProgreso() {
       ${renderTabSelector()}
       <div id="progreso-tab-content" class="o-ent-prog-cont" role="tabpanel" aria-labelledby="prog-tab-${activeTab}">${await renderContent()}</div>
     </div>
-    <div class="mk3-entreno">${renderGoalForm()}</div>
+    ${renderGoalForm()}
   `;
 }
 

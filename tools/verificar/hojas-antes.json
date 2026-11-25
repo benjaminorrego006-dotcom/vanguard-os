@@ -1,0 +1,1065 @@
+{
+  "tabataAjustes": {
+    "titulo": "Tabata express",
+    "ejercicios": [
+      "Burpees"
+    ],
+    "vista": "hiit-setup-view",
+    "racha": {
+      "actual": "0",
+      "mejor": "1"
+    },
+    "modo": "tabata",
+    "ajustes": {
+      "texto": "Presetfijo:20sTrabajo/10sDescanso8Rondas(4mins)",
+      "campos": []
+    },
+    "voz": true
+  },
+  "modos": {
+    "free": {
+      "texto": "Trabajo(seg)Descanso(seg)Rondastotales",
+      "campos": [
+        "hiit-s-work=20",
+        "hiit-s-rest=10",
+        "hiit-s-rounds=8"
+      ]
+    },
+    "emom": {
+      "texto": "Tiempototal(min)Intervalo(seg)",
+      "campos": [
+        "hiit-s-emom-mins=10",
+        "hiit-s-emom-sec=60"
+      ]
+    },
+    "amrap": {
+      "texto": "Tiempototal(min)",
+      "campos": [
+        "hiit-s-amrap-mins=15"
+      ]
+    },
+    "tabata": {
+      "texto": "Presetfijo:20sTrabajo/10sDescanso8Rondas(4mins)",
+      "campos": []
+    }
+  },
+  "vozActivada": true,
+  "tabata": {
+    "t0": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJO",
+        "tiempo": "00:20",
+        "ronda": "Ronda 1 / 8",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "t1": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJO",
+        "tiempo": "00:19",
+        "ronda": "Ronda 1 / 8",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "t17": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJO",
+        "tiempo": "00:03",
+        "ronda": "Ronda 1 / 8",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "t20": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "DESCANSO",
+        "tiempo": "00:10",
+        "ronda": "Ronda 1 / 8",
+        "siguiente": "Siguiente: Burpees",
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "t25": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "DESCANSO",
+        "tiempo": "00:05",
+        "ronda": "Ronda 1 / 8",
+        "siguiente": "Siguiente: Burpees",
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "t30": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJO",
+        "tiempo": "00:20",
+        "ronda": "Ronda 2 / 8",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "t211": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJO",
+        "tiempo": "00:19",
+        "ronda": "Ronda 8 / 8",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "t230": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "DESCANSO",
+        "tiempo": "00:10",
+        "ronda": "Ronda 8 / 8",
+        "siguiente": "Siguiente: Burpees",
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "sonidos": {
+      "voz": [
+        "Trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso",
+        "Prepárate",
+        "Trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso",
+        "Prepárate",
+        "Trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso",
+        "Prepárate",
+        "Trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso",
+        "Prepárate",
+        "Trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso",
+        "Prepárate",
+        "Trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso",
+        "Prepárate",
+        "Trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso",
+        "Prepárate",
+        "Última ronda, trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso"
+      ],
+      "pitidos": 16
+    },
+    "hojaResumen": {
+      "texto": "¿Cómoestuvotusesión?Estoesopcional,peroayudaaquefuturassugerenciasseanmásprecisas.Esfuerzopercibido(RPE)Notas(opcional)",
+      "campos": [
+        "session-summary-notas="
+      ],
+      "botones": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "Omitir",
+        "Guardar sesión"
+      ]
+    },
+    "fin": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-summary-view",
+      "resumen": {
+        "titulo": "¡Sesión Completada!",
+        "datos": "Duración:4minEnergíaestimada:~40kcal"
+      }
+    },
+    "guardada": {
+      "nombreRutina": "Tabata express (TABATA)",
+      "fecha": "2026-11-23T20:04",
+      "duracionMin": 4,
+      "completado": true,
+      "rpe": 8,
+      "notas": "Buena",
+      "ejercicios": "[{\"ejercicioId\":null,\"nombre\":\"HIIT Performance\",\"series\":[{\"tipo\":\"normal\",\"reps\":\"0\",\"peso\":0}]}]"
+    },
+    "sonidosFin": {
+      "voz": [
+        "Prepárate"
+      ],
+      "pitidos": 17
+    }
+  },
+  "libre": {
+    "ajustes": {
+      "titulo": "Circuito tres",
+      "ejercicios": [
+        "Sentadilla con salto",
+        "Escaladores",
+        "Jumping jacks"
+      ],
+      "vista": "hiit-setup-view",
+      "racha": {
+        "actual": "1",
+        "mejor": "1"
+      },
+      "modo": "free",
+      "ajustes": {
+        "texto": "Trabajo(seg)Descanso(seg)Rondastotales",
+        "campos": [
+          "hiit-s-work=10",
+          "hiit-s-rest=5",
+          "hiit-s-rounds=6"
+        ]
+      },
+      "voz": true
+    },
+    "t0": {
+      "titulo": "Circuito tres",
+      "ejercicios": [
+        "Sentadilla con salto",
+        "Escaladores",
+        "Jumping jacks"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJO",
+        "tiempo": "00:05",
+        "ronda": "Ronda 1 / 4",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "t5": {
+      "titulo": "Circuito tres",
+      "ejercicios": [
+        "Sentadilla con salto",
+        "Escaladores",
+        "Jumping jacks"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "DESCANSO",
+        "tiempo": "00:03",
+        "ronda": "Ronda 1 / 4",
+        "siguiente": "Siguiente: Escaladores",
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "t8": {
+      "titulo": "Circuito tres",
+      "ejercicios": [
+        "Sentadilla con salto",
+        "Escaladores",
+        "Jumping jacks"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJO",
+        "tiempo": "00:05",
+        "ronda": "Ronda 2 / 4",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": 1
+      }
+    },
+    "t13": {
+      "titulo": "Circuito tres",
+      "ejercicios": [
+        "Sentadilla con salto",
+        "Escaladores",
+        "Jumping jacks"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "DESCANSO",
+        "tiempo": "00:03",
+        "ronda": "Ronda 2 / 4",
+        "siguiente": "Siguiente: Jumping jacks",
+        "record": null,
+        "amrapBtn": null,
+        "actual": 1
+      }
+    },
+    "t16": {
+      "titulo": "Circuito tres",
+      "ejercicios": [
+        "Sentadilla con salto",
+        "Escaladores",
+        "Jumping jacks"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJO",
+        "tiempo": "00:05",
+        "ronda": "Ronda 3 / 4",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": 2
+      }
+    },
+    "t21": {
+      "titulo": "Circuito tres",
+      "ejercicios": [
+        "Sentadilla con salto",
+        "Escaladores",
+        "Jumping jacks"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "DESCANSO",
+        "tiempo": "00:03",
+        "ronda": "Ronda 3 / 4",
+        "siguiente": "Siguiente: Sentadilla con salto",
+        "record": null,
+        "amrapBtn": null,
+        "actual": 2
+      }
+    },
+    "t24": {
+      "titulo": "Circuito tres",
+      "ejercicios": [
+        "Sentadilla con salto",
+        "Escaladores",
+        "Jumping jacks"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJO",
+        "tiempo": "00:05",
+        "ronda": "Ronda 4 / 4",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "t29": {
+      "titulo": "Circuito tres",
+      "ejercicios": [
+        "Sentadilla con salto",
+        "Escaladores",
+        "Jumping jacks"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "DESCANSO",
+        "tiempo": "00:03",
+        "ronda": "Ronda 4 / 4",
+        "siguiente": "Siguiente: Escaladores",
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "sonidos": {
+      "voz": [
+        "Trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso",
+        "Trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso",
+        "Trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso",
+        "Última ronda, trabajo",
+        "Tres",
+        "Dos",
+        "Uno",
+        "Descanso"
+      ],
+      "pitidos": 25
+    },
+    "fin": {
+      "titulo": "Circuito tres",
+      "ejercicios": [
+        "Sentadilla con salto",
+        "Escaladores",
+        "Jumping jacks"
+      ],
+      "vista": "hiit-summary-view",
+      "resumen": {
+        "titulo": "¡Sesión Completada!",
+        "datos": "Duración:1minEnergíaestimada:~8kcal"
+      }
+    },
+    "guardada": {
+      "nombreRutina": "Circuito tres (FREE)",
+      "fecha": "2026-11-23T20:04",
+      "duracionMin": 1,
+      "completado": true,
+      "rpe": null,
+      "notas": "",
+      "ejercicios": "[{\"ejercicioId\":null,\"nombre\":\"HIIT Performance\",\"series\":[{\"tipo\":\"normal\",\"reps\":\"0\",\"peso\":0}]}]"
+    }
+  },
+  "emom": {
+    "t0": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJANDO",
+        "tiempo": "00:30",
+        "ronda": "Intervalo 1 / 4",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": -1
+      }
+    },
+    "t29": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJANDO",
+        "tiempo": "00:01",
+        "ronda": "Intervalo 1 / 4",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": -1
+      }
+    },
+    "t30": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "NUEVO INTERVALO",
+        "tiempo": "00:30",
+        "ronda": "Intervalo 2 / 4",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": -1
+      }
+    },
+    "t32": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "NUEVO INTERVALO",
+        "tiempo": "00:28",
+        "ronda": "Intervalo 2 / 4",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": -1
+      }
+    },
+    "t33": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJANDO",
+        "tiempo": "00:27",
+        "ronda": "Intervalo 2 / 4",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": -1
+      }
+    },
+    "t60": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "NUEVO INTERVALO",
+        "tiempo": "00:30",
+        "ronda": "Intervalo 3 / 4",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": -1
+      }
+    },
+    "t70": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJANDO",
+        "tiempo": "00:20",
+        "ronda": "Intervalo 3 / 4",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": -1
+      }
+    },
+    "sonidos": {
+      "voz": [
+        "Comenzando EMOM",
+        "Nuevo intervalo",
+        "Nuevo intervalo"
+      ],
+      "pitidos": 29
+    },
+    "fin": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-summary-view",
+      "resumen": {
+        "titulo": "¡Sesión Completada!",
+        "datos": "Duración:1minEnergíaestimada:~10kcal"
+      }
+    },
+    "guardada": {
+      "nombreRutina": "Tabata express (EMOM)",
+      "fecha": "2026-11-23T20:05",
+      "duracionMin": 1,
+      "completado": false,
+      "rpe": null,
+      "notas": "",
+      "ejercicios": "[{\"ejercicioId\":null,\"nombre\":\"HIIT Performance\",\"series\":[{\"tipo\":\"normal\",\"reps\":\"0\",\"peso\":0}]}]"
+    }
+  },
+  "amrap": {
+    "v1t0": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "AMRAP",
+        "tiempo": "01:00",
+        "ronda": "Rondas: 0",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": "+1 Ronda Completada",
+        "actual": -1
+      }
+    },
+    "v1t30": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "AMRAP",
+        "tiempo": "00:30",
+        "ronda": "Rondas: 3",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": "+1 Ronda Completada",
+        "actual": -1
+      }
+    },
+    "v1fin": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-summary-view",
+      "resumen": {
+        "titulo": "¡Sesión Completada!",
+        "datos": "Duración:1minEnergíaestimada:~8kcalRondascompletadas:3"
+      }
+    },
+    "v1guardada": {
+      "nombreRutina": "Tabata express (AMRAP)",
+      "fecha": "2026-11-23T20:06",
+      "duracionMin": 1,
+      "completado": true,
+      "rpe": 9,
+      "notas": "",
+      "ejercicios": "[{\"ejercicioId\":null,\"nombre\":\"HIIT Performance\",\"series\":[{\"tipo\":\"normal\",\"reps\":\"3\",\"peso\":0}]}]"
+    },
+    "v1sonidos": {
+      "voz": [
+        "Comenzando AMRAP",
+        "Tiempo finalizado"
+      ],
+      "pitidos": 31
+    },
+    "v2t0": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "AMRAP",
+        "tiempo": "01:00",
+        "ronda": "Rondas: 0",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": "+1 Ronda Completada",
+        "actual": -1
+      }
+    },
+    "v2fin": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-summary-view",
+      "resumen": {
+        "titulo": "¡Sesión Completada!",
+        "datos": "Duración:1minEnergíaestimada:~8kcalRondascompletadas:0"
+      }
+    },
+    "v2guardada": {
+      "nombreRutina": "Tabata express (AMRAP)",
+      "fecha": "2026-11-23T20:06",
+      "duracionMin": 1,
+      "completado": false,
+      "rpe": null,
+      "notas": "",
+      "ejercicios": "[{\"ejercicioId\":null,\"nombre\":\"HIIT Performance\",\"series\":[{\"tipo\":\"normal\",\"reps\":\"0\",\"peso\":0}]}]"
+    },
+    "v2sonidos": {
+      "voz": [
+        "Comenzando AMRAP"
+      ],
+      "pitidos": 32
+    }
+  },
+  "rachaDespues": {
+    "actual": "1",
+    "mejor": "1"
+  },
+  "salida": {
+    "antes": {
+      "titulo": "Tabata express",
+      "ejercicios": [
+        "Burpees"
+      ],
+      "vista": "hiit-active-view",
+      "activo": {
+        "fase": "TRABAJO",
+        "tiempo": "00:10",
+        "ronda": "Ronda 1 / 8",
+        "siguiente": null,
+        "record": null,
+        "amrapBtn": null,
+        "actual": 0
+      }
+    },
+    "volver": {
+      "hiitAbierto": false,
+      "tarjetaEnCurso": false,
+      "sesiones": 26,
+      "vozTrasSalir": []
+    },
+    "otraVista": {
+      "hiitAbierto": false,
+      "tarjetaEnCurso": false,
+      "sesiones": 26,
+      "vozTrasSalir": []
+    },
+    "atras": {
+      "hiitAbierto": false,
+      "tarjetaEnCurso": false,
+      "sesiones": 26,
+      "vozTrasSalir": []
+    },
+    "recarga": {
+      "hiitAbierto": false,
+      "tarjetaEnCurso": false,
+      "sesiones": 26,
+      "vozTrasSalir": []
+    }
+  },
+  "descansoActivo": {
+    "texto": "DescansoactivoDía7·MovilidadHoynotocafuerza:lasemanayaquedócubierta.Camina30–45minaritmocómodo10mindemovilidad:caderas,hombrosycolumnaDuerme7–9hMarcarcomohecho",
+    "antes": [
+      "{\"fecha\":\"2026-11-23\",\"categoria\":\"gym\",\"nombre\":\"Descanso activo\"}"
+    ],
+    "despues": [
+      "{\"fecha\":\"2026-11-23\",\"categoria\":\"gym\",\"nombre\":\"Descanso activo\"}",
+      "{\"fecha\":\"2026-11-23\",\"categoria\":\"gym\",\"nombre\":\"Día 7 · Movilidad\"}"
+    ]
+  },
+  "hojas": {
+    "tecnica": {
+      "texto": "SentadillaFrontalPosturainicialBarraalfrentesobrelosdeltoidesanteriores,codosaltos,torsomásverticalqueenlasentadillatrasera.EjecuciónMismamecánicaquelasentadillatrasera:flexionacaderayrodillasbajandoenlínearecta.Manténeltorsolomásverticalposibleparanoperderlabarrahaciaadelante.Empujaelpisoconlostalonesparasubir.ErrorescomunesDejarcaerloscodos(labarraruedahaciaadelante).Inclinardemasiadoeltorso.Movilidadinsuficientedemuñeca/tobilloquerompelapostura.Músculossecundarios:core,cuádriceps",
+      "campos": [],
+      "botones": []
+    },
+    "descanso": {
+      "texto": "DescansoSentadillaFrontal1:30elgeneral",
+      "campos": [],
+      "botones": [
+        "−15",
+        "+15",
+        "Usar el general (deshabilitado)",
+        "Listo"
+      ]
+    },
+    "descansoMas15": {
+      "texto": "DescansoSentadillaFrontal1:45deesteejercicio",
+      "campos": [],
+      "botones": [
+        "−15",
+        "+15",
+        "Usar el general",
+        "Listo"
+      ]
+    },
+    "descansoGeneral": {
+      "texto": "DescansoSentadillaFrontal1:30elgeneral",
+      "campos": [],
+      "botones": [
+        "−15",
+        "+15",
+        "Usar el general (deshabilitado)",
+        "Listo"
+      ]
+    },
+    "buscador": 20,
+    "buscadorSentadilla": [
+      "Sentadilla piernas",
+      "Sentadilla Frontal piernas",
+      "Sentadilla en Máquina Smith piernas",
+      "Sentadilla Hack piernas",
+      "Sentadilla Goblet piernas",
+      "Sentadilla Asistida piernas",
+      "Sentadilla con Peso Corporal piernas",
+      "Sentadilla Búlgara piernas",
+      "Sentadilla con Salto piernas"
+    ],
+    "buscadorSinResultados": {
+      "texto": "AñadirejercicioNoencontradoenelcatálogo.",
+      "campos": [
+        "picker-search=Remo raro"
+      ],
+      "botones": [
+        "Añadir \"Remo raro\" de todas formas"
+      ]
+    },
+    "salir": {
+      "texto": "¿Salir?Tusesiónquedaguardadacomoborrador.",
+      "campos": [],
+      "botones": [
+        "Salir",
+        "Descartar sesión",
+        "Cancelar"
+      ]
+    },
+    "duracionLarga": {
+      "texto": "¿Quéduraciónguardo?Estasesiónempezóellun23novalas18:00,hacemásde12horas.",
+      "campos": [],
+      "botones": [
+        "Usar 60 min",
+        "Usar la duración real · 13 h 0 min",
+        "Cancelar"
+      ]
+    },
+    "duracionGuardada": 60,
+    "detalle": {
+      "texto": "Lunes23nov·HIITTabataexpress(AMRAP)1min1serieIncompletaHIITPerformanceSerie10reps",
+      "campos": [],
+      "botones": [
+        "Eliminar",
+        "Editar"
+      ]
+    },
+    "edicion": {
+      "texto": "EditarsesiónTabataexpress(AMRAP)FechaDuración(min)NotasHIITPerformanceSerie1Peso(kg)RepsMarcada",
+      "campos": [
+        "ed-fecha=2026-11-23",
+        "ed-duracion=1",
+        "ed-notas=",
+        "ed-0-0-tipo=Normal",
+        "ed-0-0-peso=0",
+        "ed-0-0-reps=0"
+      ],
+      "botones": [
+        "Quitar",
+        "+ Agregar serie",
+        "+ Agregar ejercicio",
+        "Cancelar",
+        "Guardar"
+      ]
+    },
+    "edicionError": "La duración tiene que ser un número de minutos, 0 o más.",
+    "detalleEditado": {
+      "texto": "Lunes23nov·HIITTabataexpress(AMRAP)50min1serieIncompletaHIITPerformanceSerie10reps",
+      "campos": [],
+      "botones": [
+        "Eliminar",
+        "Editar"
+      ]
+    },
+    "generador_gym": {
+      "texto": "GenerarrutinaConquécuentasparaentrenar—elgeneradorarmalarutinasegúntunivelrealencadapatróndemovimiento,sinproponernadaquenopuedashacer.EquipodisponibleBarraMancuernasBandaderesistenciaAnillasBarradedominadasBancoMáquinadegimnasioSinnadamarcado,elgeneradorsolousaejerciciosdepesocorporal.DíasporsemanaDuraciónporsesión",
+      "campos": [
+        "generador-equipo-barra=true",
+        "generador-equipo-mancuernas=true",
+        "generador-equipo-banda=true",
+        "generador-equipo-anillas=true",
+        "generador-equipo-barra-dominadas=true",
+        "generador-equipo-banco=true",
+        "generador-equipo-maquina=true",
+        "generador-dias-semana=3 días",
+        "generador-duracion=45 min"
+      ],
+      "botones": [
+        "Cancelar",
+        "Generar"
+      ]
+    },
+    "generador_calistenia": {
+      "texto": "GenerarrutinaConquécuentasparaentrenar—elgeneradorarmalarutinasegúntunivelrealencadapatróndemovimiento,sinproponernadaquenopuedashacer.EquipodisponibleBandaderesistenciaAnillasBarradedominadasBancoSinnadamarcado,elgeneradorsolousaejerciciosdepesocorporal.DíasporsemanaDuraciónporsesión",
+      "campos": [
+        "generador-equipo-banda=true",
+        "generador-equipo-anillas=true",
+        "generador-equipo-barra-dominadas=true",
+        "generador-equipo-banco=true",
+        "generador-dias-semana=3 días",
+        "generador-duracion=45 min"
+      ],
+      "botones": [
+        "Cancelar",
+        "Generar"
+      ]
+    },
+    "medida": {
+      "texto": "RegistrarmedidasFechaPeso(kg)Cintura(cm)Pecho(cm)Brazo(cm)Muslo(cm)Fotos(opcional)Nota(opcional)",
+      "campos": [
+        "medida-fecha=2026-11-24",
+        "medida-pesoKg=",
+        "medida-cinturaCm=",
+        "medida-pechoCm=",
+        "medida-brazoCm=",
+        "medida-musloCm=",
+        "medida-nota="
+      ],
+      "botones": [
+        "Tomar foto",
+        "Elegir foto",
+        "Cancelar",
+        "Guardar"
+      ]
+    },
+    "medidaGuardada": {
+      "fecha": "2026-11-24",
+      "pesoKg": 80.5
+    },
+    "foto": {
+      "texto": "22nov4×6px·0KB",
+      "campos": [],
+      "botones": [
+        "Eliminar",
+        "Cerrar"
+      ]
+    },
+    "comparar": {
+      "texto": "Antes/ahoraAntesAhora",
+      "campos": [
+        "foto-sel-antes=25 oct",
+        "foto-sel-ahora=22 nov (2)"
+      ],
+      "botones": [
+        "Cerrar"
+      ],
+      "opciones": [
+        "25 oct",
+        "22 nov (1)",
+        "22 nov (2)"
+      ]
+    },
+    "perfil": {
+      "texto": "TuperfilEstosdatosseusanparacalculartuIMCytugastocalóricoestimado.Nombre(opcional)Peso(kg)Estatura(cm)EdadSexoNiveldeactividadMeta",
+      "campos": [
+        "profile-nombre=",
+        "profile-peso=80.5",
+        "profile-estatura=178",
+        "profile-edad=29",
+        "profile-sexo=Masculino",
+        "profile-actividad=Moderado (3-5 días/semana)",
+        "profile-meta=Mantener"
+      ],
+      "botones": [
+        "Cancelar",
+        "Guardar"
+      ]
+    },
+    "perfilGuardado": {
+      "pesoKg": 72.5,
+      "estaturaCm": 178,
+      "edad": 29,
+      "sexo": "M",
+      "nivelActividad": "moderado",
+      "meta": "mantener"
+    },
+    "nivel1": {
+      "texto": "¿Cuántotiempollevasentrenando?Estupuntodepartida,nolaúltimapalabra—situhistorialmuestraqueyaestásmásavanzado,laapptelovaasugerirdespués.",
+      "campos": [],
+      "botones": [
+        "Menos de 1 año Recién empezando o volviendo después de una pausa larga.",
+        "1 a 3 años Ya conoces los movimientos básicos y entrenas con cierta regularidad.",
+        "Más de 3 años Entrenas hace tiempo, con experiencia real en progresión de cargas.",
+        "Cancelar"
+      ]
+    },
+    "nivel2": {
+      "texto": "¿Cuántosdíasporsemanapuedesentrenar?Definesitusrutinaspriorizanejercicioscompuestos(pocosdías)osumanaislamiento(másdías).",
+      "campos": [],
+      "botones": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "Atrás"
+      ]
+    },
+    "nivel3": {
+      "texto": "¿Quéequipotienesdisponible?Filtralosejerciciosquelaapptevaaproponer.Puedesdejarlovacíosisoloentrenasconpesocorporal.BarraMancuernasBandaderesistenciaAnillasBarradedominadasBancoMáquinadegimnasioKettlebellCajónpliométrico",
+      "campos": [
+        "nivel-onboarding-equipo-barra=true",
+        "nivel-onboarding-equipo-mancuernas=true",
+        "nivel-onboarding-equipo-banda=true",
+        "nivel-onboarding-equipo-anillas=true",
+        "nivel-onboarding-equipo-barra-dominadas=true",
+        "nivel-onboarding-equipo-banco=true",
+        "nivel-onboarding-equipo-maquina=true",
+        "nivel-onboarding-equipo-kettlebell=true",
+        "nivel-onboarding-equipo-cajon=true"
+      ],
+      "botones": [
+        "Atrás",
+        "Finalizar"
+      ]
+    },
+    "nivelGuardado": {
+      "tiempo": "1-3",
+      "dias": 4,
+      "equipo": [
+        "barra",
+        "mancuernas",
+        "banda",
+        "anillas",
+        "barra-dominadas",
+        "banco",
+        "maquina",
+        "kettlebell",
+        "cajon"
+      ],
+      "duracion": 45
+    }
+  },
+  "errores": []
+}
