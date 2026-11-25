@@ -810,7 +810,10 @@ button.sesion-chip { min-height: var(--o-touch); cursor: pointer; }
 
 /* Progreso de un ejercicio (menú ⋯ › Progreso y ficha del buscador). */
 .o-ent-pej { display: grid; gap: var(--o-sp-3); min-width: 0; }
-.o-ent-ficha .o-ent-pej { padding: 0; background: none; border: none; box-shadow: none; }
+/* En la ficha y dentro de un ejercicio de la sesión no es una tarjeta
+   aparte: una tarjeta dentro de otra apilaba tres fondos translúcidos y
+   el rótulo de los datos («1RM estimado») bajaba a 4,49:1. */
+:is(.o-ent-ficha, .sesion-ej-progreso) .o-ent-pej { padding: 0; background: none; border: none; box-shadow: none; }
 .o-ent-pej-titulo { margin: 0; font-size: var(--o-fs-sm); font-weight: var(--o-fw-bold); color: var(--o-text); }
 .o-ent-pej-nota { margin: 0; padding: var(--o-sp-4) 0; text-align: center; font-size: var(--o-fs-sm); color: var(--o-text-2); }
 .o-ent-pej-datos { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: var(--o-sp-2); }
