@@ -1,0 +1,5322 @@
+{
+  "inicio": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "00:00",
+      "series": "0/15",
+      "volumen": "0",
+      "volumenDe": "de 6.634",
+      "variacion": null,
+      "records": "0",
+      "recordUltimo": "",
+      "recordActivo": false,
+      "segmentos": "toca pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "00:00 · 0/15 series · 0 kg",
+      "descansoGeneral": "90"
+    },
+    "descanso": null,
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": true,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 1",
+          "peso": "0",
+          "reps": "10",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": false,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "completar",
+      "texto": "✓ Completar serie 1 · 0 kg × 10"
+    },
+    "fatiga": {
+      "frente": {},
+      "espalda": {}
+    }
+  },
+  "descanso": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "00:00",
+      "series": "1/15",
+      "volumen": "0",
+      "volumenDe": "de 6.634",
+      "variacion": null,
+      "records": "0",
+      "recordUltimo": "",
+      "recordActivo": false,
+      "segmentos": "hecha toca pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "00:00 · 1/15 series · 0 kg",
+      "descansoGeneral": "90"
+    },
+    "descanso": {
+      "cuenta": "02:00",
+      "total": "2:00",
+      "siguiente": "Siguiente: Press Declinado · serie 2 · 0 kg × 10",
+      "resumen": "Tiempo 00:00 · Series 1/15 · 0 kg"
+    },
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "1/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": true,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": "Mientras descansas puedes ajustar la serie 2 o ver la técnica",
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 2",
+          "peso": "0",
+          "reps": "10",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": false,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "descanso",
+      "texto": "Descansando… 02:00"
+    },
+    "fatiga": {
+      "frente": {
+        "chest-upper-left": 0.167,
+        "chest-lower-left": 0.167,
+        "chest-upper-right": 0.167,
+        "chest-lower-right": 0.167
+      },
+      "espalda": {}
+    }
+  },
+  "descanso30s": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "00:30",
+      "series": "1/15",
+      "volumen": "0",
+      "volumenDe": "de 6.634",
+      "variacion": null,
+      "records": "0",
+      "recordUltimo": "",
+      "recordActivo": false,
+      "segmentos": "hecha toca pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "00:30 · 1/15 series · 0 kg",
+      "descansoGeneral": "90"
+    },
+    "descanso": {
+      "cuenta": "01:30",
+      "total": "2:00",
+      "siguiente": "Siguiente: Press Declinado · serie 2 · 0 kg × 10",
+      "resumen": "Tiempo 00:30 · Series 1/15 · 0 kg"
+    },
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "1/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": true,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": "Mientras descansas puedes ajustar la serie 2 o ver la técnica",
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 2",
+          "peso": "0",
+          "reps": "10",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": false,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "descanso",
+      "texto": "Descansando… 01:30"
+    },
+    "fatiga": {
+      "frente": {
+        "chest-upper-left": 0.167,
+        "chest-lower-left": 0.167,
+        "chest-upper-right": 0.167,
+        "chest-lower-right": 0.167
+      },
+      "espalda": {}
+    }
+  },
+  "descansoMas15": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "00:30",
+      "series": "1/15",
+      "volumen": "0",
+      "volumenDe": "de 6.634",
+      "variacion": null,
+      "records": "0",
+      "recordUltimo": "",
+      "recordActivo": false,
+      "segmentos": "hecha toca pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "00:30 · 1/15 series · 0 kg",
+      "descansoGeneral": "90"
+    },
+    "descanso": {
+      "cuenta": "01:45",
+      "total": "2:15",
+      "siguiente": "Siguiente: Press Declinado · serie 2 · 0 kg × 10",
+      "resumen": "Tiempo 00:30 · Series 1/15 · 0 kg"
+    },
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "1/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": true,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": "Mientras descansas puedes ajustar la serie 2 o ver la técnica",
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 2",
+          "peso": "0",
+          "reps": "10",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": false,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "descanso",
+      "texto": "Descansando… 01:45"
+    },
+    "fatiga": {
+      "frente": {
+        "chest-upper-left": 0.167,
+        "chest-lower-left": 0.167,
+        "chest-upper-right": 0.167,
+        "chest-lower-right": 0.167
+      },
+      "espalda": {}
+    }
+  },
+  "descansoMenos30": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "00:30",
+      "series": "1/15",
+      "volumen": "0",
+      "volumenDe": "de 6.634",
+      "variacion": null,
+      "records": "0",
+      "recordUltimo": "",
+      "recordActivo": false,
+      "segmentos": "hecha toca pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "00:30 · 1/15 series · 0 kg",
+      "descansoGeneral": "90"
+    },
+    "descanso": {
+      "cuenta": "01:15",
+      "total": "2:15",
+      "siguiente": "Siguiente: Press Declinado · serie 2 · 0 kg × 10",
+      "resumen": "Tiempo 00:30 · Series 1/15 · 0 kg"
+    },
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "1/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": true,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": "Mientras descansas puedes ajustar la serie 2 o ver la técnica",
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 2",
+          "peso": "0",
+          "reps": "10",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": false,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "descanso",
+      "texto": "Descansando… 01:15"
+    },
+    "fatiga": {
+      "frente": {
+        "chest-upper-left": 0.167,
+        "chest-lower-left": 0.167,
+        "chest-upper-right": 0.167,
+        "chest-lower-right": 0.167
+      },
+      "espalda": {}
+    }
+  },
+  "trasSaltar": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "00:30",
+      "series": "1/15",
+      "volumen": "0",
+      "volumenDe": "de 6.634",
+      "variacion": null,
+      "records": "0",
+      "recordUltimo": "",
+      "recordActivo": false,
+      "segmentos": "hecha toca pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "00:30 · 1/15 series · 0 kg",
+      "descansoGeneral": "90"
+    },
+    "descanso": null,
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "1/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": true,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 2",
+          "peso": "0",
+          "reps": "10",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": false,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "completar",
+      "texto": "✓ Completar serie 2 · 0 kg × 10"
+    },
+    "fatiga": {
+      "frente": {
+        "chest-upper-left": 0.167,
+        "chest-lower-left": 0.167,
+        "chest-upper-right": 0.167,
+        "chest-lower-right": 0.167
+      },
+      "espalda": {}
+    }
+  },
+  "primerEjercicio": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "00:30",
+      "series": "3/15",
+      "volumen": "0",
+      "volumenDe": "de 6.634",
+      "variacion": null,
+      "records": "0",
+      "recordUltimo": "",
+      "recordActivo": false,
+      "segmentos": "hecha hecha hecha toca+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "00:30 · 3/15 series · 0 kg",
+      "descansoGeneral": "90"
+    },
+    "descanso": null,
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": false
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": false,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "11",
+            "rpe": "9",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": true,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 1 · 1RM ~84 kg",
+          "peso": "70",
+          "reps": "6-8",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "completar",
+      "texto": "✓ Completar serie 1 · 70 kg × 6-8"
+    },
+    "fatiga": {
+      "frente": {
+        "chest-upper-left": 0.5,
+        "chest-lower-left": 0.5,
+        "chest-upper-right": 0.5,
+        "chest-lower-right": 0.5
+      },
+      "espalda": {}
+    }
+  },
+  "conSugerencia": true,
+  "trasSugerencia": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "00:30",
+      "series": "3/15",
+      "volumen": "0",
+      "volumenDe": "de 6.634",
+      "variacion": null,
+      "records": "0",
+      "recordUltimo": "",
+      "recordActivo": false,
+      "segmentos": "hecha hecha hecha toca+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "00:30 · 3/15 series · 0 kg",
+      "descansoGeneral": "90"
+    },
+    "descanso": null,
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": false
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": false,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "11",
+            "rpe": "9",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": true,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "✓ Aplicado [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 1 · 1RM ~84 kg",
+          "peso": "70",
+          "reps": "6-8",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "completar",
+      "texto": "✓ Completar serie 1 · 70 kg × 6-8"
+    },
+    "fatiga": {
+      "frente": {
+        "chest-upper-left": 0.5,
+        "chest-lower-left": 0.5,
+        "chest-upper-right": 0.5,
+        "chest-lower-right": 0.5
+      },
+      "espalda": {}
+    }
+  },
+  "record": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "00:30",
+      "series": "5/15",
+      "volumen": "1.620",
+      "volumenDe": "de 6.634",
+      "variacion": null,
+      "records": "1",
+      "recordUltimo": "+1 ahora",
+      "recordActivo": true,
+      "segmentos": "hecha hecha hecha hecha+nuevo record toca pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "00:30 · 5/15 series · 1.620 kg · ★ 1",
+      "descansoGeneral": "90"
+    },
+    "descanso": {
+      "cuenta": "01:30",
+      "total": "1:30",
+      "siguiente": "Siguiente: Press Militar · serie 3 · 70 kg × 6-8",
+      "resumen": "Tiempo 00:30 · Series 5/15 · 1.620 kg · 1 récord"
+    },
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": false
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "2/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": false,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "11",
+            "rpe": "9",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": true,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "✓ Aplicado [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": "Mientras descansas puedes ajustar la serie 3 o ver la técnica",
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "200",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": true,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [
+          "NUEVO PR · 200 kg (antes 70)"
+        ],
+        "editor": {
+          "titulo": "Serie 3 · 1RM ~84 kg",
+          "peso": "70",
+          "reps": "6-8",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "descanso",
+      "texto": "Descansando… 01:30"
+    },
+    "fatiga": {
+      "frente": {
+        "shoulder-front-left": 0.333,
+        "shoulder-side-left": 0.333,
+        "shoulder-front-right": 0.333,
+        "shoulder-side-right": 0.333,
+        "chest-upper-left": 0.5,
+        "chest-lower-left": 0.5,
+        "chest-upper-right": 0.5,
+        "chest-lower-right": 0.5
+      },
+      "espalda": {
+        "traps-upper-left": 0.333,
+        "traps-mid-left": 0.333,
+        "traps-lower-left": 0.333,
+        "traps-upper-right": 0.333,
+        "traps-mid-right": 0.333,
+        "traps-lower-right": 0.333,
+        "deltoid-rear-left": 0.333,
+        "deltoid-rear-right": 0.333
+      }
+    }
+  },
+  "antesDeSalir": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "00:40",
+      "series": "6/15",
+      "volumen": "2.040",
+      "volumenDe": null,
+      "variacion": null,
+      "records": "1",
+      "recordUltimo": "· Press Militar 200",
+      "recordActivo": true,
+      "segmentos": "hecha hecha hecha hecha+nuevo record hecha toca+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "00:40 · 6/15 series · 2.040 kg · ★ 1",
+      "descansoGeneral": "90"
+    },
+    "descanso": {
+      "cuenta": "01:20",
+      "total": "1:30",
+      "siguiente": "Siguiente: Press Inclinado con Mancuernas · serie 1 · 0 kg × 10",
+      "resumen": "Tiempo 00:40 · Series 6/15 · 2.040 kg · 1 récord"
+    },
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": false
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": true
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": false,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "11",
+            "rpe": "9",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": true,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": "Mientras descansas puedes ver la técnica",
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "200",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": true,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [
+          "NUEVO PR · 200 kg (antes 70)"
+        ],
+        "editor": {
+          "titulo": "Serie Todas las series hechas",
+          "peso": "–",
+          "reps": "–",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "descanso",
+      "texto": "Descansando… 01:20"
+    },
+    "fatiga": {
+      "frente": {
+        "shoulder-front-left": 0.5,
+        "shoulder-side-left": 0.5,
+        "shoulder-front-right": 0.5,
+        "shoulder-side-right": 0.5,
+        "chest-upper-left": 0.5,
+        "chest-lower-left": 0.5,
+        "chest-upper-right": 0.5,
+        "chest-lower-right": 0.5
+      },
+      "espalda": {
+        "traps-upper-left": 0.5,
+        "traps-mid-left": 0.5,
+        "traps-lower-left": 0.5,
+        "traps-upper-right": 0.5,
+        "traps-mid-right": 0.5,
+        "traps-lower-right": 0.5,
+        "deltoid-rear-left": 0.5,
+        "deltoid-rear-right": 0.5
+      }
+    }
+  },
+  "tarjetaTrasSalir": "Tienes una sesión en curso Push · 0 min 6 series marcadas",
+  "retomadaTrasSalir": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "01:41",
+      "series": "6/15",
+      "volumen": "2.040",
+      "volumenDe": null,
+      "variacion": null,
+      "records": "1",
+      "recordUltimo": "· Press Militar 200",
+      "recordActivo": true,
+      "segmentos": "hecha hecha hecha hecha+nuevo record hecha toca+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "01:41 · 6/15 series · 2.040 kg · ★ 1",
+      "descansoGeneral": "90"
+    },
+    "descanso": {
+      "cuenta": "00:19",
+      "total": "1:30",
+      "siguiente": "Siguiente: Press Inclinado con Mancuernas · serie 1 · 0 kg × 10",
+      "resumen": "Tiempo 01:41 · Series 6/15 · 2.040 kg · 1 récord"
+    },
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": false
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": true
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": false,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "11",
+            "rpe": "9",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": true,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": "Mientras descansas puedes ver la técnica",
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "200",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": true,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [
+          "NUEVO PR · 200 kg (antes 70)"
+        ],
+        "editor": {
+          "titulo": "Serie Todas las series hechas",
+          "peso": "–",
+          "reps": "–",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "descanso",
+      "texto": "Descansando… 00:19"
+    },
+    "fatiga": {
+      "frente": {
+        "shoulder-front-left": 0.5,
+        "shoulder-side-left": 0.5,
+        "shoulder-front-right": 0.5,
+        "shoulder-side-right": 0.5,
+        "chest-upper-left": 0.5,
+        "chest-lower-left": 0.5,
+        "chest-upper-right": 0.5,
+        "chest-lower-right": 0.5
+      },
+      "espalda": {
+        "traps-upper-left": 0.5,
+        "traps-mid-left": 0.5,
+        "traps-lower-left": 0.5,
+        "traps-upper-right": 0.5,
+        "traps-mid-right": 0.5,
+        "traps-lower-right": 0.5,
+        "deltoid-rear-left": 0.5,
+        "deltoid-rear-right": 0.5
+      }
+    }
+  },
+  "antesDeAtras": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "01:41",
+      "series": "6/15",
+      "volumen": "2.040",
+      "volumenDe": null,
+      "variacion": null,
+      "records": "1",
+      "recordUltimo": "· Press Militar 200",
+      "recordActivo": true,
+      "segmentos": "hecha hecha hecha hecha+nuevo record hecha toca+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "01:41 · 6/15 series · 2.040 kg · ★ 1",
+      "descansoGeneral": "90"
+    },
+    "descanso": null,
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": false
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": false
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": false,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "11",
+            "rpe": "9",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": false,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "200",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": true,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [
+          "NUEVO PR · 200 kg (antes 70)"
+        ],
+        "editor": null
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": true,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 1",
+          "peso": "0",
+          "reps": "10",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "completar",
+      "texto": "✓ Completar serie 1 · 0 kg × 10"
+    },
+    "fatiga": {
+      "frente": {
+        "shoulder-front-left": 0.5,
+        "shoulder-side-left": 0.5,
+        "shoulder-front-right": 0.5,
+        "shoulder-side-right": 0.5,
+        "chest-upper-left": 0.5,
+        "chest-lower-left": 0.5,
+        "chest-upper-right": 0.5,
+        "chest-lower-right": 0.5
+      },
+      "espalda": {
+        "traps-upper-left": 0.5,
+        "traps-mid-left": 0.5,
+        "traps-lower-left": 0.5,
+        "traps-upper-right": 0.5,
+        "traps-mid-right": 0.5,
+        "traps-lower-right": 0.5,
+        "deltoid-rear-left": 0.5,
+        "deltoid-rear-right": 0.5
+      }
+    }
+  },
+  "tarjetaTrasAtras": "Tienes una sesión en curso Push · 1 min 6 series marcadas",
+  "retomadaTrasAtras": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "03:21",
+      "series": "6/15",
+      "volumen": "2.040",
+      "volumenDe": null,
+      "variacion": null,
+      "records": "1",
+      "recordUltimo": "· Press Militar 200",
+      "recordActivo": true,
+      "segmentos": "hecha hecha hecha hecha+nuevo record hecha toca+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "03:21 · 6/15 series · 2.040 kg · ★ 1",
+      "descansoGeneral": "90"
+    },
+    "descanso": null,
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": false
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": false
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": false,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "11",
+            "rpe": "9",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": false,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "200",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": true,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [
+          "NUEVO PR · 200 kg (antes 70)"
+        ],
+        "editor": null
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": true,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 1",
+          "peso": "0",
+          "reps": "10",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "completar",
+      "texto": "✓ Completar serie 1 · 0 kg × 10"
+    },
+    "fatiga": {
+      "frente": {
+        "shoulder-front-left": 0.5,
+        "shoulder-side-left": 0.5,
+        "shoulder-front-right": 0.5,
+        "shoulder-side-right": 0.5,
+        "chest-upper-left": 0.5,
+        "chest-lower-left": 0.5,
+        "chest-upper-right": 0.5,
+        "chest-lower-right": 0.5
+      },
+      "espalda": {
+        "traps-upper-left": 0.5,
+        "traps-mid-left": 0.5,
+        "traps-lower-left": 0.5,
+        "traps-upper-right": 0.5,
+        "traps-mid-right": 0.5,
+        "traps-lower-right": 0.5,
+        "deltoid-rear-left": 0.5,
+        "deltoid-rear-right": 0.5
+      }
+    }
+  },
+  "tarjetaTrasRecarga": "Tienes una sesión en curso Push · 3 min 6 series marcadas",
+  "retomadaTrasRecarga": {
+    "barra": {
+      "titulo": "Push",
+      "categoria": "GYM"
+    },
+    "hud": {
+      "tiempo": "05:01",
+      "series": "6/15",
+      "volumen": "2.040",
+      "volumenDe": null,
+      "variacion": null,
+      "records": "1",
+      "recordUltimo": "· Press Militar 200",
+      "recordActivo": true,
+      "segmentos": "hecha hecha hecha hecha+nuevo record hecha toca+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+      "linea": "05:01 · 6/15 series · 2.040 kg · ★ 1",
+      "descansoGeneral": "90"
+    },
+    "descanso": null,
+    "riel": [
+      {
+        "nombre": "Press Declinado",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": false
+      },
+      {
+        "nombre": "Press Militar",
+        "prog": "3/3",
+        "terminado": true,
+        "activa": false
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "visible": false,
+        "rotulo": "Ejercicio 1 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press declinado",
+        "chips": [
+          "⏱ 2:00",
+          "Empuje Horizontal · Nv.2/8"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "11",
+            "rpe": "9",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "visible": false,
+        "rotulo": "Ejercicio 2 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "press militar",
+        "chips": [
+          "PR 70 kg · 1RM ~82 kg",
+          "Empuje Vertical · Nv.1/5",
+          "↓ Baja a 70 kg [70/0]",
+          "Estancado 3 ses."
+        ],
+        "estancado": "Sin mejora en tus últimas 3 sesiones: prueba variar las reps, el descanso o el ejercicio.",
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "200",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": true,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "70×5",
+            "peso": "70",
+            "reps": "6-8",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [
+          "NUEVO PR · 200 kg (antes 70)"
+        ],
+        "editor": null
+      },
+      {
+        "nombre": "Press Inclinado con Mancuernas",
+        "visible": true,
+        "rotulo": "Ejercicio 3 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "press inclinado con mancuernas",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "10",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 1",
+          "peso": "0",
+          "reps": "10",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Pull-Over con Mancuerna",
+        "visible": false,
+        "rotulo": "Ejercicio 4 de 5 · Pecho",
+        "corporal": false,
+        "descansoClave": "pull-over con mancuerna",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Elevaciones Laterales",
+        "visible": false,
+        "rotulo": "Ejercicio 5 de 5 · Hombros",
+        "corporal": false,
+        "descansoClave": "elevaciones laterales",
+        "chips": [],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": false
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "completar",
+      "texto": "✓ Completar serie 1 · 0 kg × 10"
+    },
+    "fatiga": {
+      "frente": {
+        "shoulder-front-left": 0.5,
+        "shoulder-side-left": 0.5,
+        "shoulder-front-right": 0.5,
+        "shoulder-side-right": 0.5,
+        "chest-upper-left": 0.5,
+        "chest-lower-left": 0.5,
+        "chest-upper-right": 0.5,
+        "chest-lower-right": 0.5
+      },
+      "espalda": {
+        "traps-upper-left": 0.5,
+        "traps-mid-left": 0.5,
+        "traps-lower-left": 0.5,
+        "traps-upper-right": 0.5,
+        "traps-mid-right": 0.5,
+        "traps-lower-right": 0.5,
+        "deltoid-rear-left": 0.5,
+        "deltoid-rear-right": 0.5
+      }
+    }
+  },
+  "sobrevive": {
+    "salir": [],
+    "atras": [],
+    "recarga": []
+  },
+  "progresoEjercicio": {
+    "titulo": "Progreso: Press Militar (de pie)",
+    "rm": "82 kg",
+    "volumen": "1.050",
+    "prs": [
+      "26 oct 2026 · 70 kg × 5",
+      "17 oct 2026 · 59 kg × 5",
+      "8 oct 2026 · 57 kg × 5",
+      "29 sept 2026 · 56 kg × 5"
+    ],
+    "vacio": null,
+    "peso": {
+      "labels": [
+        "29 sept",
+        "8 oct",
+        "17 oct",
+        "26 oct",
+        "4 nov",
+        "13 nov",
+        "20 nov"
+      ],
+      "series": [
+        [
+          56,
+          57,
+          59,
+          70,
+          70,
+          70,
+          70
+        ]
+      ]
+    },
+    "rm1": {
+      "labels": [
+        "29 sept",
+        "8 oct",
+        "17 oct",
+        "26 oct",
+        "4 nov",
+        "13 nov",
+        "20 nov"
+      ],
+      "series": [
+        [
+          65,
+          67,
+          69,
+          82,
+          82,
+          82,
+          82
+        ]
+      ]
+    }
+  },
+  "alFinalizar": {
+    "tiempo": "32:00",
+    "series": "6/15",
+    "volumen": "2.040",
+    "volumenDe": null,
+    "variacion": null,
+    "records": "1",
+    "recordUltimo": "· Press Militar 200",
+    "recordActivo": true,
+    "segmentos": "hecha hecha hecha hecha+nuevo record hecha toca+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente pendiente",
+    "linea": "32:00 · 6/15 series · 2.040 kg · ★ 1",
+    "descansoGeneral": "90"
+  },
+  "resumen": {
+    "titulo": "Sesión completada",
+    "sub": "Push · lun 23 nov",
+    "datos": [
+      "Duración: 32 min",
+      "Volumen: 2.040 kg ▼ 69 %",
+      "Series: 6/15",
+      "RPE promedio: 9"
+    ],
+    "records": [
+      "★ Press Militar (de pie) · 200 kg (antes 70)"
+    ],
+    "tabla": [
+      "Press Declinado | 3 | — | —",
+      "Press Militar (de pie) | 3 | 2.040 kg | ▲ 94 %"
+    ],
+    "fatiga": {
+      "frente": {
+        "shoulder-front-left": 0.5,
+        "shoulder-side-left": 0.5,
+        "shoulder-front-right": 0.5,
+        "shoulder-side-right": 0.5,
+        "chest-upper-left": 0.5,
+        "chest-lower-left": 0.5,
+        "chest-upper-right": 0.5,
+        "chest-lower-right": 0.5
+      },
+      "espalda": {
+        "traps-upper-left": 0.5,
+        "traps-mid-left": 0.5,
+        "traps-lower-left": 0.5,
+        "traps-upper-right": 0.5,
+        "traps-mid-right": 0.5,
+        "traps-lower-right": 0.5,
+        "deltoid-rear-left": 0.5,
+        "deltoid-rear-right": 0.5
+      }
+    }
+  },
+  "guardada": {
+    "nombreRutina": "Push",
+    "fecha": "2026-11-23T20:02:00.000Z",
+    "duracionMin": 32,
+    "rpe": 8,
+    "completado": true,
+    "ejercicios": [
+      {
+        "nombre": "Press Declinado",
+        "series": [
+          "normal 0×10 rpe null",
+          "normal 0×11 rpe 9",
+          "normal 0×10 rpe null"
+        ]
+      },
+      {
+        "nombre": "Press Militar (de pie)",
+        "series": [
+          "normal 70×6-8 rpe null",
+          "normal 200×6-8 rpe null",
+          "normal 70×6-8 rpe null"
+        ]
+      }
+    ]
+  },
+  "borradorTrasGuardar": [],
+  "calistenia": {
+    "barra": {
+      "titulo": "Calistenia base",
+      "categoria": "Calistenia"
+    },
+    "hud": {
+      "tiempo": "00:00",
+      "series": "0/8",
+      "volumen": "0",
+      "volumenDe": null,
+      "variacion": null,
+      "records": "0",
+      "recordUltimo": "",
+      "recordActivo": false,
+      "segmentos": "toca pendiente pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente",
+      "linea": "00:00 · 0/8 series · 0 kg",
+      "descansoGeneral": "90"
+    },
+    "descanso": null,
+    "riel": [
+      {
+        "nombre": "Flexiones",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Dominadas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Fondos en Paralelas",
+        "prog": "0/2",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Flexiones (Push-up)",
+        "visible": true,
+        "rotulo": "Ejercicio 1 de 3 · Pecho",
+        "corporal": true,
+        "descansoClave": "flexiones",
+        "chips": [
+          "PR 17 reps",
+          "Empuje Horizontal · Nv.4/8",
+          "↑ Sube a 19 reps [0/19]"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "17 reps",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": true
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "17 reps",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "17 reps",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 1",
+          "peso": "Corporal",
+          "reps": "12",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Dominadas",
+        "visible": false,
+        "rotulo": "Ejercicio 2 de 3 · Espalda",
+        "corporal": true,
+        "descansoClave": "dominadas",
+        "chips": [
+          "PR 8 reps",
+          "Tracción Vertical · Nv.2/6",
+          "↓ Baja a 8 reps [0/8]"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "8 reps",
+            "peso": "0",
+            "reps": "6",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "8 reps",
+            "peso": "0",
+            "reps": "6",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "8 reps",
+            "peso": "0",
+            "reps": "6",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Fondos en Paralelas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 3 · Pecho",
+        "corporal": true,
+        "descansoClave": "fondos en paralelas",
+        "chips": [
+          "PR 8 reps",
+          "Empuje Horizontal · Nv.2/8",
+          "↑ Sube a 9 reps [0/9]"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "8 reps",
+            "peso": "0",
+            "reps": "8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "8 reps",
+            "peso": "0",
+            "reps": "8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "completar",
+      "texto": "✓ Completar serie 1 · Corporal × 12"
+    },
+    "fatiga": {
+      "frente": {},
+      "espalda": {}
+    }
+  },
+  "calistenia1": {
+    "barra": {
+      "titulo": "Calistenia base",
+      "categoria": "Calistenia"
+    },
+    "hud": {
+      "tiempo": "00:00",
+      "series": "1/8",
+      "volumen": "0",
+      "volumenDe": null,
+      "variacion": null,
+      "records": "0",
+      "recordUltimo": "",
+      "recordActivo": false,
+      "segmentos": "hecha toca pendiente pendiente+nuevo pendiente pendiente pendiente+nuevo pendiente",
+      "linea": "00:00 · 1/8 series · 0 kg",
+      "descansoGeneral": "90"
+    },
+    "descanso": {
+      "cuenta": "01:30",
+      "total": "1:30",
+      "siguiente": "Siguiente: Flexiones · serie 2 · Corporal × 12",
+      "resumen": "Tiempo 00:00 · Series 1/8 · 0 kg"
+    },
+    "riel": [
+      {
+        "nombre": "Flexiones",
+        "prog": "1/3",
+        "terminado": false,
+        "activa": true
+      },
+      {
+        "nombre": "Dominadas",
+        "prog": "0/3",
+        "terminado": false,
+        "activa": false
+      },
+      {
+        "nombre": "Fondos en Paralelas",
+        "prog": "0/2",
+        "terminado": false,
+        "activa": false
+      }
+    ],
+    "superseries": [],
+    "ejercicios": [
+      {
+        "nombre": "Flexiones (Push-up)",
+        "visible": true,
+        "rotulo": "Ejercicio 1 de 3 · Pecho",
+        "corporal": true,
+        "descansoClave": "flexiones",
+        "chips": [
+          "PR 17 reps",
+          "Empuje Horizontal · Nv.4/8",
+          "↑ Sube a 19 reps [0/19]"
+        ],
+        "estancado": null,
+        "ayudaDescanso": "Mientras descansas puedes ajustar la serie 2 o ver la técnica",
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "17 reps",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": true,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "17 reps",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": true,
+            "record": false,
+            "corporal": true
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "17 reps",
+            "peso": "0",
+            "reps": "12",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          }
+        ],
+        "notas": [],
+        "editor": {
+          "titulo": "Serie 2",
+          "peso": "Corporal",
+          "reps": "12",
+          "rpe": null
+        }
+      },
+      {
+        "nombre": "Dominadas",
+        "visible": false,
+        "rotulo": "Ejercicio 2 de 3 · Espalda",
+        "corporal": true,
+        "descansoClave": "dominadas",
+        "chips": [
+          "PR 8 reps",
+          "Tracción Vertical · Nv.2/6",
+          "↓ Baja a 8 reps [0/8]"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "8 reps",
+            "peso": "0",
+            "reps": "6",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "8 reps",
+            "peso": "0",
+            "reps": "6",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          },
+          {
+            "n": "3",
+            "tipo": "normal",
+            "anterior": "8 reps",
+            "peso": "0",
+            "reps": "6",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          }
+        ],
+        "notas": [],
+        "editor": null
+      },
+      {
+        "nombre": "Fondos en Paralelas",
+        "visible": false,
+        "rotulo": "Ejercicio 3 de 3 · Pecho",
+        "corporal": true,
+        "descansoClave": "fondos en paralelas",
+        "chips": [
+          "PR 8 reps",
+          "Empuje Horizontal · Nv.2/8",
+          "↑ Sube a 9 reps [0/9]"
+        ],
+        "estancado": null,
+        "ayudaDescanso": null,
+        "series": [
+          {
+            "n": "1",
+            "tipo": "normal",
+            "anterior": "8 reps",
+            "peso": "0",
+            "reps": "8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          },
+          {
+            "n": "2",
+            "tipo": "normal",
+            "anterior": "8 reps",
+            "peso": "0",
+            "reps": "8",
+            "rpe": "",
+            "hecha": false,
+            "toca": false,
+            "record": false,
+            "corporal": true
+          }
+        ],
+        "notas": [],
+        "editor": null
+      }
+    ],
+    "principal": {
+      "modo": "descanso",
+      "texto": "Descansando… 01:30"
+    },
+    "fatiga": {
+      "frente": {
+        "chest-upper-left": 0.167,
+        "chest-lower-left": 0.167,
+        "chest-upper-right": 0.167,
+        "chest-lower-right": 0.167
+      },
+      "espalda": {}
+    }
+  },
+  "errores": []
+}

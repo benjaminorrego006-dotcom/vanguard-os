@@ -120,7 +120,6 @@
 .o-ent-ficha-sec { display: grid; gap: var(--o-sp-2); }
 /* Hijos de grilla sin ancho mínimo: el canvas del progreso no empuja la tarjeta. */
 .o-ent-ficha > *, .o-ent-ficha-sec > * { min-width: 0; }
-.o-ent-ficha-legado > .card { margin: 0; }
 .o-ent-ficha-sec > .o-rotulo, .o-ent-ficha-sec > .o-card-texto { margin: 0; }
 
 .o-ent-ejs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--o-sp-1); }
@@ -420,3 +419,407 @@
 /* --- Modo sobrio: el acento del módulo solo en anillos y estados; la
    línea del volumen semanal pasa a neutro. --- */
 html[data-tema="gris"] .o-ent-volumen { --o-mod: var(--o-text-2); }
+
+/* --- Sesión activa de GYM/Calistenia (Fase 9d; antes «Cabina HUD» en
+   layout.css). Los ganchos sesion-* / serie-* son los mismos de siempre:
+   rutina-session.js los lee y escribe. Pantalla completa en celular:
+   mientras hay una sesión abierta, entrenamiento.js pone
+   .entreno-sesion-activa en <html> y el dock y el encabezado se ocultan (el
+   riel de tablet y PC se queda). --- */
+@media (max-width: 767px) {
+  html.entreno-sesion-activa #app-nav,
+  html.entreno-sesion-activa #app-header { display: none; }
+  html.entreno-sesion-activa #toast-container { bottom: calc(env(safe-area-inset-bottom) + var(--o-sp-6)) !important; }
+}
+/* Sin el relleno inferior de la vista (era para el dock): el pie fijo queda
+   pegado abajo también al final del scroll. El scroll lo compensa
+   fijarCompacto (igual en Chrome y Safari). */
+html.entreno-sesion-activa #view-root { padding-bottom: 0; overflow-anchor: none; }
+html.entreno-sesion-activa #view-root > div { padding-bottom: 0 !important; }
+
+/* Barra superior: ✕ · rutina y categoría · ⋯ · Finalizar (fija arriba). */
+.sesion-cabecera {
+  position: sticky; top: 0; z-index: 20;
+  margin: calc(-1 * var(--o-sp-5)) 0 var(--o-sp-3); padding: env(safe-area-inset-top) 0 var(--o-sp-2);
+  background: var(--o-bg);
+}
+.sesion-cabecera[hidden], .sesion-cuerpo[hidden] { display: none; }
+.sesion-barra {
+  display: flex; align-items: center; gap: var(--o-sp-2);
+  padding: var(--o-sp-2) 0; margin-bottom: var(--o-sp-2);
+  border-bottom: 1px solid var(--o-line);
+}
+.sesion-barra-salir {
+  width: var(--o-touch); height: var(--o-touch); flex-shrink: 0; padding: 0;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-radius-control); color: var(--o-text-2);
+}
+.sesion-barra-titulo { flex: 1; min-width: 0; }
+.sesion-barra-titulo h2 {
+  margin: 0; font-size: var(--o-fs-md); font-weight: var(--o-fw-bold); color: var(--o-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sesion-barra-titulo div { font-size: var(--o-fs-xs); font-weight: var(--o-fw-semibold); color: var(--o-mod-t); }
+.sesion-barra-finalizar {
+  flex-shrink: 0; min-height: var(--o-touch); padding: 0 var(--o-sp-4); cursor: pointer;
+  background: var(--o-mod-soft); border: 1px solid var(--o-mod); border-radius: var(--o-radius-control);
+  color: var(--o-mod-t); font: inherit; font-size: var(--o-fs-sm); font-weight: var(--o-fw-bold);
+}
+.sesion-barra-menu-wrap { position: relative; flex-shrink: 0; }
+.sesion-barra-menu {
+  position: absolute; right: 0; top: calc(var(--o-touch) + var(--o-sp-1)); z-index: 30; min-width: calc(var(--o-sp-10) * 3.6);
+  padding: var(--o-sp-2) var(--o-sp-3); background: var(--o-sheet); border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-card);
+}
+.sesion-barra-menu[hidden] { display: none; }
+.sesion-descanso-config { display: flex; align-items: center; gap: var(--o-sp-2); font-size: var(--o-fs-sm); color: var(--o-text); }
+.sesion-descanso-config > span:first-child { flex: 1; }
+.sesion-descanso-config-valor { min-width: var(--o-sp-9); text-align: center; }
+
+/* Botones de contorno del módulo (−/+ del descanso, del editor y del menú). */
+.sesion-descanso-config button, .sesion-descanso-btns button, .sesion-editor-btn, #btn-descanso-saltar-linea {
+  min-width: var(--o-touch); min-height: var(--o-touch); padding: 0 var(--o-sp-2); cursor: pointer;
+  background: transparent; border: 1px solid var(--o-mod); border-radius: var(--o-radius-control);
+  color: var(--o-mod-t); font: inherit; font-size: var(--o-fs-sm); font-weight: var(--o-fw-bold);
+}
+.sesion-editor-btn { width: var(--o-touch); flex-shrink: 0; padding: 0; font-size: var(--o-fs-lg); }
+
+/* HUD: mapas de frente y espalda, datos y una barra con un segmento por serie. */
+.sesion-hud { margin: 0; padding: var(--o-sp-3); }
+.sesion-hud-fila { display: flex; align-items: center; gap: var(--o-sp-3); }
+.sesion-hud-mapas { display: flex; gap: var(--o-sp-1); flex-shrink: 0; }
+.sesion-hud-datos { flex: 1; min-width: 0; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--o-sp-2) var(--o-sp-3); }
+.sesion-hud-datos div { min-width: 0; }
+.sesion-hud-datos dt { font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-label); text-transform: uppercase; color: var(--o-text-2); }
+.sesion-hud-datos dd { margin: 0; font-size: var(--o-fs-xs); color: var(--o-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sesion-hud-datos dd > .o-num:first-child { font-size: var(--o-fs-lg); font-weight: var(--o-fw-bold); color: var(--o-text); }
+.sesion-hud-meta { font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.sesion-hud-var { font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.sesion-hud-var--sube { color: var(--o-mod-t); }
+.sesion-hud-meta.sesion-hud-meta--sin-lugar, .sesion-hud-var.sesion-hud-meta--sin-lugar { display: none; }
+.sesion-hud-ultimo { font-size: var(--o-fs-xs); color: var(--o-warn-t); }
+.sesion-hud-ultimo--ahora { font-weight: var(--o-fw-bold); }
+/* Récords: marco ámbar con récord en la sesión (y la ★ en el texto). */
+.sesion-hud-datos .sesion-hud-rec { margin: calc(-1 * var(--o-sp-1)); padding: var(--o-sp-1); border: 1px solid transparent; border-radius: var(--o-radius-chip); }
+.sesion-hud-datos .sesion-hud-rec--activo { border-color: var(--o-warn); background: var(--o-warn-soft); }
+.sesion-hud-rec--activo dt, .sesion-hud-rec--activo dd > .o-num:first-child { color: var(--o-warn-t); }
+.sesion-hud-dato--destello { animation: sesion-destello calc(var(--o-dur-4) * 4) var(--o-ease-out); }
+@keyframes sesion-destello {
+  0%, 35% { background: var(--o-warn-soft); outline: 1px solid var(--o-warn); }
+  100% { background: transparent; outline: 1px solid transparent; }
+}
+.sesion-hud-segmentos { display: flex; gap: 2px; margin-top: var(--o-sp-3); min-height: var(--o-sp-2); }
+.sesion-hud-seg { flex: 1 1 0; height: var(--o-sp-2); min-width: 2px; border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-check); }
+.sesion-hud-seg--nuevo { margin-left: var(--o-sp-1); }
+.sesion-hud-seg--hecha { background: var(--o-mod); border-color: var(--o-mod); }
+.sesion-hud-seg--record { background: var(--o-warn); border-color: var(--o-warn); }
+.sesion-hud-seg--toca { border-color: var(--o-mod); border-width: 2px; }
+
+/* Descanso dentro del HUD: anillo con la cuenta, lo que sigue, −15 / +15 /
+   Saltar y una línea con tiempo, series y volumen. */
+.sesion-hud--descanso .sesion-hud-fila { display: none; }
+.sesion-hud-descanso[hidden] { display: none; }
+.sesion-descanso-fila { display: flex; align-items: center; gap: var(--o-sp-3); }
+.sesion-descanso-anillo { position: relative; width: calc(var(--o-sp-10) + var(--o-sp-5)); height: calc(var(--o-sp-10) + var(--o-sp-5)); flex-shrink: 0; }
+.sesion-descanso-anillo svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.sesion-descanso-fondo { fill: none; stroke: var(--o-line-strong); stroke-width: 4; }
+.sesion-descanso-arco { fill: none; stroke: var(--o-mod); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 175.93; stroke-dashoffset: 0; transition: stroke-dashoffset var(--o-dur-4) linear; }
+.sesion-descanso-cuenta { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.sesion-descanso-cuenta > .o-num { font-size: var(--o-fs-lg); font-weight: var(--o-fw-bold); color: var(--o-text); }
+.sesion-descanso-de { font-size: var(--o-fs-2xs); color: var(--o-text-2); }
+.sesion-descanso-info { flex: 1; min-width: 0; }
+.sesion-descanso-etq { font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-label); text-transform: uppercase; color: var(--o-mod-t); }
+.sesion-descanso-siguiente { margin: var(--o-sp-1) 0 var(--o-sp-2); font-size: var(--o-fs-xs); line-height: var(--o-lh-snug); color: var(--o-text); }
+.sesion-descanso-btns { display: flex; gap: var(--o-sp-2); }
+.sesion-descanso-btns button { flex: 1; }
+.sesion-descanso-resumen { margin-top: var(--o-sp-2); font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.sesion-descanso-records { color: var(--o-warn-t); font-weight: var(--o-fw-bold); }
+.sesion-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* HUD compacto bajo 1024 px: al bajar, una línea con tiempo · series ·
+   volumen · récords (o la cuenta del descanso y Saltar) y la barra
+   segmentada; en PC el HUD queda siempre completo. */
+.sesion-hud-linea { display: none; }
+@media (max-width: 1023px) {
+  .sesion-cabecera .sesion-hud.sesion-hud--compacto { padding: var(--o-sp-2) var(--o-sp-3); }
+  .sesion-hud--compacto .sesion-hud-fila,
+  .sesion-hud--compacto .sesion-hud-descanso { display: none !important; }
+  .sesion-hud--compacto .sesion-hud-linea {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-2); min-height: var(--o-sp-6);
+    font-size: var(--o-fs-sm); color: var(--o-text-2); white-space: nowrap; overflow: hidden;
+    animation: sesion-aparecer var(--o-dur-2) var(--o-ease-out);
+  }
+  .sesion-hud-linea .o-num { color: var(--o-text); font-weight: var(--o-fw-bold); }
+  .sesion-hud-linea-rec, .sesion-hud-linea-rec .o-num { color: var(--o-warn-t); }
+  .sesion-hud--compacto .sesion-hud-segmentos { margin-top: var(--o-sp-1); }
+  .sesion-hud-linea-descanso { display: none; }
+  .sesion-hud--compacto.sesion-hud--descanso .sesion-hud-linea-datos { display: none; }
+  .sesion-hud--compacto.sesion-hud--descanso .sesion-hud-linea-descanso { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-2); width: 100%; color: var(--o-mod-t); font-weight: var(--o-fw-bold); }
+  .sesion-hud--compacto.sesion-hud--descanso .sesion-hud-linea-descanso .o-num { color: var(--o-mod-t); font-size: var(--o-fs-base); margin: 0 auto 0 var(--o-sp-2); }
+  /* Objetivo de 44 px sin agrandar la línea compacta. */
+  #btn-descanso-saltar-linea { margin: calc(-1 * var(--o-sp-3)) 0; }
+}
+@keyframes sesion-aparecer { from { opacity: 0; } to { opacity: 1; } }
+
+/* Riel de ejercicios: pestañas bajo el HUD con scroll horizontal; la
+   activa con el acento del módulo, las terminadas con ✓; las superseries
+   en un marco ámbar. */
+.sesion-riel { display: flex; align-items: stretch; gap: var(--o-sp-2); margin-top: var(--o-sp-3); overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.sesion-riel::-webkit-scrollbar { display: none; }
+.sesion-tab {
+  flex-shrink: 0; display: flex; align-items: center; gap: var(--o-sp-2);
+  min-height: var(--o-touch); padding: 0 var(--o-sp-3); max-width: calc(var(--o-sp-10) * 2.7); cursor: pointer;
+  background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-radius-control); color: var(--o-text-2);
+  font: inherit; font-size: var(--o-fs-xs); font-weight: var(--o-fw-semibold);
+}
+.sesion-tab-nombre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sesion-tab-prog { font-size: var(--o-fs-2xs); }
+.sesion-tab-check { color: var(--o-mod-t); font-weight: var(--o-fw-bold); }
+.sesion-tab--hecha { color: var(--o-text); }
+.sesion-tab--activa { border-color: var(--o-mod); background: var(--o-mod-soft); color: var(--o-mod-t); }
+.sesion-tab--mas { min-width: var(--o-touch); justify-content: center; font-size: var(--o-fs-lg); font-weight: var(--o-fw-bold); color: var(--o-mod-t); }
+.sesion-riel-ss { flex-shrink: 0; display: flex; flex-direction: column; padding: var(--o-sp-1); border: 1px solid var(--o-warn); border-radius: var(--o-radius-card); }
+.sesion-riel-ss-etq { margin: 0 var(--o-sp-1) var(--o-sp-1); font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-label); color: var(--o-warn-t); }
+.sesion-riel-ss-tabs { display: flex; gap: var(--o-sp-1); }
+
+/* Un ejercicio a la vez: los demás bloques quedan en el DOM, ocultos. */
+.sesion-ejercicios { display: flex; flex-direction: column; gap: var(--o-sp-4); margin-bottom: var(--o-sp-3); touch-action: pan-y; }
+.ejercicio-sesion-block { padding: var(--o-sp-4) var(--o-sp-3); }
+.ejercicio-sesion-block[hidden] { display: none !important; }
+.ejercicio-sesion-block[data-superserie-segundo] { border-inline-start: 2px solid var(--o-warn); }
+.sesion-ss-aviso {
+  justify-self: start; margin: 0 0 var(--o-sp-2); padding: var(--o-sp-1) var(--o-sp-2);
+  border: 1px solid var(--o-warn); border-radius: var(--o-radius-chip); background: var(--o-warn-soft);
+  font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold); color: var(--o-warn-t);
+}
+.sesion-ej-cabecera { position: relative; display: flex; justify-content: space-between; align-items: flex-start; gap: var(--o-sp-2); margin-bottom: var(--o-sp-2); }
+.sesion-ej-titulo { min-width: 0; }
+.sesion-ej-rotulo { margin-bottom: var(--o-sp-1); font-size: var(--o-fs-xs); font-weight: var(--o-fw-semibold); color: var(--o-text-2); }
+.sesion-ej-titulo h3 { margin: 0; font-size: var(--o-fs-md); font-weight: var(--o-fw-bold); line-height: var(--o-lh-tight); color: var(--o-text); overflow-wrap: anywhere; }
+.btn-ej-menu {
+  width: var(--o-touch); height: var(--o-touch); flex-shrink: 0; padding: 0; display: grid; place-items: center; cursor: pointer;
+  background: transparent; border: 1px solid var(--o-line); border-radius: var(--o-radius-control); color: var(--o-text-2);
+}
+.sesion-ej-menu {
+  position: absolute; right: 0; top: calc(var(--o-touch) + var(--o-sp-1)); z-index: 30; min-width: calc(var(--o-sp-10) * 3.3);
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--o-sheet); border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-card);
+}
+.sesion-ej-menu[hidden] { display: none; }
+.sesion-ej-menu button {
+  min-height: var(--o-touch); padding: 0 var(--o-sp-4); text-align: start; cursor: pointer;
+  background: transparent; border: none; border-bottom: 1px solid var(--o-line); color: var(--o-text); font: inherit; font-size: var(--o-fs-sm);
+}
+.sesion-ej-menu button:last-child { border-bottom: none; }
+.sesion-ej-progreso { margin-bottom: var(--o-sp-2); }
+.sesion-ej-progreso[hidden] { display: none; }
+.sesion-ej-chips { display: flex; gap: var(--o-sp-2); flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-bottom: var(--o-sp-2); }
+.sesion-ej-chips::-webkit-scrollbar { display: none; }
+.sesion-chip {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: var(--o-sp-1); min-height: var(--o-sp-7); padding: 0 var(--o-sp-2);
+  background: var(--o-surface-2); border: 1px solid var(--o-line); border-radius: var(--o-radius-chip); color: var(--o-text);
+  font: inherit; font-size: var(--o-fs-xs); font-weight: var(--o-fw-bold); white-space: nowrap;
+}
+button.sesion-chip { min-height: var(--o-touch); cursor: pointer; }
+.sesion-chip--accion { border-color: var(--o-mod); background: var(--o-mod-soft); color: var(--o-mod-t); }
+.sesion-chip--ambar { border-color: var(--o-warn); background: var(--o-warn-soft); color: var(--o-warn-t); }
+.sesion-ej-estancado { margin: 0 0 var(--o-sp-2); font-size: var(--o-fs-xs); line-height: var(--o-lh-snug); color: var(--o-warn-t); }
+
+/* Tabla de series: # (chip con el tipo) · Anterior · KG · Reps · RPE · ✓. */
+.ejercicio-sesion-block .serie-tabla-cab, .ejercicio-sesion-block .serie-row {
+  display: grid; align-items: center; gap: var(--o-sp-1);
+  grid-template-columns: var(--o-touch) minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 0.9fr) var(--o-touch) var(--o-touch);
+}
+.ejercicio-sesion-block .serie-tabla-cab { margin-bottom: var(--o-sp-1); padding: 0 var(--o-sp-1); }
+.ejercicio-sesion-block .serie-tabla-cab span { font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-label); text-transform: uppercase; color: var(--o-text-2); text-align: center; }
+.series-list { display: flex; flex-direction: column; }
+.ejercicio-sesion-block .serie-row { position: relative; margin-bottom: var(--o-sp-1); padding: 2px; border: 1px solid transparent; border-radius: var(--o-radius-control); }
+.ejercicio-sesion-block .serie-row--toca { border-color: var(--o-mod); }
+/* Fila hecha: más quieta, sin bajar el contraste (sin opacidad). */
+.ejercicio-sesion-block .serie-row:has(.btn-check-serie[data-checked="true"]) :is(.serie-tipo-chip, .serie-peso, .serie-reps, .serie-rpe) { background: transparent; border-color: var(--o-line); color: var(--o-text-2); }
+.ejercicio-sesion-block .serie-row .serie-tipo-chip {
+  width: var(--o-touch); height: var(--o-touch); padding: 0; cursor: pointer;
+  background: var(--o-surface-1); border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-check); color: var(--o-text-2);
+  font-family: var(--o-font-num); font-size: var(--o-fs-sm); font-weight: var(--o-fw-bold);
+}
+/* Tipo de serie: color del chip según data-tipo (no solo color: el tipo
+   también va en su title y en la etiqueta del editor). */
+.serie-tipo-chip[data-tipo="calentamiento"] { background: var(--o-warn-soft); border-color: var(--o-warn); color: var(--o-warn-t); }
+.serie-tipo-chip[data-tipo="fallo"] { background: var(--o-alert-soft); border-color: var(--o-alert); color: var(--o-alert-t); }
+.serie-tipo-chip[data-tipo="dropset"] { background: var(--o-info-soft); border-color: var(--o-info); color: var(--o-info-t); }
+.serie-anterior { font-size: var(--o-fs-xs); color: var(--o-text-2); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ejercicio-sesion-block .serie-row .serie-peso, .ejercicio-sesion-block .serie-row .serie-reps, .ejercicio-sesion-block .serie-row .serie-rpe {
+  width: 100%; min-width: 0; height: var(--o-touch); padding: 0 2px;
+  background: var(--o-surface-1); border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-check); color: var(--o-text);
+  text-align: center; text-align-last: center; font-family: var(--o-font-num); font-variant-numeric: tabular-nums; font-size: var(--o-fs-base);
+}
+.ejercicio-sesion-block .serie-row .serie-rpe { font-size: var(--o-fs-sm); appearance: none; -webkit-appearance: none; }
+.ejercicio-sesion-block .serie-row .btn-check-serie {
+  width: var(--o-touch); height: var(--o-touch); padding: 0; display: grid; place-items: center; cursor: pointer;
+  background: var(--o-surface-2); border: 1px solid var(--o-text-2); border-radius: var(--o-radius-check); color: var(--o-text-2); font-size: var(--o-fs-base);
+}
+.ejercicio-sesion-block .serie-row .btn-check-serie[data-checked="true"] { background: var(--o-ok); border-color: var(--o-ok); color: var(--o-ink); }
+.ejercicio-sesion-block .serie-row--pr .btn-check-serie[data-checked="true"] { background: var(--o-warn); border-color: var(--o-warn); color: var(--o-ink); }
+.ejercicio-sesion-block .serie-row .serie-kg { position: relative; min-width: 0; }
+/* Peso 0 en un ejercicio de peso corporal: «Corporal» sobre el KG (el input
+   conserva su valor; al enfocarlo se ve el número). */
+.serie-corporal { display: none; }
+.ejercicio-sesion-block .serie-row--corporal .serie-corporal {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;
+  color: var(--o-text-2); font-size: var(--o-fs-xs); font-weight: var(--o-fw-semibold);
+}
+/* Las superficies son translúcidas: el número del input se oculta bajo «Corporal». */
+.ejercicio-sesion-block .serie-row--corporal .serie-kg:not(:focus-within) .serie-peso { color: transparent; }
+.ejercicio-sesion-block .serie-row--corporal .serie-kg:focus-within .serie-corporal { display: none; }
+/* Récord en vivo: fila ámbar con ★ y la línea «NUEVO PR» debajo. */
+.ejercicio-sesion-block .serie-row--pr { border-color: var(--o-warn); background: var(--o-warn-soft); }
+.serie-pr-nota { margin: 0 0 var(--o-sp-2) calc(var(--o-touch) + var(--o-sp-1)); font-size: var(--o-fs-xs); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-label); color: var(--o-warn-t); }
+/* Calentamiento en barra: los discos por lado en una línea chica. */
+.serie-discos { margin: 0 0 var(--o-sp-2) calc(var(--o-touch) + var(--o-sp-1)); font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.tipo-serie-popover {
+  position: absolute; top: calc(100% + var(--o-sp-1)); left: 0; z-index: 50; min-width: calc(var(--o-sp-10) * 2.2);
+  display: flex; flex-direction: column; padding: var(--o-sp-1);
+  background: var(--o-sheet); border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-card); box-shadow: var(--o-shadow-sheet);
+}
+.tipo-serie-op {
+  min-height: var(--o-touch); padding: 0 var(--o-sp-3); text-align: start; cursor: pointer;
+  background: transparent; border: none; border-radius: var(--o-radius-control); color: var(--o-text); font: inherit; font-size: var(--o-fs-sm); font-weight: var(--o-fw-semibold);
+}
+.tipo-serie-op[data-tipo="calentamiento"] { color: var(--o-warn-t); }
+.tipo-serie-op[data-tipo="fallo"] { color: var(--o-alert-t); }
+.tipo-serie-op[data-tipo="dropset"] { color: var(--o-info-t); }
+.ejercicio-sesion-block .btn-add-serie {
+  width: 100%; min-height: var(--o-touch); margin-top: var(--o-sp-1); cursor: pointer;
+  background: transparent; border: 1px dashed var(--o-line-strong); border-radius: var(--o-radius-control); color: var(--o-text-2);
+  font: inherit; font-size: var(--o-fs-xs); font-weight: var(--o-fw-bold);
+}
+.sesion-descanso-ayuda { margin: var(--o-sp-1) 0 var(--o-sp-2); padding: var(--o-sp-2) var(--o-sp-3); border: 1px dashed var(--o-line-strong); border-radius: var(--o-radius-control); font-size: var(--o-fs-xs); line-height: var(--o-lh-snug); color: var(--o-text-2); }
+.sesion-descanso-ayuda[hidden] { display: none; }
+
+/* Editor de la serie que toca. */
+.sesion-editor { position: relative; margin-top: var(--o-sp-3); padding: var(--o-sp-3); background: var(--o-mod-wash); border: 1px solid var(--o-mod); border-radius: var(--o-radius-card); }
+.sesion-editor-titulo { margin-bottom: var(--o-sp-2); font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.sesion-editor-campos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--o-sp-3); }
+.sesion-editor-etq { display: block; margin-bottom: var(--o-sp-1); font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-label); text-transform: uppercase; color: var(--o-text-2); }
+.sesion-editor-ctrl { display: flex; align-items: center; gap: var(--o-sp-1); }
+.sesion-editor-valor {
+  flex: 1; min-width: 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: var(--o-fs-xl); font-weight: var(--o-fw-bold); color: var(--o-text);
+  user-select: none; -webkit-user-select: none; touch-action: manipulation;
+}
+/* «Corporal» en el editor: más chico para que entre entero entre − y +. */
+.sesion-editor-valor.sesion-editor-valor--texto { font-family: var(--o-font); font-size: var(--o-fs-xs); text-overflow: clip; }
+.sesion-editor-rpe { display: flex; align-items: center; flex-wrap: wrap; gap: var(--o-sp-2); margin-top: var(--o-sp-3); }
+.sesion-editor-rpe .sesion-editor-etq { margin: 0 var(--o-sp-1) 0 0; }
+.sesion-rpe-chip {
+  min-width: var(--o-touch); height: var(--o-touch); padding: 0; cursor: pointer;
+  background: transparent; border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-chip); color: var(--o-text); font-size: var(--o-fs-sm);
+}
+.sesion-rpe-chip[aria-pressed="true"] { background: var(--o-mod); border-color: var(--o-mod); color: var(--o-ink); }
+.sesion-editor--vacio .sesion-editor-btn, .sesion-editor--vacio .sesion-rpe-chip { border-color: var(--o-line); color: var(--o-text-2); cursor: default; }
+
+/* Calculadora de discos (popover del editor). */
+.sesion-editor .plate-popover {
+  position: absolute; right: var(--o-sp-2); bottom: calc(100% + var(--o-sp-1)); z-index: 20; padding: var(--o-sp-3);
+  background: var(--o-sheet); border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-card); box-shadow: var(--o-shadow-sheet);
+}
+.discos { display: flex; align-items: center; justify-content: center; gap: var(--o-sp-1); }
+.discos-vacio { margin: 0; font-size: var(--o-fs-sm); color: var(--o-text-2); text-align: center; }
+.discos-manga { width: var(--o-sp-5); height: var(--o-sp-4); background: var(--disco-manga); }
+.disco {
+  /* Ancho y alto según el peso del disco (--d, en kg). */
+  width: max(var(--o-sp-3), calc(var(--d) * var(--o-sp-1) * 0.375)); height: max(var(--o-sp-8), calc(var(--d) * var(--o-sp-1) * 0.75));
+  display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; transform: rotate(180deg);
+  border: 1px solid var(--o-line); font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold); color: var(--disco-texto);
+}
+.disco--25 { background: var(--disco-25); } .disco--20 { background: var(--disco-20); } .disco--15 { background: var(--disco-15); color: var(--disco-texto-claro); }
+.disco--10 { background: var(--disco-10); } .disco--5 { background: var(--disco-5); color: var(--disco-texto-claro); } .disco--2-5 { background: var(--disco-2-5); }
+.disco--1-25 { background: var(--disco-1-25); } .disco--otro { background: var(--disco-otro); }
+.discos-barra { width: var(--o-sp-10); height: var(--o-sp-3); display: flex; align-items: center; justify-content: center; background: var(--disco-barra); color: var(--disco-texto-claro); font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold); }
+.discos-lado { margin-left: var(--o-sp-2); font-size: var(--o-fs-xs); color: var(--o-text-2); }
+
+/* Pie fijo abajo (zona del pulgar): ‹ · puntos · › y el botón principal. */
+.sesion-nav { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-2); margin-bottom: var(--o-sp-2); }
+.sesion-nav-btn {
+  min-height: var(--o-touch); padding: 0 var(--o-sp-4); cursor: pointer;
+  background: transparent; border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-control); color: var(--o-text);
+  font: inherit; font-size: var(--o-fs-sm); font-weight: var(--o-fw-bold);
+}
+.sesion-nav-btn:disabled { color: var(--o-disabled); cursor: default; }
+.sesion-puntos { display: flex; gap: var(--o-sp-1); flex-wrap: wrap; justify-content: center; }
+.sesion-puntos span { width: var(--o-sp-2); height: var(--o-sp-2); border-radius: var(--o-radius-circle); background: var(--o-line-strong); }
+.sesion-puntos span.activo { background: var(--o-mod); }
+.sesion-pie { position: sticky; bottom: 0; z-index: 15; margin-top: var(--o-sp-1); padding: var(--o-sp-2) 0 calc(var(--o-sp-2) + env(safe-area-inset-bottom)); background: var(--o-bg); }
+/* Botón principal de la pantalla: degradado del módulo con su luz. */
+.sesion-principal {
+  width: 100%; min-height: calc(var(--o-touch) + var(--o-sp-2)); padding: 0 var(--o-sp-4); cursor: pointer;
+  background: var(--o-mod-grad); border: none; border-radius: var(--o-radius-control); box-shadow: var(--o-mod-glow); color: var(--o-ink);
+  font: inherit; font-size: var(--o-fs-base); font-weight: var(--o-fw-bold);
+}
+.sesion-principal--ss { background: var(--o-warn); box-shadow: none; }
+.sesion-principal--descanso { background: var(--o-surface-2); box-shadow: none; color: var(--o-text-2); cursor: default; }
+:is(.sesion-barra-salir, .sesion-barra-finalizar, .sesion-principal, .sesion-editor-btn, .sesion-rpe-chip, .btn-ej-menu, .sesion-tab, .sesion-nav-btn,
+  .sesion-descanso-btns button, .sesion-descanso-config button, #btn-descanso-saltar-linea, .serie-tipo-chip, .btn-check-serie, .btn-add-serie,
+  .tipo-serie-op, .sesion-ej-menu button, .sesion-chip):focus-visible { outline: none; box-shadow: var(--o-focus); }
+
+/* Bajo 768 px sin «‹ Anterior / Siguiente ›» (quedan pestañas, deslizar y puntos). */
+@media (max-width: 767px) {
+  #btn-ej-anterior, #btn-ej-siguiente { display: none; }
+  .sesion-pie .sesion-nav { justify-content: center; margin-bottom: var(--o-sp-1); }
+  .sesion-cabecera .sesion-barra { padding: var(--o-sp-1) 0; }
+  .sesion-editor { margin-top: var(--o-sp-2); padding: var(--o-sp-2) var(--o-sp-3); }
+  .sesion-editor-rpe { margin-top: var(--o-sp-2); }
+}
+/* PC (≥ 1024 px): la sesión y el resumen con un ancho máximo, centrados. */
+@media (min-width: 1024px) {
+  #entrenamiento-sub-content :is(.sesion-cabecera, .sesion-cuerpo, .sesion-resumen) { max-width: calc(var(--o-sp-10) * 12); margin-left: auto; margin-right: auto; }
+}
+
+/* Resumen al finalizar. */
+.sesion-resumen[hidden] { display: none; }
+.sesion-resumen-barra { margin: 0 0 var(--o-sp-3); }
+.sesion-resumen-barra h2:focus { outline: none; }
+.sesion-resumen-hero { margin-bottom: var(--o-sp-4); }
+.sesion-resumen-var { font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.sesion-resumen-var--sube { color: var(--o-mod-t); }
+.sesion-resumen-cuerpo { display: flex; gap: var(--o-sp-4); align-items: flex-start; margin-bottom: var(--o-sp-4); padding: var(--o-sp-3); background: var(--o-surface-1); border: 1px solid var(--o-line); border-radius: var(--o-radius-card); }
+.sesion-resumen-mapas { display: flex; gap: var(--o-sp-2); flex-shrink: 0; }
+.mk3-muscle-map--resumen { padding: 0; gap: 0; background: transparent; clip-path: none; }
+.mk3-muscle-map--resumen .mk3-muscle-map__svg { width: var(--o-sp-10); max-width: var(--o-sp-10); filter: none; }
+.sesion-resumen-records { flex: 1; min-width: 0; }
+.sesion-resumen-records h3, .sesion-resumen-tabla h3 { margin: 0 0 var(--o-sp-2); font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-label); text-transform: uppercase; color: var(--o-text-2); }
+.sesion-resumen-records ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--o-sp-2); }
+.sesion-resumen-records li { font-size: var(--o-fs-sm); line-height: var(--o-lh-snug); color: var(--o-warn-t); }
+.sesion-resumen-records p { margin: 0; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.sesion-resumen-tabla { margin-bottom: var(--o-sp-4); }
+.sesion-resumen-tabla table { width: 100%; border-collapse: collapse; font-size: var(--o-fs-sm); }
+.sesion-resumen-tabla th, .sesion-resumen-tabla td { padding: var(--o-sp-2) var(--o-sp-1); border-bottom: 1px solid var(--o-line); text-align: right; color: var(--o-text); font-weight: var(--o-fw-regular); }
+.sesion-resumen-tabla td { white-space: nowrap; }
+.sesion-resumen-tabla th[scope="row"], .sesion-resumen-tabla thead th:first-child { text-align: left; }
+.sesion-resumen-tabla thead th { font-size: var(--o-fs-2xs); font-weight: var(--o-fw-bold); letter-spacing: var(--o-ls-label); text-transform: uppercase; color: var(--o-text-2); }
+.sesion-resumen-nota { display: flex; flex-direction: column; gap: var(--o-sp-2); margin-bottom: var(--o-sp-4); }
+.sesion-resumen-nota label, .sesion-resumen-rpe > span { font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.sesion-resumen-nota textarea {
+  width: 100%; padding: var(--o-sp-3); resize: vertical;
+  background: var(--o-surface-1); border: 1px solid var(--o-line-strong); border-radius: var(--o-radius-control); color: var(--o-text); font: inherit; font-size: var(--o-fs-base);
+}
+.sesion-resumen-nota textarea:focus-visible { outline: none; box-shadow: var(--o-focus); }
+.sesion-resumen-rpe > div { display: flex; flex-wrap: wrap; gap: var(--o-sp-2); margin-top: var(--o-sp-2); }
+.sesion-resumen-acciones { position: sticky; bottom: 0; z-index: 15; display: flex; flex-direction: column; gap: var(--o-sp-2); padding: var(--o-sp-2) 0 calc(var(--o-sp-2) + env(safe-area-inset-bottom)); background: var(--o-bg); }
+.sesion-resumen-acciones > div { display: flex; gap: var(--o-sp-2); }
+.sesion-resumen-acciones > div .sesion-nav-btn { flex: 1; }
+
+/* Progreso de un ejercicio (menú ⋯ › Progreso y ficha del buscador). */
+.o-ent-pej { display: grid; gap: var(--o-sp-3); min-width: 0; }
+.o-ent-ficha .o-ent-pej { padding: 0; background: none; border: none; box-shadow: none; }
+.o-ent-pej-titulo { margin: 0; font-size: var(--o-fs-sm); font-weight: var(--o-fw-bold); color: var(--o-text); }
+.o-ent-pej-nota { margin: 0; padding: var(--o-sp-4) 0; text-align: center; font-size: var(--o-fs-sm); color: var(--o-text-2); }
+.o-ent-pej-datos { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: var(--o-sp-2); }
+.o-ent-pej-datos > div { display: flex; flex-direction: column-reverse; align-items: center; gap: var(--o-sp-1); padding: var(--o-sp-3); background: var(--o-surface-2); border: 1px solid var(--o-line); border-radius: var(--o-radius-control); }
+.o-ent-pej-datos dd { margin: 0; font-size: var(--o-fs-md); font-weight: var(--o-fw-bold); color: var(--o-text); }
+.o-ent-pej-datos dt { font-size: var(--o-fs-2xs); font-weight: var(--o-fw-semibold); color: var(--o-text-2); }
+.o-ent-pej-prs { display: grid; gap: var(--o-sp-2); }
+.o-ent-pej-prs .o-rotulo { margin: 0; }
+.o-ent-pej-prs-lista { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--o-sp-2); }
+.o-ent-pej-prs-lista li { display: flex; align-items: center; justify-content: space-between; gap: var(--o-sp-2); font-size: var(--o-fs-xs); color: var(--o-text-2); }
+.o-ent-pej-prs-lista b { display: inline-flex; align-items: center; gap: var(--o-sp-1); color: var(--o-text); }
+.o-ent-pej-prs-lista svg { width: var(--o-icon-sm); height: var(--o-icon-sm); color: var(--o-warn-t); }

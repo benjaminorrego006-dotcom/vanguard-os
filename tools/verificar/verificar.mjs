@@ -25,6 +25,7 @@ import { tomarFoto, leerUiOrbita, compararFotos, ARCHIVO_ANTES } from './foto-fi
 import { tomarFotoEntreno, leerUiOrbitaEntreno, ARCHIVO_ANTES_ENTRENO } from './foto-entreno.mjs';
 import { tomarFotoRutinas, UI_ORBITA as UI_ORBITA_RUTINAS, ARCHIVO_ANTES_RUTINAS } from './foto-rutinas.mjs';
 import { tomarFotoProgreso, UI_ORBITA as UI_ORBITA_PROGRESO, ARCHIVO_ANTES_PROGRESO } from './foto-progreso.mjs';
+import { tomarFotoSesion, UI_ORBITA as UI_ORBITA_SESION, ARCHIVO_ANTES_SESION } from './foto-sesion.mjs';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '..', '..');
@@ -1506,6 +1507,18 @@ async function main() {
     afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
   });
 
+  await prueba('Entreno › sesión activa · cifras idénticas a la foto de antes de la Fase 9d y la sesión sobrevive a salir de Entreno, al botón atrás y a recargar', async () => {
+    // Contexto propio (datos demo, una rutina de Calistenia y un descanso de
+    // 120 s por ejercicio, de foto-sesion.mjs), con el reloj detenido.
+    const despues = await tomarFotoSesion(browser, BASE, { ui: UI_ORBITA_SESION, capturas: path.join(SALIDA, 'sesion-foto') });
+    fs.writeFileSync(path.join(SALIDA, 'sesion-despues.json'), JSON.stringify(despues, null, 2) + '\n');
+    afirmar(despues.errores.length === 0, `errores de consola: ${despues.errores[0]}`);
+    for (const [k, difs] of Object.entries(despues.sobrevive)) afirmar(difs.length === 0, `la sesión no quedó igual tras ${k}: ${difs.slice(0, 2).join(' | ')}`);
+    afirmar(despues.borradorTrasGuardar.length === 0, 'el borrador siguió después de guardar');
+    const difs = compararFotos(JSON.parse(fs.readFileSync(ARCHIVO_ANTES_SESION, 'utf8')), despues);
+    afirmar(difs.length === 0, `${difs.length} diferencias: ${difs.slice(0, 3).join(' | ')}`);
+  });
+
   const pestanaEnt = () => page.$eval('[data-ent-tab][aria-selected="true"]', (e) => e.dataset.entTab);
   const subVisible = () => page.$eval('#entrenamiento-sub-view', (e) => getComputedStyle(e).display !== 'none');
 
@@ -1648,8 +1661,7 @@ async function main() {
   await prueba('Entreno · 44 px y contraste AA en las pestañas, la lista de rutinas, los formularios, las vistas previas, el historial, Progreso completo y Cuerpo (color y sobrio)', async () => {
     const chicosEn = (sel) => page.$$eval(`${sel} :is(button, input, select, summary)`, (bs) => bs.filter((b) => {
       const r = b.getBoundingClientRect();
-      // El progreso de la ficha sigue en MK III hasta la 9c.
-      return !b.closest('.o-ent-ficha-legado') && r.width > 0 && (r.width < 44 || r.height < 44);
+      return r.width > 0 && (r.width < 44 || r.height < 44);
     }).map((b) => `${b.getAttribute('aria-label') || b.textContent.trim() || b.id || b.className} (${Math.round(b.getBoundingClientRect().width)}×${Math.round(b.getBoundingClientRect().height)})`));
     const revisar = async (sel, donde) => {
       await page.waitForTimeout(400);
@@ -1695,7 +1707,7 @@ async function main() {
           await page.waitForTimeout(400);
           const chicosFicha = await chicosEn('#entrenamiento-sub-view');
           afirmar(chicosFicha.length === 0, `${donde('ficha')}: objetivos bajo 44 px: ${chicosFicha.slice(0, 3).join(', ')}`);
-          const fallasFicha = await fallasContraste(page, '#entrenamiento-sub-view *:not(.o-ent-ficha-legado, .o-ent-ficha-legado *)');
+          const fallasFicha = await fallasContraste(page, '#entrenamiento-sub-view *');
           afirmar(fallasFicha.length === 0, `${donde('ficha')}: «${fallasFicha[0]?.texto}» ${fallasFicha[0]?.q}:1`);
           await page.screenshot({ path: path.join(SALIDA, `entreno-ficha-${tema}-${vp.w}.png`), fullPage: true });
           await page.locator('#btn-entrenamiento-volver').click();
@@ -1785,6 +1797,66 @@ async function main() {
           await revisar('#entrenamiento-sub-view', donde('cuerpo'));
           await page.screenshot({ path: path.join(SALIDA, `entreno-cuerpo-${tema}-${vp.w}.png`), fullPage: true });
           await volver();
+        }
+      }
+    } finally {
+      await page.evaluate(() => localStorage.setItem('vg-tema', 'color'));
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.reload();
+      await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+      await irA(page, 'dashboard'); // la prueba siguiente parte en Hoy
+    }
+  });
+
+  await prueba('Entreno › sesión activa · 44 px y contraste AA en la sesión, el descanso, el progreso de un ejercicio y el resumen (color y sobrio, 390 y 1440)', async () => {
+    const chicosEn = (sel) => page.$$eval(`${sel} :is(button, input, select, summary)`, (bs) => bs.filter((b) => {
+      const r = b.getBoundingClientRect();
+      return r.width > 0 && (r.width < 44 || r.height < 44);
+    }).map((b) => `${b.getAttribute('aria-label') || b.textContent.trim() || b.id || b.className} (${Math.round(b.getBoundingClientRect().width)}×${Math.round(b.getBoundingClientRect().height)})`));
+    const revisar = async (donde) => {
+      await page.waitForTimeout(400);
+      const chicos = await chicosEn('#entrenamiento-sub-view');
+      afirmar(chicos.length === 0, `${donde}: objetivos bajo 44 px: ${chicos.slice(0, 3).join(', ')}`);
+      const fallas = await fallasContraste(page, '#entrenamiento-sub-view *');
+      afirmar(fallas.length === 0, `${donde}: «${fallas[0]?.texto}» ${fallas[0]?.q}:1`);
+    };
+    try {
+      for (const tema of ['color', 'gris']) {
+        await page.evaluate((t) => localStorage.setItem('vg-tema', t), tema);
+        for (const vp of [{ w: 390, h: 844 }, { w: 1440, h: 900 }]) {
+          const donde = (x) => `${tema} ${vp.w} ${x}`;
+          await page.setViewportSize({ width: vp.w, height: vp.h });
+          await page.reload();
+          await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+          await irA(page, 'entrenamiento');
+          await page.locator('#ent-tab-rutinas').click();
+          if (await page.locator('[data-rut-cat="gym"][aria-pressed="false"]').count()) await page.locator('[data-rut-cat="gym"]').click();
+          await page.waitForSelector('#ent-rutinas .btn-iniciar-sesion');
+          await page.locator('#ent-rutinas .btn-iniciar-sesion').first().click();
+          await page.waitForSelector('#btn-finalizar-sesion');
+          await revisar(donde('sesión'));
+          await page.screenshot({ path: path.join(SALIDA, `entreno-sesion-${tema}-${vp.w}.png`) });
+          // Una serie hecha: descanso en el HUD y la fila marcada.
+          await page.locator('#btn-sesion-principal').click();
+          await page.waitForSelector('#hud-descanso:not([hidden])');
+          await revisar(donde('descanso'));
+          await page.screenshot({ path: path.join(SALIDA, `entreno-sesion-descanso-${tema}-${vp.w}.png`) });
+          await page.locator('#btn-descanso-saltar').click();
+          // Progreso del ejercicio (menú ⋯ › Progreso).
+          const bloque = page.locator('.ejercicio-sesion-block:not([hidden])');
+          await bloque.locator('.btn-ej-menu').click();
+          await bloque.locator('.btn-ver-progreso').click();
+          await page.waitForSelector('.ejercicio-sesion-block:not([hidden]) .sesion-ej-progreso:not([hidden]) > *');
+          await revisar(donde('progreso del ejercicio'));
+          // Resumen y salir sin guardar (Descartar, con su confirmación).
+          await page.locator('#btn-finalizar-sesion').click();
+          await page.waitForSelector('#sesion-resumen:not([hidden]) #btn-resumen-guardar');
+          await revisar(donde('resumen'));
+          await page.screenshot({ path: path.join(SALIDA, `entreno-sesion-resumen-${tema}-${vp.w}.png`), fullPage: true });
+          await page.locator('#btn-resumen-descartar').click();
+          await page.locator('#confirm-ok').click();
+          await page.waitForSelector('#entrenamiento-main-view [data-ent-tab]');
+          await page.waitForFunction(() => getComputedStyle(document.getElementById('entrenamiento-sub-view')).display === 'none');
         }
       }
     } finally {

@@ -14,10 +14,9 @@ import { escaleraCalentamiento, EQUIPOS_CON_CALENTAMIENTO } from '../utils/calen
 import { seriesDeTrabajo, esCalentamiento as esSerieCalentamiento } from '../utils/tipo-serie.js';
 import { MuscleMap, sumarFatigaPorGrupo, expandirIntensidadPorMusculo, FATIGA_REFERENCIA } from './mk3-muscle-map.js';
 import { VISTA, GRUPOS_MUSCULARES } from './mk3-muscle-map-data.js';
-import { colorTexto } from '../utils/tema.js';
 
-const trophySvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path></svg>`;
-const trendUpSvg = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="vertical-align: -1px; margin-right: 3px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`;
+const trophySvgSm = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"></path></svg>`;
+const trendUpSvg = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`;
 
 let timerInterval = null;
 let restTimerInterval = null;
@@ -49,14 +48,9 @@ let prsAlAbrir = {};
 // permanente (por fila casi siempre es "normal", así que mostrarlo
 // siempre desperdiciaba una columna entera). El valor real sigue viviendo
 // en el <select class="serie-tipo"> oculto, para no tocar la lógica de
-// guardado/lectura de series que ya depende de su .value.
+// guardado/lectura de series que ya depende de su .value. El color sale del
+// CSS según data-tipo (css/entreno.css).
 export const TIPO_LABELS = { normal: 'Normal', calentamiento: 'Calentamiento', fallo: 'Fallo', dropset: 'Dropset' };
-const TIPO_COLORS = {
-  normal: { bg: 'var(--surface-1)', border: 'var(--surface-border)', color: 'var(--text-secondary)' },
-  calentamiento: { bg: 'color-mix(in srgb, var(--accent-orange) 15%, transparent)', border: 'var(--accent-orange)', color: 'var(--accent-orange)' },
-  fallo: { bg: 'color-mix(in srgb, var(--state-high) 15%, transparent)', border: 'var(--state-high)', color: 'var(--state-high)' },
-  dropset: { bg: 'color-mix(in srgb, var(--accent-purple) 15%, transparent)', border: 'var(--accent-purple)', color: 'var(--accent-purple)' },
-};
 
 // Buscador del catálogo de ejercicios: el de "Añadir ejercicio" de la
 // sesión en vivo, compartido con la edición de una sesión del historial
@@ -176,22 +170,21 @@ export function abrirBuscadorEjercicios({ permitirPersonalizado = true, conId = 
 // vacías (y se guardaban sin reps).
 function renderSerieRowHtml(s, sIdx, anterior = null) {
   const tipo = s.tipo || 'normal';
-  const tc = TIPO_COLORS[tipo] || TIPO_COLORS.normal;
   const n = sIdx + 1;
   const opcionTipo = (v, l) => `<option value="${v}" ${tipo === v ? 'selected' : ''}>${l}</option>`;
   const marcada = s.checked === true;
   return `
     <div class="serie-row">
       <select class="serie-tipo" hidden aria-hidden="true">${opcionTipo('normal', 'N')}${opcionTipo('calentamiento', 'C')}${opcionTipo('fallo', 'F')}${opcionTipo('dropset', 'D')}</select>
-      <button type="button" class="serie-tipo-chip tappable" data-tipo="${tipo}" title="${TIPO_LABELS[tipo]}" aria-label="Serie ${n}, ${TIPO_LABELS[tipo]}. Cambiar tipo" style="background: ${tc.bg}; border: 1px solid ${tc.border}; color: ${colorTexto(tc.color)};">${n}</button>
-      <span class="serie-anterior num" title="La última vez">${textoAnterior(anterior)}</span>
+      <button type="button" class="serie-tipo-chip tappable" data-tipo="${tipo}" title="${TIPO_LABELS[tipo]}" aria-label="Serie ${n}, ${TIPO_LABELS[tipo]}. Cambiar tipo">${n}</button>
+      <span class="serie-anterior o-num" title="La última vez">${textoAnterior(anterior)}</span>
       <div class="serie-kg"><input type="number" step="0.5" min="0" inputmode="decimal" class="serie-peso" value="${escapeHtml(String(s.peso ?? ''))}" aria-label="Kilos de la serie ${n}"><span class="serie-corporal" aria-hidden="true">Corporal</span></div>
       <input type="text" inputmode="numeric" class="serie-reps" value="${escapeHtml(String(s.reps ?? ''))}" aria-label="Repeticiones o segundos de la serie ${n}">
       <select class="serie-rpe" aria-label="RPE de la serie ${n}">
         <option value="">-</option>
         ${[5, 6, 7, 8, 9, 10].map(v => `<option value="${v}" ${s.rpe == v ? 'selected' : ''}>${v}</option>`).join('')}
       </select>
-      <button type="button" class="btn-check-serie" data-checked="${marcada ? 'true' : 'false'}" aria-label="Marcar la serie ${n} como hecha" style="background: ${marcada ? 'var(--state-success)' : 'var(--surface-2)'}; border: 1px solid ${marcada ? 'var(--state-success)' : 'var(--text-secondary)'}; color: ${marcada ? 'var(--bg)' : 'var(--text-secondary)'};">${marcada ? '✓' : '○'}</button>
+      <button type="button" class="btn-check-serie" data-checked="${marcada ? 'true' : 'false'}" aria-label="Marcar la serie ${n} como hecha">${marcada ? '✓' : '○'}</button>
     </div>
   `;
 }
@@ -237,7 +230,7 @@ function renderRielEjercicios(rutina) {
     return `<button type="button" class="sesion-tab tappable" role="tab" data-ej-idx="${i}" aria-controls="sesion-ej-${i}" aria-selected="false" tabindex="-1" title="${escapeHtml(ej.nombre)}">
         <span class="sesion-tab-check" aria-hidden="true"${total > 0 && hechas === total ? '' : ' hidden'}>✓</span>
         <span class="sesion-tab-nombre">${escapeHtml(corto(ej.nombre))}</span>
-        <span class="sesion-tab-prog num">${hechas}/${total}</span>
+        <span class="sesion-tab-prog o-num">${hechas}/${total}</span>
       </button>`;
   };
   let html = '';
@@ -298,42 +291,42 @@ export async function renderRutinaSession(rutina) {
           <div class="sesion-descanso-config">
             <span>Descanso</span>
             <button type="button" class="btn-rest-minus tappable" aria-label="Restar 15 segundos al descanso">−</button>
-            <span class="sesion-descanso-config-valor"><span id="rest-timer-config-value" class="num">${currentRestTimerSecs}</span> s</span>
+            <span class="sesion-descanso-config-valor"><span id="rest-timer-config-value" class="o-num">${currentRestTimerSecs}</span> s</span>
             <button type="button" class="btn-rest-plus tappable" aria-label="Sumar 15 segundos al descanso">+</button>
           </div>
         </div>
       </div>
       <button type="button" id="btn-finalizar-sesion" class="sesion-barra-finalizar tappable">Finalizar</button>
     </header>
-    <section id="sesion-hud" class="card card-hero sesion-hud" aria-label="Panel de la sesión">
+    <section id="sesion-hud" class="o-card sesion-hud" aria-label="Panel de la sesión">
       <div class="sesion-hud-fila">
         <div class="sesion-hud-mapas">
           <div id="hud-mapa-frente"></div>
           <div id="hud-mapa-espalda"></div>
         </div>
         <dl class="sesion-hud-datos">
-          <div><dt>Tiempo</dt><dd><span id="session-timer" class="num">00:00</span></dd></div>
-          <div><dt>Series</dt><dd><span id="hud-series" class="num">0/0</span></dd></div>
-          <div><dt>Volumen</dt><dd><span id="hud-volumen" class="num">0</span><span id="hud-volumen-meta" class="sesion-hud-meta" hidden> de <span id="hud-volumen-previo" class="num"></span></span> kg <span id="hud-volumen-var" class="sesion-hud-var num" hidden></span></dd></div>
-          <div id="hud-records-bloque" class="sesion-hud-rec"><dt>Récords</dt><dd><span id="hud-records" class="num">0</span><span id="hud-record-ultimo" class="sesion-hud-ultimo"></span></dd></div>
+          <div><dt>Tiempo</dt><dd><span id="session-timer" class="o-num">00:00</span></dd></div>
+          <div><dt>Series</dt><dd><span id="hud-series" class="o-num">0/0</span></dd></div>
+          <div><dt>Volumen</dt><dd><span id="hud-volumen" class="o-num">0</span><span id="hud-volumen-meta" class="sesion-hud-meta" hidden> de <span id="hud-volumen-previo" class="o-num"></span></span> kg <span id="hud-volumen-var" class="sesion-hud-var o-num" hidden></span></dd></div>
+          <div id="hud-records-bloque" class="sesion-hud-rec"><dt>Récords</dt><dd><span id="hud-records" class="o-num">0</span><span id="hud-record-ultimo" class="sesion-hud-ultimo"></span></dd></div>
         </dl>
       </div>
       <div class="sesion-hud-linea">
         <span id="hud-linea-datos" class="sesion-hud-linea-datos"></span>
-        <span class="sesion-hud-linea-descanso">Descanso <span id="hud-linea-cuenta" class="num">00:00</span><button type="button" id="btn-descanso-saltar-linea" class="tappable">Saltar</button></span>
+        <span class="sesion-hud-linea-descanso">Descanso <span id="hud-linea-cuenta" class="o-num">00:00</span><button type="button" id="btn-descanso-saltar-linea" class="tappable">Saltar</button></span>
       </div>
       <div id="hud-descanso" class="sesion-hud-descanso" hidden>
         <div class="sesion-descanso-fila">
           <div class="sesion-descanso-anillo">
             <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="sesion-descanso-fondo" cx="32" cy="32" r="28"></circle><circle id="hud-descanso-arco" class="sesion-descanso-arco" cx="32" cy="32" r="28"></circle></svg>
-            <div class="sesion-descanso-cuenta"><span id="hud-descanso-cuenta" class="num" role="timer">00:00</span><span class="sesion-descanso-de">de <span id="hud-descanso-total" class="num"></span></span></div>
+            <div class="sesion-descanso-cuenta"><span id="hud-descanso-cuenta" class="o-num" role="timer">00:00</span><span class="sesion-descanso-de">de <span id="hud-descanso-total" class="o-num"></span></span></div>
           </div>
           <div class="sesion-descanso-info">
             <div class="sesion-descanso-etq">Descanso</div>
             <div id="hud-descanso-siguiente" class="sesion-descanso-siguiente"></div>
             <div class="sesion-descanso-btns">
-              <button type="button" id="btn-descanso-menos" class="tappable" aria-label="Restar 15 segundos">−<span class="num">15</span></button>
-              <button type="button" id="btn-descanso-mas" class="tappable" aria-label="Sumar 15 segundos">+<span class="num">15</span></button>
+              <button type="button" id="btn-descanso-menos" class="tappable" aria-label="Restar 15 segundos">−<span class="o-num">15</span></button>
+              <button type="button" id="btn-descanso-mas" class="tappable" aria-label="Sumar 15 segundos">+<span class="o-num">15</span></button>
               <button type="button" id="btn-descanso-saltar" class="tappable">Saltar</button>
             </div>
           </div>
@@ -380,7 +373,7 @@ export async function renderRutinaSession(rutina) {
     const esSegundoDelGrupo = !!ej.grupoId && gruposYaMostrados.has(ej.grupoId);
     if (ej.grupoId) gruposYaMostrados.add(ej.grupoId);
     const supChipHtml = esSegundoDelGrupo
-      ? `<div style="margin-bottom: 8px;"><span class="badge badge--medium">SUPERSERIE · sin descanso entre estos dos</span></div>`
+      ? `<p class="sesion-ss-aviso">SUPERSERIE · sin descanso entre estos dos</p>`
       : '';
 
     // Chips del ejercicio en una línea: récord, nivel de progresión,
@@ -388,28 +381,28 @@ export async function renderRutinaSession(rutina) {
     const chips = [];
     if (pr && pr.pesoMax > 0) {
       const rm = db.estimar1RM(pr.pesoMax, pr.repsMax || pr.repsEnPesoMax || 1);
-      chips.push(`<span class="sesion-chip">${trophySvgSm}PR <span class="num">${formatNumero(pr.pesoMax)}</span> kg${rm > 0 ? ` · 1RM ~<span class="num">${formatNumero(rm)}</span> kg` : ''}</span>`);
+      chips.push(`<span class="sesion-chip">${trophySvgSm}PR <span class="o-num">${formatNumero(pr.pesoMax)}</span> kg${rm > 0 ? ` · 1RM ~<span class="o-num">${formatNumero(rm)}</span> kg` : ''}</span>`);
     } else if (pr && pr.pesoMax === 0 && pr.repsMax > 0) {
-      chips.push(`<span class="sesion-chip">${trophySvgSm}PR <span class="num">${formatNumero(pr.repsMax)}</span> reps</span>`);
+      chips.push(`<span class="sesion-chip">${trophySvgSm}PR <span class="o-num">${formatNumero(pr.repsMax)}</span> reps</span>`);
     }
     if (prog) {
-      chips.push(`<span class="sesion-chip">${trendUpSvg}${RAMA_LABELS[prog.familia] || prog.familia} · Nv.<span class="num">${prog.nivelActual}/${prog.nivelTotal}</span></span>`);
+      chips.push(`<span class="sesion-chip">${trendUpSvg}${RAMA_LABELS[prog.familia] || prog.familia} · Nv.<span class="o-num">${prog.nivelActual}/${prog.nivelTotal}</span></span>`);
     }
     if (sug) {
       const sube = sug.accion === 'aumentar';
-      const valor = sug.peso > 0 ? `<span class="num">${formatNumero(sug.peso)}</span> kg` : `<span class="num">${formatNumero(sug.reps)}</span> reps`;
+      const valor = sug.peso > 0 ? `<span class="o-num">${formatNumero(sug.peso)}</span> kg` : `<span class="o-num">${formatNumero(sug.reps)}</span> reps`;
       chips.push(`<button type="button" class="sesion-chip sesion-chip--accion btn-sugerencia tappable" data-ejnombre="${escapeHtml(ej.nombre)}" data-peso="${sug.peso}" data-reps="${sug.reps}" aria-label="Aplicar la sugerencia a las series sin marcar">${sube ? '↑ Sube' : '↓ Baja'} a ${valor}</button>`);
     }
     if (estancado) {
-      chips.push(`<button type="button" class="sesion-chip sesion-chip--ambar btn-estancado tappable" aria-expanded="false">Estancado <span class="num">3</span> ses.</button>`);
+      chips.push(`<button type="button" class="sesion-chip sesion-chip--ambar btn-estancado tappable" aria-expanded="false">Estancado <span class="o-num">3</span> ses.</button>`);
     }
 
     html += `
-      <div class="card ejercicio-sesion-block" id="sesion-ej-${idx}" role="tabpanel" data-ej-idx="${idx}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" data-peso-corporal="${esCorporal}" data-equipo="${escapeHtml((meta && meta.equipo) || '')}" data-descanso-clave="${escapeHtml(db.claveDescansoEjercicio({ ejercicioId: ej.ejercicioId, nombre: ej.nombre }) || '')}"${esSegundoDelGrupo ? ' data-superserie-segundo="true"' : ''}>
+      <div class="o-card ejercicio-sesion-block" id="sesion-ej-${idx}" role="tabpanel" data-ej-idx="${idx}" data-ej-nombre="${escapeHtml(ej.nombre)}"${ej.ejercicioId !== undefined ? ` data-ej-id="${escapeHtml(ej.ejercicioId || '')}"` : ''} data-grupo-id="${ej.grupoId || ''}" data-peso-corporal="${esCorporal}" data-equipo="${escapeHtml((meta && meta.equipo) || '')}" data-descanso-clave="${escapeHtml(db.claveDescansoEjercicio({ ejercicioId: ej.ejercicioId, nombre: ej.nombre }) || '')}"${esSegundoDelGrupo ? ' data-superserie-segundo="true"' : ''}>
         ${supChipHtml}
         <div class="sesion-ej-cabecera">
           <div class="sesion-ej-titulo">
-            <div class="sesion-ej-rotulo">Ejercicio <span class="num">${idx + 1}</span> de <span class="num">${totalEjercicios}</span>${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular] ? ` · ${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular]}` : ''}</div>
+            <div class="sesion-ej-rotulo">Ejercicio <span class="o-num">${idx + 1}</span> de <span class="o-num">${totalEjercicios}</span>${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular] ? ` · ${GRUPO_MUSCULAR_LABELS[meta.grupoMuscular]}` : ''}</div>
             <h3>${escapeHtml(ej.nombre)}</h3>
           </div>
           <div class="sesion-ej-menu-wrap">
@@ -425,9 +418,9 @@ export async function renderRutinaSession(rutina) {
             </div>
           </div>
         </div>
-        <div id="progreso-container-${idSafeFragment(ej.nombre)}" style="display: none; width: 100%; margin-bottom: 8px;"></div>
+        <div id="progreso-container-${idSafeFragment(ej.nombre)}" class="sesion-ej-progreso" hidden></div>
         ${chips.length ? `<div class="sesion-ej-chips">${chips.join('')}</div>` : ''}
-        ${estancado ? `<p class="sesion-ej-estancado" hidden>Sin mejora en tus últimas <span class="num">3</span> sesiones: prueba variar las reps, el descanso o el ejercicio.</p>` : ''}
+        ${estancado ? `<p class="sesion-ej-estancado" hidden>Sin mejora en tus últimas <span class="o-num">3</span> sesiones: prueba variar las reps, el descanso o el ejercicio.</p>` : ''}
         <div class="serie-tabla-cab" aria-hidden="true"><span>#</span><span>Anterior</span><span>KG</span><span>Reps</span><span>RPE</span><span>✓</span></div>
         <div class="series-list" data-ejnombre="${escapeHtml(ej.nombre)}">
           ${ej.series.map((s, sIdx) => renderSerieRowHtml(s, sIdx, anterior && anterior.series ? anterior.series[sIdx] : null)).join('')}
@@ -435,13 +428,13 @@ export async function renderRutinaSession(rutina) {
         <p class="sesion-descanso-ayuda" hidden></p>
         <button type="button" class="btn-add-serie tappable">+ Serie</button>
         <div class="sesion-editor" aria-label="Serie que toca">
-          <div class="sesion-editor-titulo">Serie <span class="num sesion-editor-n"></span><span class="sesion-editor-tipo"></span><span class="sesion-editor-1rm"></span></div>
+          <div class="sesion-editor-titulo">Serie <span class="o-num sesion-editor-n"></span><span class="sesion-editor-tipo"></span><span class="sesion-editor-1rm"></span></div>
           <div class="sesion-editor-campos">
             <div class="sesion-editor-campo">
               <span class="sesion-editor-etq">KG</span>
               <div class="sesion-editor-ctrl">
                 <button type="button" class="sesion-editor-btn tappable" data-campo="peso" data-paso="-2.5" aria-label="Restar 2,5 kg">−</button>
-                <output class="sesion-editor-valor num" data-campo="peso" tabindex="0" title="Mantén presionado para la calculadora de discos"></output>
+                <output class="sesion-editor-valor o-num" data-campo="peso" tabindex="0" title="Mantén presionado para la calculadora de discos"></output>
                 <button type="button" class="sesion-editor-btn tappable" data-campo="peso" data-paso="2.5" aria-label="Sumar 2,5 kg">+</button>
               </div>
             </div>
@@ -449,14 +442,14 @@ export async function renderRutinaSession(rutina) {
               <span class="sesion-editor-etq">Reps</span>
               <div class="sesion-editor-ctrl">
                 <button type="button" class="sesion-editor-btn tappable" data-campo="reps" data-paso="-1" aria-label="Restar 1 repetición">−</button>
-                <output class="sesion-editor-valor num" data-campo="reps"></output>
+                <output class="sesion-editor-valor o-num" data-campo="reps"></output>
                 <button type="button" class="sesion-editor-btn tappable" data-campo="reps" data-paso="1" aria-label="Sumar 1 repetición">+</button>
               </div>
             </div>
           </div>
           <div class="sesion-editor-rpe" role="group" aria-label="RPE de la serie">
             <span class="sesion-editor-etq">RPE</span>
-            ${[6, 7, 8, 9, 10].map(v => `<button type="button" class="sesion-rpe-chip num tappable" data-rpe="${v}" aria-pressed="false">${v}</button>`).join('')}
+            ${[6, 7, 8, 9, 10].map(v => `<button type="button" class="sesion-rpe-chip o-num tappable" data-rpe="${v}" aria-pressed="false">${v}</button>`).join('')}
           </div>
         </div>
       </div>`;
@@ -543,9 +536,6 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         row.classList.toggle('serie-row--pr', record);
         row.classList.toggle('serie-row--corporal', esCorporalBloque(b) && !((parseFloat(row.querySelector('.serie-peso').value) || 0) > 0));
         btn.textContent = record ? '★' : marcada ? '✓' : '○';
-        btn.style.background = record ? 'var(--am)' : marcada ? 'var(--state-success)' : 'var(--surface-2)';
-        btn.style.borderColor = record ? 'var(--am)' : marcada ? 'var(--state-success)' : 'var(--text-secondary)';
-        btn.style.color = record ? 'var(--bg)' : marcada ? 'var(--bg)' : 'var(--text-secondary)';
         btn.setAttribute('aria-label', record ? `Serie ${i + 1}: nuevo récord. Desmarcar` : marcada ? `Desmarcar la serie ${i + 1}` : `Marcar la serie ${i + 1} como hecha`);
         let nota = row.nextElementSibling && row.nextElementSibling.classList.contains('serie-pr-nota') ? row.nextElementSibling : null;
         if (!record) { if (nota) nota.remove(); return; }
@@ -591,7 +581,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const datos = document.getElementById('hud-linea-datos');
     if (!datos) return;
     const nRec = Number(document.getElementById('hud-records')?.textContent || 0);
-    datos.innerHTML = `<span class="num">${document.getElementById('session-timer')?.textContent || ''}</span> · <span class="num">${document.getElementById('hud-series')?.textContent || ''}</span> series · <span class="num">${document.getElementById('hud-volumen')?.textContent || '0'}</span> kg${nRec ? ` · <span class="sesion-hud-linea-rec">★ <span class="num">${nRec}</span></span>` : ''}`;
+    datos.innerHTML = `<span class="o-num">${document.getElementById('session-timer')?.textContent || ''}</span> · <span class="o-num">${document.getElementById('hud-series')?.textContent || ''}</span> series · <span class="o-num">${document.getElementById('hud-volumen')?.textContent || '0'}</span> kg${nRec ? ` · <span class="sesion-hud-linea-rec">★ <span class="o-num">${nRec}</span></span>` : ''}`;
     const cuenta = document.getElementById('hud-linea-cuenta');
     if (cuenta && descanso) cuenta.textContent = document.getElementById('hud-descanso-cuenta')?.textContent || '';
   };
@@ -874,7 +864,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const p = parseFloat(peso) || 0, r = parseInt(reps) || 0;
     // En una serie de calentamiento no se muestra el 1RM estimado.
     const rm = tipo !== 'calentamiento' && p > 0 && r > 0 ? db.estimar1RM(p, r) : 0;
-    ed.querySelector('.sesion-editor-1rm').innerHTML = rm > 0 ? ` · 1RM ~<span class="num">${formatNumero(rm)}</span> kg` : '';
+    ed.querySelector('.sesion-editor-1rm').innerHTML = rm > 0 ? ` · 1RM ~<span class="o-num">${formatNumero(rm)}</span> kg` : '';
     const valorPeso = ed.querySelector('.sesion-editor-valor[data-campo="peso"]');
     valorPeso.textContent = textoPeso(peso, b);
     valorPeso.classList.toggle('sesion-editor-valor--texto', valorPeso.textContent === 'Corporal');
@@ -897,7 +887,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       // antes de tiempo está "Saltar" en el HUD.
       btn.dataset.modo = 'descanso';
       btn.setAttribute('aria-disabled', 'true');
-      btn.innerHTML = `Descansando… <span class="num">${mmss(restantes())}</span>`;
+      btn.innerHTML = `Descansando… <span class="o-num">${mmss(restantes())}</span>`;
       return;
     }
     btn.removeAttribute('aria-disabled');
@@ -915,7 +905,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         btn.textContent = `✓ Completar y pasar a ${nombreCorto(sig.dataset.ejNombre)} →`;
       } else {
         btn.dataset.modo = 'completar';
-        btn.innerHTML = `✓ Completar serie <span class="num">${n}</span> · <span class="num">${escapeHtml(carga)}</span>`;
+        btn.innerHTML = `✓ Completar serie <span class="o-num">${n}</span> · <span class="o-num">${escapeHtml(carga)}</span>`;
       }
     } else if (b && bloques.indexOf(b) < bloques.length - 1) {
       btn.dataset.modo = 'siguiente';
@@ -1098,7 +1088,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         chips.prepend(chip);
       }
       chip.setAttribute('aria-label', `Descanso de este ejercicio: ${mmssDescanso(ov)}`);
-      chip.innerHTML = `⏱ <span class="num">${mmssDescanso(ov)}</span>`;
+      chip.innerHTML = `⏱ <span class="o-num">${mmssDescanso(ov)}</span>`;
     });
   };
   // Hoja del descanso del ejercicio: valor en mono, −/+ 15 s y "Usar el
@@ -1122,7 +1112,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         <p class="descanso-ej-nombre">${escapeHtml(nombre)}</p>
         <div class="descanso-ej-ctrl">
           <button type="button" class="descanso-ej-btn tappable" data-delta="-15" aria-label="Restar 15 segundos">−15</button>
-          <div class="descanso-ej-valor"><span class="num" id="descanso-ej-valor" aria-live="polite"></span><span class="descanso-ej-origen" id="descanso-ej-origen"></span></div>
+          <div class="descanso-ej-valor"><span class="o-num" id="descanso-ej-valor" aria-live="polite"></span><span class="descanso-ej-origen" id="descanso-ej-origen"></span></div>
           <button type="button" class="descanso-ej-btn tappable" data-delta="15" aria-label="Sumar 15 segundos">+15</button>
         </div>
         <button type="button" class="descanso-ej-general tappable" id="descanso-ej-general">Usar el general</button>
@@ -1196,7 +1186,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         if (!enBarra || !esCalentamiento(row) || peso <= 0) { if (linea) linea.remove(); return; }
         const discos = calcularDiscos(peso, 20);
         const texto = discos.length ? `por lado: ${discos.map(d => formatNumero(d, { decimales: 2 })).join(' + ')}` : 'solo la barra';
-        if (!linea) { linea = document.createElement('div'); linea.className = 'serie-discos num'; row.after(linea); }
+        if (!linea) { linea = document.createElement('div'); linea.className = 'serie-discos o-num'; row.after(linea); }
         if (linea.textContent !== texto) linea.textContent = texto;
       });
     });
@@ -1476,7 +1466,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
     const volTxt = document.getElementById('hud-volumen')?.textContent || '0';
     const nRec = Number(document.getElementById('hud-records')?.textContent || 0);
     // En modo descanso el bloque Récords no se ve: los récords van en esta línea.
-    document.getElementById('hud-descanso-resumen').innerHTML = `Tiempo <span class="num">${document.getElementById('session-timer')?.textContent || ''}</span> · Series <span class="num">${seriesTxt}</span> · <span class="num">${volTxt}</span> kg${nRec > 0 ? ` · <span class="sesion-descanso-records"><span class="num">${nRec}</span> ${nRec === 1 ? 'récord' : 'récords'}</span>` : ''}`;
+    document.getElementById('hud-descanso-resumen').innerHTML = `Tiempo <span class="o-num">${document.getElementById('session-timer')?.textContent || ''}</span> · Series <span class="o-num">${seriesTxt}</span> · <span class="o-num">${volTxt}</span> kg${nRec > 0 ? ` · <span class="sesion-descanso-records"><span class="o-num">${nRec}</span> ${nRec === 1 ? 'récord' : 'récords'}</span>` : ''}`;
   };
 
   const terminarDescanso = ({ sonar }) => {
@@ -1665,13 +1655,13 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       const containerId = 'progreso-container-' + idSafeFragment(nombre);
       const chartCanvasId = containerId + '-chart';
       const container = document.getElementById(containerId);
-      if (container.style.display === 'none') {
+      if (container.hidden) {
         const hist = currentHistorial[nombre];
         container.innerHTML = renderEjercicioDetalle(nombre, hist, chartCanvasId);
-        container.style.display = 'block';
+        container.hidden = false;
         initEjercicioDetalleChart(chartCanvasId, hist);
       } else {
-        container.style.display = 'none';
+        container.hidden = true;
       }
     });
   });
@@ -1725,9 +1715,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
 
         const popover = document.createElement('div');
         popover.className = 'tipo-serie-popover';
-        popover.style.cssText = 'position:absolute; top:calc(100% + 4px); left:0; z-index:50; background:var(--surface-2); border:1px solid var(--surface-border); padding:4px; display:flex; flex-direction:column; gap:2px; min-width:140px;';
         popover.innerHTML = Object.keys(TIPO_LABELS).map(t =>
-          `<button type="button" class="tappable" data-tipo="${t}" style="text-align:left; padding:8px 10px; background:transparent; border:none; color:${colorTexto(TIPO_COLORS[t].color)}; font-size:13px; font-weight:600; cursor:pointer;">${TIPO_LABELS[t]}</button>`
+          `<button type="button" class="tipo-serie-op tappable" data-tipo="${t}">${TIPO_LABELS[t]}</button>`
         ).join('');
         row.appendChild(popover);
 
@@ -1737,10 +1726,6 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
             const tipo = optBtn.getAttribute('data-tipo');
             tipoSelect.value = tipo;
             tipoSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            const tc = TIPO_COLORS[tipo];
-            tipoChip.style.background = tc.bg;
-            tipoChip.style.borderColor = tc.border;
-            tipoChip.style.color = colorTexto(tc.color);
             tipoChip.setAttribute('data-tipo', tipo);
             tipoChip.title = TIPO_LABELS[tipo];
             popover.remove();
@@ -1761,17 +1746,11 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         // Desmarcar es para rehacerla: pasa a ser la que toca.
         const bloqueFila = row.closest('.ejercicio-sesion-block');
         if (bloqueFila) fijarToca(bloqueFila, row);
-        btn.style.background = 'var(--surface-2)';
-        btn.style.color = 'var(--text-secondary)';
-        btn.style.borderColor = 'var(--text-secondary)';
       } else {
         btn.setAttribute('data-checked', 'true');
         row.dataset.marcadaTs = String(Date.now());
-        btn.style.background = 'var(--state-success)';
-        btn.style.color = 'var(--bg)';
-        btn.style.borderColor = 'var(--state-success)';
 
-        const ejContainer = row.closest('.card');
+        const ejContainer = row.closest('.ejercicio-sesion-block');
 
         // Superserie: sin descanso ENTRE los ejercicios agrupados — el
         // timer arranca recién al completar una serie del ÚLTIMO ejercicio
@@ -1937,11 +1916,11 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
   const variacionHtml = (actual, previo) => {
     if (!previo || previo <= 0) return '';
     const pct = Math.round(((actual - previo) / previo) * 100);
-    return ` <span class="sesion-resumen-var${pct >= 0 ? ' sesion-resumen-var--sube' : ''}">${pct >= 0 ? '▲' : '▼'} <span class="num">${Math.abs(pct)}</span> %</span>`;
+    return ` <span class="sesion-resumen-var${pct >= 0 ? ' sesion-resumen-var--sube' : ''}">${pct >= 0 ? '▲' : '▼'} <span class="o-num">${Math.abs(pct)}</span> %</span>`;
   };
   const textoDuracion = (min) => {
     const h = Math.floor(min / 60), m = min % 60;
-    return h > 0 ? `<span class="num">${h}</span> h <span class="num">${m}</span> min` : `<span class="num">${m}</span> min`;
+    return h > 0 ? `<span class="o-num">${h}</span> h <span class="o-num">${m}</span> min` : `<span class="o-num">${m}</span> min`;
   };
 
   const cerrarResumen = () => {
@@ -1982,8 +1961,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       const mejor = rs.reduce((m, r) => ((parseFloat(r.querySelector('.serie-peso').value) || 0) > (parseFloat(m.querySelector('.serie-peso').value) || 0) ? r : m), rs[0]);
       const peso = parseFloat(mejor.querySelector('.serie-peso').value) || 0;
       const reps = parseFloat(mejor.querySelector('.serie-reps').value) || 0;
-      const valor = peso > 0 ? `<span class="num">${formatNumero(peso)}</span> kg` : `<span class="num">${formatNumero(reps)}</span> reps`;
-      const antes = peso > 0 ? (pr.pesoMax > 0 ? ` (antes <span class="num">${formatNumero(pr.pesoMax)}</span>)` : '') : (pr.repsMax > 0 ? ` (antes <span class="num">${formatNumero(pr.repsMax)}</span>)` : '');
+      const valor = peso > 0 ? `<span class="o-num">${formatNumero(peso)}</span> kg` : `<span class="o-num">${formatNumero(reps)}</span> reps`;
+      const antes = peso > 0 ? (pr.pesoMax > 0 ? ` (antes <span class="o-num">${formatNumero(pr.pesoMax)}</span>)` : '') : (pr.repsMax > 0 ? ` (antes <span class="o-num">${formatNumero(pr.repsMax)}</span>)` : '');
       records.push(`<li>★ ${escapeHtml(b.dataset.ejNombre)} · ${valor}${antes}</li>`);
     });
 
@@ -1995,8 +1974,8 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       const n = marcadasDe(b).length;
       return `<tr>
         <th scope="row">${escapeHtml(b.dataset.ejNombre)}</th>
-        <td><span class="num">${n}</span></td>
-        <td>${vol > 0 ? `<span class="num">${formatNumero(vol, { decimales: 0 })}</span> kg` : '—'}</td>
+        <td><span class="o-num">${n}</span></td>
+        <td>${vol > 0 ? `<span class="o-num">${formatNumero(vol, { decimales: 0 })}</span> kg` : '—'}</td>
         <td>${vol > 0 && volAnt > 0 ? variacionHtml(vol, volAnt).trim() : '—'}</td>
       </tr>`;
     }).join('');
@@ -2006,15 +1985,15 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
       <header class="sesion-barra sesion-resumen-barra">
         <div class="sesion-barra-titulo">
           <h2 id="sesion-resumen-titulo" tabindex="-1">Sesión completada</h2>
-          <div>${escapeHtml(rutina.nombre)} · ${escapeHtml(dia)} <span class="num">${escapeHtml(formatFechaCorta(startTime))}</span></div>
+          <div>${escapeHtml(rutina.nombre)} · ${escapeHtml(dia)} <span class="o-num">${escapeHtml(formatFechaCorta(startTime))}</span></div>
         </div>
       </header>
-      <section class="card card-hero sesion-hud sesion-resumen-hero" aria-label="Resumen de la sesión">
+      <section class="o-card sesion-hud sesion-resumen-hero" aria-label="Resumen de la sesión">
         <dl class="sesion-hud-datos">
           <div><dt>Duración</dt><dd>${textoDuracion(duracionMin)}</dd></div>
-          <div><dt>Volumen</dt><dd><span class="num">${formatNumero(volumen, { decimales: 0 })}</span> kg${variacionHtml(volumen, volumenRutinaPrevio)}</dd></div>
-          <div><dt>Series</dt><dd><span class="num">${todasMarcadas.length}/${total}</span></dd></div>
-          <div><dt>RPE promedio</dt><dd>${rpeProm ? `<span class="num">${rpeProm}</span>` : '—'}</dd></div>
+          <div><dt>Volumen</dt><dd><span class="o-num">${formatNumero(volumen, { decimales: 0 })}</span> kg${variacionHtml(volumen, volumenRutinaPrevio)}</dd></div>
+          <div><dt>Series</dt><dd><span class="o-num">${todasMarcadas.length}/${total}</span></dd></div>
+          <div><dt>RPE promedio</dt><dd>${rpeProm ? `<span class="o-num">${rpeProm}</span>` : '—'}</dd></div>
         </dl>
       </section>
       <section class="sesion-resumen-cuerpo" aria-label="Músculos y récords">
@@ -2036,7 +2015,7 @@ export function initRutinaSessionListeners(rutina, onSuccess, signal, opciones =
         <textarea id="sesion-resumen-notas" rows="2" placeholder="¿Cómo te sentiste?"></textarea>
         <div class="sesion-resumen-rpe" role="group" aria-label="RPE de la sesión">
           <span>RPE de la sesión</span>
-          <div>${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => `<button type="button" class="sesion-rpe-chip num tappable" data-rpe-sesion="${v}" aria-pressed="false">${v}</button>`).join('')}</div>
+          <div>${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => `<button type="button" class="sesion-rpe-chip o-num tappable" data-rpe-sesion="${v}" aria-pressed="false">${v}</button>`).join('')}</div>
         </div>
       </section>
       <div class="sesion-resumen-acciones">
@@ -2240,10 +2219,10 @@ function preguntarDuracionLarga(inicio, duracionRealMin) {
   return preguntarOpciones({
     id: 'sesion-duracion-modal',
     titulo: '¿Qué duración guardo?',
-    texto: `Esta sesión empezó el ${escapeHtml(dia)} <span class="num">${escapeHtml(formatFechaCorta(inicio))}</span> a las <span class="num">${escapeHtml(hora)}</span>, hace más de <span class="num">12</span> horas.`,
+    texto: `Esta sesión empezó el ${escapeHtml(dia)} <span class="o-num">${escapeHtml(formatFechaCorta(inicio))}</span> a las <span class="o-num">${escapeHtml(hora)}</span>, hace más de <span class="o-num">12</span> horas.`,
     opciones: [
-      { valor: '60', html: 'Usar <span class="num">60</span> min', principal: true },
-      { valor: 'real', html: `Usar la duración real · <span class="num">${realTxt}</span>` },
+      { valor: '60', html: 'Usar <span class="o-num">60</span> min', principal: true },
+      { valor: 'real', html: `Usar la duración real · <span class="o-num">${realTxt}</span>` },
       { valor: '', html: 'Cancelar', neutro: true }
     ]
   });

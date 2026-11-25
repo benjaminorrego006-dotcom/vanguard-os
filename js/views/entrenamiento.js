@@ -962,7 +962,9 @@ mountListeners = () => {
     const signal = currentViewController.signal;
 
     viewState = 'session';
-    mostrarSubVista();
+    // GYM/Calistenia (también al retomar) ya en Órbita (Fase 9d); el
+    // temporizador de HIIT y el descanso activo siguen en MK III.
+    mostrarSubVista(!borrador && !usaBorrador(rutina));
 
     try {
       if (borrador) {

@@ -34,3 +34,11 @@ const CON_TEXTO = /var\(--(cy|am2|am|vi|rd|accent-(?:primary|purple|teal|orange|
 export function colorTexto(color) {
   return typeof color === 'string' ? color.replace(CON_TEXTO, 'var(--$1-t)') : color;
 }
+
+// Color real de un token de Órbita dentro del ámbito de un módulo (.o-mod-*),
+// para lo que no entiende var(), como Chart.js. Sin el módulo en pantalla,
+// el valor de la raíz.
+export function colorModulo(token, modulo) {
+  const el = document.querySelector(`#view-root .o-mod-${modulo}`) || document.documentElement;
+  return getComputedStyle(el).getPropertyValue(token).trim();
+}

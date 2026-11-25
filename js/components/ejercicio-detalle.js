@@ -1,9 +1,11 @@
 // js/components/ejercicio-detalle.js
 import { db } from '../core/db.js';
-import { ensureChartJs, appPalette, baseChartOptions, chartFontFamily, cssVar, hdPixelRatio, lineValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
+import { ensureChartJs, baseChartOptions, chartFontFamily, hdPixelRatio, lineValueLabelsPlugin, verticalGradient } from '../utils/charts.js';
 import { escapeHtml } from '../utils/escape.js';
 import { formatFechaCorta, formatFechaLarga } from '../utils/fecha.js';
 import { formatNumero } from '../utils/numero.js';
+import { oIcono } from './orbita.js';
+import { colorModulo } from '../utils/tema.js';
 
 const chartInstances = new Map(); // canvasId -> Chart instance (para destruir al re-togglear)
 
@@ -17,20 +19,21 @@ export function cleanupEjercicioCharts() {
 
 export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
   if (!historial || historial.length === 0) {
-    return `<div style="padding: 16px; color: var(--text-secondary); text-align: center; font-size: 13px;">Aún no hay historial para graficar este ejercicio.</div>`;
+    return `<p class="o-ent-pej-nota" data-foto="prog-vacio">Aún no hay historial para graficar este ejercicio.</p>`;
   }
 
   const esPesoCorporal = historial.every(d => d.pesoMax === 0);
   const tieneDatos = historial.length >= 2;
 
   const chartHtml = tieneDatos
-    ? `<div style="height: 150px;"><canvas id="${chartCanvasId}"></canvas></div>`
-    : `<div style="display:flex; align-items:center; justify-content:center; height:90px; color: var(--text-disabled); font-size: 12px;">Necesitas al menos 2 sesiones registradas para ver la tendencia.</div>`;
+    ? `<div class="o-ent-graf"><canvas id="${chartCanvasId}" role="img" aria-label="Progreso de ${escapeHtml(nombre)} por sesión"></canvas></div>`
+    : `<p class="o-ent-pej-nota" data-foto="prog-vacio">Necesitas al menos 2 sesiones registradas para ver la tendencia.</p>`;
 
+  // Peso o 1RM: chips con aria-pressed (el gráfico cambia de serie).
   const toggleHtml = (tieneDatos && !esPesoCorporal) ? `
-    <div id="${chartCanvasId}-toggle" style="display: flex; gap: 6px; margin-bottom: 10px;">
-      <button type="button" class="btn-chart-mode" data-mode="peso" style="flex: 1; padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid var(--accent-teal); background: var(--accent-teal); color: var(--bg);">Peso</button>
-      <button type="button" class="btn-chart-mode" data-mode="1rm" style="flex: 1; padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid var(--surface-border); background: transparent; color: var(--text-secondary);">1RM</button>
+    <div id="${chartCanvasId}-toggle" class="o-chips" role="group" aria-label="Qué mostrar en el gráfico">
+      <button type="button" class="o-chip btn-chart-mode" data-mode="peso" aria-pressed="true">Peso</button>
+      <button type="button" class="o-chip btn-chart-mode" data-mode="1rm" aria-pressed="false">1RM</button>
     </div>
   ` : '';
 
@@ -62,41 +65,30 @@ export function renderEjercicioDetalle(nombre, historial, chartCanvasId) {
   prEvents = prEvents.reverse().slice(0, 5);
 
   const prHistHtml = prEvents.length > 0 ? `
-    <div style="margin-top: 14px;">
-      <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Historial de PRs</div>
-      <div style="display: flex; flex-direction: column; gap: 6px;">
+    <section class="o-ent-pej-prs" aria-label="Historial de récords">
+      <h5 class="o-rotulo">Historial de PRs</h5>
+      <ul class="o-ent-pej-prs-lista">
         ${prEvents.map(ev => `
-          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
-            <span style="color: var(--text-secondary);">${formatFechaLarga(new Date(ev.fecha))}</span>
-            <span class="num" style="color: var(--text-primary); font-weight: 700;">🏆 ${ev.texto}</span>
-          </div>
+          <li data-foto="prog-pr">
+            <span data-foto="prog-pr-fecha">${formatFechaLarga(new Date(ev.fecha))}</span>
+            <b class="o-num">${oIcono('estrella')}<span data-foto="prog-pr-valor">${ev.texto}</span></b>
+          </li>
         `).join('')}
-      </div>
-    </div>
+      </ul>
+    </section>
   ` : '';
 
   return `
-    <div class="card" style="padding: 18px; margin-bottom: 16px;">
-      <h4 style="margin: 0 0 12px 0; color: var(--text-primary); font-size: 13px; font-weight: 700;">Progreso: ${escapeHtml(nombre)}</h4>
-
+    <section class="o-card o-ent-pej" aria-label="Progreso de ${escapeHtml(nombre)}">
+      <h4 class="o-ent-pej-titulo" data-foto="prog-titulo">Progreso: ${escapeHtml(nombre)}</h4>
       ${toggleHtml}
       ${chartHtml}
-
-      <div style="display: flex; gap: 8px; margin-top: 14px;">
-        ${max1RM > 0 ? `
-          <div style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); padding: 12px; text-align: center;">
-            <div class="num" style="font-size: 16px; font-weight: 800; color: var(--text-primary);">${formatNumero(max1RM)} kg</div>
-            <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">1RM estimado</div>
-          </div>
-        ` : ''}
-        <div style="flex: 1; background: var(--surface-2); border: 1px solid var(--surface-border); padding: 12px; text-align: center;">
-          <div class="num" style="font-size: 16px; font-weight: 800; color: var(--text-primary);">${formatNumero(ultimo.volumenTotal)}</div>
-          <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">Volumen última sesión</div>
-        </div>
-      </div>
-
+      <dl class="o-ent-pej-datos">
+        ${max1RM > 0 ? `<div><dd class="o-num" data-foto="prog-rm">${formatNumero(max1RM)} kg</dd><dt>1RM estimado</dt></div>` : ''}
+        <div><dd class="o-num" data-foto="prog-vol">${formatNumero(ultimo.volumenTotal)}</dd><dt>Volumen última sesión</dt></div>
+      </dl>
       ${prHistHtml}
-    </div>
+    </section>
   `;
 }
 
@@ -109,7 +101,9 @@ export async function initEjercicioDetalleChart(chartCanvasId, historial) {
   if (!canvas || !historial || historial.length < 2) return;
 
   const Chart = await ensureChartJs();
-  const palette = appPalette();
+  // Colores del módulo (Órbita): Chart.js necesita el color real.
+  const mod = colorModulo('--o-mod', 'entreno');
+  const texto2 = colorModulo('--o-text-2', 'entreno');
   const opts = baseChartOptions();
 
   const esPesoCorporal = historial.every(d => d.pesoMax === 0);
@@ -122,7 +116,7 @@ export async function initEjercicioDetalleChart(chartCanvasId, historial) {
 
   // Degradado real en vez de un alpha plano — más profundidad visual bajo
   // la línea, mismo criterio que el resto de los charts "HD" de la app.
-  const gradient = verticalGradient(canvas.getContext('2d'), palette.teal, canvas.clientHeight || 150);
+  const gradient = verticalGradient(canvas.getContext('2d'), mod, canvas.clientHeight || 150);
 
   if (chartInstances.has(chartCanvasId)) chartInstances.get(chartCanvasId).destroy();
   const chart = new Chart(canvas, {
@@ -131,13 +125,13 @@ export async function initEjercicioDetalleChart(chartCanvasId, historial) {
       labels,
       datasets: [{
         data: pesoData,
-        borderColor: palette.teal,
+        borderColor: mod,
         backgroundColor: gradient,
         fill: true,
         tension: 0.3,
         pointRadius: 4,
-        pointBackgroundColor: palette.teal,
-        pointBorderColor: cssVar('--panel'),
+        pointBackgroundColor: mod,
+        pointBorderColor: colorModulo('--o-surface-1', 'entreno'),
         pointBorderWidth: 2,
         pointHoverRadius: 6,
         borderWidth: 3
@@ -152,11 +146,11 @@ export async function initEjercicioDetalleChart(chartCanvasId, historial) {
         tooltip: { ...opts.plugins.tooltip, callbacks: { label: (ctx) => `${formatNumero(ctx.parsed.y)}${unidad}` } }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: palette.textSecondary, font: { size: 10, family: chartFontFamily() } } },
+        x: { grid: { display: false }, ticks: { color: texto2, font: { size: 10, family: chartFontFamily() } } },
         y: { display: false }
       }
     },
-    plugins: [lineValueLabelsPlugin(cssVar('--text-primary'), '', (v) => formatNumero(v))]
+    plugins: [lineValueLabelsPlugin(colorModulo('--o-text', 'entreno'), '', (v) => formatNumero(v))]
   });
   chartInstances.set(chartCanvasId, chart);
 
@@ -169,12 +163,7 @@ export async function initEjercicioDetalleChart(chartCanvasId, historial) {
         chart.data.datasets[0].data = modo === '1rm' ? rm1Data : pesoData;
         chart.update();
 
-        toggleContainer.querySelectorAll('.btn-chart-mode').forEach(b => {
-          const active = b === btn;
-          b.style.background = active ? 'var(--accent-teal)' : 'transparent';
-          b.style.borderColor = active ? 'var(--accent-teal)' : 'var(--surface-border)';
-          b.style.color = active ? 'var(--bg)' : 'var(--text-secondary)';
-        });
+        toggleContainer.querySelectorAll('.btn-chart-mode').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
       });
     });
   }

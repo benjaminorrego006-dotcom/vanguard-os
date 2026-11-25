@@ -108,7 +108,7 @@ export function renderFichaEjercicio(nombre, { rutinas, historial }) {
       </section>
       <section class="o-ent-ficha-sec">
         <h3 class="o-rotulo">Progreso</h3>
-        <div class="mk3-entreno o-ent-ficha-legado">${renderEjercicioDetalle(nombre, historial, FICHA_CHART_ID)}</div>
+        ${renderEjercicioDetalle(nombre, historial, FICHA_CHART_ID)}
       </section>
     </article>`;
 }

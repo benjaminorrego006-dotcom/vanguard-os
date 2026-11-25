@@ -18,49 +18,21 @@ export function calcularDiscos(pesoObjetivo, pesoBarra = 20, discosDisponibles =
   return discos;
 }
 
+// Discos por lado en la barra (popover de la sesión). Los colores son los
+// de los discos reales (--disco-*, variables.css); el ancho y el alto de
+// cada uno salen de su peso (--d) en css/entreno.css.
 export function renderPlateCalculatorPopover(discos, pesoBarra) {
   if (discos.length === 0) {
-    return `<div style="font-size: 13px; color: var(--text-secondary); text-align: center;">Solo barra vacía (${formatNumero(pesoBarra)} kg)</div>`;
+    return `<p class="discos-vacio">Solo barra vacía (<span class="o-num">${formatNumero(pesoBarra)}</span> kg)</p>`;
   }
-
-  // Colores típicos de bumpers / discos
-  const colores = {
-    25: 'var(--disco-25)', // Rojo
-    20: 'var(--disco-20)', // Azul
-    15: 'var(--disco-15)', // Amarillo
-    10: 'var(--disco-10)', // Verde
-    5: 'var(--disco-5)',  // Blanco
-    2.5: 'var(--disco-2-5)', // Negro
-    1.25: 'var(--disco-1-25)' // Gris
-  };
-
-  let discosHtml = '';
-  discos.forEach(d => {
-    const color = colores[d] || 'var(--disco-otro)';
-    const textColor = d === 5 ? 'var(--disco-texto-claro)' : 'var(--disco-texto)';
-    // Anchura visual simulada basada en el peso
-    const width = Math.max(12, d * 1.5); 
-    const height = Math.max(40, d * 3);
-
-    discosHtml += `
-      <div style="width: ${width}px; height: ${height}px; background: ${color}; color: ${textColor}; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; writing-mode: vertical-rl; transform: rotate(180deg); border: 1px solid var(--line);">
-        ${formatNumero(d, { decimales: 2 })}
-      </div>
-    `;
-  });
-
+  const clase = (d) => ({ 25: '25', 20: '20', 15: '15', 10: '10', 5: '5', 2.5: '2-5', 1.25: '1-25' }[d] || 'otro');
+  const discosHtml = discos.map(d => `<span class="disco disco--${clase(d)} o-num" style="--d: ${d}">${formatNumero(d, { decimales: 2 })}</span>`).join('');
   return `
-    <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
-      <!-- Manga izquierda -->
-      <div style="width: 20px; height: 16px; background: var(--disco-manga);"></div>
-      <!-- Discos -->
+    <div class="discos" role="img" aria-label="Por lado: ${discos.map(d => formatNumero(d, { decimales: 2 })).join(', ')} kg, barra de ${formatNumero(pesoBarra)} kg">
+      <span class="discos-manga" aria-hidden="true"></span>
       ${discosHtml}
-      <!-- Centro barra -->
-      <div style="width: 60px; height: 12px; background: var(--disco-barra); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--disco-texto-claro); font-weight: bold;">
-        ${formatNumero(pesoBarra)} kg
-      </div>
-      <!-- Discos invertidos para simetría visual (opcional, por espacio mejor solo un lado) -->
-      <div style="font-size: 11px; color: var(--text-secondary); margin-left: 8px;">Por lado</div>
+      <span class="discos-barra o-num">${formatNumero(pesoBarra)} kg</span>
+      <span class="discos-lado">Por lado</span>
     </div>
   `;
 }
