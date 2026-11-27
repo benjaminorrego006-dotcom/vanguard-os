@@ -44,10 +44,22 @@ const MESES = ['2026-08', '2026-09', '2026-10', '2026-11'];
 const PESTANA = (t) => `[data-tab="${t}"]`;
 
 // --- Preparación ---
+// «Saltar» cierra el onboarding, un .modal-overlay con id: history.js suelta
+// su entrada de historial con history.back(), que es asíncrono. Si se cambia
+// el hash antes de ese retroceso, el navegador vuelve a la entrada del modal
+// (#dashboard) y la app regresa a Inicio, así que la espera de la vista
+// siguiente vencía a los 30 s (una foto distinta en cada corrida). Se espera
+// a que el modal se haya cerrado y su entrada ya no sea la actual.
+export async function esperarFinOnboarding(page) {
+  await page.waitForFunction(() => window.appRouter && window.appRouter.currentView
+    && !document.querySelector('#onboarding-inicial-modal.open')
+    && !(history.state && history.state.modalId === 'onboarding-inicial-modal'));
+}
+
 export async function prepararEscenario(page, base) {
   await page.goto(base + 'index.html');
   await page.locator('button:has-text("Saltar")').click({ timeout: 15000 });
-  await page.waitForFunction(() => window.appRouter && window.appRouter.currentView);
+  await esperarFinOnboarding(page);
   await page.evaluate(() => { location.hash = 'configuracion'; });
   await page.waitForFunction(() => window.appRouter.currentView === 'configuracion');
   await page.locator('#btn-cfg-demo').click();
@@ -75,9 +87,18 @@ export async function prepararEscenario(page, base) {
 }
 
 // --- Lectura de la interfaz ---
+// El router asigna currentView ANTES de importar y pintar la vista, así que
+// esa sola condición dejaba seguir con la vista anterior todavía en
+// pantalla (con la máquina cargada, la foto de hojas leía Hoy en vez de
+// Entreno). navigate() pone la animación en 'none' en el mismo tick que
+// currentView y la cambia a «o-entrar» recién con la vista montada y sus
+// listeners puestos: esa es la señal de que terminó.
+export const vistaMontada = (v) => window.appRouter && window.appRouter.currentView === v.split('/')[0]
+  && /o-entrar/.test(document.getElementById('view-root').style.animation);
+
 export const ir = async (page, vista) => {
   await page.evaluate((v) => { location.hash = v; }, vista);
-  await page.waitForFunction((v) => window.appRouter.currentView === v.split('/')[0], vista);
+  await page.waitForFunction(vistaMontada, vista);
 };
 
 // Texto visible de un elemento, con espacios normalizados.

@@ -21,7 +21,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { tomarFoto, leerUiOrbita, compararFotos, ARCHIVO_ANTES } from './foto-finanzas.mjs';
+import { tomarFoto, leerUiOrbita, compararFotos, esperarFinOnboarding, vistaMontada, ARCHIVO_ANTES } from './foto-finanzas.mjs';
 import { tomarFotoEntreno, leerUiOrbitaEntreno, ARCHIVO_ANTES_ENTRENO } from './foto-entreno.mjs';
 import { tomarFotoRutinas, UI_ORBITA as UI_ORBITA_RUTINAS, ARCHIVO_ANTES_RUTINAS } from './foto-rutinas.mjs';
 import { tomarFotoProgreso, UI_ORBITA as UI_ORBITA_PROGRESO, ARCHIVO_ANTES_PROGRESO } from './foto-progreso.mjs';
@@ -209,7 +209,7 @@ function afirmar(cond, msj) { if (!cond) throw new Error(msj); }
 // --- Ayudas de navegación ---
 async function irA(page, vista) {
   await page.evaluate((v) => { location.hash = v; }, vista);
-  await page.waitForFunction((v) => window.appRouter && window.appRouter.currentView === v.split('/')[0], vista);
+  await page.waitForFunction(vistaMontada, vista);
   await page.waitForSelector(SEL.vistaTitulo, { state: 'visible' });
   await page.waitForTimeout(400);
 }
@@ -288,6 +288,9 @@ async function main() {
   await prueba('Carga limpia (onboarding y Hoy)', async () => {
     await page.goto(BASE + 'index.html');
     await page.locator(SEL.saltarOnboarding).click({ timeout: 15000 });
+    // Sin esto, el history.back() asíncrono del cierre del onboarding podía
+    // pisar el cambio de hash de la prueba siguiente (ver foto-finanzas.mjs).
+    await esperarFinOnboarding(page);
     await page.waitForSelector(SEL.vistaTitulo);
     const ok = await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
     afirmar(ok, 'el service worker no quedó listo');

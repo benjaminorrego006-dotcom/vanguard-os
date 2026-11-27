@@ -1,0 +1,529 @@
+{
+  "errores": [],
+  "hoyVacio": {
+    "mision": {
+      "rotulo": "Ritual de hoy · 1 de 1",
+      "titulo": "Tu ritual está pendiente",
+      "detalle": "0 de 6 campos completados. Empieza el día con intención.",
+      "hecho": "Hacer ritual",
+      "modulo": "o-mod-plan"
+    },
+    "perfil": {
+      "hecho": false,
+      "href": "#dashboard/ritual"
+    }
+  },
+  "vacio": {
+    "titulo": "Ritual",
+    "fecha": "lunes, 23 de noviembre",
+    "racha": "3 días seguidos de ritual",
+    "progreso": "0 de 6 campos completados hoy",
+    "pct": 0,
+    "campos": [
+      {
+        "campo": "mision",
+        "etiqueta": "Tu misión de hoy",
+        "valor": "",
+        "placeholder": "Si el día sirviera para una sola cosa, ¿cuál sería?",
+        "lleno": false
+      },
+      {
+        "campo": "proyecto",
+        "etiqueta": "Tu proyecto principal",
+        "valor": "",
+        "placeholder": "¿En qué vas a avanzar hoy?",
+        "lleno": false
+      },
+      {
+        "campo": "pilar",
+        "etiqueta": "Tu pilar de hoy",
+        "valor": "",
+        "placeholder": "Psicología, fisiología, productividad, presencia, propósito…",
+        "lleno": false
+      },
+      {
+        "campo": "servir",
+        "etiqueta": "A quién puedes servir",
+        "valor": "",
+        "placeholder": "Alguien que se beneficie de tu día",
+        "lleno": false
+      },
+      {
+        "campo": "gratitud",
+        "etiqueta": "Algo que agradeces",
+        "valor": "",
+        "placeholder": "Una cosa, aunque sea pequeña",
+        "lleno": false
+      }
+    ],
+    "energiaEtiqueta": "¿Con qué energía arrancas?",
+    "energia": [
+      {
+        "n": 1,
+        "activo": false
+      },
+      {
+        "n": 2,
+        "activo": false
+      },
+      {
+        "n": 3,
+        "activo": false
+      },
+      {
+        "n": 4,
+        "activo": false
+      },
+      {
+        "n": 5,
+        "activo": false
+      }
+    ],
+    "completo": null
+  },
+  "unCampo": {
+    "titulo": "Ritual",
+    "fecha": "lunes, 23 de noviembre",
+    "racha": "4 días seguidos de ritual",
+    "progreso": "1 de 6 campos completados hoy",
+    "pct": 16.6667,
+    "campos": [
+      {
+        "campo": "mision",
+        "etiqueta": "Tu misión de hoy",
+        "valor": "Cerrar la Fase 10",
+        "placeholder": "Si el día sirviera para una sola cosa, ¿cuál sería?",
+        "lleno": true
+      },
+      {
+        "campo": "proyecto",
+        "etiqueta": "Tu proyecto principal",
+        "valor": "",
+        "placeholder": "¿En qué vas a avanzar hoy?",
+        "lleno": false
+      },
+      {
+        "campo": "pilar",
+        "etiqueta": "Tu pilar de hoy",
+        "valor": "",
+        "placeholder": "Psicología, fisiología, productividad, presencia, propósito…",
+        "lleno": false
+      },
+      {
+        "campo": "servir",
+        "etiqueta": "A quién puedes servir",
+        "valor": "",
+        "placeholder": "Alguien que se beneficie de tu día",
+        "lleno": false
+      },
+      {
+        "campo": "gratitud",
+        "etiqueta": "Algo que agradeces",
+        "valor": "",
+        "placeholder": "Una cosa, aunque sea pequeña",
+        "lleno": false
+      }
+    ],
+    "energiaEtiqueta": "¿Con qué energía arrancas?",
+    "energia": [
+      {
+        "n": 1,
+        "activo": false
+      },
+      {
+        "n": 2,
+        "activo": false
+      },
+      {
+        "n": 3,
+        "activo": false
+      },
+      {
+        "n": 4,
+        "activo": false
+      },
+      {
+        "n": 5,
+        "activo": false
+      }
+    ],
+    "completo": null
+  },
+  "cincoMenos": {
+    "titulo": "Ritual",
+    "fecha": "lunes, 23 de noviembre",
+    "racha": "4 días seguidos de ritual",
+    "progreso": "4 de 6 campos completados hoy",
+    "pct": 66.6667,
+    "campos": [
+      {
+        "campo": "mision",
+        "etiqueta": "Tu misión de hoy",
+        "valor": "Cerrar la Fase 10",
+        "placeholder": "Si el día sirviera para una sola cosa, ¿cuál sería?",
+        "lleno": true
+      },
+      {
+        "campo": "proyecto",
+        "etiqueta": "Tu proyecto principal",
+        "valor": "Vanguard OS",
+        "placeholder": "¿En qué vas a avanzar hoy?",
+        "lleno": true
+      },
+      {
+        "campo": "pilar",
+        "etiqueta": "Tu pilar de hoy",
+        "valor": "Productividad",
+        "placeholder": "Psicología, fisiología, productividad, presencia, propósito…",
+        "lleno": true
+      },
+      {
+        "campo": "servir",
+        "etiqueta": "A quién puedes servir",
+        "valor": "A quien use la app",
+        "placeholder": "Alguien que se beneficie de tu día",
+        "lleno": true
+      },
+      {
+        "campo": "gratitud",
+        "etiqueta": "Algo que agradeces",
+        "valor": "",
+        "placeholder": "Una cosa, aunque sea pequeña",
+        "lleno": false
+      }
+    ],
+    "energiaEtiqueta": "¿Con qué energía arrancas?",
+    "energia": [
+      {
+        "n": 1,
+        "activo": false
+      },
+      {
+        "n": 2,
+        "activo": false
+      },
+      {
+        "n": 3,
+        "activo": false
+      },
+      {
+        "n": 4,
+        "activo": false
+      },
+      {
+        "n": 5,
+        "activo": false
+      }
+    ],
+    "completo": null
+  },
+  "hoyParcial": {
+    "mision": {
+      "rotulo": "Ritual de hoy · 1 de 1",
+      "titulo": "Tu ritual está pendiente",
+      "detalle": "4 de 6 campos completados. Empieza el día con intención.",
+      "hecho": "Hacer ritual",
+      "modulo": "o-mod-plan"
+    }
+  },
+  "toastCompleto": true,
+  "completo": {
+    "titulo": "Ritual",
+    "fecha": "lunes, 23 de noviembre",
+    "racha": "4 días seguidos de ritual",
+    "progreso": "6 de 6 campos completados hoy",
+    "pct": 100,
+    "campos": [
+      {
+        "campo": "mision",
+        "etiqueta": "Tu misión de hoy",
+        "valor": "Cerrar la Fase 10",
+        "placeholder": "Si el día sirviera para una sola cosa, ¿cuál sería?",
+        "lleno": true
+      },
+      {
+        "campo": "proyecto",
+        "etiqueta": "Tu proyecto principal",
+        "valor": "Vanguard OS",
+        "placeholder": "¿En qué vas a avanzar hoy?",
+        "lleno": true
+      },
+      {
+        "campo": "pilar",
+        "etiqueta": "Tu pilar de hoy",
+        "valor": "Productividad",
+        "placeholder": "Psicología, fisiología, productividad, presencia, propósito…",
+        "lleno": true
+      },
+      {
+        "campo": "servir",
+        "etiqueta": "A quién puedes servir",
+        "valor": "A quien use la app",
+        "placeholder": "Alguien que se beneficie de tu día",
+        "lleno": true
+      },
+      {
+        "campo": "gratitud",
+        "etiqueta": "Algo que agradeces",
+        "valor": "Un café caliente",
+        "placeholder": "Una cosa, aunque sea pequeña",
+        "lleno": true
+      }
+    ],
+    "energiaEtiqueta": "¿Con qué energía arrancas?",
+    "energia": [
+      {
+        "n": 1,
+        "activo": false
+      },
+      {
+        "n": 2,
+        "activo": false
+      },
+      {
+        "n": 3,
+        "activo": false
+      },
+      {
+        "n": 4,
+        "activo": true
+      },
+      {
+        "n": 5,
+        "activo": false
+      }
+    ],
+    "completo": [
+      "Ritual completo",
+      "Ya sabes cómo se ve un buen día de hoy. Ahora ejecútalo."
+    ]
+  },
+  "hoyCompleto": {
+    "mision": null,
+    "perfil": {
+      "hecho": true,
+      "href": "#dashboard/ritual"
+    }
+  },
+  "sinEnergia": {
+    "titulo": "Ritual",
+    "fecha": "lunes, 23 de noviembre",
+    "racha": "4 días seguidos de ritual",
+    "progreso": "5 de 6 campos completados hoy",
+    "pct": 83.3333,
+    "campos": [
+      {
+        "campo": "mision",
+        "etiqueta": "Tu misión de hoy",
+        "valor": "Cerrar la Fase 10",
+        "placeholder": "Si el día sirviera para una sola cosa, ¿cuál sería?",
+        "lleno": true
+      },
+      {
+        "campo": "proyecto",
+        "etiqueta": "Tu proyecto principal",
+        "valor": "Vanguard OS",
+        "placeholder": "¿En qué vas a avanzar hoy?",
+        "lleno": true
+      },
+      {
+        "campo": "pilar",
+        "etiqueta": "Tu pilar de hoy",
+        "valor": "Productividad",
+        "placeholder": "Psicología, fisiología, productividad, presencia, propósito…",
+        "lleno": true
+      },
+      {
+        "campo": "servir",
+        "etiqueta": "A quién puedes servir",
+        "valor": "A quien use la app",
+        "placeholder": "Alguien que se beneficie de tu día",
+        "lleno": true
+      },
+      {
+        "campo": "gratitud",
+        "etiqueta": "Algo que agradeces",
+        "valor": "Un café caliente",
+        "placeholder": "Una cosa, aunque sea pequeña",
+        "lleno": true
+      }
+    ],
+    "energiaEtiqueta": "¿Con qué energía arrancas?",
+    "energia": [
+      {
+        "n": 1,
+        "activo": false
+      },
+      {
+        "n": 2,
+        "activo": false
+      },
+      {
+        "n": 3,
+        "activo": false
+      },
+      {
+        "n": 4,
+        "activo": false
+      },
+      {
+        "n": 5,
+        "activo": false
+      }
+    ],
+    "completo": null
+  },
+  "recargado": {
+    "titulo": "Ritual",
+    "fecha": "lunes, 23 de noviembre",
+    "racha": "4 días seguidos de ritual",
+    "progreso": "6 de 6 campos completados hoy",
+    "pct": 100,
+    "campos": [
+      {
+        "campo": "mision",
+        "etiqueta": "Tu misión de hoy",
+        "valor": "Cerrar la Fase 10",
+        "placeholder": "Si el día sirviera para una sola cosa, ¿cuál sería?",
+        "lleno": true
+      },
+      {
+        "campo": "proyecto",
+        "etiqueta": "Tu proyecto principal",
+        "valor": "Vanguard OS",
+        "placeholder": "¿En qué vas a avanzar hoy?",
+        "lleno": true
+      },
+      {
+        "campo": "pilar",
+        "etiqueta": "Tu pilar de hoy",
+        "valor": "Productividad",
+        "placeholder": "Psicología, fisiología, productividad, presencia, propósito…",
+        "lleno": true
+      },
+      {
+        "campo": "servir",
+        "etiqueta": "A quién puedes servir",
+        "valor": "A quien use la app",
+        "placeholder": "Alguien que se beneficie de tu día",
+        "lleno": true
+      },
+      {
+        "campo": "gratitud",
+        "etiqueta": "Algo que agradeces",
+        "valor": "Un café caliente",
+        "placeholder": "Una cosa, aunque sea pequeña",
+        "lleno": true
+      }
+    ],
+    "energiaEtiqueta": "¿Con qué energía arrancas?",
+    "energia": [
+      {
+        "n": 1,
+        "activo": false
+      },
+      {
+        "n": 2,
+        "activo": true
+      },
+      {
+        "n": 3,
+        "activo": false
+      },
+      {
+        "n": 4,
+        "activo": false
+      },
+      {
+        "n": 5,
+        "activo": false
+      }
+    ],
+    "completo": [
+      "Ritual completo",
+      "Ya sabes cómo se ve un buen día de hoy. Ahora ejecútalo."
+    ]
+  },
+  "eventos": [
+    {
+      "tipo": "ritual_iniciado",
+      "entidadId": "2026-11-23",
+      "payload": {
+        "campo": "mision",
+        "valor": "Cerrar la Fase 10"
+      }
+    },
+    {
+      "tipo": "ritual_actualizado",
+      "entidadId": "2026-11-23",
+      "payload": {
+        "campo": "proyecto",
+        "valor": "Vanguard OS"
+      }
+    },
+    {
+      "tipo": "ritual_actualizado",
+      "entidadId": "2026-11-23",
+      "payload": {
+        "campo": "pilar",
+        "valor": "Productividad"
+      }
+    },
+    {
+      "tipo": "ritual_actualizado",
+      "entidadId": "2026-11-23",
+      "payload": {
+        "campo": "servir",
+        "valor": "A quien use la app"
+      }
+    },
+    {
+      "tipo": "ritual_actualizado",
+      "entidadId": "2026-11-23",
+      "payload": {
+        "campo": "gratitud",
+        "valor": "Un café caliente"
+      }
+    },
+    {
+      "tipo": "ritual_actualizado",
+      "entidadId": "2026-11-23",
+      "payload": {
+        "campo": "energia",
+        "valor": 4
+      }
+    },
+    {
+      "tipo": "ritual_actualizado",
+      "entidadId": "2026-11-23",
+      "payload": {
+        "campo": "energia",
+        "valor": null
+      }
+    },
+    {
+      "tipo": "ritual_actualizado",
+      "entidadId": "2026-11-23",
+      "payload": {
+        "campo": "energia",
+        "valor": 2
+      }
+    }
+  ],
+  "fila": {
+    "fecha": "2026-11-23",
+    "mision": "Cerrar la Fase 10",
+    "proyecto": "Vanguard OS",
+    "pilar": "Productividad",
+    "servir": "A quien use la app",
+    "gratitud": "Un café caliente",
+    "energia": 2
+  },
+  "campos": [
+    "mision",
+    "proyecto",
+    "pilar",
+    "servir",
+    "gratitud"
+  ]
+}

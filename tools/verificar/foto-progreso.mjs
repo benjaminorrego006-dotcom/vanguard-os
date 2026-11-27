@@ -300,9 +300,15 @@ async function sembrar(page) {
       ['2026-11-22', { pesoKg: 79.8, pechoCm: 102, musloCm: 58 }]
     ];
     for (const [fecha, v] of medidas) await db.registrarMedida({ fecha, ...v });
-    await db.createGoal({ name: '20 sesiones este trimestre', targetAmount: 20, currentAmount: 0, dominio: 'entreno', tipo: 'sesiones', unidad: 'sesiones', icon: 'calendar', autoTrack: true, deadline: '2026-12-31' });
-    await db.createGoal({ name: 'Correr 50 km', targetAmount: 50, currentAmount: 12.5, dominio: 'entreno', tipo: 'personalizado', unidad: 'km', icon: 'run', deadline: '2026-11-10' });
-    await db.createGoal({ name: 'Sentadilla 100 kg', targetAmount: 100, currentAmount: 100, completed: true, dominio: 'entreno', tipo: 'personalizado', unidad: 'kg', icon: 'muscle' });
+    // Con el reloj simulado las tres metas nacían con el mismo createdAt, y
+    // la app las ordena solo por esa marca: el empate quedaba en el orden de
+    // getAll, que va por id (un UUID al azar), así que el orden de la foto
+    // cambiaba entre corridas. Cada una lleva su propia marca, un segundo
+    // aparte y en el orden de la foto de antes.
+    const creada = (s) => new Date(Date.now() + s * 1000).toISOString();
+    await db.createGoal({ name: '20 sesiones este trimestre', targetAmount: 20, currentAmount: 0, dominio: 'entreno', tipo: 'sesiones', unidad: 'sesiones', icon: 'calendar', autoTrack: true, deadline: '2026-12-31', createdAt: creada(0) });
+    await db.createGoal({ name: 'Correr 50 km', targetAmount: 50, currentAmount: 12.5, dominio: 'entreno', tipo: 'personalizado', unidad: 'km', icon: 'run', deadline: '2026-11-10', createdAt: creada(1) });
+    await db.createGoal({ name: 'Sentadilla 100 kg', targetAmount: 100, currentAmount: 100, completed: true, dominio: 'entreno', tipo: 'personalizado', unidad: 'kg', icon: 'muscle', createdAt: creada(2) });
     const png = () => new Promise((r) => { const c = document.createElement('canvas'); c.width = 4; c.height = 6; c.getContext('2d').fillRect(0, 0, 4, 6); c.toBlob(r, 'image/png'); });
     for (const fecha of ['2026-10-25', '2026-11-22', '2026-11-22']) await db.agregarFoto({ blob: await png(), ancho: 4, alto: 6, fecha });
   });
