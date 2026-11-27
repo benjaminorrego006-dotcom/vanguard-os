@@ -1,5 +1,9 @@
 # WIP 9f: estado al 25-11-2026 (rama `wip-9e-9f`)
 
+> **Cerrada el 27-11-2026.** La 9f quedó verificada (`fase-9f-2`, 69/70) y
+> sus commits pasaron a `rediseno-orbita`; la rama `wip-9e-9f` se borró.
+> Lo que sigue abajo es el registro de cómo estaba.
+
 ## Dónde está cada cosa
 
 | Parte | Commit | Rama | Estado |
