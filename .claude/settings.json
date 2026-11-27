@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "graphify hook-guard search"
+            "command": "node .claude/hooks/graphify.mjs search"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "graphify hook-guard read"
+            "command": "node .claude/hooks/graphify.mjs read"
           }
         ]
       }
